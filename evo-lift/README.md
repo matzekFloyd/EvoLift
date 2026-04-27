@@ -34,3 +34,41 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## Supabase DB Workflow
+
+Use this workflow for all database schema changes so local and remote stay in sync.
+
+### 1) Create a new migration
+
+```bash
+supabase migration new <descriptive_name>
+```
+
+This generates a new timestamped SQL file in `supabase/migrations`.
+
+### 2) Edit the generated migration SQL
+
+Open the new migration file and add your schema changes (`create table`, `alter table`, indexes, RLS policies, etc.).
+
+### 3) Validate locally
+
+```bash
+supabase db reset
+```
+
+This replays all migrations (and seed data if configured) against your local database to verify everything works from scratch.
+
+### 4) Push to remote
+
+```bash
+supabase db push
+```
+
+Apply unapplied local migrations to your linked Supabase project.
+
+### Recommended habit
+
+- Make schema changes via migrations (avoid dashboard-only changes).
+- Run `supabase db reset` before pushing.
+- Commit each migration file to Git.
