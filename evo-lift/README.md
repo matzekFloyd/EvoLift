@@ -72,3 +72,20 @@ Apply unapplied local migrations to your linked Supabase project.
 - Make schema changes via migrations (avoid dashboard-only changes).
 - Run `supabase db reset` before pushing.
 - Commit each migration file to Git.
+
+### Seed file structure
+
+Store seeds by domain in `supabase/seeds` and keep them ordered:
+
+- `supabase/seeds/001_exercises.sql` inserts base `exercises` rows by slug.
+- `supabase/seeds/002_exercise_translations.sql` inserts `exercise_translations` for `en` and `de`.
+
+The order matters when one seed depends on data from another seed. Configure this in `supabase/config.toml`:
+
+```toml
+[db.seed]
+enabled = true
+sql_paths = ["./seeds/*.sql"]
+```
+
+When adding future seeds, append a new numbered file (for example `003_defaults.sql`).
