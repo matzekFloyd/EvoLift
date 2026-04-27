@@ -98,3 +98,31 @@ When adding future seeds, append a new numbered file (for example `003_defaults.
 supabase db query --linked --file supabase/seeds/001_exercises.sql
 supabase db query --linked --file supabase/seeds/002_exercise_translations.sql
 ```
+
+## Backend Supabase usage
+
+Supabase server clients live in `lib/supabase/server.ts`:
+
+- `createPublicServerClient(accessToken?)` uses anon key and obeys RLS.
+- `createServiceRoleClient()` uses service role and bypasses RLS.
+
+Backend query logic lives in:
+
+- `server/db/exercises.ts`
+- `server/db/workouts.ts`
+
+Route handlers stay thin and call that data layer:
+
+- `app/api/exercises/route.ts`
+
+### Browser API testing (Swagger UI)
+
+- Open `http://localhost:3000/docs` for interactive API docs.
+- The OpenAPI spec is served from `http://localhost:3000/api/openapi`.
+- Click `Authorize` in Swagger UI and paste `Bearer <your_access_token>` for authenticated endpoints.
+
+### RLS choice guidelines
+
+- Use `createPublicServerClient` for user-scoped endpoints and pass a valid user JWT as bearer token (`Authorization: Bearer <token>`).
+- Use `createServiceRoleClient` only for trusted internal/admin operations.
+- If an endpoint should never bypass policies, do not use the service role in that path.
