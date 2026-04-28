@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BookOpenText, House, LogOut } from "lucide-react";
+import { BookOpenText, Dumbbell, House, LogOut } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
@@ -10,6 +10,7 @@ export function HeaderActions() {
   const router = useRouter();
   const pathname = usePathname();
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
@@ -25,6 +26,7 @@ export function HeaderActions() {
       }
 
       setIsLoggedIn(Boolean(session));
+      setUserEmail(session?.user.email ?? null);
       setIsReady(true);
     }
 
@@ -34,6 +36,7 @@ export function HeaderActions() {
       data: { subscription },
     } = supabaseBrowserClient.auth.onAuthStateChange((_event, session) => {
       setIsLoggedIn(Boolean(session));
+      setUserEmail(session?.user.email ?? null);
       setIsReady(true);
     });
 
@@ -54,10 +57,26 @@ export function HeaderActions() {
 
   return (
     <header className="border-b bg-white/90">
-      <nav className="mx-auto flex w-full max-w-5xl items-center justify-end px-4 py-3 sm:px-6">
-        <div className="flex flex-wrap items-center justify-end gap-2 sm:gap-4">
+      <nav className="mx-auto flex w-full max-w-5xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
+        <Link
+          href="/account"
+          className={`inline-flex min-w-0 max-w-[40%] items-center gap-2 rounded px-2 py-1 text-xs sm:max-w-none sm:text-sm ${
+            pathname === "/account"
+              ? "bg-zinc-900 text-white"
+              : "text-zinc-700 hover:bg-amber-100 hover:text-amber-900"
+          }`}
+          title={`Logged in as ${userEmail ?? "unknown user"}`}
+        >
+          <Dumbbell
+            className={`h-4 w-4 shrink-0 ${
+              pathname === "/account" ? "text-white" : "text-amber-700"
+            }`}
+          />
+          <span className="truncate">{userEmail ?? "unknown user"}</span>
+        </Link>
+        <div className="flex shrink-0 items-center justify-end gap-1 sm:gap-4">
           <Link
-            className={`inline-flex items-center gap-1 rounded px-2 py-1 text-sm font-medium ${
+            className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium sm:text-sm ${
               pathname === "/"
                 ? "bg-zinc-900 text-white"
                 : "text-zinc-700 hover:bg-zinc-100"
@@ -68,7 +87,7 @@ export function HeaderActions() {
             App
           </Link>
           <Link
-            className={`inline-flex items-center gap-1 rounded px-2 py-1 text-sm font-medium ${
+            className={`inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium sm:text-sm ${
               pathname === "/docs"
                 ? "bg-zinc-900 text-white"
                 : "text-zinc-700 hover:bg-zinc-100"
@@ -81,7 +100,7 @@ export function HeaderActions() {
           <button
             type="button"
             onClick={handleAuthClick}
-            className="inline-flex items-center gap-1 rounded-md border px-3 py-1.5 text-sm font-medium"
+            className="inline-flex items-center gap-1 rounded-md border px-2 py-1.5 text-xs font-medium sm:px-3 sm:text-sm"
           >
             <LogOut className="h-3.5 w-3.5" />
             Log out
