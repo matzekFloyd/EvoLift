@@ -1,5 +1,6 @@
 "use client";
 
+import { ClipboardList } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
@@ -131,12 +132,15 @@ export default function Home() {
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-4 px-4 py-12 sm:px-6 sm:py-16">
+      <h1 className="inline-flex items-center gap-2 text-2xl font-semibold tracking-tight">
+        <ClipboardList className="h-6 w-6 text-amber-700" />
+        Workout sessions
+      </h1>
       <section className="panel p-5">
-        <h2 className="text-lg font-medium">Workout sessions</h2>
         {sessionsError ? (
-          <p className="mt-3 text-sm text-red-600">{sessionsError}</p>
+          <p className="text-sm text-red-600">{sessionsError}</p>
         ) : (
-          <div className="mt-3 overflow-x-auto">
+          <div className="overflow-x-auto">
             <table className="w-full min-w-full text-left text-sm md:min-w-[520px]">
               <thead>
                 <tr className="border-b">
