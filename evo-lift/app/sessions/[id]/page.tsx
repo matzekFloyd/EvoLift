@@ -553,7 +553,7 @@ export default function SessionDetailPage() {
           No exercises were added to this session.
         </section>
       ) : (
-        sessionExercises.map((sessionExercise) => {
+        sessionExercises.map((sessionExercise, index) => {
           const sets = getSetsForExercise(sessionExercise.id);
           const addDraft = addDrafts[sessionExercise.id] ?? emptyDraft;
           const exerciseLabel =
@@ -563,7 +563,9 @@ export default function SessionDetailPage() {
             <section
               key={sessionExercise.id}
               id={`exercise-${sessionExercise.id}`}
-              className="panel p-5 text-sm"
+              className={`panel panel-nested p-5 text-sm ${
+                index % 2 === 0 ? "panel-nested-odd" : "panel-nested-even"
+              }`}
             >
               <button
                 type="button"
@@ -614,7 +616,7 @@ export default function SessionDetailPage() {
                               onChange={(event) =>
                                 setEditDraft((prev) => ({ ...prev, reps: event.target.value }))
                               }
-                              className="w-20 rounded-md border px-2 py-1"
+                              className="w-20 rounded-md border bg-white px-2 py-1"
                             />
                           </td>
                           <td className="px-2 py-2">
@@ -629,7 +631,7 @@ export default function SessionDetailPage() {
                                   weightKg: event.target.value,
                                 }))
                               }
-                              className="w-24 rounded-md border px-2 py-1"
+                              className="w-24 rounded-md border bg-white px-2 py-1"
                             />
                           </td>
                           <td className="px-2 py-2">
@@ -651,7 +653,7 @@ export default function SessionDetailPage() {
                               onChange={(event) =>
                                 setEditDraft((prev) => ({ ...prev, notes: event.target.value }))
                               }
-                              className="w-full min-w-[180px] rounded-md border px-2 py-1"
+                              className="w-full min-w-[180px] rounded-md border bg-white px-2 py-1"
                             />
                           </td>
                           {!isReadOnly ? (
@@ -737,7 +739,7 @@ export default function SessionDetailPage() {
                             onChange={(event) =>
                               updateAddDraft(sessionExercise.id, "reps", event.target.value)
                             }
-                            className="w-20 rounded-md border px-2 py-1"
+                            className="w-20 rounded-md border bg-white px-2 py-1"
                             placeholder="Reps"
                           />
                         </td>
@@ -750,7 +752,7 @@ export default function SessionDetailPage() {
                             onChange={(event) =>
                               updateAddDraft(sessionExercise.id, "weightKg", event.target.value)
                             }
-                            className="w-24 rounded-md border px-2 py-1"
+                            className="w-24 rounded-md border bg-white px-2 py-1"
                             placeholder="Weight"
                           />
                         </td>
@@ -770,7 +772,7 @@ export default function SessionDetailPage() {
                             onChange={(event) =>
                               updateAddDraft(sessionExercise.id, "notes", event.target.value)
                             }
-                            className="w-full min-w-[180px] rounded-md border px-2 py-1"
+                            className="w-full min-w-[180px] rounded-md border bg-white px-2 py-1"
                             placeholder="Optional notes"
                           />
                         </td>
@@ -825,7 +827,7 @@ export default function SessionDetailPage() {
               onChange={(event) =>
                 setAddExerciseDraft((prev) => ({ ...prev, baseWeightKg: event.target.value }))
               }
-              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
               placeholder="e.g. 20"
             />
             <div className="mt-1 flex flex-wrap gap-1">
@@ -839,7 +841,7 @@ export default function SessionDetailPage() {
                       baseWeightKg: value === 0 ? "" : String(value),
                     }))
                   }
-                  className="rounded border px-2 py-0.5 text-xs"
+                  className="rounded border bg-white px-2 py-0.5 text-xs"
                 >
                   +{value}
                 </button>
@@ -855,7 +857,7 @@ export default function SessionDetailPage() {
               onChange={(event) =>
                 setAddExerciseDraft((prev) => ({ ...prev, targetSets: event.target.value }))
               }
-              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
               placeholder="e.g. 3"
             />
           </label>
@@ -868,7 +870,7 @@ export default function SessionDetailPage() {
               onChange={(event) =>
                 setAddExerciseDraft((prev) => ({ ...prev, targetReps: event.target.value }))
               }
-              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
               placeholder="e.g. 8"
             />
           </label>
@@ -882,7 +884,7 @@ export default function SessionDetailPage() {
               onChange={(event) =>
                 setAddExerciseDraft((prev) => ({ ...prev, targetWeightKg: event.target.value }))
               }
-              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
               placeholder="e.g. 60"
             />
           </label>
@@ -894,7 +896,7 @@ export default function SessionDetailPage() {
               onChange={(event) =>
                 setAddExerciseDraft((prev) => ({ ...prev, notes: event.target.value }))
               }
-              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
               placeholder="Optional exercise notes"
             />
           </label>
