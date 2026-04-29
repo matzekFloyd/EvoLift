@@ -230,7 +230,7 @@ export default function SessionDetailPage() {
   }, [hasHydratedReadOnly, isReadOnly, sessionId]);
 
   useEffect(() => {
-    const mediaQuery = window.matchMedia("(max-width: 640px)");
+    const mediaQuery = window.matchMedia("(max-width: 768px)");
     const apply = () => setIsSmallPhone(mediaQuery.matches);
     apply();
     const onChange = () => apply();
@@ -688,7 +688,6 @@ export default function SessionDetailPage() {
         {isCompactView ? (
           <div className="flex w-full items-start justify-between gap-2">
             <h1 className="inline-flex min-w-0 items-center gap-2 text-lg font-semibold tracking-tight">
-              <Dumbbell className="h-5 w-5 shrink-0 text-sky-700" />
               <span className="truncate">Workout session #{sessionNumber ?? "-"} from {formattedPerformedOn}</span>
             </h1>
             <button
@@ -696,13 +695,12 @@ export default function SessionDetailPage() {
               onClick={goBack}
               className="inline-flex shrink-0 items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-sm text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-4 w-4 text-sky-700" />
               Back
             </button>
           </div>
         ) : (
           <h1 className="inline-flex items-center gap-2 text-2xl font-semibold tracking-tight">
-            <Dumbbell className="h-6 w-6 text-sky-700" />
             Workout session #{sessionNumber ?? "-"} from {formattedPerformedOn}
           </h1>
         )}
@@ -717,11 +715,11 @@ export default function SessionDetailPage() {
                 type="button"
                 onClick={() => setIsDeleteSessionConfirmOpen(true)}
                 disabled={isDeletingSession || isSavingSet}
-                className={`inline-flex items-center gap-1 rounded-md border border-red-200 px-3 py-1.5 text-sm text-red-700 hover:border-red-400 hover:bg-red-50 disabled:opacity-60 ${
+                className={`inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-sm text-zinc-800 hover:border-sky-400 hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-60 ${
                   isCompactView ? "flex-1 justify-center" : "w-fit"
                 }`}
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-4 w-4 text-red-600" />
                 {isDeletingSession ? "Deleting..." : "Delete session"}
               </button>
               {isCompactView ? (
@@ -730,7 +728,7 @@ export default function SessionDetailPage() {
                   onClick={() => setIsAddExerciseSheetOpen(true)}
                   className="inline-flex flex-1 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-sm text-zinc-800 hover:border-sky-400 hover:bg-zinc-100 hover:text-zinc-900"
                 >
-                  <Plus className="h-3.5 w-3.5" />
+                  <Plus className="h-3.5 w-3.5 text-sky-700" />
                   Add exercise
                 </button>
               ) : null}
@@ -772,7 +770,11 @@ export default function SessionDetailPage() {
                 : "inline-flex w-fit items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-sm text-zinc-800 hover:border-sky-400 hover:bg-zinc-100 hover:text-zinc-900"
             }
           >
-            {isReadOnly ? <LockOpen className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
+            {isReadOnly ? (
+              <LockOpen className="h-4 w-4 text-sky-700" />
+            ) : (
+              <Lock className="h-4 w-4 text-sky-700" />
+            )}
             {isReadOnly ? "Unlock" : "Lock"}
           </button>
           {!isCompactView ? (
@@ -781,15 +783,15 @@ export default function SessionDetailPage() {
               onClick={goBack}
               className="inline-flex w-fit items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-sm text-zinc-800 hover:border-sky-400 hover:bg-zinc-100 hover:text-zinc-900"
             >
-              <ArrowLeft className="h-4 w-4" />
+              <ArrowLeft className="h-4 w-4 text-sky-700" />
               Back
             </button>
           ) : null}
         </div>
       </div>
-      <section className={isCompactView ? "text-sm" : "panel p-5 text-sm"}>
+      <section className="text-sm">
         {session.notes?.trim() ? (
-          <p className={isCompactView ? "rounded-md border border-zinc-200 bg-zinc-50 p-3" : ""}>
+          <p className="rounded-md border border-zinc-200 bg-zinc-50 p-3">
             <span className="font-medium">Notes:</span> {session.notes}
           </p>
         ) : null}
@@ -807,14 +809,22 @@ export default function SessionDetailPage() {
           const exerciseLabel =
             exerciseLabels.get(sessionExercise.exercise_id) ?? sessionExercise.exercise_id;
           const exerciseBadge = exerciseBadgeById.get(sessionExercise.exercise_id);
+          const targetParts = [
+            sessionExercise.base_weight_kg != null ? `base ${sessionExercise.base_weight_kg} kg` : null,
+            sessionExercise.target_sets ? `${sessionExercise.target_sets} sets` : null,
+            sessionExercise.target_reps ? `${sessionExercise.target_reps} reps` : null,
+            sessionExercise.target_weight_kg != null ? `${sessionExercise.target_weight_kg} kg` : null,
+          ].filter(Boolean) as string[];
 
           return (
             <section
               key={sessionExercise.id}
               id={`exercise-${sessionExercise.id}`}
-              className={`panel panel-nested p-5 text-sm ${
-                index % 2 === 0 ? "panel-nested-odd" : "panel-nested-even"
-              } ${shouldUseSingleExerciseFlow ? "min-h-[calc(100vh-24rem)]" : ""}`}
+              className={
+                shouldUseSingleExerciseFlow
+                  ? "min-h-[calc(100vh-24rem)] p-1 text-sm"
+                  : "panel panel-nested border-zinc-200 bg-zinc-50/80 p-5 text-sm shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+              }
             >
               <div className="flex w-full items-start justify-between gap-3 text-left">
                 <span className="inline-flex min-w-0 items-center gap-2 truncate text-lg font-medium text-zinc-900">
@@ -829,26 +839,32 @@ export default function SessionDetailPage() {
                   {index + 1}/{sessionExercises.length}
                 </span>
               </div>
-              <p className="mt-1 text-base text-zinc-700">
-                Targets:{" "}
-                {[
-                  sessionExercise.base_weight_kg != null
-                    ? `base ${sessionExercise.base_weight_kg} kg`
-                    : null,
-                  sessionExercise.target_sets ? `${sessionExercise.target_sets} sets` : null,
-                  sessionExercise.target_reps ? `${sessionExercise.target_reps} reps` : null,
-                  sessionExercise.target_weight_kg != null
-                    ? `${sessionExercise.target_weight_kg} kg`
-                    : null,
-                ]
-                  .filter(Boolean)
-                  .join(" | ") || "-"}
-              </p>
+              {shouldUseSingleExerciseFlow ? (
+                <p className="mt-1 text-base text-zinc-700">
+                  Targets: {targetParts.join(" | ") || "-"}
+                </p>
+              ) : (
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  <span className="text-sm font-medium text-zinc-600">Targets:</span>
+                  {targetParts.length > 0 ? (
+                    targetParts.map((part) => (
+                      <span
+                        key={`${sessionExercise.id}-${part}`}
+                        className="inline-flex items-center rounded-full border border-zinc-300 bg-white px-2 py-0.5 text-xs text-zinc-700"
+                      >
+                        {part}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-xs text-zinc-500">none set</span>
+                  )}
+                </div>
+              )}
 
               <div className="mt-3 space-y-3 md:hidden">
                 {sets.map((set) =>
                   editingSetId === set.id ? (
-                    <div key={set.id} className="rounded-md border border-zinc-300 bg-white p-3">
+                    <div key={set.id} className="rounded-md border border-zinc-200 bg-zinc-50/80 p-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
                       <p className="text-xs font-medium text-zinc-600">Set {set.set_number}</p>
                       <div className="mt-2 grid grid-cols-2 gap-2">
                         <label className="text-xs font-medium text-zinc-600">
@@ -910,7 +926,7 @@ export default function SessionDetailPage() {
                       </div>
                     </div>
                   ) : (
-                    <div key={set.id} className="rounded-md border border-zinc-300 bg-white p-3">
+                    <div key={set.id} className="rounded-md border border-zinc-200 bg-zinc-50/80 p-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
                       {isCompactView ? (
                         <>
                           <div className="flex items-center justify-between gap-2">
@@ -929,7 +945,7 @@ export default function SessionDetailPage() {
                                   type="button"
                                   onClick={() => startEdit(set)}
                                   disabled={isSavingSet}
-                                  className="rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
+                                  className="w-24 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
                                 >
                                   Edit
                                 </button>
@@ -937,7 +953,7 @@ export default function SessionDetailPage() {
                                   type="button"
                                   onClick={() => deleteSet(set.id)}
                                   disabled={isSavingSet}
-                                  className="rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
+                                  className="w-24 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
                                 >
                                   Delete
                                 </button>
@@ -986,7 +1002,7 @@ export default function SessionDetailPage() {
                   ),
                 )}
                 {!isReadOnly ? (
-                  <div className="rounded-md border border-zinc-300 bg-white p-3">
+                  <div className="rounded-md border border-zinc-200 bg-zinc-50/80 p-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
                     <p className="inline-flex items-center gap-1 text-sm text-zinc-700">
                       <Plus className="h-3 w-3" />
                       New set
@@ -1132,21 +1148,21 @@ export default function SessionDetailPage() {
                 ) : null}
               </div>
 
-              <div className="mt-3 hidden overflow-x-auto md:block">
+              <div className="mt-3 hidden overflow-x-auto rounded-md border border-zinc-200 bg-white md:block">
                 <table className="w-full min-w-[640px] text-left text-sm">
                   <thead>
-                    <tr className="border-b">
+                    <tr className="border-b bg-zinc-50">
                       <th className="px-2 py-2">Set</th>
                       <th className="px-2 py-2">Reps</th>
                       <th className="px-2 py-2">Loaded (kg)</th>
                       <th className="px-2 py-2">Warmup</th>
-                      {!isReadOnly ? <th className="px-2 py-2">Actions</th> : null}
+                      {!isReadOnly ? <th className="px-2 py-2 text-right">Actions</th> : null}
                     </tr>
                   </thead>
                   <tbody>
                     {sets.map((set) =>
                       editingSetId === set.id ? (
-                        <tr key={set.id} className="border-b">
+                        <tr key={set.id} className="border-b bg-white">
                           <td className="px-2 py-2">{set.set_number}</td>
                           <td className="px-2 py-2">
                             <input
@@ -1187,7 +1203,7 @@ export default function SessionDetailPage() {
                                   type="button"
                                   onClick={() => saveEdit(set.id)}
                                   disabled={isSavingSet}
-                                  className="rounded-md border px-2 py-1 text-xs"
+                                  className="w-24 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
                                 >
                                   Save
                                 </button>
@@ -1198,7 +1214,7 @@ export default function SessionDetailPage() {
                                     setEditDraft(emptyDraft);
                                   }}
                                   disabled={isSavingSet}
-                                  className="rounded-md border px-2 py-1 text-xs"
+                                  className="w-24 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
                                 >
                                   Cancel
                                 </button>
@@ -1207,7 +1223,7 @@ export default function SessionDetailPage() {
                           ) : null}
                         </tr>
                       ) : (
-                        <tr key={set.id} className="border-b">
+                        <tr key={set.id} className="border-b odd:bg-white even:bg-zinc-50/60 hover:bg-zinc-100/60">
                           <td className="px-2 py-2">{set.set_number}</td>
                           <td className="px-2 py-2">{set.reps}</td>
                           <td className="px-2 py-2">
@@ -1224,7 +1240,7 @@ export default function SessionDetailPage() {
                                   type="button"
                                   onClick={() => startEdit(set)}
                                   disabled={isSavingSet}
-                                  className="rounded-md border px-2 py-1 text-xs"
+                                  className="rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
                                 >
                                   Edit
                                 </button>
@@ -1232,7 +1248,7 @@ export default function SessionDetailPage() {
                                   type="button"
                                   onClick={() => deleteSet(set.id)}
                                   disabled={isSavingSet}
-                                  className="rounded-md border px-2 py-1 text-xs"
+                                  className="rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
                                 >
                                   Delete
                                 </button>
@@ -1285,12 +1301,12 @@ export default function SessionDetailPage() {
                           />
                         </td>
                         <td className="px-2 py-2">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center justify-end gap-2">
                             <button
                               type="button"
                               onClick={() => applyQuickSetPreset(sessionExercise.id, "same")}
                               disabled={isSavingSet || !lastSet}
-                              className="rounded-md border px-2 py-1 text-xs disabled:opacity-60"
+                            className="w-24 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100 disabled:opacity-60"
                             >
                               Same as last
                             </button>
@@ -1298,7 +1314,7 @@ export default function SessionDetailPage() {
                               type="button"
                               onClick={() => handleAddSet(sessionExercise.id)}
                               disabled={isSavingSet}
-                              className="rounded-md border px-2 py-1 text-xs"
+                            className="w-24 rounded-md border border-sky-700 bg-sky-700 px-2 py-1 text-xs text-white hover:border-sky-600 hover:bg-sky-600"
                             >
                               Add set
                             </button>
@@ -1455,7 +1471,7 @@ export default function SessionDetailPage() {
                       disabled={isAddingExercise}
                       className="inline-flex h-10 items-center justify-center gap-1 rounded-md border px-3 py-2 text-sm hover:border-sky-400 hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-60"
                     >
-                      <Plus className="h-3.5 w-3.5" />
+                    <Plus className="h-3.5 w-3.5 text-sky-700" />
                       {isAddingExercise ? "Adding..." : "Add exercise"}
                     </button>
                   </div>
@@ -1468,7 +1484,7 @@ export default function SessionDetailPage() {
 
       {message ? <section className="panel p-4 text-sm text-red-600">{message}</section> : null}
       {isCompactView && !isReadOnly && activeSessionExercise ? (
-        <div className="fixed inset-x-0 bottom-20 z-40 p-3 sm:hidden">
+        <div className="fixed inset-x-0 bottom-20 z-40 p-3 md:hidden">
           <div className="mx-auto flex w-full max-w-5xl flex-col gap-1">
             <div className="grid grid-cols-2 gap-2">
               <button
@@ -1492,7 +1508,7 @@ export default function SessionDetailPage() {
         </div>
       ) : null}
       {isCompactView && !isReadOnly && activeSessionExercise && isTargetsSheetOpen ? (
-        <div className="fixed inset-0 z-50 sm:hidden">
+        <div className="fixed inset-0 z-50 md:hidden">
           <div
             role="button"
             tabIndex={0}
@@ -1585,7 +1601,7 @@ export default function SessionDetailPage() {
         </div>
       ) : null}
       {isCompactView && !isReadOnly && isAddExerciseSheetOpen ? (
-        <div className="fixed inset-0 z-50 sm:hidden">
+        <div className="fixed inset-0 z-50 md:hidden">
           <div
             role="button"
             tabIndex={0}
@@ -1717,7 +1733,7 @@ export default function SessionDetailPage() {
         </div>
       ) : null}
       {isCompactView && sessionExercises.length > 0 ? (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-200 bg-white/95 p-3 shadow-[0_-6px_16px_rgba(0,0,0,0.08)] backdrop-blur sm:hidden">
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-200 bg-white/95 p-3 shadow-[0_-6px_16px_rgba(0,0,0,0.08)] backdrop-blur md:hidden">
           <div className="mx-auto flex w-full max-w-5xl items-center justify-between gap-2">
             <button
               type="button"
