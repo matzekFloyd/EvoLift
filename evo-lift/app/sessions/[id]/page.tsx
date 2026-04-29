@@ -1,6 +1,18 @@
 "use client";
 
-import { ArrowLeft, ChevronDown, ChevronUp, Dumbbell, Lock, LockOpen, Plus, Trash2 } from "lucide-react";
+import {
+  AlertCircle,
+  ArrowLeft,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  Dumbbell,
+  Lock,
+  LockOpen,
+  Plus,
+  TriangleAlert,
+  Trash2,
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
@@ -27,6 +39,7 @@ type AddExerciseDraft = {
 };
 
 type QuickSetPreset = "same" | "plusRep" | "plusWeight";
+type MessageTone = "error" | "warning" | "success";
 
 const emptyDraft: SetDraft = {
   reps: "",
@@ -50,6 +63,7 @@ export default function SessionDetailPage() {
 
   const [isChecking, setIsChecking] = useState(true);
   const [message, setMessage] = useState<string | null>(null);
+  const [messageTone, setMessageTone] = useState<MessageTone>("error");
   const [session, setSession] = useState<SessionRow | null>(null);
   const [sessionExercises, setSessionExercises] = useState<SessionExerciseRow[]>([]);
   const [workoutSets, setWorkoutSets] = useState<WorkoutSetRow[]>([]);
@@ -74,9 +88,38 @@ export default function SessionDetailPage() {
   const [targetsSets, setTargetsSets] = useState("");
   const [targetsReps, setTargetsReps] = useState("");
   const [targetsWeightKg, setTargetsWeightKg] = useState("");
+  const [targetsSessionExerciseId, setTargetsSessionExerciseId] = useState<string | null>(null);
   const [isSavingTargets, setIsSavingTargets] = useState(false);
   const [isSmallPhone, setIsSmallPhone] = useState(false);
   const [activeExerciseIndex, setActiveExerciseIndex] = useState(0);
+  const maxExerciseNotesLength = 500;
+
+  function showError(messageText: string) {
+    setMessageTone("error");
+    setMessage(messageText);
+  }
+
+  function showWarning(messageText: string) {
+    setMessageTone("warning");
+    setMessage(messageText);
+  }
+
+  function showSuccess(messageText: string) {
+    setMessageTone("success");
+    setMessage(messageText);
+  }
+
+  function clearMessage() {
+    setMessage(null);
+  }
+
+  function getExerciseLabelForSessionExerciseId(sessionExerciseId: string): string {
+    const sessionExercise = sessionExercises.find((item) => item.id === sessionExerciseId);
+    if (!sessionExercise) {
+      return "exercise";
+    }
+    return exerciseLabels.get(sessionExercise.exercise_id) ?? sessionExercise.exercise_id;
+  }
 
   function getReadOnlyStorageKey(currentSessionId: string) {
     return `evolift:session-readonly:${currentSessionId}`;
@@ -108,7 +151,7 @@ export default function SessionDetailPage() {
         return;
       }
       if (sessionError || !sessionData) {
-        setMessage("Could not load workout session.");
+        showError("Could not load workout session.");
         setIsChecking(false);
         return;
       }
@@ -132,7 +175,7 @@ export default function SessionDetailPage() {
         return;
       }
       if (sessionExerciseError) {
-        setMessage("Could not load session exercises.");
+        showError("Could not load session exercises.");
         setIsChecking(false);
         return;
       }
@@ -152,7 +195,7 @@ export default function SessionDetailPage() {
           return;
         }
         if (setsError) {
-          setMessage("Could not load workout sets.");
+          showError("Could not load workout sets.");
           setIsChecking(false);
           return;
         }
@@ -165,7 +208,7 @@ export default function SessionDetailPage() {
         .select("id, slug")
         .order("slug", { ascending: true });
       if (allExercisesError) {
-        setMessage("Could not load exercise options.");
+        showError("Could not load exercise options.");
         setIsChecking(false);
         return;
       }
@@ -300,7 +343,7 @@ export default function SessionDetailPage() {
   function applyQuickSetPreset(sessionExerciseId: string, preset: QuickSetPreset) {
     const lastSet = getLastSet(sessionExerciseId);
     if (!lastSet) {
-      setMessage("Add one set first to enable quick actions.");
+      showWarning("Add one set first to enable quick actions.");
       return;
     }
 
@@ -315,7 +358,7 @@ export default function SessionDetailPage() {
       nextWeight = Number(((nextWeight ?? 0) + 2.5).toFixed(1));
     }
 
-    setMessage(null);
+    clearMessage();
     setAddDrafts((prev) => ({
       ...prev,
       [sessionExerciseId]: {
@@ -330,7 +373,7 @@ export default function SessionDetailPage() {
     const draft = getResolvedAddDraft(sessionExerciseId);
     const parsedReps = Number(draft.reps);
     if (!Number.isFinite(parsedReps) || parsedReps <= 0) {
-      setMessage("Please enter a valid reps value.");
+      showError("Please enter a valid reps value.");
       return;
     }
 
@@ -342,12 +385,12 @@ export default function SessionDetailPage() {
 
     const parsedWeight = draft.weightKg ? Number(draft.weightKg) : null;
     if (parsedWeight !== null && (!Number.isFinite(parsedWeight) || parsedWeight < 0)) {
-      setMessage("Please enter a valid weight.");
+      showError("Please enter a valid weight.");
       return;
     }
 
     setIsSavingSet(true);
-    setMessage(null);
+    clearMessage();
 
     const { data, error } = await supabaseBrowserClient
       .from("workout_sets")
@@ -362,7 +405,7 @@ export default function SessionDetailPage() {
       .single();
 
     if (error || !data) {
-      setMessage(`Could not add set: ${error?.message ?? "Unknown error"}`);
+      showError(`Could not add set: ${error?.message ?? "Unknown error"}`);
       setIsSavingSet(false);
       return;
     }
@@ -377,6 +420,8 @@ export default function SessionDetailPage() {
         isWarmup: data.is_warmup,
       },
     }));
+    const exerciseLabel = getExerciseLabelForSessionExerciseId(sessionExerciseId);
+    showSuccess(`Set ${data.set_number} added for ${exerciseLabel}.`);
     setIsSavingSet(false);
   }
 
@@ -392,17 +437,17 @@ export default function SessionDetailPage() {
   async function saveEdit(setId: string) {
     const parsedReps = Number(editDraft.reps);
     if (!Number.isFinite(parsedReps) || parsedReps <= 0) {
-      setMessage("Please enter a valid reps value.");
+      showError("Please enter a valid reps value.");
       return;
     }
     const parsedWeight = editDraft.weightKg ? Number(editDraft.weightKg) : null;
     if (parsedWeight !== null && (!Number.isFinite(parsedWeight) || parsedWeight < 0)) {
-      setMessage("Please enter a valid weight.");
+      showError("Please enter a valid weight.");
       return;
     }
 
     setIsSavingSet(true);
-    setMessage(null);
+    clearMessage();
 
     const { data, error } = await supabaseBrowserClient
       .from("workout_sets")
@@ -416,29 +461,41 @@ export default function SessionDetailPage() {
       .single();
 
     if (error || !data) {
-      setMessage(`Could not update set: ${error?.message ?? "Unknown error"}`);
+      showError(`Could not update set: ${error?.message ?? "Unknown error"}`);
       setIsSavingSet(false);
       return;
     }
 
+    const previousSet = workoutSets.find((item) => item.id === setId);
+    const exerciseLabel = previousSet
+      ? getExerciseLabelForSessionExerciseId(previousSet.session_exercise_id)
+      : "exercise";
     setWorkoutSets((prev) => prev.map((item) => (item.id === setId ? data : item)));
     setEditingSetId(null);
     setEditDraft(emptyDraft);
+    showSuccess(`Set ${data.set_number} updated for ${exerciseLabel}.`);
     setIsSavingSet(false);
   }
 
   async function deleteSet(setId: string) {
     setIsSavingSet(true);
-    setMessage(null);
+    clearMessage();
 
+    const deletedSet = workoutSets.find((set) => set.id === setId);
     const { error } = await supabaseBrowserClient.from("workout_sets").delete().eq("id", setId);
     if (error) {
-      setMessage(`Could not delete set: ${error.message}`);
+      showError(`Could not delete set: ${error.message}`);
       setIsSavingSet(false);
       return;
     }
 
     setWorkoutSets((prev) => prev.filter((set) => set.id !== setId));
+    if (deletedSet) {
+      const exerciseLabel = getExerciseLabelForSessionExerciseId(deletedSet.session_exercise_id);
+      showSuccess(`Set ${deletedSet.set_number} deleted from ${exerciseLabel}.`);
+    } else {
+      showSuccess("Set deleted.");
+    }
     setIsSavingSet(false);
   }
 
@@ -448,7 +505,7 @@ export default function SessionDetailPage() {
     }
     setIsDeleteSessionConfirmOpen(false);
     setIsDeletingSession(true);
-    setMessage(null);
+    clearMessage();
 
     const sessionExerciseIds = sessionExercises.map((item) => item.id);
     if (sessionExerciseIds.length > 0) {
@@ -457,7 +514,7 @@ export default function SessionDetailPage() {
         .delete()
         .in("session_exercise_id", sessionExerciseIds);
       if (setsDeleteError) {
-        setMessage(`Could not delete workout sets: ${setsDeleteError.message}`);
+        showError(`Could not delete workout sets: ${setsDeleteError.message}`);
         setIsDeletingSession(false);
         return;
       }
@@ -467,7 +524,7 @@ export default function SessionDetailPage() {
         .delete()
         .eq("session_id", sessionId);
       if (sessionExercisesDeleteError) {
-        setMessage(`Could not delete session exercises: ${sessionExercisesDeleteError.message}`);
+        showError(`Could not delete session exercises: ${sessionExercisesDeleteError.message}`);
         setIsDeletingSession(false);
         return;
       }
@@ -478,7 +535,7 @@ export default function SessionDetailPage() {
       .delete()
       .eq("id", sessionId);
     if (sessionDeleteError) {
-      setMessage(`Could not delete workout session: ${sessionDeleteError.message}`);
+      showError(`Could not delete workout session: ${sessionDeleteError.message}`);
       setIsDeletingSession(false);
       return;
     }
@@ -491,7 +548,7 @@ export default function SessionDetailPage() {
       return;
     }
     if (!addExerciseDraft.exerciseId) {
-      setMessage("Please choose an exercise to add.");
+      showError("Please choose an exercise to add.");
       return;
     }
 
@@ -499,7 +556,7 @@ export default function SessionDetailPage() {
       (row) => row.exercise_id === addExerciseDraft.exerciseId,
     );
     if (alreadyInSession) {
-      setMessage("That exercise is already in this session.");
+      showWarning("That exercise is already in this session.");
       return;
     }
 
@@ -513,19 +570,19 @@ export default function SessionDetailPage() {
       : null;
 
     if (parsedSets !== null && (!Number.isFinite(parsedSets) || parsedSets <= 0)) {
-      setMessage("Please enter a valid target sets value.");
+      showError("Please enter a valid target sets value.");
       return;
     }
     if (parsedReps !== null && (!Number.isFinite(parsedReps) || parsedReps <= 0)) {
-      setMessage("Please enter a valid target reps value.");
+      showError("Please enter a valid target reps value.");
       return;
     }
     if (parsedWeight !== null && (!Number.isFinite(parsedWeight) || parsedWeight < 0)) {
-      setMessage("Please enter a valid target weight.");
+      showError("Please enter a valid target weight.");
       return;
     }
     if (parsedBaseWeight !== null && (!Number.isFinite(parsedBaseWeight) || parsedBaseWeight < 0)) {
-      setMessage("Please enter a valid base weight.");
+      showError("Please enter a valid base weight.");
       return;
     }
 
@@ -535,7 +592,7 @@ export default function SessionDetailPage() {
         : 1;
 
     setIsAddingExercise(true);
-    setMessage(null);
+    clearMessage();
 
     const { data, error } = await supabaseBrowserClient
       .from("workout_session_exercises")
@@ -553,12 +610,13 @@ export default function SessionDetailPage() {
       .single();
 
     if (error || !data) {
-      setMessage(`Could not add exercise: ${error?.message ?? "Unknown error"}`);
+      showError(`Could not add exercise: ${error?.message ?? "Unknown error"}`);
       setIsAddingExercise(false);
       return;
     }
 
     setSessionExercises((prev) => [...prev, data].sort((a, b) => a.position - b.position));
+    showSuccess("Exercise added to session.");
     if (isCompactView) {
       setActiveExerciseIndex(sessionExercises.length);
       setIsAddExerciseSheetOpen(false);
@@ -567,7 +625,8 @@ export default function SessionDetailPage() {
     setIsAddingExercise(false);
   }
 
-  function openTargetsSheet(sessionExercise: SessionExerciseRow) {
+  function startTargetsEdit(sessionExercise: SessionExerciseRow, mode: "inline" | "sheet") {
+    setTargetsSessionExerciseId(sessionExercise.id);
     setTargetsBaseWeightKg(
       sessionExercise.base_weight_kg == null ? "" : String(sessionExercise.base_weight_kg),
     );
@@ -576,34 +635,44 @@ export default function SessionDetailPage() {
     setTargetsWeightKg(
       sessionExercise.target_weight_kg == null ? "" : String(sessionExercise.target_weight_kg),
     );
-    setIsTargetsSheetOpen(true);
+    setIsTargetsSheetOpen(mode === "sheet");
   }
 
-  async function saveTargetsForExercise(sessionExerciseId: string) {
+  function cancelTargetsEdit() {
+    setIsTargetsSheetOpen(false);
+    setTargetsSessionExerciseId(null);
+  }
+
+  async function saveTargetsForExercise() {
+    if (!targetsSessionExerciseId) {
+      showError("Could not determine which exercise targets to update.");
+      return;
+    }
+
     const parsedBaseWeight = targetsBaseWeightKg ? Number(targetsBaseWeightKg) : null;
     const parsedSets = targetsSets ? Number(targetsSets) : null;
     const parsedReps = targetsReps ? Number(targetsReps) : null;
     const parsedWeight = targetsWeightKg ? Number(targetsWeightKg) : null;
 
     if (parsedBaseWeight !== null && (!Number.isFinite(parsedBaseWeight) || parsedBaseWeight < 0)) {
-      setMessage("Please enter a valid base weight.");
+      showError("Please enter a valid base weight.");
       return;
     }
     if (parsedSets !== null && (!Number.isFinite(parsedSets) || parsedSets <= 0)) {
-      setMessage("Please enter a valid target sets value.");
+      showError("Please enter a valid target sets value.");
       return;
     }
     if (parsedReps !== null && (!Number.isFinite(parsedReps) || parsedReps <= 0)) {
-      setMessage("Please enter a valid target reps value.");
+      showError("Please enter a valid target reps value.");
       return;
     }
     if (parsedWeight !== null && (!Number.isFinite(parsedWeight) || parsedWeight < 0)) {
-      setMessage("Please enter a valid target weight.");
+      showError("Please enter a valid target weight.");
       return;
     }
 
     setIsSavingTargets(true);
-    setMessage(null);
+    clearMessage();
 
     const { data, error } = await supabaseBrowserClient
       .from("workout_session_exercises")
@@ -613,22 +682,31 @@ export default function SessionDetailPage() {
         target_reps: parsedReps,
         target_weight_kg: parsedWeight,
       })
-      .eq("id", sessionExerciseId)
+      .eq("id", targetsSessionExerciseId)
       .select("*")
       .single();
 
     if (error || !data) {
-      setMessage(`Could not update targets: ${error?.message ?? "Unknown error"}`);
+      showError(`Could not update targets: ${error?.message ?? "Unknown error"}`);
       setIsSavingTargets(false);
       return;
     }
 
-    setSessionExercises((prev) => prev.map((item) => (item.id === sessionExerciseId ? data : item)));
+    setSessionExercises((prev) =>
+      prev.map((item) => (item.id === targetsSessionExerciseId ? data : item)),
+    );
     setIsSavingTargets(false);
     setIsTargetsSheetOpen(false);
+    setTargetsSessionExerciseId(null);
+    const updatedExerciseLabel =
+      targetsSessionExerciseId != null
+        ? getExerciseLabelForSessionExerciseId(targetsSessionExerciseId)
+        : "exercise";
+    showSuccess(`Targets updated for ${updatedExerciseLabel}.`);
   }
 
   function goBack() {
+    clearMessage();
     if (window.history.length > 1) {
       router.back();
       return;
@@ -677,6 +755,16 @@ export default function SessionDetailPage() {
     activeSessionExercise
       ? (exerciseLabels.get(activeSessionExercise.exercise_id) ?? activeSessionExercise.exercise_id)
       : "";
+  const targetsExerciseLabel = (() => {
+    if (!targetsSessionExerciseId) {
+      return activeExerciseLabel;
+    }
+    const selected = sessionExercises.find((item) => item.id === targetsSessionExerciseId);
+    if (!selected) {
+      return activeExerciseLabel;
+    }
+    return exerciseLabels.get(selected.exercise_id) ?? selected.exercise_id;
+  })();
 
   return (
     <main
@@ -687,9 +775,12 @@ export default function SessionDetailPage() {
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         {isCompactView ? (
           <div className="flex w-full items-start justify-between gap-2">
-            <h1 className="inline-flex min-w-0 items-center gap-2 text-lg font-semibold tracking-tight">
-              <span className="truncate">Workout session #{sessionNumber ?? "-"} from {formattedPerformedOn}</span>
-            </h1>
+            <div className="min-w-0">
+              <h1 className="truncate text-lg font-semibold tracking-tight">
+                Workout session #{sessionNumber ?? "-"}
+              </h1>
+              <p className="mt-0.5 text-sm text-zinc-500">{formattedPerformedOn}</p>
+            </div>
             <button
               type="button"
               onClick={goBack}
@@ -700,9 +791,10 @@ export default function SessionDetailPage() {
             </button>
           </div>
         ) : (
-          <h1 className="inline-flex items-center gap-2 text-2xl font-semibold tracking-tight">
-            Workout session #{sessionNumber ?? "-"} from {formattedPerformedOn}
-          </h1>
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">Workout session #{sessionNumber ?? "-"}</h1>
+            <p className="mt-0.5 text-sm text-zinc-500">{formattedPerformedOn}</p>
+          </div>
         )}
         <div
           className={`flex flex-wrap items-center gap-2 lg:justify-end ${
@@ -716,7 +808,7 @@ export default function SessionDetailPage() {
                 onClick={() => setIsDeleteSessionConfirmOpen(true)}
                 disabled={isDeletingSession || isSavingSet}
                 className={`inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-sm text-zinc-800 hover:border-sky-400 hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-60 ${
-                  isCompactView ? "flex-1 justify-center" : "w-fit"
+                  isCompactView ? "h-10 flex-1 justify-center" : "w-fit"
                 }`}
               >
                 <Trash2 className="h-4 w-4 text-red-600" />
@@ -726,7 +818,7 @@ export default function SessionDetailPage() {
                 <button
                   type="button"
                   onClick={() => setIsAddExerciseSheetOpen(true)}
-                  className="inline-flex flex-1 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-sm text-zinc-800 hover:border-sky-400 hover:bg-zinc-100 hover:text-zinc-900"
+                  className="inline-flex h-10 flex-1 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-sm text-zinc-800 hover:border-sky-400 hover:bg-zinc-100 hover:text-zinc-900"
                 >
                   <Plus className="h-3.5 w-3.5 text-sky-700" />
                   Add exercise
@@ -763,10 +855,13 @@ export default function SessionDetailPage() {
           ) : null}
           <button
             type="button"
-            onClick={() => setIsReadOnly((prev) => !prev)}
+              onClick={() => {
+                clearMessage();
+                setIsReadOnly((prev) => !prev);
+              }}
             className={
               isCompactView
-                ? "inline-flex flex-1 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-sm text-zinc-800 hover:border-sky-400 hover:bg-zinc-100 hover:text-zinc-900"
+                ? "inline-flex h-10 flex-1 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-sm text-zinc-800 hover:border-sky-400 hover:bg-zinc-100 hover:text-zinc-900"
                 : "inline-flex w-fit items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-sm text-zinc-800 hover:border-sky-400 hover:bg-zinc-100 hover:text-zinc-900"
             }
           >
@@ -794,6 +889,38 @@ export default function SessionDetailPage() {
           <p className="rounded-md border border-zinc-200 bg-zinc-50 p-3">
             <span className="font-medium">Notes:</span> {session.notes}
           </p>
+        ) : null}
+        {message ? (
+          <section
+            className={`mt-3 rounded-md border px-3 py-2 text-sm shadow-sm ${
+              messageTone === "error"
+                ? "border-red-200 bg-red-50 text-red-700"
+                : messageTone === "warning"
+                  ? "border-amber-200 bg-amber-50 text-amber-800"
+                  : "border-emerald-200 bg-emerald-50 text-emerald-800"
+            }`}
+          >
+            <div className="flex items-center justify-between gap-2">
+              <p className="inline-flex items-center gap-2">
+                {messageTone === "error" ? (
+                  <AlertCircle className="h-4 w-4 shrink-0" />
+                ) : messageTone === "warning" ? (
+                  <TriangleAlert className="h-4 w-4 shrink-0" />
+                ) : (
+                  <CheckCircle2 className="h-4 w-4 shrink-0" />
+                )}
+                <span>{message}</span>
+              </p>
+              <button
+                type="button"
+                onClick={clearMessage}
+                aria-label="Dismiss message"
+                className="inline-flex h-6 w-6 shrink-0 items-center justify-center text-sm leading-none opacity-70 hover:opacity-100"
+              >
+                ×
+              </button>
+            </div>
+          </section>
         ) : null}
 
         {sessionExercises.length === 0 ? (
@@ -839,12 +966,8 @@ export default function SessionDetailPage() {
                   {index + 1}/{sessionExercises.length}
                 </span>
               </div>
-              {shouldUseSingleExerciseFlow ? (
-                <p className="mt-1 text-base text-zinc-700">
-                  Targets: {targetParts.join(" | ") || "-"}
-                </p>
-              ) : (
-                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <div className="mt-2 flex items-center justify-between gap-2">
+                <div className="flex flex-wrap items-center gap-1.5">
                   <span className="text-sm font-medium text-zinc-600">Targets:</span>
                   {targetParts.length > 0 ? (
                     targetParts.map((part) => (
@@ -859,7 +982,94 @@ export default function SessionDetailPage() {
                     <span className="text-xs text-zinc-500">none set</span>
                   )}
                 </div>
-              )}
+                {!isReadOnly && !shouldUseSingleExerciseFlow ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const isOpenForThisExercise =
+                        targetsSessionExerciseId === sessionExercise.id && !isTargetsSheetOpen;
+                      if (isOpenForThisExercise) {
+                        cancelTargetsEdit();
+                        return;
+                      }
+                      startTargetsEdit(sessionExercise, "inline");
+                    }}
+                    className="inline-flex h-9 w-24 shrink-0 items-center justify-center rounded-md border border-zinc-300 bg-zinc-50 px-2 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
+                  >
+                    {targetsSessionExerciseId === sessionExercise.id && !isTargetsSheetOpen ? (
+                      <ChevronUp className="mr-1 h-3.5 w-3.5" />
+                    ) : (
+                      <ChevronDown className="mr-1 h-3.5 w-3.5" />
+                    )}
+                    Set targets
+                  </button>
+                ) : null}
+              </div>
+              {!shouldUseSingleExerciseFlow && targetsSessionExerciseId === sessionExercise.id ? (
+                <div className="mt-3 rounded-md border border-zinc-200 bg-white p-3">
+                  <div className="grid grid-cols-2 gap-3">
+                    <label className="block text-sm font-medium">
+                      Base (kg)
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.5"
+                        value={targetsBaseWeightKg}
+                        onChange={(event) => setTargetsBaseWeightKg(event.target.value)}
+                        className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                      />
+                    </label>
+                    <label className="block text-sm font-medium">
+                      Target sets
+                      <input
+                        type="number"
+                        min={1}
+                        value={targetsSets}
+                        onChange={(event) => setTargetsSets(event.target.value)}
+                        className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                      />
+                    </label>
+                    <label className="block text-sm font-medium">
+                      Target reps
+                      <input
+                        type="number"
+                        min={1}
+                        value={targetsReps}
+                        onChange={(event) => setTargetsReps(event.target.value)}
+                        className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                      />
+                    </label>
+                    <label className="block text-sm font-medium">
+                      Target kg
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.5"
+                        value={targetsWeightKg}
+                        onChange={(event) => setTargetsWeightKg(event.target.value)}
+                        className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                      />
+                    </label>
+                  </div>
+                  <div className="mt-3 flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={cancelTargetsEdit}
+                      className="inline-flex h-9 w-24 items-center justify-center rounded-md border border-zinc-300 bg-zinc-50 px-2 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => saveTargetsForExercise()}
+                      disabled={isSavingTargets}
+                      className="inline-flex h-9 w-24 items-center justify-center rounded-md border border-sky-700 bg-sky-700 px-2 text-xs text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60"
+                    >
+                      {isSavingTargets ? "Saving..." : "Save"}
+                    </button>
+                  </div>
+                </div>
+              ) : null}
 
               <div className="mt-3 space-y-3 md:hidden">
                 {sets.map((set) =>
@@ -1335,7 +1545,7 @@ export default function SessionDetailPage() {
           isCompactView ? (
             null
           ) : (
-            <section className="panel panel-nested panel-nested-even mt-4 p-5 text-sm">
+            <section className="panel mt-4 border-zinc-200 bg-zinc-50/80 p-5 text-sm shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -1451,17 +1661,20 @@ export default function SessionDetailPage() {
                         placeholder="e.g. 60"
                       />
                     </label>
-                    <label className="block text-sm font-medium">
+                    <label className="block text-sm font-medium sm:col-span-2">
                       Notes (optional)
-                      <input
-                        type="text"
+                      <textarea
                         value={addExerciseDraft.notes}
                         onChange={(event) =>
                           setAddExerciseDraft((prev) => ({ ...prev, notes: event.target.value }))
                         }
-                        className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                        className="mt-1 h-24 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                        maxLength={maxExerciseNotesLength}
                         placeholder="Optional exercise notes"
                       />
+                      <p className="mt-1 text-xs text-zinc-500">
+                        {addExerciseDraft.notes.length}/{maxExerciseNotesLength}
+                      </p>
                     </label>
                   </div>
                   <div className="mt-4 flex justify-end">
@@ -1482,14 +1695,13 @@ export default function SessionDetailPage() {
         ) : null}
       </section>
 
-      {message ? <section className="panel p-4 text-sm text-red-600">{message}</section> : null}
       {isCompactView && !isReadOnly && activeSessionExercise ? (
         <div className="fixed inset-x-0 bottom-20 z-40 p-3 md:hidden">
           <div className="mx-auto flex w-full max-w-5xl flex-col gap-1">
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
-                onClick={() => openTargetsSheet(activeSessionExercise)}
+                onClick={() => startTargetsEdit(activeSessionExercise, "sheet")}
                 className="inline-flex h-11 w-full items-center justify-center rounded-md border border-zinc-300 bg-zinc-50 px-3 text-sm font-medium text-zinc-800 shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:border-sky-300 hover:bg-zinc-100"
               >
                 Set targets
@@ -1507,17 +1719,19 @@ export default function SessionDetailPage() {
           </div>
         </div>
       ) : null}
-      {isCompactView && !isReadOnly && activeSessionExercise && isTargetsSheetOpen ? (
-        <div className="fixed inset-0 z-50 md:hidden">
+      {!isReadOnly && isTargetsSheetOpen ? (
+        <div className="fixed inset-0 z-50">
           <div
             role="button"
             tabIndex={0}
             aria-label="Close targets form"
-            onClick={() => setIsTargetsSheetOpen(false)}
+            onClick={() => {
+              cancelTargetsEdit();
+            }}
             onKeyDown={(event) => {
               if (event.key === "Enter" || event.key === " ") {
                 event.preventDefault();
-                setIsTargetsSheetOpen(false);
+                cancelTargetsEdit();
               }
             }}
             className="absolute inset-0 bg-black/40"
@@ -1528,13 +1742,13 @@ export default function SessionDetailPage() {
                 <h2 className="text-base font-semibold">Set targets</h2>
                 <button
                   type="button"
-                  onClick={() => setIsTargetsSheetOpen(false)}
+                  onClick={cancelTargetsEdit}
                   className="rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
                 >
                   Close
                 </button>
               </div>
-              <p className="mb-3 text-xs text-zinc-600">{activeExerciseLabel}</p>
+              <p className="mb-3 text-xs text-zinc-600">{targetsExerciseLabel}</p>
               <div className="grid grid-cols-2 gap-3">
                 <label className="block text-sm font-medium">
                   Base (kg)
@@ -1582,14 +1796,14 @@ export default function SessionDetailPage() {
               <div className="mt-4 flex gap-2">
                 <button
                   type="button"
-                  onClick={() => setIsTargetsSheetOpen(false)}
+                  onClick={cancelTargetsEdit}
                   className="inline-flex h-10 flex-1 items-center justify-center rounded-md border border-zinc-300 bg-zinc-50 px-3 text-sm text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
                 >
                   Cancel
                 </button>
                 <button
                   type="button"
-                  onClick={() => saveTargetsForExercise(activeSessionExercise.id)}
+                  onClick={() => saveTargetsForExercise()}
                   disabled={isSavingTargets}
                   className="inline-flex h-10 flex-1 items-center justify-center rounded-md border border-sky-700 bg-sky-700 px-3 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60"
                 >
@@ -1699,15 +1913,18 @@ export default function SessionDetailPage() {
                 </div>
                 <label className="block text-sm font-medium">
                   Notes (optional)
-                  <input
-                    type="text"
+                  <textarea
                     value={addExerciseDraft.notes}
                     onChange={(event) =>
                       setAddExerciseDraft((prev) => ({ ...prev, notes: event.target.value }))
                     }
-                    className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                    className="mt-1 h-24 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                    maxLength={maxExerciseNotesLength}
                     placeholder="Optional exercise notes"
                   />
+                  <p className="mt-1 text-xs text-zinc-500">
+                    {addExerciseDraft.notes.length}/{maxExerciseNotesLength}
+                  </p>
                 </label>
                 <div className="mt-1 flex gap-2">
                   <button
