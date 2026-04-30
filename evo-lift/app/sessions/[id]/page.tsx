@@ -1,17 +1,18 @@
 "use client";
 
 import {
-  AlertCircle,
   ArrowLeft,
-  CheckCircle2,
+  Check,
   ChevronDown,
   ChevronUp,
   Dumbbell,
+  ListChecks,
   Lock,
   LockOpen,
+  Pencil,
   Plus,
-  TriangleAlert,
   Trash2,
+  X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
@@ -20,6 +21,8 @@ import type { Database } from "@/lib/supabase/database.types";
 import { CompactStickyBar } from "@/app/components/compact-sticky-bar";
 import { CompactRowActions } from "@/app/components/compact-row-actions";
 import { NotesTextareaField } from "@/app/components/notes-textarea-field";
+import { PageShell } from "@/app/components/page-shell";
+import { StatusNotice } from "@/app/components/status-notice";
 import { toExerciseBadge } from "@/lib/exercise-badge";
 
 type SessionRow = Database["public"]["Tables"]["workout_sessions"]["Row"];
@@ -41,7 +44,6 @@ type AddExerciseDraft = {
   notes: string;
 };
 
-type QuickSetPreset = "same" | "plusRep" | "plusWeight";
 type MessageTone = "error" | "warning" | "success";
 
 const emptyDraft: SetDraft = {
@@ -87,7 +89,6 @@ export default function SessionDetailPage() {
   const [isAddExerciseExpanded, setIsAddExerciseExpanded] = useState(false);
   const [isAddExerciseSheetOpen, setIsAddExerciseSheetOpen] = useState(false);
   const [isTargetsSheetOpen, setIsTargetsSheetOpen] = useState(false);
-  const [targetsBaseWeightKg, setTargetsBaseWeightKg] = useState("");
   const [targetsSets, setTargetsSets] = useState("");
   const [targetsReps, setTargetsReps] = useState("");
   const [targetsWeightKg, setTargetsWeightKg] = useState("");
@@ -330,7 +331,8 @@ export default function SessionDetailPage() {
   }
 
   function getResolvedAddDraft(sessionExerciseId: string): SetDraft {
-    const draft = addDrafts[sessionExerciseId] ?? emptyDraft;
+    const existingDraft = addDrafts[sessionExerciseId];
+    const draft = existingDraft ?? emptyDraft;
     const lastSet = getLastSet(sessionExerciseId);
     if (!lastSet) {
       return draft;
@@ -339,37 +341,8 @@ export default function SessionDetailPage() {
       reps: draft.reps || String(lastSet.reps),
       weightKg:
         draft.weightKg || (lastSet.weight_kg == null ? "" : String(lastSet.weight_kg)),
-      isWarmup: draft.isWarmup,
+      isWarmup: existingDraft ? draft.isWarmup : lastSet.is_warmup,
     };
-  }
-
-  function applyQuickSetPreset(sessionExerciseId: string, preset: QuickSetPreset) {
-    const lastSet = getLastSet(sessionExerciseId);
-    if (!lastSet) {
-      showWarning("Add one set first to enable quick actions.");
-      return;
-    }
-
-    let nextReps = lastSet.reps;
-    let nextWeight = lastSet.weight_kg;
-    let nextWarmup = lastSet.is_warmup;
-
-    if (preset === "plusRep") {
-      nextReps += 1;
-    }
-    if (preset === "plusWeight") {
-      nextWeight = Number(((nextWeight ?? 0) + 2.5).toFixed(1));
-    }
-
-    clearMessage();
-    setAddDrafts((prev) => ({
-      ...prev,
-      [sessionExerciseId]: {
-        reps: String(nextReps),
-        weightKg: nextWeight == null ? "" : String(nextWeight),
-        isWarmup: nextWarmup,
-      },
-    }));
   }
 
   async function handleAddSet(sessionExerciseId: string) {
@@ -630,9 +603,6 @@ export default function SessionDetailPage() {
 
   function startTargetsEdit(sessionExercise: SessionExerciseRow, mode: "inline" | "sheet") {
     setTargetsSessionExerciseId(sessionExercise.id);
-    setTargetsBaseWeightKg(
-      sessionExercise.base_weight_kg == null ? "" : String(sessionExercise.base_weight_kg),
-    );
     setTargetsSets(sessionExercise.target_sets == null ? "" : String(sessionExercise.target_sets));
     setTargetsReps(sessionExercise.target_reps == null ? "" : String(sessionExercise.target_reps));
     setTargetsWeightKg(
@@ -652,15 +622,10 @@ export default function SessionDetailPage() {
       return;
     }
 
-    const parsedBaseWeight = targetsBaseWeightKg ? Number(targetsBaseWeightKg) : null;
     const parsedSets = targetsSets ? Number(targetsSets) : null;
     const parsedReps = targetsReps ? Number(targetsReps) : null;
     const parsedWeight = targetsWeightKg ? Number(targetsWeightKg) : null;
 
-    if (parsedBaseWeight !== null && (!Number.isFinite(parsedBaseWeight) || parsedBaseWeight < 0)) {
-      showError("Please enter a valid base weight.");
-      return;
-    }
     if (parsedSets !== null && (!Number.isFinite(parsedSets) || parsedSets <= 0)) {
       showError("Please enter a valid target sets value.");
       return;
@@ -680,7 +645,6 @@ export default function SessionDetailPage() {
     const { data, error } = await supabaseBrowserClient
       .from("workout_session_exercises")
       .update({
-        base_weight_kg: parsedBaseWeight,
         target_sets: parsedSets,
         target_reps: parsedReps,
         target_weight_kg: parsedWeight,
@@ -719,19 +683,19 @@ export default function SessionDetailPage() {
 
   if (isChecking) {
     return (
-      <main className="mx-auto flex w-full max-w-5xl flex-1 items-center justify-center px-4 py-12 sm:px-6 sm:py-16">
+      <PageShell className="items-center justify-center">
         <p className="text-sm text-zinc-600">Loading workout session...</p>
-      </main>
+      </PageShell>
     );
   }
 
   if (!session) {
     return (
-      <main className="mx-auto flex w-full max-w-5xl flex-1 flex-col gap-4 px-4 py-12 sm:px-6 sm:py-16">
+      <PageShell>
         <section className="panel p-5">
           <p className="text-sm text-red-600">{message ?? "Session not found."}</p>
         </section>
-      </main>
+      </PageShell>
     );
   }
 
@@ -770,11 +734,7 @@ export default function SessionDetailPage() {
   })();
 
   return (
-    <main
-      className={`mx-auto flex w-full max-w-5xl flex-1 flex-col gap-4 px-4 py-12 sm:px-6 sm:py-16 ${
-        isCompactView ? "pt-3 pb-52 sm:pb-16" : ""
-      }`}
-    >
+    <PageShell className={isCompactView ? "pb-52 sm:pb-16" : undefined}>
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         {isCompactView ? (
           <div className="flex w-full items-start justify-between gap-2">
@@ -894,36 +854,7 @@ export default function SessionDetailPage() {
           </p>
         ) : null}
         {message ? (
-          <section
-            className={`mt-3 rounded-md border px-3 py-2 text-sm shadow-sm ${
-              messageTone === "error"
-                ? "border-red-200 bg-red-50 text-red-700"
-                : messageTone === "warning"
-                  ? "border-amber-200 bg-amber-50 text-amber-800"
-                  : "border-emerald-200 bg-emerald-50 text-emerald-800"
-            }`}
-          >
-            <div className="flex items-center justify-between gap-2">
-              <p className="inline-flex items-center gap-2">
-                {messageTone === "error" ? (
-                  <AlertCircle className="h-4 w-4 shrink-0" />
-                ) : messageTone === "warning" ? (
-                  <TriangleAlert className="h-4 w-4 shrink-0" />
-                ) : (
-                  <CheckCircle2 className="h-4 w-4 shrink-0" />
-                )}
-                <span>{message}</span>
-              </p>
-              <button
-                type="button"
-                onClick={clearMessage}
-                aria-label="Dismiss message"
-                className="inline-flex h-6 w-6 shrink-0 items-center justify-center text-sm leading-none opacity-70 hover:opacity-100"
-              >
-                ×
-              </button>
-            </div>
-          </section>
+          <StatusNotice message={message} tone={messageTone} onDismiss={clearMessage} className="mt-3" />
         ) : null}
 
         {sessionExercises.length === 0 ? (
@@ -940,7 +871,6 @@ export default function SessionDetailPage() {
             exerciseLabels.get(sessionExercise.exercise_id) ?? sessionExercise.exercise_id;
           const exerciseBadge = exerciseBadgeById.get(sessionExercise.exercise_id);
           const targetParts = [
-            sessionExercise.base_weight_kg != null ? `base ${sessionExercise.base_weight_kg} kg` : null,
             sessionExercise.target_sets ? `${sessionExercise.target_sets} sets` : null,
             sessionExercise.target_reps ? `${sessionExercise.target_reps} reps` : null,
             sessionExercise.target_weight_kg != null ? `${sessionExercise.target_weight_kg} kg` : null,
@@ -1010,18 +940,7 @@ export default function SessionDetailPage() {
               </div>
               {!shouldUseSingleExerciseFlow && targetsSessionExerciseId === sessionExercise.id ? (
                 <div className="mt-3 rounded-md border border-zinc-200 bg-white p-3">
-                  <div className="grid grid-cols-2 gap-3">
-                    <label className="block text-sm font-medium">
-                      Base (kg)
-                      <input
-                        type="number"
-                        min={0}
-                        step="0.5"
-                        value={targetsBaseWeightKg}
-                        onChange={(event) => setTargetsBaseWeightKg(event.target.value)}
-                        className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
-                      />
-                    </label>
+                  <div className="grid grid-cols-3 gap-3">
                     <label className="block text-sm font-medium">
                       Target sets
                       <input
@@ -1043,11 +962,11 @@ export default function SessionDetailPage() {
                       />
                     </label>
                     <label className="block text-sm font-medium">
-                      Target kg
+                      Target weight (kg)
                       <input
                         type="number"
                         min={0}
-                        step="0.5"
+                        step="0.25"
                         value={targetsWeightKg}
                         onChange={(event) => setTargetsWeightKg(event.target.value)}
                         className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
@@ -1058,16 +977,18 @@ export default function SessionDetailPage() {
                     <button
                       type="button"
                       onClick={cancelTargetsEdit}
-                      className="inline-flex h-9 w-24 items-center justify-center rounded-md border border-zinc-300 bg-zinc-50 px-2 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
+                      className="inline-flex h-9 w-24 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
                     >
+                      <X className="h-3 w-3 text-zinc-500" />
                       Cancel
                     </button>
                     <button
                       type="button"
                       onClick={() => saveTargetsForExercise()}
                       disabled={isSavingTargets}
-                      className="inline-flex h-9 w-24 items-center justify-center rounded-md border border-sky-700 bg-sky-700 px-2 text-xs text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60"
+                      className="inline-flex h-9 w-24 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-2 text-xs text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60"
                     >
+                      <Check className="h-3 w-3 text-white" />
                       {isSavingTargets ? "Saving..." : "Save"}
                     </button>
                   </div>
@@ -1097,7 +1018,7 @@ export default function SessionDetailPage() {
                           <input
                             type="number"
                             min={0}
-                            step="0.5"
+                            step="0.25"
                             value={editDraft.weightKg}
                             onChange={(event) =>
                               setEditDraft((prev) => ({ ...prev, weightKg: event.target.value }))
@@ -1136,7 +1057,7 @@ export default function SessionDetailPage() {
                             <div className="min-w-0 truncate text-sm text-zinc-700">
                               <span className="font-medium text-zinc-900">Set {set.set_number}</span>
                               <span className="text-zinc-500"> - </span>
-                              <span>Reps {set.reps}</span>
+                              <span>{set.reps} reps</span>
                               <span className="text-zinc-500">, </span>
                               <span>{set.weight_kg ?? "-"} kg</span>
                               <span className="text-zinc-500">, </span>
@@ -1175,19 +1096,21 @@ export default function SessionDetailPage() {
                             <div className="mt-3 flex justify-end gap-2">
                               <button
                                 type="button"
-                                onClick={() => startEdit(set)}
+                                onClick={() => deleteSet(set.id)}
                                 disabled={isSavingSet}
-                                className="rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
+                                className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
                               >
-                                Edit
+                                <Trash2 className="h-3 w-3 text-red-600" />
+                                Delete
                               </button>
                               <button
                                 type="button"
-                                onClick={() => deleteSet(set.id)}
+                                onClick={() => startEdit(set)}
                                 disabled={isSavingSet}
-                                className="rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
+                                className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
                               >
-                                Delete
+                                <Pencil className="h-3 w-3 text-sky-700" />
+                                Edit
                               </button>
                             </div>
                           ) : null}
@@ -1202,32 +1125,6 @@ export default function SessionDetailPage() {
                       <Plus className="h-3 w-3 text-sky-700" />
                       New set
                     </p>
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      <button
-                        type="button"
-                        onClick={() => applyQuickSetPreset(sessionExercise.id, "same")}
-                        disabled={isSavingSet || !lastSet}
-                        className="rounded-full border px-2 py-1 text-xs disabled:opacity-60"
-                      >
-                        Same as last
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => applyQuickSetPreset(sessionExercise.id, "plusRep")}
-                        disabled={isSavingSet || !lastSet}
-                        className="rounded-full border px-2 py-1 text-xs disabled:opacity-60"
-                      >
-                        +1 rep
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => applyQuickSetPreset(sessionExercise.id, "plusWeight")}
-                        disabled={isSavingSet || !lastSet}
-                        className="rounded-full border px-2 py-1 text-xs disabled:opacity-60"
-                      >
-                        +2.5 kg
-                      </button>
-                    </div>
                     {lastSet ? (
                       <p className="mt-2 text-[11px] text-zinc-500">
                         Last set: {lastSet.reps} reps @ {lastSet.weight_kg ?? 0} kg
@@ -1281,7 +1178,7 @@ export default function SessionDetailPage() {
                         <input
                           type="number"
                           min={0}
-                          step="0.5"
+                          step="0.25"
                           value={addDraft.weightKg}
                           onChange={(event) =>
                             updateAddDraft(sessionExercise.id, "weightKg", event.target.value)
@@ -1334,8 +1231,9 @@ export default function SessionDetailPage() {
                         type="button"
                         onClick={() => handleAddSet(sessionExercise.id)}
                         disabled={isSavingSet}
-                        className="rounded-md border px-2 py-1 text-sm"
+                        className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-sm"
                       >
+                        <Plus className="h-3.5 w-3.5 text-sky-700" />
                         Add set
                       </button>
                     </div>
@@ -1374,7 +1272,7 @@ export default function SessionDetailPage() {
                             <input
                               type="number"
                               min={0}
-                              step="0.5"
+                              step="0.25"
                               value={editDraft.weightKg}
                               onChange={(event) =>
                                 setEditDraft((prev) => ({ ...prev, weightKg: event.target.value }))
@@ -1398,8 +1296,9 @@ export default function SessionDetailPage() {
                                   type="button"
                                   onClick={() => saveEdit(set.id)}
                                   disabled={isSavingSet}
-                                  className="w-24 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
+                                  className="inline-flex w-24 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
                                 >
+                                  <Check className="h-3 w-3 text-emerald-600" />
                                   Save
                                 </button>
                                 <button
@@ -1409,8 +1308,9 @@ export default function SessionDetailPage() {
                                     setEditDraft(emptyDraft);
                                   }}
                                   disabled={isSavingSet}
-                                  className="w-24 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
+                                  className="inline-flex w-24 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
                                 >
+                                  <X className="h-3 w-3 text-zinc-500" />
                                   Cancel
                                 </button>
                               </div>
@@ -1433,19 +1333,21 @@ export default function SessionDetailPage() {
                               <div className="flex justify-end gap-2">
                                 <button
                                   type="button"
-                                  onClick={() => startEdit(set)}
+                                  onClick={() => deleteSet(set.id)}
                                   disabled={isSavingSet}
-                                  className="rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
+                                  className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
                                 >
-                                  Edit
+                                  <Trash2 className="h-3 w-3 text-red-600" />
+                                  Delete
                                 </button>
                                 <button
                                   type="button"
-                                  onClick={() => deleteSet(set.id)}
+                                  onClick={() => startEdit(set)}
                                   disabled={isSavingSet}
-                                  className="rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
+                                  className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
                                 >
-                                  Delete
+                                  <Pencil className="h-3 w-3 text-sky-700" />
+                                  Edit
                                 </button>
                               </div>
                             </td>
@@ -1477,7 +1379,7 @@ export default function SessionDetailPage() {
                           <input
                             type="number"
                             min={0}
-                            step="0.5"
+                            step="0.25"
                             value={addDraft.weightKg}
                             onChange={(event) =>
                               updateAddDraft(sessionExercise.id, "weightKg", event.target.value)
@@ -1499,18 +1401,11 @@ export default function SessionDetailPage() {
                           <div className="flex items-center justify-end gap-2">
                             <button
                               type="button"
-                              onClick={() => applyQuickSetPreset(sessionExercise.id, "same")}
-                              disabled={isSavingSet || !lastSet}
-                            className="w-24 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100 disabled:opacity-60"
-                            >
-                              Same as last
-                            </button>
-                            <button
-                              type="button"
                               onClick={() => handleAddSet(sessionExercise.id)}
                               disabled={isSavingSet}
-                            className="w-24 rounded-md border border-sky-700 bg-sky-700 px-2 py-1 text-xs text-white hover:border-sky-600 hover:bg-sky-600"
+                            className="inline-flex w-24 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-2 py-1 text-xs text-white hover:border-sky-600 hover:bg-sky-600"
                             >
+                              <Plus className="h-3.5 w-3.5 text-white" />
                               Add set
                             </button>
                           </div>
@@ -1577,7 +1472,7 @@ export default function SessionDetailPage() {
                       <input
                         type="number"
                         min={0}
-                        step="0.5"
+                        step="0.25"
                         value={addExerciseDraft.baseWeightKg}
                         onChange={(event) =>
                           setAddExerciseDraft((prev) => ({ ...prev, baseWeightKg: event.target.value }))
@@ -1634,7 +1529,7 @@ export default function SessionDetailPage() {
                       <input
                         type="number"
                         min={0}
-                        step="0.5"
+                        step="0.25"
                         value={addExerciseDraft.targetWeightKg}
                         onChange={(event) =>
                           setAddExerciseDraft((prev) => ({
@@ -1685,6 +1580,7 @@ export default function SessionDetailPage() {
                 onClick={() => startTargetsEdit(activeSessionExercise, "sheet")}
                 className="inline-flex h-11 flex-1 items-center justify-center rounded-md border border-zinc-300 bg-zinc-50 px-3 text-sm font-medium text-zinc-800 shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:border-sky-300 hover:bg-zinc-100"
               >
+                <ListChecks className="mr-1 h-3.5 w-3.5 text-sky-700" />
                 Set targets
               </button>
               <button
@@ -1737,18 +1633,7 @@ export default function SessionDetailPage() {
                 </button>
               </div>
               <p className="mb-3 text-xs text-zinc-600">{targetsExerciseLabel}</p>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="block text-sm font-medium">
-                  Base (kg)
-                  <input
-                    type="number"
-                    min={0}
-                    step="0.5"
-                    value={targetsBaseWeightKg}
-                    onChange={(event) => setTargetsBaseWeightKg(event.target.value)}
-                    className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
-                  />
-                </label>
+              <div className="grid grid-cols-3 gap-3">
                 <label className="block text-sm font-medium">
                   Target sets
                   <input
@@ -1770,11 +1655,11 @@ export default function SessionDetailPage() {
                   />
                 </label>
                 <label className="block text-sm font-medium">
-                  Target kg
+                  Target weight (kg)
                   <input
                     type="number"
                     min={0}
-                    step="0.5"
+                    step="0.25"
                     value={targetsWeightKg}
                     onChange={(event) => setTargetsWeightKg(event.target.value)}
                     className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
@@ -1785,16 +1670,18 @@ export default function SessionDetailPage() {
                 <button
                   type="button"
                   onClick={cancelTargetsEdit}
-                  className="inline-flex h-10 flex-1 items-center justify-center rounded-md border border-zinc-300 bg-zinc-50 px-3 text-sm text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
+                  className="inline-flex h-10 flex-1 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 text-sm text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
                 >
+                  <X className="h-3.5 w-3.5 text-zinc-500" />
                   Cancel
                 </button>
                 <button
                   type="button"
                   onClick={() => saveTargetsForExercise()}
                   disabled={isSavingTargets}
-                  className="inline-flex h-10 flex-1 items-center justify-center rounded-md border border-sky-700 bg-sky-700 px-3 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60"
+                  className="inline-flex h-10 flex-1 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-3 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60"
                 >
+                  <Check className="h-3.5 w-3.5 text-white" />
                   {isSavingTargets ? "Saving..." : "Save targets"}
                 </button>
               </div>
@@ -1853,7 +1740,7 @@ export default function SessionDetailPage() {
                     <input
                       type="number"
                       min={0}
-                      step="0.5"
+                      step="0.25"
                       value={addExerciseDraft.baseWeightKg}
                       onChange={(event) =>
                         setAddExerciseDraft((prev) => ({ ...prev, baseWeightKg: event.target.value }))
@@ -1886,11 +1773,11 @@ export default function SessionDetailPage() {
                     />
                   </label>
                   <label className="block text-sm font-medium">
-                    Target kg
+                    Target weight (kg)
                     <input
                       type="number"
                       min={0}
-                      step="0.5"
+                      step="0.25"
                       value={addExerciseDraft.targetWeightKg}
                       onChange={(event) =>
                         setAddExerciseDraft((prev) => ({ ...prev, targetWeightKg: event.target.value }))
@@ -1931,6 +1818,6 @@ export default function SessionDetailPage() {
           </div>
         </div>
       ) : null}
-    </main>
+    </PageShell>
   );
 }

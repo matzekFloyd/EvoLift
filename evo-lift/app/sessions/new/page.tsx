@@ -18,6 +18,8 @@ import { useRouter } from "next/navigation";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { ActionButton } from "@/app/components/action-button";
 import { NotesTextareaField } from "@/app/components/notes-textarea-field";
+import { PageShell } from "@/app/components/page-shell";
+import { StatusNotice } from "@/app/components/status-notice";
 import type { Database } from "@/lib/supabase/database.types";
 import { toExerciseBadge } from "@/lib/exercise-badge";
 
@@ -556,9 +558,9 @@ export default function NewSessionPage() {
 
   if (isChecking) {
     return (
-      <main className="mx-auto flex w-full max-w-5xl flex-1 items-center justify-center px-4 py-12 sm:px-6 sm:py-16">
+      <PageShell className="items-center justify-center">
         <p className="text-sm text-zinc-600">Checking session...</p>
-      </main>
+      </PageShell>
     );
   }
 
@@ -570,11 +572,7 @@ export default function NewSessionPage() {
     : exerciseRows.map((row, index) => ({ row, index }));
 
   return (
-    <main
-      className={`mx-auto flex w-full max-w-5xl flex-1 flex-col gap-4 px-4 py-12 sm:px-6 sm:py-16 ${
-        isCompactView ? "pb-36" : ""
-      }`}
-    >
+    <PageShell className={isCompactView ? "pb-36" : undefined}>
       <div className="flex items-center justify-between gap-3">
         <h1 className="inline-flex items-center gap-2 text-2xl font-semibold tracking-tight">
           <CalendarPlus className="h-6 w-6 text-sky-700" />
@@ -627,25 +625,7 @@ export default function NewSessionPage() {
           </div>
 
           {message ? (
-            <section
-              className={`rounded-md border px-3 py-2 text-sm shadow-sm ${
-                messageTone === "error"
-                  ? "border-red-200 bg-red-50 text-red-700"
-                  : "border-emerald-200 bg-emerald-50 text-emerald-800"
-              }`}
-            >
-              <div className="flex items-center justify-between gap-2">
-                <p>{message}</p>
-                <button
-                  type="button"
-                  onClick={clearMessage}
-                  aria-label="Dismiss message"
-                  className="inline-flex h-6 w-6 shrink-0 items-center justify-center text-sm leading-none opacity-70 hover:opacity-100"
-                >
-                  ×
-                </button>
-              </div>
-            </section>
+            <StatusNotice message={message} tone={messageTone} onDismiss={clearMessage} />
           ) : null}
 
           {isCompactView ? (
@@ -863,7 +843,7 @@ export default function NewSessionPage() {
                     <input
                       type="number"
                       min={0}
-                      step="0.5"
+                      step="0.25"
                       value={row.baseWeightKg}
                       onChange={(event) =>
                         updateExerciseRow(index, "baseWeightKg", event.target.value)
@@ -921,7 +901,7 @@ export default function NewSessionPage() {
                     <input
                       type="number"
                       min={0}
-                      step="0.5"
+                      step="0.25"
                       value={row.targetWeightKg}
                       onChange={(event) =>
                         updateExerciseRow(index, "targetWeightKg", event.target.value)
@@ -938,7 +918,14 @@ export default function NewSessionPage() {
                     disabled={savingDefaultsRowIndex === index || !row.exerciseId}
                     className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100 disabled:opacity-60"
                   >
-                    {savingDefaultsRowIndex === index ? "Saving..." : "Save targets as default"}
+                    {savingDefaultsRowIndex === index ? (
+                      "Saving..."
+                    ) : (
+                      <>
+                        <Check className="h-3.5 w-3.5 text-sky-700" />
+                        Save targets as default
+                      </>
+                    )}
                   </button>
                 </div>
                 <div className="mt-3 block text-sm font-medium">
@@ -990,7 +977,7 @@ export default function NewSessionPage() {
                     <input
                       type="number"
                       min={0}
-                      step="0.5"
+                      step="0.25"
                       value={row.baseWeightKg}
                       onChange={(event) =>
                         updateExerciseRow(index, "baseWeightKg", event.target.value)
@@ -1048,7 +1035,7 @@ export default function NewSessionPage() {
                     <input
                       type="number"
                       min={0}
-                      step="0.5"
+                      step="0.25"
                       value={row.targetWeightKg}
                       onChange={(event) =>
                         updateExerciseRow(index, "targetWeightKg", event.target.value)
@@ -1065,7 +1052,14 @@ export default function NewSessionPage() {
                     disabled={savingDefaultsRowIndex === index || !row.exerciseId}
                     className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100 disabled:opacity-60"
                   >
-                    {savingDefaultsRowIndex === index ? "Saving..." : "Save targets as default"}
+                    {savingDefaultsRowIndex === index ? (
+                      "Saving..."
+                    ) : (
+                      <>
+                        <Check className="h-3.5 w-3.5 text-sky-700" />
+                        Save targets as default
+                      </>
+                    )}
                   </button>
                 </div>
                 <div className="mt-3 block text-sm font-medium">
@@ -1151,6 +1145,6 @@ export default function NewSessionPage() {
           </div>
         </div>
       ) : null}
-    </main>
+    </PageShell>
   );
 }
