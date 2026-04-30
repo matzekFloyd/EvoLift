@@ -32,7 +32,11 @@ function getIntensityClass(sets: number, workouts: number): string {
 }
 
 function toDate(value: string): Date {
-  return new Date(`${value}T00:00:00`);
+  const [yearText, monthText, dayText] = value.split("-");
+  const year = Number(yearText);
+  const month = Number(monthText);
+  const day = Number(dayText);
+  return new Date(year, month - 1, day);
 }
 
 function startOfWeekMonday(value: Date): Date {
@@ -69,27 +73,35 @@ export function WorkoutActivityChart({ data, isCompactView = false }: WorkoutAct
     const compactData = [...countsByWeek.entries()]
       .sort(([left], [right]) => left.localeCompare(right))
       .slice(-10)
-      .map(([weekStart, sets]) => ({ weekStart, sets }));
+      .map(([weekStart, sets]) => {
+        const start = toDate(weekStart);
+        const end = new Date(start);
+        end.setDate(start.getDate() + 6);
+        const startText = new Intl.DateTimeFormat(undefined, {
+          month: "short",
+          day: "numeric",
+        }).format(start);
+        const endText = new Intl.DateTimeFormat(undefined, {
+          month: "short",
+          day: "numeric",
+        }).format(end);
+        return {
+          weekStart,
+          sets,
+          weekLabel: `${startText}-${endText}`,
+        };
+      });
 
     return (
       <div>
         <div className="mb-2 text-xs text-zinc-600">
-          {totalSets} sets across {totalWorkouts} workouts in range
+          {totalSets} sets across {totalWorkouts} workouts in last 10 weeks
         </div>
         <div className="h-36 w-full">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={compactData} margin={{ top: 4, right: 8, bottom: 0, left: -16 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
-              <XAxis
-                dataKey="weekStart"
-                tickFormatter={(value: string) =>
-                  new Intl.DateTimeFormat(undefined, { month: "short", day: "numeric" }).format(
-                    toDate(value),
-                  )
-                }
-                tick={{ fill: "#52525b", fontSize: 10 }}
-                minTickGap={10}
-              />
+              <XAxis dataKey="weekLabel" tick={{ fill: "#52525b", fontSize: 10 }} minTickGap={10} />
               <YAxis allowDecimals={false} tick={{ fill: "#52525b", fontSize: 10 }} />
               <Bar dataKey="sets" fill="#0284c7" radius={[3, 3, 0, 0]} isAnimationActive={false} />
             </BarChart>
