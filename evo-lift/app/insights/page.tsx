@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { BarChart3, FilterX } from "lucide-react";
+import { BarChart3, Dumbbell, FilterX, Hash, Weight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
+import { KpiBadge } from "@/app/components/kpi-badge";
 import { PageShell } from "@/app/components/page-shell";
 import { StatusNotice } from "@/app/components/status-notice";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
@@ -225,20 +226,27 @@ export default function InsightsPage() {
         ) : (
           <div className="space-y-3">
             <div className="grid gap-2 sm:grid-cols-3">
-              <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3">
-                <p className="text-xs text-zinc-500">Workouts</p>
-                <p className="text-xl font-semibold text-zinc-900">{summary.workouts}</p>
-              </div>
-              <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3">
-                <p className="text-xs text-zinc-500">Sets</p>
-                <p className="text-xl font-semibold text-zinc-900">{summary.sets}</p>
-              </div>
-              <div className="rounded-md border border-zinc-200 bg-zinc-50 p-3">
-                <p className="text-xs text-zinc-500">Loaded (kg)</p>
-                <p className="text-xl font-semibold text-zinc-900">
-                  {summary.loadedKg.toFixed(1)}
-                </p>
-              </div>
+              <KpiBadge
+                label="Workouts"
+                value={String(summary.workouts)}
+                icon={<Dumbbell className="h-4 w-4 text-zinc-600" />}
+                description="Total workout sessions in the selected filter window."
+                tone="neutral"
+              />
+              <KpiBadge
+                label="Sets"
+                value={String(summary.sets)}
+                icon={<Hash className="h-4 w-4 text-zinc-600" />}
+                description="Total logged sets in the selected filter window."
+                tone="neutral"
+              />
+              <KpiBadge
+                label="Loaded (kg)"
+                value={summary.loadedKg.toFixed(1)}
+                icon={<Weight className="h-4 w-4 text-zinc-600" />}
+                description="Total loaded kilograms across logged sets in the selected filter window."
+                tone="neutral"
+              />
             </div>
             <div className="rounded-md border border-zinc-200 bg-white p-4">
               <h2 className="text-sm font-medium text-zinc-800">Volume trend</h2>
