@@ -108,3 +108,13 @@ button:disabled {
   outline: none !important;
   box-shadow: none !important;
 }
+
+.insights-weekly-chart .recharts-surface,
+.insights-weekly-chart .recharts-wrapper {
+  outline: none !important;
+}
+
+.insights-weekly-chart :focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
