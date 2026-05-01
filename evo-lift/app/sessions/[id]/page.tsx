@@ -34,6 +34,9 @@ import { createPageLoadPerfTracker } from "@/lib/page-load-perf";
 type SessionRow = Database["public"]["Tables"]["workout_sessions"]["Row"];
 type SessionExerciseRow = Database["public"]["Tables"]["workout_session_exercises"]["Row"];
 type WorkoutSetRow = Database["public"]["Tables"]["workout_sets"]["Row"];
+type SessionNumberCountRow = {
+  id: string;
+};
 
 type SetDraft = {
   reps: string;
@@ -174,7 +177,7 @@ function isFutureSessionDate(dateText: string): boolean {
         () =>
           supabaseBrowserClient
             .from("workout_sessions")
-            .select("*")
+            .select("id, user_id, performed_on, notes, created_at")
             .eq("id", sessionId)
             .single(),
       );
@@ -189,15 +192,44 @@ function isFutureSessionDate(dateText: string): boolean {
         return;
       }
 
-      const { data: allUserSessions } = await perf.trackQuery("workout_sessions.selectUserIdsByCreatedAt", () =>
-        supabaseBrowserClient
-          .from("workout_sessions")
-          .select("id")
-          .eq("user_id", authSession.user.id)
-          .order("created_at", { ascending: true }),
+      // Compute session number without loading full user session history.
+      const { count: priorSessionsCount, error: priorCountError } = await perf.trackQuery(
+        "workout_sessions.countPriorByCreatedAt",
+        () =>
+          supabaseBrowserClient
+            .from("workout_sessions")
+            .select("id", { count: "exact", head: true })
+            .eq("user_id", authSession.user.id)
+            .lt("created_at", sessionData.created_at),
       );
+      if (priorCountError) {
+        showError("Could not compute session number.");
+        setIsChecking(false);
+        perf.flush();
+        return;
+      }
+
+      const { data: sameCreatedAtRows, error: sameCreatedAtError } = await perf.trackQuery(
+        "workout_sessions.selectSameCreatedAtIds",
+        () =>
+          supabaseBrowserClient
+            .from("workout_sessions")
+            .select("id")
+            .eq("user_id", authSession.user.id)
+            .eq("created_at", sessionData.created_at)
+            .order("id", { ascending: true }),
+      );
+      if (sameCreatedAtError) {
+        showError("Could not compute session number.");
+        setIsChecking(false);
+        perf.flush();
+        return;
+      }
+
+      const typedSameCreatedAtRows = (sameCreatedAtRows ?? []) as SessionNumberCountRow[];
+      const sameCreatedAtIndex = typedSameCreatedAtRows.findIndex((row) => row.id === sessionData.id);
       const computedSessionNumber =
-        (allUserSessions ?? []).findIndex((row) => row.id === sessionData.id) + 1;
+        (priorSessionsCount ?? 0) + (sameCreatedAtIndex >= 0 ? sameCreatedAtIndex + 1 : 1);
 
       const { data: sessionExerciseData, error: sessionExerciseError } = await perf.trackQuery(
         "workout_session_exercises.selectBySessionId",
