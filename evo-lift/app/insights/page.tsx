@@ -5,13 +5,16 @@ import { BarChart3, Dumbbell, FilterX, Hash, Weight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
 import { KpiBadge } from "@/app/components/kpi-badge";
+import { InsightsWeeklyVolumeChart } from "@/app/components/insights-weekly-volume-chart";
 import { PageShell } from "@/app/components/page-shell";
 import { StatusNotice } from "@/app/components/status-notice";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import {
   applyInsightsRange,
   loadUserWorkoutActivityBase,
+  loadUserWeeklyVolumeBase,
   type InsightsRange,
+  type WeeklyVolumePoint,
   type WorkoutActivityPoint,
 } from "@/lib/insights-data";
 
@@ -19,6 +22,7 @@ type RangeOption = {
   value: InsightsRange;
   label: string;
 };
+type InsightTrendMetric = "volume" | "workingSets";
 
 const rangeOptions: RangeOption[] = [
   { value: "4w", label: "4w" },
@@ -66,7 +70,9 @@ export default function InsightsPage() {
   const [selectedRange, setSelectedRange] = useState<InsightsRange>(defaultInsightsRange);
   const [dateFrom, setDateFrom] = useState(() => getDateRangeForPreset(defaultInsightsRange).from);
   const [dateTo, setDateTo] = useState(() => getDateRangeForPreset(defaultInsightsRange).to);
+  const [trendMetric, setTrendMetric] = useState<InsightTrendMetric>("volume");
   const [basePoints, setBasePoints] = useState<WorkoutActivityPoint[]>([]);
+  const [weeklyVolumeBase, setWeeklyVolumeBase] = useState<WeeklyVolumePoint[]>([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -84,11 +90,15 @@ export default function InsightsPage() {
       }
 
       try {
-        const points = await loadUserWorkoutActivityBase(supabaseBrowserClient, session.user.id);
+        const [points, weekly] = await Promise.all([
+          loadUserWorkoutActivityBase(supabaseBrowserClient, session.user.id),
+          loadUserWeeklyVolumeBase(supabaseBrowserClient, session.user.id),
+        ]);
         if (!isMounted) {
           return;
         }
         setBasePoints(points);
+        setWeeklyVolumeBase(weekly);
         setIsLoading(false);
       } catch (error) {
         if (!isMounted) {
@@ -131,6 +141,67 @@ export default function InsightsPage() {
     return { workouts, sets, loadedKg };
   }, [filteredPoints]);
 
+  const weeklyVolumeRanged = useMemo(() => {
+    const asDailyPoints = weeklyVolumeBase.map((item) => ({
+      date: item.weekStart,
+      workouts: item.sessionCount,
+      sets: item.workingSets,
+      loadedKg: item.volumeKg,
+    }));
+    const ranged = applyInsightsRange(asDailyPoints, selectedRange);
+    const rangedDates = new Set(ranged.map((item) => item.date));
+    return weeklyVolumeBase.filter((item) => rangedDates.has(item.weekStart));
+  }, [selectedRange, weeklyVolumeBase]);
+
+  const weeklyVolumeFiltered = useMemo(
+    () =>
+      weeklyVolumeRanged.filter((point) => {
+        if (dateFrom && point.weekStart < dateFrom) {
+          return false;
+        }
+        if (dateTo && point.weekStart > dateTo) {
+          return false;
+        }
+        return true;
+      }),
+    [dateFrom, dateTo, weeklyVolumeRanged],
+  );
+
+  const weeklyVolumeChartData = useMemo(() => {
+    const movingAverageSource = (item: WeeklyVolumePoint) =>
+      trendMetric === "volume" ? item.volumeKg : item.workingSets;
+    return weeklyVolumeFiltered.map((item, index) => {
+      if (index < 3) {
+        return { ...item, movingAverage: null };
+      }
+      const window = weeklyVolumeFiltered.slice(index - 3, index + 1);
+      const average = window.reduce((sum, row) => sum + movingAverageSource(row), 0) / window.length;
+      return { ...item, movingAverage: Number(average.toFixed(2)) };
+    });
+  }, [trendMetric, weeklyVolumeFiltered]);
+
+  const workingSetsTotal = useMemo(
+    () => weeklyVolumeFiltered.reduce((sum, item) => sum + item.workingSets, 0),
+    [weeklyVolumeFiltered],
+  );
+
+  const trendMetricKpi = useMemo(() => {
+    if (trendMetric === "workingSets") {
+      return {
+        label: "Working sets",
+        value: String(workingSetsTotal),
+        icon: <Hash className="h-4 w-4 text-zinc-600" />,
+        description: "Total non-warmup sets in the selected filter window.",
+      };
+    }
+    return {
+      label: "Volume (kg)",
+      value: summary.loadedKg.toFixed(1),
+      icon: <Weight className="h-4 w-4 text-zinc-600" />,
+      description: "Total weekly training volume (reps x loaded kg) in the selected filter window.",
+    };
+  }, [summary.loadedKg, trendMetric, workingSetsTotal]);
+
   return (
     <PageShell>
       <section>
@@ -144,7 +215,7 @@ export default function InsightsPage() {
       </section>
 
       <section className="panel p-5">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div className="flex flex-col gap-2">
           <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
             <label className="block text-xs font-medium text-zinc-600">
               From
@@ -205,7 +276,7 @@ export default function InsightsPage() {
             }
             variant="secondary"
             size="sm"
-            className="mt-2 self-end text-sm font-normal text-amber-800 hover:text-amber-900 sm:mt-0"
+            className="mt-1 w-full text-sm font-normal text-amber-800 hover:text-amber-900 sm:mt-0 sm:w-auto sm:self-end"
             iconColor="amber"
           >
             <FilterX className="h-3.5 w-3.5" />
@@ -241,19 +312,60 @@ export default function InsightsPage() {
                 tone="neutral"
               />
               <KpiBadge
-                label="Loaded (kg)"
-                value={summary.loadedKg.toFixed(1)}
-                icon={<Weight className="h-4 w-4 text-zinc-600" />}
-                description="Total loaded kilograms across logged sets in the selected filter window."
+                label={trendMetricKpi.label}
+                value={trendMetricKpi.value}
+                icon={trendMetricKpi.icon}
+                description={trendMetricKpi.description}
                 tone="neutral"
               />
             </div>
             <div className="rounded-md border border-zinc-200 bg-white p-4">
-              <h2 className="text-sm font-medium text-zinc-800">Volume trend</h2>
-              <p className="mt-1 text-xs text-zinc-500">
-                Placeholder chart block. Connect upcoming chart components to `rangedPoints`.
-              </p>
-              <div className="mt-3 h-52 rounded-md border border-dashed border-zinc-300 bg-zinc-50" />
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                <h2 className="text-sm font-medium text-zinc-800">
+                  {trendMetric === "volume" ? "Volume trend" : "Working sets trend"}
+                </h2>
+                <div className="grid w-full grid-cols-2 rounded-md border border-zinc-300 bg-zinc-50 p-1 sm:inline-flex sm:w-auto">
+                  <button
+                    type="button"
+                    onClick={() => setTrendMetric("volume")}
+                    className={`rounded px-2.5 py-1.5 text-xs font-medium ${
+                      trendMetric === "volume"
+                        ? "bg-sky-100 text-sky-900"
+                        : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+                    }`}
+                  >
+                    Volume
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTrendMetric("workingSets")}
+                    className={`rounded px-2.5 py-1.5 text-xs font-medium ${
+                      trendMetric === "workingSets"
+                        ? "bg-sky-100 text-sky-900"
+                        : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+                    }`}
+                  >
+                    Working sets
+                  </button>
+                </div>
+              </div>
+              {weeklyVolumeChartData.length === 0 ? (
+                <p className="mt-1 text-xs text-zinc-500">
+                  No qualifying {trendMetric === "volume" ? "set volume" : "working set"} data for
+                  the current filters yet.
+                </p>
+              ) : (
+                <>
+                  <p className="mt-1 text-xs text-zinc-500">
+                    {trendMetric === "volume"
+                      ? "Weekly total volume (reps x loaded kg) with session count in tooltip."
+                      : "Weekly non-warmup set count with session count in tooltip."}
+                  </p>
+                  <div className="mt-3">
+                    <InsightsWeeklyVolumeChart data={weeklyVolumeChartData} metric={trendMetric} />
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}
