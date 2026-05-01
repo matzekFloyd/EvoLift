@@ -28,6 +28,8 @@ import { StatusNotice } from "@/app/components/status-notice";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { toExerciseBadge } from "@/lib/exercise-badge";
 import { exerciseOptionsForPicker } from "@/lib/exercise-picker-options";
+import { loadExerciseMetadata } from "@/lib/exercise-metadata-cache";
+import { createPageLoadPerfTracker } from "@/lib/page-load-perf";
 
 type SessionRow = Database["public"]["Tables"]["workout_sessions"]["Row"];
 type SessionExerciseRow = Database["public"]["Tables"]["workout_session_exercises"]["Row"];
@@ -152,11 +154,12 @@ function isFutureSessionDate(dateText: string): boolean {
 
   useEffect(() => {
     let isMounted = true;
+    const perf = createPageLoadPerfTracker("/sessions/[id]");
 
     async function loadData() {
       const {
         data: { session: authSession },
-      } = await supabaseBrowserClient.auth.getSession();
+      } = await perf.trackQuery("auth.getSession", () => supabaseBrowserClient.auth.getSession());
 
       if (!isMounted) {
         return;
@@ -166,11 +169,15 @@ function isFutureSessionDate(dateText: string): boolean {
         return;
       }
 
-      const { data: sessionData, error: sessionError } = await supabaseBrowserClient
-        .from("workout_sessions")
-        .select("*")
-        .eq("id", sessionId)
-        .single();
+      const { data: sessionData, error: sessionError } = await perf.trackQuery(
+        "workout_sessions.selectById",
+        () =>
+          supabaseBrowserClient
+            .from("workout_sessions")
+            .select("*")
+            .eq("id", sessionId)
+            .single(),
+      );
 
       if (!isMounted) {
         return;
@@ -178,23 +185,29 @@ function isFutureSessionDate(dateText: string): boolean {
       if (sessionError || !sessionData) {
         showError("Could not load workout session.");
         setIsChecking(false);
+        perf.flush();
         return;
       }
 
-      const { data: allUserSessions } = await supabaseBrowserClient
-        .from("workout_sessions")
-        .select("id")
-        .eq("user_id", authSession.user.id)
-        .order("created_at", { ascending: true });
+      const { data: allUserSessions } = await perf.trackQuery("workout_sessions.selectUserIdsByCreatedAt", () =>
+        supabaseBrowserClient
+          .from("workout_sessions")
+          .select("id")
+          .eq("user_id", authSession.user.id)
+          .order("created_at", { ascending: true }),
+      );
       const computedSessionNumber =
         (allUserSessions ?? []).findIndex((row) => row.id === sessionData.id) + 1;
 
-      const { data: sessionExerciseData, error: sessionExerciseError } =
-        await supabaseBrowserClient
-          .from("workout_session_exercises")
-          .select("*")
-          .eq("session_id", sessionId)
-          .order("position", { ascending: true });
+      const { data: sessionExerciseData, error: sessionExerciseError } = await perf.trackQuery(
+        "workout_session_exercises.selectBySessionId",
+        () =>
+          supabaseBrowserClient
+            .from("workout_session_exercises")
+            .select("*")
+            .eq("session_id", sessionId)
+            .order("position", { ascending: true }),
+      );
 
       if (!isMounted) {
         return;
@@ -202,19 +215,22 @@ function isFutureSessionDate(dateText: string): boolean {
       if (sessionExerciseError) {
         showError("Could not load session exercises.");
         setIsChecking(false);
+        perf.flush();
         return;
       }
 
       const sessionExerciseIds = (sessionExerciseData ?? []).map((row) => row.id);
-      const exerciseIds = (sessionExerciseData ?? []).map((row) => row.exercise_id);
-
       let sets: WorkoutSetRow[] = [];
       if (sessionExerciseIds.length > 0) {
-        const { data: setsData, error: setsError } = await supabaseBrowserClient
-          .from("workout_sets")
-          .select("*")
-          .in("session_exercise_id", sessionExerciseIds)
-          .order("set_number", { ascending: true });
+        const { data: setsData, error: setsError } = await perf.trackQuery(
+          "workout_sets.selectBySessionExerciseIds",
+          () =>
+            supabaseBrowserClient
+              .from("workout_sets")
+              .select("*")
+              .in("session_exercise_id", sessionExerciseIds)
+              .order("set_number", { ascending: true }),
+        );
 
         if (!isMounted) {
           return;
@@ -222,41 +238,36 @@ function isFutureSessionDate(dateText: string): boolean {
         if (setsError) {
           showError("Could not load workout sets.");
           setIsChecking(false);
+          perf.flush();
           return;
         }
         sets = setsData ?? [];
       }
 
       const labels = new Map<string, string>();
-      const { data: allExercises, error: allExercisesError } = await supabaseBrowserClient
-        .from("exercises")
-        .select("id, slug")
-        .order("slug", { ascending: true });
-      if (allExercisesError) {
-        showError("Could not load exercise options.");
+      let allExercises: Array<{ id: string; slug: string; label: string }> = [];
+      try {
+        allExercises = await perf.trackQuery("exerciseMetadata.load", () =>
+          loadExerciseMetadata(supabaseBrowserClient, { ttlMs: 5 * 60 * 1000 }),
+        );
+      } catch (error) {
+        showError(error instanceof Error ? error.message : "Could not load exercise options.");
         setIsChecking(false);
+        perf.flush();
         return;
       }
-
-      const allExerciseIds = (allExercises ?? []).map((row) => row.id);
-      const { data: allTranslations } = await supabaseBrowserClient
-        .from("exercise_translations")
-        .select("exercise_id, name, lang_code")
-        .in("exercise_id", allExerciseIds)
-        .eq("lang_code", "en");
-
-      const translated = new Map<string, string>();
-      for (const item of allTranslations ?? []) {
-        translated.set(item.exercise_id, item.name);
-      }
-      for (const item of allExercises ?? []) {
-        labels.set(item.id, translated.get(item.id) ?? item.slug);
+      for (const item of allExercises) {
+        labels.set(item.id, item.label);
       }
 
-      const { data: hiddenRows, error: hiddenError } = await supabaseBrowserClient
-        .from("user_hidden_exercises")
-        .select("exercise_id")
-        .eq("user_id", authSession.user.id);
+      const { data: hiddenRows, error: hiddenError } = await perf.trackQuery(
+        "user_hidden_exercises.selectByUserId",
+        () =>
+          supabaseBrowserClient
+            .from("user_hidden_exercises")
+            .select("exercise_id")
+            .eq("user_id", authSession.user.id),
+      );
 
       if (!isMounted) {
         return;
@@ -264,6 +275,7 @@ function isFutureSessionDate(dateText: string): boolean {
       if (hiddenError) {
         showError("Could not load exercise visibility.");
         setIsChecking(false);
+        perf.flush();
         return;
       }
 
@@ -278,14 +290,15 @@ function isFutureSessionDate(dateText: string): boolean {
       setWorkoutSets(sets);
       setExerciseLabels(labels);
       setExerciseOptions(
-        (allExercises ?? []).map((item) => ({
+        allExercises.map((item) => ({
           id: item.id,
-          label: translated.get(item.id) ?? item.slug,
+          label: item.label,
           slug: item.slug,
         })),
       );
       setHiddenExerciseIds(hiddenSet);
       setIsChecking(false);
+      perf.flush();
     }
 
     void loadData();
