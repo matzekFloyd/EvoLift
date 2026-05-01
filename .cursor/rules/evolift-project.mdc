@@ -1,0 +1,30 @@
+---
+description: EvoLift product terms, copy tone, and where to read full brand rules
+alwaysApply: true
+---
+
+# EvoLift project context
+
+- **Canonical UI/brand spec**: `evo-lift/BRAND_GUIDELINES.md` — follow it for terminology, colors, density, and messaging. Do not contradict it in new UI.
+- **Next.js**: `evo-lift/AGENTS.md` — this repo uses Next 16; check `node_modules/next/dist/docs/` when APIs differ from older Next.js.
+
+## Terminology (user-facing)
+
+- Workout **session** (completed record), **Exercise**, **Set**; **Loaded (kg)**; **Target weight (kg)**; reps as `N reps`.
+
+## Copy and errors
+
+- Short, action-first, plain language; neutral/supportive tone (not hype).
+- Errors: specific and corrective (e.g. “Please enter a valid target reps value.”), not generic “Oops” messages.
+- Prefer **section-local** status near the control; reuse shared notice UI when showing error / warning / success.
+
+## DRY and reusable components
+
+- **Don’t repeat yourself**: before adding UI or logic, check `evo-lift/app/components/` and nearby pages for an existing pattern to extend.
+- If a piece of UI (or a small composed block) is **likely to be used on another page or feature**, extract it into a **reusable component** under `evo-lift/app/components/` (or a colocated `components/` folder next to a route group when scope is clearly local to one area—prefer shared when in doubt).
+- Prefer **one implementation** of the same interaction (e.g. one table row actions pattern, one sticky bar contract) over copy-paste with tweaked classes.
+
+## Implementation bias
+
+- Prefer existing primitives: `ActionButton`, `StatusNotice`, layout helpers under `evo-lift/app/components/` before inventing new button/alert styles.
+- **Supabase** backs data; keep server/client boundaries idiomatic for this Next app.

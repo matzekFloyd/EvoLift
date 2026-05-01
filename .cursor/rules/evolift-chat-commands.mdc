@@ -1,0 +1,73 @@
+---
+description: User chat shortcuts for commit messages and PR text from git state
+alwaysApply: true
+---
+
+# Chat commands (git → copy-paste text)
+
+When the user’s message is **only** or **primarily** one of the phrases below, treat it as a request to **run git locally**, **inspect the result**, and **reply with ready-to-paste text** in **fenced code blocks** (so they can copy in one click). Use complete sentences in titles/bodies; no filler.
+
+## Commit message helpers (`cm`)
+
+**Never create commits:** for any `cm` command, use **read-only** git (`diff`, `log`, `status`, etc.) only. **Do not** run `git commit`, `git add`, `git merge`, `git rebase`, or anything that writes history or the index on the user’s behalf. The developer commits locally after copying your message.
+
+| Phrase      | Inspect |
+|------------|---------|
+| `cm staged` | `git diff --staged` (cached/index only) |
+| `cm unstaged` | `git diff` (working tree vs index) |
+| `cm full` | **both**: staged first, then unstaged (two diffs or clearly labeled sections) |
+
+**Trunk detection (for `cm` output):** resolve the default branch name via `git symbolic-ref refs/remotes/origin/HEAD` (e.g. `refs/remotes/origin/master` → `master`), or fall back to **`main`** / **`master`** whichever exists. Compare to `git branch --show-current`.
+
+**Output:** One **markdown code block** containing a **proposed git commit message**. If there is nothing to commit for that scope, say so and do not fabricate a message.
+
+### When the current branch **is** the default trunk (`master` / `main`)
+
+Use a **Conventional Commit–style subject**: **`<type>: <imperative title>`** (≤72 chars for the whole line; lowercase `type`). Pick the best-fitting `type`, for example:
+
+| `type` | Use for |
+|--------|--------|
+| `chore` | Tooling, deps, config, Cursor rules, housekeeping |
+| `feat` | New user-facing behavior or capability (“feature”) |
+| `fix` | Bug fixes |
+| `test` | Tests only |
+| `docs` | Documentation only |
+| `refactor` | Internal structure without behavior change |
+| `perf` | Performance |
+| `ci` | CI config |
+| `build` | Build system / bundler |
+| `style` | Formatting, whitespace (no logic change) |
+
+Then a **blank line**, then the **description** as **bullet points** (`- ` lines)—each bullet a short, complete sentence.
+
+Example shape: `chore: add Cursor rules for agent chat commands` then bullets.
+
+**Note:** Squashed PR merges onto trunk often use a different message from the merge UI; this **`type: title` + bullets** format is for **direct commits on trunk** you craft locally. Do not force this format when the current branch is **not** trunk.
+
+### When the current branch is **not** the default trunk
+
+Subject line: **imperative mood**, no required `type:` prefix (feature-branch workflow). Blank line, then the same **bullet** body as above.
+
+## PR helpers (`pr`)
+
+**Never mutate git or GitHub remotely:** for any `pr` command, use **read-only** git (`log`, `diff`, `status`, etc.) only. **Do not** run `git push`, `git commit`, or open/update PRs via CLI or API (`gh pr create`, etc.). The developer pushes and opens the PR after copying your text.
+
+Base branch: use **`origin/HEAD`** if available; otherwise **`origin/master`** or **`origin/main`** (whichever exists in the repo). If the current branch **is** the base or there are no unique commits, say so clearly.
+
+**Scope of history:** describe work **unique to this branch**, not the whole first-parent history of `base` after a merge-from-base. Use:
+
+```text
+git merge-base <base> HEAD   # optional; three-dot uses this internally
+git log --oneline --first-parent <base>..HEAD
+git diff <base>...HEAD
+```
+
+`--first-parent` keeps the commit list on the branch’s mainline (merges from `base` into the branch do not flood the list with foreign commits). **`git diff <base>...HEAD`** (three dots) is the net PR diff from the merge-base to `HEAD`. Prefer summarizing that net change set.
+
+| Phrase       | Output |
+|-------------|--------|
+| `pr title`  | One **code block**: a single PR **title** line (GitHub title field). |
+| `pr changes`| One **code block**: PR **description** body in **GitHub-flavored Markdown** (summary, key changes, testing notes if relevant). |
+| `pr full`   | **Two** code blocks in order: (1) title — one line, (2) description — markdown body. Label them e.g. `PR title` / `PR description` in prose above the blocks so the user knows which is which. |
+
+If there is no diff vs base, state that instead of inventing content.

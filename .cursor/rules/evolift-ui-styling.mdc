@@ -1,0 +1,45 @@
+---
+description: Tailwind/UI patterns for EvoLift (colors, density, components)
+globs: evo-lift/**/*.tsx
+alwaysApply: false
+---
+
+# EvoLift UI and Tailwind
+
+## Layout and density
+
+- **Mobile-first**; logging flows stay **compact** (moderate density, quick scan).
+- **Border-first hierarchy**: subtle `border-*` + soft backgrounds; avoid heavy shadows except where sticky bars need separation.
+- Controls: **`rounded-md`** consistently.
+
+## Color intent (Tailwind)
+
+| Role        | Palette   | Usage                                      |
+|------------|-----------|--------------------------------------------|
+| Primary    | `sky-*`   | Forward/save/submit; filled primary buttons |
+| Destructive| `red-*`   | Delete/remove                              |
+| Success    | `emerald-*` | Saved/completed feedback                 |
+| Warning    | `amber-*` | Caution                                    |
+| Neutral    | `zinc-*`  | Secondary actions, muted text            |
+
+- **Header branding**: light sky gradient `from-sky-200 via-sky-100 to-sky-50` with matching sky border (per brand doc).
+
+## Buttons and icons
+
+- Prefer **`ActionButton`** with `variant`: `primary` (sky fill), `secondary` (zinc outline/soft), `danger` (soft red).
+- Icons: **`lucide-react`**; compact sizes **`h-3`–`h-4`** (`w-*` match); tint aligns with intent (sky / zinc / red / white on primary).
+- Thumb-friendly hit targets on mobile (`min-h` / `h-10`–`h-11` where appropriate).
+
+## Feedback
+
+- Use **`StatusNotice`** with `tone`: `error` | `warning` | `success` — do not duplicate its red/amber/emerald border+background patterns ad hoc.
+- Do not rely on color alone; include **text and/or icon**.
+
+## Structure and reuse (DRY)
+
+- UI blocks that could reasonably appear on **another page** should live as a **shared component** under `evo-lift/app/components/` (or colocated only when strictly route-local).
+- Avoid copying the same Tailwind + markup pattern across files; **one component, one place** to change later.
+
+## Accessibility
+
+- Explicit control labels (`Save`, `Delete`, etc.); visible labels by inputs; sufficient contrast for text + icons.
