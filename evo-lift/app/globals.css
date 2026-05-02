@@ -6,6 +6,12 @@
   --accent: #0284c7;
   --accent-strong: #0369a1;
   --accent-soft: #f4f4f5;
+  /* Form text/number/date controls — hover stays neutral; focus uses sky (BRAND_GUIDELINES) */
+  --control-surface: #ffffff;
+  --control-hover-bg: #fafafa;
+  --control-hover-border: #d4d4d8;
+  --control-focus-border: var(--accent-strong);
+  --control-focus-ring: color-mix(in srgb, var(--accent) 28%, transparent);
 }
 
 @theme inline {
@@ -31,9 +37,17 @@ body {
   outline-offset: 2px;
 }
 
-input:focus-visible,
+/* Text-like fields: clear sky focus ring; surface resets so hover grey does not mask focus */
+input:focus-visible:not([type="checkbox"]):not([type="radio"]),
 textarea:focus-visible,
-select:focus-visible,
+select:focus-visible {
+  outline: none;
+  border-color: var(--control-focus-border);
+  box-shadow: 0 0 0 3px var(--control-focus-ring);
+  background-color: var(--control-surface);
+}
+
+input:focus-visible:is([type="checkbox"], [type="radio"]),
 button:focus-visible {
   outline: none;
   border-color: var(--accent-strong);
@@ -46,6 +60,15 @@ a:hover {
 
 a:focus-visible {
   border-radius: 4px;
+}
+
+input:not([type="checkbox"]):not([type="radio"]),
+textarea,
+select {
+  transition:
+    background-color 150ms ease,
+    border-color 150ms ease,
+    box-shadow 150ms ease;
 }
 
 button {
@@ -62,11 +85,11 @@ button:not(:disabled):hover {
   background-color: var(--accent-soft);
 }
 
-input:hover,
-textarea:hover,
-select:hover {
-  border-color: var(--accent);
-  background-color: var(--accent-soft);
+input:not([type="checkbox"]):not([type="radio"]):not(:disabled):hover:not(:focus-visible),
+textarea:not(:disabled):hover:not(:focus-visible),
+select:not(:disabled):hover:not(:focus-visible) {
+  border-color: var(--control-hover-border);
+  background-color: var(--control-hover-bg);
 }
 
 button.bg-sky-700:not(:disabled):hover {
