@@ -57,6 +57,15 @@ type HistorySortKey =
   | "isWarmup";
 type HistorySortDirection = "asc" | "desc";
 
+/**
+ * Compact history: fixed-ish column widths so dates, reps, and kg line up row to row.
+ * Warmup column is hidden below ~22rem container width so the block avoids horizontal scroll.
+ */
+const COMPACT_HISTORY_GRID =
+  "grid grid-cols-[minmax(5.5rem,1fr)_1.5rem_2.125rem_2.75rem_3.25rem] gap-x-1.5 @min-[22rem]:grid-cols-[minmax(5.5rem,1fr)_1.5rem_2.125rem_2.75rem_3.25rem_3.5rem]";
+
+const COMPACT_HISTORY_WARMUP_CELL = "hidden @min-[22rem]:block";
+
 function isRowMoreRecent(left: ExerciseSetHistoryRow, right: ExerciseSetHistoryRow): boolean {
   if (left.performedOn !== right.performedOn) {
     return left.performedOn > right.performedOn;
@@ -459,7 +468,7 @@ export default function ExerciseDetailPage() {
                 value={String(historyRows.length)}
                 icon={<Hash className="h-4 w-4 text-zinc-600" />}
                 tone="neutral"
-                className="sm:min-w-40"
+                className="sm:min-w-36"
                 description="All sets for this exercise, warmups included."
               />
               <div className="grid w-full grid-cols-2 gap-2 sm:w-fit sm:grid-cols-4">
@@ -492,7 +501,17 @@ export default function ExerciseDetailPage() {
               </div>
             </div>
             {isCompactView ? (
-              <div className="overflow-hidden rounded-md border border-zinc-200 bg-white">
+              <div className="@container overflow-x-auto rounded-md border border-zinc-200 bg-white">
+                <div
+                  className={`${COMPACT_HISTORY_GRID} border-b bg-zinc-50 px-2 py-1.5 text-[10px] font-medium uppercase tracking-wide text-zinc-500`}
+                >
+                  <span>Date</span>
+                  <span className="text-right">Set</span>
+                  <span className="text-right">Reps</span>
+                  <span className="text-right">Kg</span>
+                  <span className="text-right">Total</span>
+                  <span className={`text-center ${COMPACT_HISTORY_WARMUP_CELL}`}>Warmup</span>
+                </div>
                 {historyRows.map((row, index) => (
                   <article
                     key={`${row.sessionId}-${row.setNumber}-${index}`}
@@ -503,43 +522,58 @@ export default function ExerciseDetailPage() {
                     }`}
                     onClick={() => router.push(`/sessions/${row.sessionId}`)}
                     title={
-                      `${row.sessionId}-${row.setNumber}` === topRepsRowKey
+                      (`${row.sessionId}-${row.setNumber}` === topRepsRowKey
                         ? "Best set marker: top reps (with tie-break rules). Open session."
-                        : "Set details for this exercise entry. Open session."
+                        : "Set details for this exercise entry. Open session.") +
+                      (row.isWarmup ? " Warmup: yes." : " Warmup: no.")
                     }
                   >
                     {(() => {
                       const rowKey = `${row.sessionId}-${row.setNumber}`;
                       const isTopRepsRow = rowKey === topRepsRowKey;
                       return (
-                    <p className="truncate text-zinc-700">
-                      <span className="font-medium text-zinc-900">
-                        {formatDateOnlyForLocale(row.performedOn)}
-                      </span>
-                      {isTopRepsRow ? (
-                        <Medal className="ml-1 inline h-3.5 w-3.5 align-[-2px] text-amber-600" />
-                      ) : null}
-                      {" · "}
-                      <span className="font-medium text-zinc-900">S{row.setNumber}</span>
-                      {" · "}
-                      <span
-                        className={isTopRepsRow ? "font-medium text-emerald-900" : ""}
-                      >
-                        {row.reps} reps
-                      </span>
-                      {" · "}
-                      <span
-                        className={isTopRepsRow ? "font-medium text-emerald-900" : ""}
-                      >
-                        {row.weightKg ?? "-"} kg
-                      </span>
-                      {" · "}
-                      <span className={isTopRepsRow ? "font-medium text-emerald-900" : ""}>
-                        {row.totalKg.toFixed(1)} kg total
-                      </span>
-                      {" · "}
-                      {row.isWarmup ? "WU" : "WK"}
-                    </p>
+                        <div className={`${COMPACT_HISTORY_GRID} items-center text-zinc-700`}>
+                          <div className="flex min-w-0 items-center gap-1">
+                            <span className="truncate font-medium tabular-nums text-zinc-900">
+                              {formatDateOnlyForLocale(row.performedOn)}
+                            </span>
+                            {isTopRepsRow ? (
+                              <Medal
+                                className="h-3.5 w-3.5 shrink-0 text-amber-600"
+                                aria-hidden
+                              />
+                            ) : (
+                              <span className="inline-block h-3.5 w-3.5 shrink-0" aria-hidden />
+                            )}
+                          </div>
+                          <span className="text-right font-medium tabular-nums text-zinc-900">
+                            {row.setNumber}
+                          </span>
+                          <span
+                            className={`text-right tabular-nums ${
+                              isTopRepsRow ? "font-medium text-emerald-900" : ""
+                            }`}
+                          >
+                            {row.reps}
+                          </span>
+                          <span
+                            className={`text-right tabular-nums ${
+                              isTopRepsRow ? "font-medium text-emerald-900" : ""
+                            }`}
+                          >
+                            {row.weightKg ?? "—"}
+                          </span>
+                          <span
+                            className={`text-right tabular-nums ${
+                              isTopRepsRow ? "font-medium text-emerald-900" : ""
+                            }`}
+                          >
+                            {row.totalKg.toFixed(1)}
+                          </span>
+                          <span className={`text-center text-zinc-600 ${COMPACT_HISTORY_WARMUP_CELL}`}>
+                            {row.isWarmup ? "Yes" : "No"}
+                          </span>
+                        </div>
                       );
                     })()}
                   </article>
