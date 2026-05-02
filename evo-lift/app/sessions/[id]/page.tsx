@@ -456,7 +456,6 @@ function isFutureSessionDate(dateText: string): boolean {
     }
 
     setIsSavingSet(true);
-    clearMessage();
 
     const { data, error } = await supabaseBrowserClient
       .from("workout_sets")
@@ -513,7 +512,6 @@ function isFutureSessionDate(dateText: string): boolean {
     }
 
     setIsSavingSet(true);
-    clearMessage();
 
     const { data, error } = await supabaseBrowserClient
       .from("workout_sets")
@@ -545,7 +543,6 @@ function isFutureSessionDate(dateText: string): boolean {
 
   async function deleteSet(setId: string) {
     setIsSavingSet(true);
-    clearMessage();
 
     const deletedSet = workoutSets.find((set) => set.id === setId);
     const { error } = await supabaseBrowserClient.from("workout_sets").delete().eq("id", setId);
@@ -658,7 +655,6 @@ function isFutureSessionDate(dateText: string): boolean {
         : 1;
 
     setIsAddingExercise(true);
-    clearMessage();
 
     const { data, error } = await supabaseBrowserClient
       .from("workout_session_exercises")
@@ -730,7 +726,6 @@ function isFutureSessionDate(dateText: string): boolean {
     }
 
     setIsSavingTargets(true);
-    clearMessage();
 
     const { data, error } = await supabaseBrowserClient
       .from("workout_session_exercises")
