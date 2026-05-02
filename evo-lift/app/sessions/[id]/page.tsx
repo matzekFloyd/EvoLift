@@ -3,6 +3,7 @@
 import {
   ArrowLeft,
   Check,
+  CheckCircle2,
   ChevronDown,
   ChevronUp,
   Dumbbell,
@@ -976,15 +977,26 @@ function isFutureSessionDate(dateText: string): boolean {
             sessionExercise.target_weight_kg != null ? `${sessionExercise.target_weight_kg} kg` : null,
           ].filter(Boolean) as string[];
 
+          const workingSetCount = sets.filter((set) => !set.is_warmup).length;
+          const targetSetsGoal = sessionExercise.target_sets;
+          const targetSetsMet =
+            targetSetsGoal != null &&
+            targetSetsGoal > 0 &&
+            workingSetCount >= targetSetsGoal;
+
+          const exercisePanelClass = shouldUseSingleExerciseFlow
+            ? "min-h-[calc(100vh-24rem)] p-1 text-sm"
+            : `rounded-xl border p-5 text-sm shadow-[0_1px_2px_rgba(0,0,0,0.05)] ${
+                targetSetsMet
+                  ? "border-sky-200/90 bg-sky-50/40"
+                  : "border-zinc-200 bg-zinc-50/80"
+              }`;
+
           return (
             <section
               key={sessionExercise.id}
               id={`exercise-${sessionExercise.id}`}
-              className={
-                shouldUseSingleExerciseFlow
-                  ? "min-h-[calc(100vh-24rem)] p-1 text-sm"
-                  : "panel panel-nested border-zinc-200 bg-zinc-50/80 p-5 text-sm shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
-              }
+              className={exercisePanelClass}
             >
               <div className="flex w-full items-start justify-between gap-3 text-left">
                 {exerciseSlug ? (
@@ -1028,6 +1040,15 @@ function isFutureSessionDate(dateText: string): boolean {
                   ) : (
                     <span className="text-xs text-zinc-500">none set</span>
                   )}
+                  {targetSetsMet ? (
+                    <span
+                      className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-900"
+                      title="Working-set target met (warmups don't count). You can add more sets anytime."
+                    >
+                      <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-sky-700" aria-hidden />
+                      Target sets met
+                    </span>
+                  ) : null}
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
                   {exerciseSlug ? (
