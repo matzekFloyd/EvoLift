@@ -38,7 +38,7 @@ export function KpiBadge({
 
   return (
     <div
-      className={`rounded-md border px-3 py-2 text-center shadow-sm transition hover:shadow-md ${shellClasses} ${
+      className={`rounded-md border px-2 py-1.5 text-center shadow-sm transition hover:shadow-md ${shellClasses} ${
         description ? "cursor-help" : ""
       }${
         className ? ` ${className}` : ""
@@ -46,11 +46,13 @@ export function KpiBadge({
       title={description}
       aria-label={description ?? `${label}: ${value}`}
     >
-      <p className={`inline-flex items-center justify-center gap-1 text-[11px] font-medium uppercase tracking-wide ${labelClasses}`}>
+      <p
+        className={`inline-flex items-center justify-center gap-0.5 text-[10px] font-medium uppercase tracking-wide [&_svg]:h-3.5 [&_svg]:w-3.5 ${labelClasses}`}
+      >
         {icon}
         {label}
       </p>
-      <p className={`mt-0.5 text-base font-semibold leading-none sm:text-lg ${valueClasses}`}>{value}</p>
+      <p className={`mt-0.5 text-sm font-semibold leading-none sm:text-base ${valueClasses}`}>{value}</p>
     </div>
   );
 }
