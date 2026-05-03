@@ -157,6 +157,10 @@ export default function SessionDetailPage() {
   const [hiddenExerciseIds, setHiddenExerciseIds] = useState<Set<string>>(new Set());
   /** Compact single-exercise flow: show full new-set composer after target working sets are met. */
   const [compactShowExtraSetComposer, setCompactShowExtraSetComposer] = useState(false);
+  /** Full (md+) table: session_exercise ids where the add-set row stays open past target. */
+  const [fullViewExpandAddSetRowIds, setFullViewExpandAddSetRowIds] = useState<Set<string>>(
+    () => new Set(),
+  );
   const maxExerciseNotesLength = 500;
   const [performedOnDraft, setPerformedOnDraft] = useState("");
   const [notesDraft, setNotesDraft] = useState("");
@@ -440,6 +444,34 @@ export default function SessionDetailPage() {
   useEffect(() => {
     lastSessionExerciseIdsKeyRef.current = "";
   }, [sessionId]);
+
+  useEffect(() => {
+    setFullViewExpandAddSetRowIds(new Set());
+  }, [sessionId]);
+
+  useEffect(() => {
+    setFullViewExpandAddSetRowIds((prev) => {
+      if (prev.size === 0) {
+        return prev;
+      }
+      const next = new Set<string>();
+      for (const id of prev) {
+        const ex = sessionExercises.find((e) => e.id === id);
+        if (!ex) {
+          continue;
+        }
+        const goal = ex.target_sets;
+        const workingCount = workoutSets.filter(
+          (s) => s.session_exercise_id === id && !s.is_warmup,
+        ).length;
+        const met = goal != null && goal > 0 && workingCount >= goal;
+        if (met) {
+          next.add(id);
+        }
+      }
+      return next.size === prev.size ? prev : next;
+    });
+  }, [sessionExercises, workoutSets]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 768px)");
@@ -1135,7 +1167,13 @@ export default function SessionDetailPage() {
       : "Next";
 
   return (
-    <PageShell className={isCompactView ? "pb-52 sm:pb-16" : undefined}>
+    <PageShell
+      className={
+        isCompactView
+          ? "max-md:!pb-[calc(11rem+env(safe-area-inset-bottom,0px))]"
+          : undefined
+      }
+    >
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         {isCompactView ? (
           <div className="flex w-full items-start justify-between gap-2">
@@ -1396,6 +1434,10 @@ export default function SessionDetailPage() {
             targetSetsMet &&
             canManageSets &&
             !compactShowExtraSetComposer;
+          const hideFullViewAddSetRow =
+            targetSetsMet &&
+            canManageSets &&
+            !fullViewExpandAddSetRowIds.has(sessionExercise.id);
 
           const exercisePanelClass = shouldUseSingleExerciseFlow
             ? "min-h-[calc(100vh-24rem)] p-1 text-sm"
@@ -1456,7 +1498,7 @@ export default function SessionDetailPage() {
                   {targetSetsMet ? (
                     <span
                       className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-xs font-medium text-sky-900"
-                      title="Working-set target met (warmups don't count). Use Add another working set to log past your target."
+                      title="Working-set target met (warmups don't count). Use Add more sets to keep logging."
                     >
                       <CheckCircle2 className="h-3.5 w-3.5 shrink-0 text-sky-700" aria-hidden />
                       Target sets met
@@ -1726,10 +1768,11 @@ export default function SessionDetailPage() {
                         size="sm"
                         fullWidth
                         className="mt-2"
-                        title="Log a working set beyond your target count."
+                        title="Show the add-set form to log more sets."
                         onClick={() => setCompactShowExtraSetComposer(true)}
                       >
-                        Add another working set
+                        <Plus className="h-4 w-4 shrink-0" aria-hidden />
+                        Add more sets
                       </ActionButton>
                     </div>
                   ) : (
@@ -1980,7 +2023,35 @@ export default function SessionDetailPage() {
                         </tr>
                       ),
                     )}
-                    {canManageSets ? (
+                    {canManageSets && hideFullViewAddSetRow ? (
+                      <tr className="border-b bg-sky-50/50">
+                        <td colSpan={5} className="px-2 py-2">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-sky-950">
+                              <CheckCircle2 className="h-4 w-4 shrink-0 text-sky-700" aria-hidden />
+                              All target working sets logged.
+                            </span>
+                            <ActionButton
+                              type="button"
+                              variant="secondary"
+                              size="sm"
+                              title="Show the add-set row to log more sets."
+                              onClick={() =>
+                                setFullViewExpandAddSetRowIds((prev) => {
+                                  const next = new Set(prev);
+                                  next.add(sessionExercise.id);
+                                  return next;
+                                })
+                              }
+                            >
+                              <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                              Add more sets
+                            </ActionButton>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : null}
+                    {canManageSets && !hideFullViewAddSetRow ? (
                       <tr>
                         <td className="px-2 py-2">
                           <label className="inline-flex cursor-pointer items-center gap-2 text-zinc-800">
@@ -2032,7 +2103,7 @@ export default function SessionDetailPage() {
                               type="button"
                               onClick={() => handleAddSet(sessionExercise.id)}
                               disabled={isSavingSet || isPlannedSession}
-                            className="inline-flex w-24 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-2 py-1 text-xs text-white hover:border-sky-600 hover:bg-sky-600"
+                              className="inline-flex w-24 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-2 py-1 text-xs text-white hover:border-sky-600 hover:bg-sky-600"
                             >
                               <Plus className="h-3.5 w-3.5 text-white" />
                               Add set
