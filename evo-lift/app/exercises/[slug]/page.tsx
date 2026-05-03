@@ -22,6 +22,7 @@ type ExerciseRow = {
 type SessionRow = {
   id: string;
   performed_on: string;
+  created_at: string;
 };
 
 type SessionExerciseRow = {
@@ -41,6 +42,8 @@ type WorkoutSetRow = {
 type ExerciseSetHistoryRow = {
   sessionId: string;
   performedOn: string;
+  /** `workout_sessions.created_at` (ISO); disambiguates multiple sessions on the same `performed_on` day. */
+  sessionCreatedAt: string;
   setNumber: number;
   reps: number;
   weightKg: number | null;
@@ -66,9 +69,56 @@ const COMPACT_HISTORY_GRID =
 
 const COMPACT_HISTORY_WARMUP_CELL = "hidden @min-[22rem]:block";
 
+/**
+ * Sort exercise set history by session date, then session, then set index.
+ *
+ * Used for the **Session date** column (all breakpoints) and the default list order on `/exercises/[slug]`.
+ *
+ * 1. `performed_on` (`YYYY-MM-DD`): descending when `direction === "desc"` (newest day first), ascending when `"asc"`.
+ * 2. Same calendar day: `session_created_at` (ISO from `workout_sessions.created_at`): descending with date desc
+ *    (newer session first); ascending with date asc (earlier session first).
+ * 3. Within a session: `set_number` **descending** when `direction === "desc"` (highest set / most recent work on top);
+ *    **ascending** when `direction === "asc"` (chronological set order). Gaps (e.g. 1, 3 after a delete) keep numeric order.
+ * 4. Stable tie-break: `session_id` ascending if timestamps ever match.
+ */
+function compareExerciseSetHistoryForPerformedOn(
+  a: ExerciseSetHistoryRow,
+  b: ExerciseSetHistoryRow,
+  direction: HistorySortDirection,
+): number {
+  const dateCmp = a.performedOn.localeCompare(b.performedOn);
+  if (dateCmp !== 0) {
+    return direction === "desc" ? -dateCmp : dateCmp;
+  }
+  const sessionCmp = a.sessionCreatedAt.localeCompare(b.sessionCreatedAt);
+  if (sessionCmp !== 0) {
+    return direction === "desc" ? -sessionCmp : sessionCmp;
+  }
+  if (a.setNumber !== b.setNumber) {
+    if (direction === "desc") {
+      return b.setNumber - a.setNumber;
+    }
+    return a.setNumber - b.setNumber;
+  }
+  return a.sessionId.localeCompare(b.sessionId);
+}
+
+/** Default list order: newest day → newest session that day → highest set number first within the session. */
+function compareExerciseSetHistoryRowsCanonical(a: ExerciseSetHistoryRow, b: ExerciseSetHistoryRow): number {
+  return compareExerciseSetHistoryForPerformedOn(a, b, "desc");
+}
+
+function sortExerciseHistoryRowsCanonical(rows: ExerciseSetHistoryRow[]): ExerciseSetHistoryRow[] {
+  rows.sort(compareExerciseSetHistoryRowsCanonical);
+  return rows;
+}
+
 function isRowMoreRecent(left: ExerciseSetHistoryRow, right: ExerciseSetHistoryRow): boolean {
   if (left.performedOn !== right.performedOn) {
     return left.performedOn > right.performedOn;
+  }
+  if (left.sessionCreatedAt !== right.sessionCreatedAt) {
+    return left.sessionCreatedAt > right.sessionCreatedAt;
   }
   return left.setNumber > right.setNumber;
 }
@@ -76,6 +126,9 @@ function isRowMoreRecent(left: ExerciseSetHistoryRow, right: ExerciseSetHistoryR
 function isRowEarlier(left: ExerciseSetHistoryRow, right: ExerciseSetHistoryRow): boolean {
   if (left.performedOn !== right.performedOn) {
     return left.performedOn < right.performedOn;
+  }
+  if (left.sessionCreatedAt !== right.sessionCreatedAt) {
+    return left.sessionCreatedAt < right.sessionCreatedAt;
   }
   return left.setNumber < right.setNumber;
 }
@@ -173,7 +226,7 @@ export default function ExerciseDetailPage() {
         () =>
           supabaseBrowserClient
             .from("workout_sessions")
-            .select("id, performed_on")
+            .select("id, performed_on, created_at")
             .eq("user_id", session.user.id),
       );
       if (sessionsError) {
@@ -185,9 +238,12 @@ export default function ExerciseDetailPage() {
 
       const typedSessions = (sessionRows ?? []) as SessionRow[];
       const sessionIds = typedSessions.map((row) => row.id);
-      const performedOnBySessionId = new Map<string, string>();
+      const sessionMetaBySessionId = new Map<string, { performedOn: string; createdAt: string }>();
       for (const row of typedSessions) {
-        performedOnBySessionId.set(row.id, row.performed_on);
+        sessionMetaBySessionId.set(row.id, {
+          performedOn: row.performed_on,
+          createdAt: row.created_at,
+        });
       }
 
       let history: ExerciseSetHistoryRow[] = [];
@@ -239,8 +295,8 @@ export default function ExerciseDetailPage() {
               if (!sessionId) {
                 return null;
               }
-              const performedOn = performedOnBySessionId.get(sessionId);
-              if (!performedOn) {
+              const sessionMeta = sessionMetaBySessionId.get(sessionId);
+              if (!sessionMeta) {
                 return null;
               }
               const baseWeightRaw = baseWeightBySessionExerciseId.get(setRow.session_exercise_id) ?? 0;
@@ -251,7 +307,8 @@ export default function ExerciseDetailPage() {
               const loadedKg = Number.isFinite(loadedValue) ? loadedValue : 0;
               return {
                 sessionId,
-                performedOn,
+                performedOn: sessionMeta.performedOn,
+                sessionCreatedAt: sessionMeta.createdAt,
                 setNumber: setRow.set_number,
                 reps: setRow.reps,
                 weightKg: setRow.weight_kg,
@@ -259,13 +316,8 @@ export default function ExerciseDetailPage() {
                 isWarmup: setRow.is_warmup,
               };
             })
-            .filter((row): row is ExerciseSetHistoryRow => row !== null)
-            .sort((a, b) => {
-              if (a.performedOn !== b.performedOn) {
-                return b.performedOn.localeCompare(a.performedOn);
-              }
-              return a.setNumber - b.setNumber;
-            });
+            .filter((row): row is ExerciseSetHistoryRow => row !== null);
+          history = sortExerciseHistoryRowsCanonical(history);
         }
       }
 
@@ -344,6 +396,12 @@ export default function ExerciseDetailPage() {
     [volumeStats.avgTotal],
   );
 
+  /** Default date + session + set order (newest first, highest set first); same as Session date ↓ on wide layout. */
+  const compactHistoryRows = useMemo(
+    () => sortExerciseHistoryRowsCanonical([...historyRows]),
+    [historyRows],
+  );
+
   const topRepsRowKey = useMemo(() => {
     if (workingRows.length === 0) {
       return null;
@@ -378,13 +436,7 @@ export default function ExerciseDetailPage() {
       let leftValue: string | number = "";
       let rightValue: string | number = "";
       if (sortKey === "performedOn") {
-        leftValue = left.performedOn;
-        rightValue = right.performedOn;
-        if (leftValue === rightValue) {
-          if (left.setNumber < right.setNumber) return sortDirection === "asc" ? -1 : 1;
-          if (left.setNumber > right.setNumber) return sortDirection === "asc" ? 1 : -1;
-          return 0;
-        }
+        return compareExerciseSetHistoryForPerformedOn(left, right, sortDirection);
       } else if (sortKey === "setNumber") {
         leftValue = left.setNumber;
         rightValue = right.setNumber;
@@ -512,7 +564,7 @@ export default function ExerciseDetailPage() {
                   <span className="text-right">Total</span>
                   <span className={`text-center ${COMPACT_HISTORY_WARMUP_CELL}`}>Warmup</span>
                 </div>
-                {historyRows.map((row, index) => (
+                {compactHistoryRows.map((row, index) => (
                   <article
                     key={`${row.sessionId}-${row.setNumber}-${index}`}
                     className={`cursor-pointer border-b px-2 py-1.5 text-xs last:border-b-0 ${
