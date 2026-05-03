@@ -9,6 +9,8 @@ type CompactStickyBarProps = {
   onNext: () => void;
   isPreviousDisabled: boolean;
   isNextDisabled: boolean;
+  /** Defaults to "Next". Use e.g. "Next exercise" when guiding forward after a milestone. */
+  nextLabel?: string;
 };
 
 export function CompactStickyBar({
@@ -18,6 +20,7 @@ export function CompactStickyBar({
   onNext,
   isPreviousDisabled,
   isNextDisabled,
+  nextLabel = "Next",
 }: CompactStickyBarProps) {
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-200 bg-white/95 p-3 shadow-[0_-6px_16px_rgba(0,0,0,0.08)] backdrop-blur md:hidden">
@@ -39,7 +42,7 @@ export function CompactStickyBar({
             disabled={isNextDisabled}
             className="inline-flex h-11 min-w-[96px] items-center justify-center rounded-md border border-sky-700 bg-sky-700 px-3 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60"
           >
-            Next
+            {nextLabel}
           </button>
         </div>
       </div>
