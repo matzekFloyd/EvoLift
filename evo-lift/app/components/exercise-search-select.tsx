@@ -5,10 +5,12 @@ import {
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
 } from "react";
+import { flushSync } from "react-dom";
 import { ExerciseBadgeChip } from "@/app/components/exercise-badge-chip";
 import {
   type ExercisePickerOption,
@@ -50,6 +52,12 @@ export function ExerciseSearchSelect({
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebouncedValue(searchQuery, debounceMs);
+  const previousValueRef = useRef(value);
+  /** After picking an option, the same gesture can retarget the trigger; ignore that toggle briefly. */
+  const suppressPostPickTriggerRef = useRef(false);
+  const suppressPostPickTimeoutRef = useRef<number | null>(null);
+  /** Mouse picked an option on mousedown; skip the following click so we do not double-call onChange. */
+  const optionPickedByPointerRef = useRef(false);
 
   const selectedOption = useMemo(
     () => options.find((option) => option.id === value) ?? null,
@@ -62,22 +70,47 @@ export function ExerciseSearchSelect({
   );
 
   const close = useCallback(() => {
+    optionPickedByPointerRef.current = false;
     setOpen(false);
     setSearchQuery("");
   }, []);
 
   const pick = useCallback(
     (exerciseId: string) => {
+      if (suppressPostPickTimeoutRef.current !== null) {
+        window.clearTimeout(suppressPostPickTimeoutRef.current);
+        suppressPostPickTimeoutRef.current = null;
+      }
+      suppressPostPickTriggerRef.current = true;
+      // Close synchronously before parent re-render so a follow-up click on the trigger cannot reopen.
+      flushSync(() => {
+        setOpen(false);
+        setSearchQuery("");
+      });
       onChange(exerciseId);
-      close();
+      suppressPostPickTimeoutRef.current = window.setTimeout(() => {
+        suppressPostPickTriggerRef.current = false;
+        suppressPostPickTimeoutRef.current = null;
+      }, 400);
     },
-    [close, onChange],
+    [onChange],
   );
+
+  /** Parent-controlled `value` must always collapse the listbox (handles lost `close()` during batched parent updates). */
+  useLayoutEffect(() => {
+    if (Object.is(previousValueRef.current, value)) {
+      return;
+    }
+    previousValueRef.current = value;
+    setOpen(false);
+    setSearchQuery("");
+  }, [value]);
 
   useEffect(() => {
     if (!open) {
       return;
     }
+    optionPickedByPointerRef.current = false;
     searchInputRef.current?.focus();
     searchInputRef.current?.select();
   }, [open]);
@@ -107,6 +140,14 @@ export function ExerciseSearchSelect({
     };
   }, [open, close]);
 
+  useEffect(() => {
+    return () => {
+      if (suppressPostPickTimeoutRef.current !== null) {
+        window.clearTimeout(suppressPostPickTimeoutRef.current);
+      }
+    };
+  }, []);
+
   /** `h-10` / `h-9` align with common `input` + `py-2` / compact `py-1.5` row heights. */
   const triggerPad =
     size === "compact" ? "h-9 px-2 text-sm" : "h-10 px-3 text-sm";
@@ -125,6 +166,9 @@ export function ExerciseSearchSelect({
         className={`flex w-full items-center justify-between gap-2 rounded-md border border-zinc-300 bg-white text-left text-zinc-900 shadow-[0_1px_0_rgba(0,0,0,0.02)] outline-none ring-sky-500/40 hover:border-zinc-400 focus-visible:border-sky-500 focus-visible:ring-2 disabled:cursor-not-allowed disabled:bg-zinc-50 disabled:opacity-60 ${triggerPad}`}
         onClick={() => {
           if (disabled) {
+            return;
+          }
+          if (suppressPostPickTriggerRef.current) {
             return;
           }
           if (open) {
@@ -154,6 +198,8 @@ export function ExerciseSearchSelect({
           id={listId}
           role="listbox"
           className="absolute left-0 right-0 z-[60] mt-1 overflow-hidden rounded-md border border-zinc-200 bg-white shadow-lg"
+          onMouseDown={(event) => event.stopPropagation()}
+          onTouchStart={(event) => event.stopPropagation()}
         >
           <div className={`flex items-center gap-2 border-b border-zinc-200 bg-zinc-50/90 ${searchPad}`}>
             <Search className="h-4 w-4 shrink-0 text-zinc-500" aria-hidden />
@@ -192,7 +238,23 @@ export function ExerciseSearchSelect({
                       className={`flex w-full items-center gap-2 text-left text-zinc-900 outline-none hover:bg-zinc-100 focus-visible:bg-zinc-100 ${optionPad} ${
                         selected ? "bg-sky-50/80 font-medium text-sky-950" : ""
                       }`}
-                      onClick={() => pick(option.id)}
+                      onMouseDown={(event) => {
+                        if (event.button !== 0) {
+                          return;
+                        }
+                        event.preventDefault();
+                        event.stopPropagation();
+                        optionPickedByPointerRef.current = true;
+                        pick(option.id);
+                      }}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        if (optionPickedByPointerRef.current) {
+                          optionPickedByPointerRef.current = false;
+                          return;
+                        }
+                        pick(option.id);
+                      }}
                     >
                       <ExerciseBadgeChip slug={option.slug} />
                       <span className="min-w-0 flex-1 truncate">{option.label}</span>
