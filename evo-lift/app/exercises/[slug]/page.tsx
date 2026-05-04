@@ -14,6 +14,7 @@ import {
   Weight,
 } from "lucide-react";
 import { AppTable } from "@/app/components/app-table";
+import { ExerciseSessionVolumeChart } from "@/app/components/exercise-session-volume-chart";
 import { ExerciseWeightProgressChart } from "@/app/components/exercise-weight-progress-chart";
 import { InfoPopover } from "@/app/components/info-popover";
 import { KpiBadge } from "@/app/components/kpi-badge";
@@ -25,6 +26,7 @@ import { loadExerciseMetadata } from "@/lib/exercise-metadata-cache";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { toExerciseBadge } from "@/lib/exercise-badge";
+import { buildExerciseSessionVolumeChartPoints } from "@/lib/exercise-session-volume-chart";
 import { buildExerciseSessionWeightChartPoints } from "@/lib/exercise-session-weight-chart";
 import { createPageLoadPerfTracker } from "@/lib/page-load-perf";
 
@@ -405,6 +407,11 @@ export default function ExerciseDetailPage() {
 
   const sessionWeightChartPoints = useMemo(
     () => buildExerciseSessionWeightChartPoints(historyRows),
+    [historyRows],
+  );
+
+  const sessionVolumeChartPoints = useMemo(
+    () => buildExerciseSessionVolumeChartPoints(historyRows),
     [historyRows],
   );
 
@@ -871,6 +878,7 @@ export default function ExerciseDetailPage() {
               role="tabpanel"
               aria-labelledby={`${EXERCISE_DETAIL_A11Y_PREFIX}-tab-charts`}
               hidden={detailPanelTab !== "charts"}
+              className="flex flex-col gap-4"
             >
             <section
               className="rounded-lg border border-zinc-200 bg-zinc-50/80 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)] sm:p-5"
@@ -902,6 +910,40 @@ export default function ExerciseDetailPage() {
                   points={sessionWeightChartPoints}
                   seriesHint="Heaviest logged working set per session—weight on the bar, including base."
                 />
+              </div>
+            </section>
+
+            <section
+              className="rounded-lg border border-zinc-200 bg-zinc-50/80 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)] sm:p-5"
+              aria-labelledby="exercise-detail-volume-heading"
+            >
+              <div className="flex items-center gap-2">
+                <h2
+                  id="exercise-detail-volume-heading"
+                  className="min-w-0 flex-1 text-sm font-semibold text-zinc-900"
+                >
+                  Session volume
+                </h2>
+                <InfoPopover label="How session volume works">
+                  <div className="space-y-2">
+                    <p>
+                      Each point is one workout session. Volume is the sum of reps × Total (kg) on
+                      the bar for every <span className="font-medium">working set</span> with a
+                      logged load—same Total (kg) as set history (loaded plus base for that
+                      session).
+                    </p>
+                    <p>
+                      Warmup sets are excluded. Sets without a logged weight are not counted. Tap
+                      or hover a point for session totals.
+                    </p>
+                  </div>
+                </InfoPopover>
+              </div>
+              <p className="mt-1 max-w-prose text-xs text-zinc-600">
+                Total reps × Total (kg) per session, working sets only (warmups excluded).
+              </p>
+              <div className="mt-3">
+                <ExerciseSessionVolumeChart points={sessionVolumeChartPoints} />
               </div>
             </section>
             </div>
