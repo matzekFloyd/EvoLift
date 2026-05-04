@@ -151,3 +151,13 @@ button:disabled {
   outline: none !important;
   box-shadow: none !important;
 }
+
+.exercise-session-volume-chart .recharts-surface,
+.exercise-session-volume-chart .recharts-wrapper {
+  outline: none !important;
+}
+
+.exercise-session-volume-chart :focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
