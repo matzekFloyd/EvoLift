@@ -4,6 +4,7 @@ import { ArrowLeft, CalendarPlus } from "lucide-react";
 import {
   CalendarDays,
   ChevronDown,
+  ChevronRight,
   ChevronUp,
   Check,
   Dumbbell,
@@ -19,6 +20,7 @@ import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { ActionButton } from "@/app/components/action-button";
 import { DateInput } from "@/app/components/date-input";
 import { ExerciseSearchSelect } from "@/app/components/exercise-search-select";
+import { InfoPopover } from "@/app/components/info-popover";
 import { NotesTextareaField } from "@/app/components/notes-textarea-field";
 import { PageShell } from "@/app/components/page-shell";
 import { StatusNotice } from "@/app/components/status-notice";
@@ -528,6 +530,23 @@ export default function NewSessionPage() {
     });
   }
 
+  function collapseExercise(index: number) {
+    setCollapsedExercises((prev) => {
+      const next = new Set(prev);
+      next.add(index);
+      return next;
+    });
+  }
+
+  function scrollCompactCreateIntoView() {
+    window.requestAnimationFrame(() => {
+      document.getElementById("new-session-compact-create")?.scrollIntoView({
+        behavior: "smooth",
+        block: "nearest",
+      });
+    });
+  }
+
   function goBack() {
     clearMessage();
     if (window.history.length > 1) {
@@ -664,31 +683,6 @@ export default function NewSessionPage() {
                 </ActionButton>
               </div>
             </div>
-            {isCompactView && exerciseRows.length > 0 ? (
-              <div className="flex items-center justify-between rounded-md border border-zinc-200 bg-zinc-50 p-2">
-                <button
-                  type="button"
-                  onClick={() => setActiveExerciseIndex((prev) => Math.max(0, prev - 1))}
-                  disabled={activeExerciseIndex === 0}
-                  className="inline-flex h-9 min-w-[88px] items-center justify-center rounded-md border border-zinc-300 bg-zinc-50 px-3 text-xs font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100 disabled:opacity-60"
-                >
-                  Previous
-                </button>
-                <span className="text-xs text-zinc-600">
-                  {activeExerciseIndex + 1}/{exerciseRows.length}
-                </span>
-                <button
-                  type="button"
-                  onClick={() =>
-                    setActiveExerciseIndex((prev) => Math.min(exerciseRows.length - 1, prev + 1))
-                  }
-                  disabled={activeExerciseIndex === exerciseRows.length - 1}
-                  className="inline-flex h-9 min-w-[88px] items-center justify-center rounded-md border border-zinc-300 bg-zinc-50 px-3 text-xs font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100 disabled:opacity-60"
-                >
-                  Next
-                </button>
-              </div>
-            ) : null}
             {visibleExerciseRows.map(({ row, index }) => (
               <div
                 key={index}
@@ -701,7 +695,7 @@ export default function NewSessionPage() {
                 {/** Optional per-exercise notes are collapsed by default for less visual noise. */}
                 <div className="mb-2 mt-1 flex items-center justify-between">
                   {isCompactView ? (
-                    <div className="inline-flex h-6 items-center leading-none text-sm font-medium text-zinc-600">
+                    <div className="inline-flex min-h-6 items-center leading-none text-base font-bold text-zinc-900">
                       {(() => {
                         const selectedOption = row.exerciseId
                           ? exerciseOptions.find((option) => option.id === row.exerciseId)
@@ -741,7 +735,7 @@ export default function NewSessionPage() {
                           <ChevronUp className="h-4 w-4" />
                         )}
                       </span>
-                      <span className="inline-flex h-6 items-center leading-none text-sm font-medium text-zinc-600">
+                      <span className="inline-flex h-6 items-center leading-none text-sm font-semibold text-zinc-800">
                         {(() => {
                           const baseTitle = `Exercise #${index + 1}`;
                           const label = row.exerciseId
@@ -798,26 +792,27 @@ export default function NewSessionPage() {
                 </div>
                 {isCompactView ? (
                   <>
-                <label className="mt-1 block text-xs font-medium">
-                  <span className="inline-flex items-center gap-1">
-                    <ListChecks className="h-3 w-3 text-zinc-500" />
-                    Exercise
-                  </span>
-                  <ExerciseSearchSelect
-                    required
-                    size="compact"
-                    className="mt-1 w-full"
-                    options={exerciseOptionsForPicker(
-                      exerciseOptions,
-                      hiddenExerciseIds,
-                      row.exerciseId,
-                    )}
-                    value={row.exerciseId}
-                    onChange={(exerciseId) => handleExerciseSelect(index, exerciseId)}
-                  />
-                </label>
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  <label className="block text-xs font-medium">
+                <div className="mt-3 grid grid-cols-12 items-start gap-2">
+                  <label className="col-span-8 block text-xs font-medium">
+                    <span className="inline-flex items-center gap-1">
+                      <ListChecks className="h-3 w-3 text-zinc-500" />
+                      Exercise
+                      <span aria-hidden className="text-sky-700">*</span>
+                    </span>
+                    <ExerciseSearchSelect
+                      required
+                      size="compact"
+                      className="mt-1 w-full"
+                      options={exerciseOptionsForPicker(
+                        exerciseOptions,
+                        hiddenExerciseIds,
+                        row.exerciseId,
+                      )}
+                      value={row.exerciseId}
+                      onChange={(exerciseId) => handleExerciseSelect(index, exerciseId)}
+                    />
+                  </label>
+                  <label className="col-span-4 block text-xs font-medium">
                     Base weight (kg)
                     <input
                       type="number"
@@ -849,11 +844,24 @@ export default function NewSessionPage() {
                       ))}
                     </div>
                   </label>
-                  <p className="col-span-2 text-[11px] leading-snug text-zinc-500">
-                    Targets apply to working sets only; warmups do not count.
-                  </p>
-                  <label className="block text-xs font-medium">
-                    Target working sets
+                </div>
+                <div className="mt-5">
+                  <div className="mb-2 flex items-center gap-1">
+                    <p className="text-sm font-semibold text-zinc-800">Targets</p>
+                    <InfoPopover
+                      label="How targets work"
+                      panelAlign="left"
+                      className="[&>button]:h-5 [&>button]:w-5 [&>button]:text-zinc-500"
+                    >
+                      <p>
+                        Sets, weight, and reps here are targets for your working sets. Warmup sets are
+                        tracked separately when you log the session.
+                      </p>
+                    </InfoPopover>
+                  </div>
+                  <div className="grid grid-cols-4 gap-2">
+                  <label className="col-span-1 block text-xs font-medium">
+                    Sets
                     <input
                       type="number"
                       min={1}
@@ -865,8 +873,8 @@ export default function NewSessionPage() {
                       placeholder="e.g. 3"
                     />
                   </label>
-                  <label className="block text-xs font-medium">
-                    Target weight (kg)
+                  <label className="col-span-1 block text-xs font-medium">
+                    Weight (kg)
                     <input
                       type="number"
                       min={0}
@@ -879,8 +887,8 @@ export default function NewSessionPage() {
                       placeholder="e.g. 60"
                     />
                   </label>
-                  <label className="block text-xs font-medium">
-                    Target reps (working sets)
+                  <label className="col-span-1 block text-xs font-medium">
+                    Reps
                     <input
                       type="number"
                       min={1}
@@ -892,25 +900,26 @@ export default function NewSessionPage() {
                       placeholder="e.g. 8"
                     />
                   </label>
+                  <div className="col-span-1 flex items-end justify-end">
+                    <button
+                      type="button"
+                      onClick={() => saveExerciseDefaults(index)}
+                      disabled={savingDefaultsRowIndex === index || !row.exerciseId}
+                      className="inline-flex h-9 w-full items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100 disabled:opacity-60"
+                    >
+                      {savingDefaultsRowIndex === index ? (
+                        "Saving..."
+                      ) : (
+                        <>
+                          <Check className="h-3.5 w-3.5 text-sky-700" />
+                          Save defaults
+                        </>
+                      )}
+                    </button>
+                  </div>
+                  </div>
                 </div>
-                <div className="mt-3 flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => saveExerciseDefaults(index)}
-                    disabled={savingDefaultsRowIndex === index || !row.exerciseId}
-                    className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100 disabled:opacity-60"
-                  >
-                    {savingDefaultsRowIndex === index ? (
-                      "Saving..."
-                    ) : (
-                      <>
-                        <Check className="h-3.5 w-3.5 text-sky-700" />
-                        Save targets as default
-                      </>
-                    )}
-                  </button>
-                </div>
-                <div className="mt-3 block text-sm font-medium">
+                <div className="mt-6 block text-sm font-medium">
                   <button
                     type="button"
                     onClick={() => toggleExerciseNotes(index)}
@@ -919,7 +928,7 @@ export default function NewSessionPage() {
                     <NotebookPen className="h-3.5 w-3.5 text-zinc-500" />
                     {expandedExerciseNotes.has(index)
                       ? "Hide exercise notes"
-                      : "Add exercise notes (optional)"}
+                      : "Add exercise notes"}
                   </button>
                   {expandedExerciseNotes.has(index) ? (
                     <NotesTextareaField
@@ -931,31 +940,84 @@ export default function NewSessionPage() {
                     />
                   ) : null}
                 </div>
+                <div className="mt-4 flex flex-col gap-1 border-t border-zinc-200 pt-3">
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    <ActionButton
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      fullWidth
+                      className="font-normal"
+                      disabled={!row.exerciseId}
+                      onClick={() => {
+                        collapseExercise(index);
+                        addExerciseRow();
+                        setActiveExerciseIndex(exerciseRows.length);
+                      }}
+                    >
+                      <Plus className="h-3.5 w-3.5 text-white" />
+                      Save & add next
+                    </ActionButton>
+                  </div>
+                  {exerciseRows.length > 1 ? (
+                    <div className="flex gap-2">
+                      <ActionButton
+                        type="button"
+                        variant="secondary"
+                        size="sm"
+                        fullWidth
+                        className="min-w-0 flex-1 font-normal"
+                        disabled={activeExerciseIndex === 0}
+                        onClick={() =>
+                          setActiveExerciseIndex((prev) => Math.max(0, prev - 1))
+                        }
+                      >
+                        Previous exercise
+                      </ActionButton>
+                      {activeExerciseIndex < exerciseRows.length - 1 ? (
+                        <ActionButton
+                          type="button"
+                          variant="primary"
+                          size="sm"
+                          fullWidth
+                          className="min-w-0 flex-1 font-normal"
+                          disabled={!row.exerciseId}
+                          onClick={() =>
+                            setActiveExerciseIndex((prev) =>
+                              Math.min(exerciseRows.length - 1, prev + 1),
+                            )
+                          }
+                        >
+                          <ChevronRight className="h-3.5 w-3.5 text-white" />
+                          Next exercise
+                        </ActionButton>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </div>
                   </>
                 ) : collapsedExercises.has(index) ? null : (
                   <>
-                <label className="mt-2 block text-sm font-medium">
-                  <span className="inline-flex items-center gap-1">
-                    <ListChecks className="h-3.5 w-3.5 text-zinc-500" />
-                    Exercise
-                  </span>
-                  <ExerciseSearchSelect
-                    required
-                    className="mt-1 w-full"
-                    options={exerciseOptionsForPicker(
-                      exerciseOptions,
-                      hiddenExerciseIds,
-                      row.exerciseId,
-                    )}
-                    value={row.exerciseId}
-                    onChange={(exerciseId) => handleExerciseSelect(index, exerciseId)}
-                  />
-                </label>
-                <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-                  <p className="text-xs leading-snug text-zinc-500 sm:col-span-2 lg:col-span-4">
-                    Targets apply to working sets only; warmups do not count.
-                  </p>
-                  <label className="block text-sm font-medium">
+                <div className="mt-2 grid grid-cols-12 items-start gap-2">
+                  <label className="col-span-8 block text-sm font-medium">
+                    <span className="inline-flex items-center gap-1">
+                      <ListChecks className="h-3.5 w-3.5 text-zinc-500" />
+                      Exercise
+                      <span aria-hidden className="text-sky-700">*</span>
+                    </span>
+                    <ExerciseSearchSelect
+                      required
+                      className="mt-1 w-full"
+                      options={exerciseOptionsForPicker(
+                        exerciseOptions,
+                        hiddenExerciseIds,
+                        row.exerciseId,
+                      )}
+                      value={row.exerciseId}
+                      onChange={(exerciseId) => handleExerciseSelect(index, exerciseId)}
+                    />
+                  </label>
+                  <label className="col-span-4 block text-sm font-medium">
                     Base weight (kg)
                     <input
                       type="number"
@@ -987,7 +1049,12 @@ export default function NewSessionPage() {
                       ))}
                     </div>
                   </label>
-                  <label className="block text-sm font-medium">
+                </div>
+                <p className="mt-3 text-xs leading-snug text-zinc-500">
+                  Targets apply to working sets only; warmups do not count.
+                </p>
+                <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-12 lg:items-end">
+                  <label className="block text-sm font-medium sm:col-span-1 lg:col-span-3">
                     Target working sets
                     <input
                       type="number"
@@ -1000,7 +1067,7 @@ export default function NewSessionPage() {
                       placeholder="e.g. 3"
                     />
                   </label>
-                  <label className="block text-sm font-medium">
+                  <label className="block text-sm font-medium sm:col-span-1 lg:col-span-3">
                     Target weight (kg)
                     <input
                       type="number"
@@ -1014,8 +1081,8 @@ export default function NewSessionPage() {
                       placeholder="e.g. 60"
                     />
                   </label>
-                  <label className="block text-sm font-medium">
-                    Target reps (working sets)
+                  <label className="block text-sm font-medium sm:col-span-1 lg:col-span-3">
+                    Target reps
                     <input
                       type="number"
                       min={1}
@@ -1027,23 +1094,23 @@ export default function NewSessionPage() {
                       placeholder="e.g. 8"
                     />
                   </label>
-                </div>
-                <div className="mt-3 flex justify-end">
-                  <button
-                    type="button"
-                    onClick={() => saveExerciseDefaults(index)}
-                    disabled={savingDefaultsRowIndex === index || !row.exerciseId}
-                    className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100 disabled:opacity-60"
-                  >
-                    {savingDefaultsRowIndex === index ? (
-                      "Saving..."
-                    ) : (
-                      <>
-                        <Check className="h-3.5 w-3.5 text-sky-700" />
-                        Save targets as default
-                      </>
-                    )}
-                  </button>
+                  <div className="flex items-end sm:col-span-1 sm:justify-end lg:col-span-3 lg:justify-end">
+                    <button
+                      type="button"
+                      onClick={() => saveExerciseDefaults(index)}
+                      disabled={savingDefaultsRowIndex === index || !row.exerciseId}
+                      className="inline-flex h-10 items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100 disabled:opacity-60"
+                    >
+                      {savingDefaultsRowIndex === index ? (
+                        "Saving..."
+                      ) : (
+                        <>
+                          <Check className="h-3.5 w-3.5 text-sky-700" />
+                          Save targets as default
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <div className="mt-3 block text-sm font-medium">
                   <button
@@ -1054,7 +1121,7 @@ export default function NewSessionPage() {
                     <NotebookPen className="h-3.5 w-3.5 text-zinc-500" />
                     {expandedExerciseNotes.has(index)
                       ? "Hide exercise notes"
-                      : "Add exercise notes (optional)"}
+                      : "Add exercise notes"}
                   </button>
                   {expandedExerciseNotes.has(index) ? (
                     <NotesTextareaField
@@ -1065,6 +1132,35 @@ export default function NewSessionPage() {
                       heightClassName="h-20"
                     />
                   ) : null}
+                </div>
+                <div className="mt-4 flex flex-col items-end gap-1 border-t border-zinc-200 pt-4">
+                  <div className="flex w-full flex-col items-stretch justify-end gap-2 sm:w-auto sm:flex-row sm:items-center">
+                    <ActionButton
+                      type="button"
+                      variant="secondary"
+                      size="sm"
+                      className="font-normal"
+                      disabled={!row.exerciseId}
+                      onClick={() => collapseExercise(index)}
+                    >
+                      <Check className="h-3.5 w-3.5 text-sky-700" />
+                      Save exercise
+                    </ActionButton>
+                    <ActionButton
+                      type="button"
+                      variant="primary"
+                      size="sm"
+                      className="font-normal"
+                      disabled={!row.exerciseId}
+                      onClick={() => {
+                        collapseExercise(index);
+                        addExerciseRow();
+                      }}
+                    >
+                      <Plus className="h-3.5 w-3.5 text-white" />
+                      Save & add next
+                    </ActionButton>
+                  </div>
                 </div>
                   </>
                 )}
@@ -1096,14 +1192,17 @@ export default function NewSessionPage() {
                 className="sm:w-44"
               >
                 <Play className="h-3.5 w-3.5 text-white" />
-                Create + log sets
+                Create & log sets
               </ActionButton>
             </div>
           </div>
         </form>
       </section>
       {isCompactView ? (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-200 bg-white/95 p-3 shadow-[0_-6px_16px_rgba(0,0,0,0.08)] backdrop-blur md:hidden">
+        <div
+          id="new-session-compact-create"
+          className="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-200 bg-white/95 p-3 shadow-[0_-6px_16px_rgba(0,0,0,0.08)] backdrop-blur md:hidden"
+        >
           <div className="mx-auto flex w-full max-w-5xl items-center gap-2">
             <button
               type="submit"
@@ -1123,7 +1222,7 @@ export default function NewSessionPage() {
               className="inline-flex h-11 flex-1 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-3 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60"
             >
               <Play className="h-3.5 w-3.5 text-white" />
-              Create + log sets
+              Create & log sets
             </button>
           </div>
         </div>
