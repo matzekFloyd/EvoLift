@@ -77,7 +77,6 @@ export default function NewSessionPage() {
   const [expandedExerciseNotes, setExpandedExerciseNotes] = useState<Set<number>>(new Set());
   const [collapsedExercises, setCollapsedExercises] = useState<Set<number>>(new Set());
   const [isSaving, setIsSaving] = useState(false);
-  const [savingDefaultsRowIndex, setSavingDefaultsRowIndex] = useState<number | null>(null);
   const [createMode, setCreateMode] = useState<"home" | "log">("home");
   const [message, setMessage] = useState<string | null>(null);
   const [messageTone, setMessageTone] = useState<"error" | "success">("error");
@@ -94,11 +93,6 @@ export default function NewSessionPage() {
 
   function showError(messageText: string) {
     setMessageTone("error");
-    setMessage(messageText);
-  }
-
-  function showSuccess(messageText: string) {
-    setMessageTone("success");
     setMessage(messageText);
   }
 
@@ -428,76 +422,6 @@ export default function NewSessionPage() {
     );
   }
 
-  async function saveExerciseDefaults(index: number) {
-    if (!userId) {
-      showError("You must be logged in to save defaults.");
-      return;
-    }
-
-    const row = exerciseRows[index];
-    if (!row || !row.exerciseId) {
-      showError("Select an exercise first.");
-      return;
-    }
-
-    const parsedBaseWeight = row.baseWeightKg ? Number(row.baseWeightKg) : null;
-    const parsedSets = row.targetSets ? Number(row.targetSets) : null;
-    const parsedReps = row.targetReps ? Number(row.targetReps) : null;
-    const parsedTargetWeight = row.targetWeightKg ? Number(row.targetWeightKg) : null;
-
-    if (parsedBaseWeight !== null && (!Number.isFinite(parsedBaseWeight) || parsedBaseWeight < 0)) {
-      showError("Please enter a valid base weight before saving defaults.");
-      return;
-    }
-    if (parsedSets !== null && (!Number.isFinite(parsedSets) || parsedSets <= 0)) {
-      showError("Please enter a valid number of target working sets before saving defaults.");
-      return;
-    }
-    if (parsedReps !== null && (!Number.isFinite(parsedReps) || parsedReps <= 0)) {
-      showError("Please enter a valid target reps value for working sets before saving defaults.");
-      return;
-    }
-    if (
-      parsedTargetWeight !== null &&
-      (!Number.isFinite(parsedTargetWeight) || parsedTargetWeight < 0)
-    ) {
-      showError("Please enter a valid target weight (kg) for working sets before saving defaults.");
-      return;
-    }
-
-    setSavingDefaultsRowIndex(index);
-    setMessage(null);
-
-    const payload: Database["public"]["Tables"]["user_exercise_defaults"]["Insert"] = {
-      user_id: userId,
-      exercise_id: row.exerciseId,
-      default_base_weight_kg: parsedBaseWeight,
-      default_target_sets: parsedSets,
-      default_target_reps: parsedReps,
-      default_target_weight_kg: parsedTargetWeight,
-    };
-
-    const { data, error } = await supabaseBrowserClient
-      .from("user_exercise_defaults")
-      .upsert(payload, { onConflict: "user_id,exercise_id" })
-      .select("*")
-      .single();
-
-    if (error || !data) {
-      showError(`Could not save defaults: ${error?.message ?? "Unknown error"}`);
-      setSavingDefaultsRowIndex(null);
-      return;
-    }
-
-    setExerciseDefaultsById((prev) => {
-      const next = new Map(prev);
-      next.set(data.exercise_id, data);
-      return next;
-    });
-    setSavingDefaultsRowIndex(null);
-    showSuccess("Defaults saved for this exercise.");
-  }
-
   function clearDraft() {
     if (userId) {
       window.localStorage.removeItem(getDraftStorageKey(userId));
@@ -628,7 +552,7 @@ export default function NewSessionPage() {
           ) : null}
 
           {isCompactView ? (
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={clearDraft}
@@ -636,24 +560,6 @@ export default function NewSessionPage() {
               >
                 <Eraser className="h-3.5 w-3.5 text-amber-600" />
                 Clear draft
-              </button>
-              <button
-                type="button"
-                onClick={() => saveExerciseDefaults(activeExerciseIndex)}
-                disabled={
-                  savingDefaultsRowIndex === activeExerciseIndex ||
-                  !exerciseRows[activeExerciseIndex]?.exerciseId
-                }
-                className="inline-flex h-12 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 text-xs leading-tight text-zinc-800 hover:border-sky-300 hover:bg-zinc-100 disabled:opacity-60"
-              >
-                {savingDefaultsRowIndex === activeExerciseIndex ? (
-                  "Saving..."
-                ) : (
-                  <>
-                    <Check className="h-3.5 w-3.5 text-sky-700" />
-                    Save default targets
-                  </>
-                )}
               </button>
               <button
                 type="button"
@@ -678,43 +584,27 @@ export default function NewSessionPage() {
                 </span>
               ) : null}
               <div className={`flex items-center gap-2 ${isCompactView ? "hidden" : ""}`}>
-                <ActionButton
-                  type="button"
-                  onClick={clearDraft}
-                  variant="secondary"
-                  size="sm"
-                  className="px-2 py-1 text-xs font-normal"
-                  iconColor="amber"
-                >
-                  <Eraser className="h-3 w-3 text-amber-600" />
-                  Clear draft
-                </ActionButton>
-                <ActionButton
-                  type="button"
-                  onClick={() => saveExerciseDefaults(activeExerciseIndex)}
-                  variant="secondary"
-                  size="sm"
-                  className="px-2 py-1 text-xs font-normal"
-                  disabled={
-                    savingDefaultsRowIndex === activeExerciseIndex ||
-                    !exerciseRows[activeExerciseIndex]?.exerciseId
-                  }
-                >
-                  <Check className="h-3 w-3 text-sky-700" />
-                  {savingDefaultsRowIndex === activeExerciseIndex
-                    ? "Saving..."
-                    : "Save default targets"}
-                </ActionButton>
-                <ActionButton
-                  type="button"
-                  onClick={addExerciseRow}
-                  variant="primary"
-                  size="sm"
-                  className="px-2 py-1 text-xs font-normal"
-                >
-                  <Plus className="h-3 w-3 text-white" />
-                  Add exercise
-                </ActionButton>
+                  <ActionButton
+                    type="button"
+                    onClick={clearDraft}
+                    variant="secondary"
+                    size="sm"
+                    className="px-2 py-1 text-xs font-normal"
+                    iconColor="amber"
+                  >
+                    <Eraser className="h-3 w-3 text-amber-600" />
+                    Clear draft
+                  </ActionButton>
+                  <ActionButton
+                    type="button"
+                    onClick={addExerciseRow}
+                    variant="primary"
+                    size="sm"
+                    className="px-2 py-1 text-xs font-normal"
+                  >
+                    <Plus className="h-3 w-3 text-white" />
+                    Add exercise
+                  </ActionButton>
               </div>
             </div>
             {visibleExerciseRows.map(({ row, index }) => (
@@ -1071,14 +961,16 @@ export default function NewSessionPage() {
                   </div>
                 </div>
                 <div className="mt-5">
-                  <div className="mb-2 flex items-center gap-1">
-                    <p className="text-sm font-semibold text-zinc-800">Targets</p>
-                    <InfoPopover label="How targets work" className="[&>button]:text-zinc-500">
-                      <p>
-                        Sets, weight, and reps here are targets for your working sets. Warmup sets are
-                        tracked separately when you log the session.
-                      </p>
-                    </InfoPopover>
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <div className="flex items-center gap-1">
+                      <p className="text-sm font-semibold text-zinc-800">Targets</p>
+                      <InfoPopover label="How targets work" className="[&>button]:text-zinc-500">
+                        <p>
+                          Sets, weight, and reps here are targets for your working sets. Warmup sets
+                          are tracked separately when you log the session.
+                        </p>
+                      </InfoPopover>
+                    </div>
                   </div>
                 </div>
                 <div className="mt-3">
