@@ -8,9 +8,10 @@ type InfoPopoverProps = {
   label: string;
   children: ReactNode;
   className?: string;
+  panelAlign?: "left" | "right";
 };
 
-export function InfoPopover({ label, children, className }: InfoPopoverProps) {
+export function InfoPopover({ label, children, className, panelAlign = "right" }: InfoPopoverProps) {
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const panelId = useId();
@@ -63,7 +64,10 @@ export function InfoPopover({ label, children, className }: InfoPopoverProps) {
           id={panelId}
           role="dialog"
           aria-label={label}
-          className="absolute right-0 top-full z-30 mt-1.5 w-[min(22rem,calc(100vw-2rem))] rounded-md border border-zinc-200 bg-white px-3 py-2 text-xs leading-snug text-zinc-700 shadow-md"
+          className={[
+            "absolute top-full z-30 mt-1.5 w-[min(22rem,calc(100vw-2rem))] rounded-md border border-zinc-200 bg-white px-3 py-2 text-xs leading-snug text-zinc-700 shadow-md",
+            panelAlign === "left" ? "left-0" : "right-0",
+          ].join(" ")}
         >
           {children}
         </div>
