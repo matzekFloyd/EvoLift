@@ -100,9 +100,14 @@ Seed data lives in:
 
 - Node.js 20+ recommended
 - npm
+- Docker Desktop (for local Supabase containers via the CLI)
 - Supabase CLI (for local DB and migration workflow)
 
 ## Local Development
+
+### Prerequisite: Docker
+
+Local Supabase runs in Docker via the Supabase CLI. Install [Docker Desktop](https://docs.docker.com/desktop/) and keep it running before `supabase start`.
 
 ### 1) Install dependencies
 
@@ -113,9 +118,41 @@ cd evo-lift
 npm install
 ```
 
-### 2) Configure environment variables
+### 2) Start local Supabase (Docker)
 
-Create `evo-lift/.env.local` with:
+From the **repository root** (the folder that contains `supabase/`):
+
+```bash
+supabase start
+```
+
+First time or after pulling new migrations, replay schema and seeds:
+
+```bash
+supabase db reset
+```
+
+Studio is at `http://127.0.0.1:54323`. Stop containers when finished: `supabase stop`.
+
+### 3) Configure environment variables
+
+Create `evo-lift/.env.local`.
+
+**Local Docker (recommended)** — copy keys from the CLI (still from repo root):
+
+```bash
+supabase status -o env --override-name api.url=NEXT_PUBLIC_SUPABASE_URL
+```
+
+Use these values in `evo-lift/.env.local`:
+
+```bash
+NEXT_PUBLIC_SUPABASE_URL=http://127.0.0.1:54321
+NEXT_PUBLIC_SUPABASE_ANON_KEY=<ANON_KEY from the command above>
+SUPABASE_SERVICE_ROLE_KEY=<SERVICE_ROLE_KEY from the command above>
+```
+
+**Hosted Supabase** — only if you intentionally point the app at a cloud project:
 
 ```bash
 NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
@@ -129,7 +166,7 @@ Notes:
 - `NEXT_PUBLIC_*` variables are embedded at build time
 - `SUPABASE_SERVICE_ROLE_KEY` must remain server-side only
 
-### 3) Run the app
+### 4) Run the app
 
 ```bash
 cd evo-lift
@@ -140,7 +177,7 @@ App runs at:
 
 - `http://localhost:3000`
 
-### 4) Quality checks
+### 5) Quality checks
 
 ```bash
 cd evo-lift

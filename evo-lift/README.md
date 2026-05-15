@@ -156,9 +156,11 @@ Set these in each environment:
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 
+**Local Docker:** from the repo root, run `supabase start`, then `supabase status -o env --override-name api.url=NEXT_PUBLIC_SUPABASE_URL` and map `ANON_KEY` / `SERVICE_ROLE_KEY` into `evo-lift/.env.local` (see the root `README.md`).
+
 Notes:
 
-- `NEXT_PUBLIC_SUPABASE_URL` must be the project base URL (for example `https://<project-ref>.supabase.co`), not `/rest/v1`.
+- `NEXT_PUBLIC_SUPABASE_URL` must be the project base URL (local: `http://127.0.0.1:54321`; hosted: `https://<project-ref>.supabase.co`), not `/rest/v1`.
 - `NEXT_PUBLIC_*` values are embedded at build time, so redeploy after changing them.
 - `SUPABASE_SERVICE_ROLE_KEY` is server-only and must never be exposed in client code.
 
@@ -166,7 +168,7 @@ Notes:
 
 | Environment | Supabase project | Where to configure |
 | --- | --- | --- |
-| Local | dev/local Supabase | `evo-lift/.env.local` |
+| Local | Docker via Supabase CLI (`supabase start`) | `evo-lift/.env.local` |
 | Preview | preview/staging Supabase (recommended) | Vercel Project Settings -> Environment Variables (Preview) |
 | Production | production Supabase | Vercel Project Settings -> Environment Variables (Production) |
 
