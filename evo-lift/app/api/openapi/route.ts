@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
       title: "Evo Lift API",
       version: "1.0.0",
       description:
-        "Browser-testable API docs for Supabase-backed endpoints.\n\nWorkout templates are not exposed under `/api/*`. They are loaded and updated from authenticated pages via Supabase client queries and Next.js server actions (`server/actions/templates.ts`).",
+        "Browser-testable API docs for Supabase-backed endpoints.\n\nAuthenticated routes accept a session JWT or a personal API token from Account (Bearer evo_…).\n\nWorkout templates are not exposed under `/api/*`. They are loaded and updated from authenticated pages via Supabase client queries and Next.js server actions (`server/actions/templates.ts`).",
     },
     servers: [{ url: getBaseUrl(request) }],
     components: {
@@ -21,7 +21,9 @@ export async function GET(request: NextRequest) {
         bearerAuth: {
           type: "http",
           scheme: "bearer",
-          bearerFormat: "JWT",
+          bearerFormat: "JWT or personal API token",
+          description:
+            "Supabase session access token, or a personal API token created on Account (prefix evo_).",
         },
       },
       schemas: {

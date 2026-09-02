@@ -189,8 +189,8 @@ Notes:
 ## Auth and API usage
 
 - Users authenticate via Supabase Auth (email/password, OAuth, magic link, etc.).
-- Frontend gets `access_token` from Supabase session.
-- Backend routes use `Authorization: Bearer <access_token>` for RLS-aware requests.
+- Frontend gets `access_token` from Supabase session for in-app requests.
+- `GET /api/*` also accepts a personal API token created on Account → Login (`Authorization: Bearer evo_…`). Tokens are stored hashed, shown once, and do not expire until revoked.
 - In Swagger (`/docs`), use Authorize and paste the raw token value (without adding an extra `Bearer` prefix).
 
 ## Seed policy

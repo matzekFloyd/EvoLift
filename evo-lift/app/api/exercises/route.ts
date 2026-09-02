@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createPublicServerClient } from "@/lib/supabase/server";
 import type { LanguageCode } from "@/lib/supabase/database.types";
-import { getBearerToken } from "@/server/auth/access-token";
+import { authenticateApiRequest } from "@/server/auth/api-request";
 import { listExercisesWithTranslations } from "@/server/db/exercises";
 
 function parseLanguageCode(value: string | null): LanguageCode | undefined {
@@ -16,12 +15,9 @@ function parseLanguageCode(value: string | null): LanguageCode | undefined {
 
 export async function GET(request: NextRequest) {
   try {
-    const accessToken = getBearerToken(request);
-    if (!accessToken) {
-      return NextResponse.json(
-        { error: "Missing bearer token for authenticated RLS query." },
-        { status: 401 },
-      );
+    const auth = await authenticateApiRequest(request);
+    if ("error" in auth) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status });
     }
 
     const lang = parseLanguageCode(request.nextUrl.searchParams.get("lang"));
@@ -32,8 +28,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const client = createPublicServerClient(accessToken);
-    const exercises = await listExercisesWithTranslations(client, lang);
+    const exercises = await listExercisesWithTranslations(auth.client, lang);
 
     return NextResponse.json({ data: exercises });
   } catch (error) {

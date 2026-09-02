@@ -221,13 +221,13 @@ supabase db query --linked --file supabase/seeds/003_user_exercise_defaults_barb
 
 Returns exercises with translations.
 
-- Requires bearer token in `Authorization` header
+- Requires bearer token in `Authorization` header: a **personal API token** from Account → Login (`evo_…`, does not expire until revoked) or a session JWT
 - Optional query parameter: `lang` (`en` or `de`)
 
 Example:
 
 ```bash
-curl -H "Authorization: Bearer <access_token>" \
+curl -H "Authorization: Bearer <personal_api_token_or_access_token>" \
   "http://localhost:3000/api/exercises?lang=en"
 ```
 
@@ -240,6 +240,7 @@ Returns OpenAPI 3.0 JSON for documented endpoints.
 - Never commit `.env.local`
 - Never expose `SUPABASE_SERVICE_ROLE_KEY` in client-side code
 - Rotate credentials immediately if leaked
+- Revoke leaked personal API tokens on Account → Login
 - Prefer anon-key + user JWT (RLS-aware) for user-scoped server endpoints
 
 ## Deployment Notes

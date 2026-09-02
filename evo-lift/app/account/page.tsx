@@ -21,6 +21,7 @@ import { ExerciseSearchSelect } from "@/app/components/exercise-search-select";
 import { PageShell } from "@/app/components/page-shell";
 import { SegmentedTabs } from "@/app/components/segmented-tabs";
 import { SettingsSection, SettingsSectionBody } from "@/app/components/settings-section";
+import { AccountApiTokensSection } from "@/app/account/api-tokens-section";
 import { SettingsSectionHeader } from "@/app/components/settings-section-header";
 import { StatusNotice } from "@/app/components/status-notice";
 
@@ -28,6 +29,7 @@ export default function AccountPage() {
   const router = useRouter();
   const [isChecking, setIsChecking] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [exerciseOptions, setExerciseOptions] = useState<Array<{ id: string; label: string; slug: string }>>([]);
   const [defaultsByExerciseId, setDefaultsByExerciseId] = useState<
@@ -82,6 +84,7 @@ export default function AccountPage() {
       }
 
       setUserId(session.user.id);
+      setAccessToken(session.access_token);
       setUserEmail(session.user.email ?? null);
       const { data: exercises, error: exercisesError } = await supabaseBrowserClient
         .from("exercises")
@@ -676,6 +679,7 @@ export default function AccountPage() {
         </form>
         </SettingsSectionBody>
       </SettingsSection>
+      {accessToken ? <AccountApiTokensSection accessToken={accessToken} /> : null}
         </>
       ) : null}
       {activeSection === "profile" ? (

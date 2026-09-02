@@ -4,24 +4,25 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { z } from "zod";
 
 const DEFAULT_LOCAL_BASE_URL = "http://localhost:3000";
+const DEFAULT_TARGET = "prod";
 
 const TargetSchema = z
   .enum(["local", "prod"])
   .optional()
-  .describe("Which EvoLift API to call. Default local. Use prod for production.");
+  .describe("Which EvoLift API to call. Default prod. Pass local only when the user asks for local.");
 
 function stripSlash(url) {
   return url.replace(/\/+$/, "");
 }
 
-function resolveTarget(target = "local") {
+function resolveTarget(target = DEFAULT_TARGET) {
   if (target === "prod") {
     const base = process.env.EVO_API_PROD_URL?.trim();
     if (!base) {
       return {
         error: {
           error: "Production API URL is not configured.",
-          hint: "Set EVO_API_PROD_URL to the production origin (no path), for example https://your-app.vercel.app. Use a production user JWT in EVO_ACCESS_TOKEN_PROD.",
+          hint: "Set EVO_API_PROD_URL to the production origin (no path), for example https://your-app.vercel.app. Use a production personal API token in EVO_ACCESS_TOKEN_PROD.",
         },
       };
     }
@@ -59,7 +60,7 @@ function normalizeApiPath(path) {
   return trimmed.split("?")[0];
 }
 
-async function evoFetch(path, query = {}, target = "local") {
+async function evoFetch(path, query = {}, target = DEFAULT_TARGET) {
   const resolved = resolveTarget(target);
   if (resolved.error) {
     return jsonResult(resolved.error, true);
@@ -111,7 +112,7 @@ async function evoFetch(path, query = {}, target = "local") {
       {
         error: "Missing or invalid bearer token.",
         target: resolved.label,
-        hint: `Set ${resolved.tokenEnv} to a user JWT for that environment (local Docker vs production Supabase are different tokens).`,
+        hint: `Set ${resolved.tokenEnv} to a personal API token from Account → Login (starts with evo_). Local and production tokens are different.`,
         status: 401,
         body,
       },
@@ -171,25 +172,25 @@ server.tool(
 
 server.tool(
   "get_openapi",
-  "Fetch GET /api/openapi. Use this to see which EvoLift HTTP routes exist before calling them.",
+  "Fetch GET /api/openapi. Use this to see which EvoLift HTTP routes exist before calling them. Default target is prod.",
   { target: TargetSchema },
-  async ({ target }) => evoFetch("/api/openapi", {}, target ?? "local"),
+  async ({ target }) => evoFetch("/api/openapi", {}, target ?? DEFAULT_TARGET),
 );
 
 server.tool(
   "list_exercises",
-  "Fetch GET /api/exercises (exercise catalog with translations). Optional lang: en or de. Set target to prod for production.",
+  "Fetch GET /api/exercises (exercise catalog with translations). Optional lang: en or de. Default target is prod. Set target to local only when asked.",
   {
     lang: z.enum(["en", "de"]).optional().describe("Optional language filter"),
     target: TargetSchema,
   },
   async ({ lang, target }) =>
-    evoFetch("/api/exercises", lang ? { lang } : {}, target ?? "local"),
+    evoFetch("/api/exercises", lang ? { lang } : {}, target ?? DEFAULT_TARGET),
 );
 
 server.tool(
   "evo_api_get",
-  "GET an EvoLift /api/* route. Prefer this after get_openapi when a newer endpoint exists. Read-only. Set target to prod for production.",
+  "GET an EvoLift /api/* route. Prefer this after get_openapi when a newer endpoint exists. Read-only. Default target is prod. Set target to local only when asked.",
   {
     path: z
       .string()
@@ -202,7 +203,7 @@ server.tool(
   },
   async ({ path, query, target }) => {
     try {
-      return await evoFetch(path, query ?? {}, target ?? "local");
+      return await evoFetch(path, query ?? {}, target ?? DEFAULT_TARGET);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       return jsonResult({ error: message }, true);
