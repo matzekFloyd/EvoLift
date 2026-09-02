@@ -138,9 +138,9 @@ Route handlers stay thin and call that data layer:
 
 ### Browser API testing (Swagger UI)
 
-- Open `http://localhost:3000/docs` for interactive API docs.
+- After login, open `http://localhost:3000/docs` for interactive API docs.
 - The OpenAPI spec is served from `http://localhost:3000/api/openapi`.
-- Click `Authorize` in Swagger UI and paste `Bearer <your_access_token>` for authenticated endpoints.
+- Try-it-out uses your current session automatically. To use a personal API token instead, click Authorize and paste the token value (without an extra `Bearer` prefix).
 
 ### RLS choice guidelines
 
@@ -191,7 +191,7 @@ Notes:
 - Users authenticate via Supabase Auth (email/password, OAuth, magic link, etc.).
 - Frontend gets `access_token` from Supabase session for in-app requests.
 - `GET /api/*` also accepts a personal API token created on Account → Login (`Authorization: Bearer evo_…`). Tokens are stored hashed, shown once, and do not expire until revoked.
-- In Swagger (`/docs`), use Authorize and paste the raw token value (without adding an extra `Bearer` prefix).
+- In Swagger (`/docs`), the logged-in session is sent automatically. To use a personal token, use Authorize and paste the raw token value (without adding an extra `Bearer` prefix).
 
 ## Seed policy
 

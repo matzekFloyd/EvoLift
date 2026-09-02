@@ -1,6 +1,7 @@
 "use client";
 
 import { Copy, KeyRound, Plus, Trash2 } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ActionButton } from "@/app/components/action-button";
 import { AppTable } from "@/app/components/app-table";
@@ -125,6 +126,12 @@ export function AccountApiTokensSection({ accessToken }: AccountApiTokensSection
         description="Long-lived tokens for Cursor and other tools. They do not expire. Revoke a token if it leaks. The full value is shown only once."
         icon={<KeyRound className="h-4 w-4 text-zinc-500" />}
       />
+      <p className="mt-1.5 text-sm text-zinc-600">
+        <Link className="font-medium text-sky-800 hover:text-sky-950" href="/docs">
+          Open API docs
+        </Link>{" "}
+        to try endpoints in the browser with your session.
+      </p>
       <SettingsSectionBody>
         <form onSubmit={handleCreate} className="space-y-3">
           <label className="block text-sm font-medium">

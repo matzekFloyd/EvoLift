@@ -1,0 +1,14 @@
+.api-docs-explorer .swagger-ui {
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}
+
+.api-docs-explorer .swagger-ui .information-container .title {
+  font-size: 1.5rem;
+}
+
+.api-docs-explorer .swagger-ui .btn,
+.api-docs-explorer .swagger-ui select,
+.api-docs-explorer .swagger-ui input[type="text"],
+.api-docs-explorer .swagger-ui textarea {
+  border-radius: 0.375rem;
+}
