@@ -1,0 +1,14 @@
+{
+  "name": "evo-lift-api-mcp",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "description": "MCP server that proxies the EvoLift HTTP API (no direct Supabase).",
+  "bin": {
+    "evo-lift-api-mcp": "./index.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.25.1",
+    "zod": "^3.25.76"
+  }
+}

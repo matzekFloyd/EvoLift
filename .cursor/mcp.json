@@ -1,5 +1,15 @@
 {
   "mcpServers": {
+    "evo-lift": {
+      "command": "node",
+      "args": ["${workspaceFolder}/mcp/evo-api/index.mjs"],
+      "env": {
+        "EVO_API_BASE_URL": "http://localhost:3000",
+        "EVO_ACCESS_TOKEN": "${env:EVO_ACCESS_TOKEN}",
+        "EVO_API_PROD_URL": "${env:EVO_API_PROD_URL}",
+        "EVO_ACCESS_TOKEN_PROD": "${env:EVO_ACCESS_TOKEN_PROD}"
+      }
+    },
     "Sanity": {
       "type": "http",
       "url": "https://mcp.sanity.io"
