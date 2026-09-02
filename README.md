@@ -217,6 +217,12 @@ supabase db query --linked --file supabase/seeds/003_user_exercise_defaults_barb
 
 ## API
 
+### `GET /api/mcp`
+
+Streamable HTTP MCP for Cursor Cloud Agents. Authenticate with `Authorization: Bearer <personal API token>`.
+
+The MCP URL is `https://evo-lift.vercel.app/api/mcp`, not the site origin.
+
 ### `GET /api/exercises`
 
 Returns exercises with translations.

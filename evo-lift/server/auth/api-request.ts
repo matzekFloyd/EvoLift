@@ -33,15 +33,9 @@ export type ApiRequestAuth = {
   client: SupabaseClient<Database>;
 };
 
-/**
- * Authenticate an `/api/*` request.
- * Personal API tokens are resolved with the service role (RLS bypassed).
- * User-owned queries must filter by `userId`.
- */
-export async function authenticateApiRequest(
-  request: NextRequest,
+export async function authenticateBearer(
+  credential: string | undefined,
 ): Promise<ApiRequestAuth | { error: string; status: 401 }> {
-  const credential = getBearerCredential(request);
   if (!credential) {
     return {
       status: 401,
@@ -89,4 +83,15 @@ export async function authenticateApiRequest(
   }
 
   return { userId: user.id, client };
+}
+
+/**
+ * Authenticate an `/api/*` request.
+ * Personal API tokens are resolved with the service role (RLS bypassed).
+ * User-owned queries must filter by `userId`.
+ */
+export async function authenticateApiRequest(
+  request: NextRequest,
+): Promise<ApiRequestAuth | { error: string; status: 401 }> {
+  return authenticateBearer(getBearerCredential(request));
 }

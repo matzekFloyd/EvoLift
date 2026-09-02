@@ -12,10 +12,10 @@ Answer from the **EvoLift HTTP API** via the **`evo-lift` MCP** only. Never quer
 
 1. Prefer MCP tools on **`evo-lift`**: `get_targets`, `get_openapi`, `list_exercises`, `evo_api_get`.
 2. If the MCP is missing, say so. Do not fall back to database access.
-3. Default **`target: "prod"`**. Pass **`target: "local"`** only when the user asks for local.
-4. Prod needs `EVO_API_PROD_URL` (origin only) and, for authenticated routes, `EVO_ACCESS_TOKEN_PROD` (a **production** personal API token from Account, prefix `evo_` — not a JWT and not the local token).
-5. Local needs the app running (`cd evo-lift && npm run dev`) and `EVO_ACCESS_TOKEN` (local personal API token). On 401, ask for the matching env var — do not guess data.
-6. Always state which target you queried.
+3. **Cloud Agents / remote MCP:** connect to `https://evo-lift.vercel.app/api/mcp` (Streamable HTTP). Put the production personal API token in `Authorization: Bearer evo_…`. Do **not** use `https://evo-lift.vercel.app` as the MCP URL — that is the app, not the MCP endpoint. Hosted MCP always queries that deployment (no local/prod switch).
+4. **Laptop stdio MCP:** default **`target: "prod"`**. Pass **`target: "local"`** only when the user asks for local.
+5. Prod (stdio) needs `EVO_API_PROD_URL` and `EVO_ACCESS_TOKEN_PROD`. Local needs `npm run dev` and `EVO_ACCESS_TOKEN`.
+6. Always state which target or deployment you queried.
 
 `GET /api/openapi` is the source of truth for which routes exist. After new endpoints ship, discover them with `get_openapi` and call them with `evo_api_get`. Do not assume PB/session routes until they appear in the spec.
 
