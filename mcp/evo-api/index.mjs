@@ -62,7 +62,7 @@ function normalizeApiPath(path) {
 
 async function evoFetch(
   path,
-  { query = {}, target = DEFAULT_TARGET, method = "GET", body } = {},
+  { query = {}, target = DEFAULT_TARGET, method = "GET", body: requestBody } = {},
 ) {
   const resolved = resolveTarget(target);
   if (resolved.error) {
@@ -83,9 +83,9 @@ async function evoFetch(
   }
 
   const init = { method, headers };
-  if (body !== undefined && method !== "GET") {
+  if (requestBody !== undefined && method !== "GET") {
     headers["Content-Type"] = "application/json";
-    init.body = JSON.stringify(body);
+    init.body = JSON.stringify(requestBody);
   }
 
   let response;
@@ -109,11 +109,11 @@ async function evoFetch(
   }
 
   const text = await response.text();
-  let body = text;
+  let responseBody = text;
   try {
-    body = text ? JSON.parse(text) : null;
+    responseBody = text ? JSON.parse(text) : null;
   } catch {
-    body = text;
+    responseBody = text;
   }
 
   if (response.status === 401) {
@@ -123,7 +123,7 @@ async function evoFetch(
         target: resolved.label,
         hint: `Set ${resolved.tokenEnv} to a personal API token from Account → Login (starts with evo_). Local and production tokens are different.`,
         status: 401,
-        body,
+        body: responseBody,
       },
       true,
     );
@@ -136,7 +136,7 @@ async function evoFetch(
         target: resolved.label,
         status: response.status,
         url: url.toString(),
-        body,
+        body: responseBody,
       },
       true,
     );
@@ -146,7 +146,7 @@ async function evoFetch(
     target: resolved.label,
     status: response.status,
     url: url.toString(),
-    body,
+    body: responseBody,
   });
 }
 
