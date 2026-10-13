@@ -4,6 +4,34 @@ const errorResponse = {
   "404": { description: "Not found" },
 };
 
+function tagForPath(path: string): string | undefined {
+  if (path.startsWith("/api/sessions")) {
+    return "Sessions";
+  }
+  if (path.startsWith("/api/templates")) {
+    return "Templates";
+  }
+  if (path.startsWith("/api/exercises")) {
+    return "Exercises";
+  }
+  return undefined;
+}
+
+function withOperationTags(
+  paths: Record<string, Record<string, Record<string, unknown>>>,
+): Record<string, Record<string, Record<string, unknown>>> {
+  for (const [path, methods] of Object.entries(paths)) {
+    const tag = tagForPath(path);
+    if (!tag) {
+      continue;
+    }
+    for (const operation of Object.values(methods)) {
+      operation.tags = [tag];
+    }
+  }
+  return paths;
+}
+
 function jsonData(schema: Record<string, unknown>) {
   return {
     content: {
@@ -179,7 +207,21 @@ export function buildOpenApiSpec(baseUrl: string) {
       },
     },
     security: [{ bearerAuth: [] }],
-    paths: {
+    tags: [
+      {
+        name: "Sessions",
+        description: "Workout sessions, session exercises, and sets.",
+      },
+      {
+        name: "Templates",
+        description: "Reusable workout templates and starting a session from a template.",
+      },
+      {
+        name: "Exercises",
+        description: "Exercise catalog with translations.",
+      },
+    ],
+    paths: withOperationTags({
       "/api/exercises": {
         get: {
           summary: "List exercises with translations",
@@ -650,6 +692,6 @@ export function buildOpenApiSpec(baseUrl: string) {
           },
         },
       },
-    },
+    }),
   };
 }
