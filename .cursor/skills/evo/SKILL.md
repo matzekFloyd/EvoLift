@@ -19,7 +19,15 @@ Answer from the **EvoLift HTTP API** via the **`evo-lift` MCP** only. Never quer
 
 `GET /api/openapi` is the source of truth. Discover with `get_openapi` before assuming a path. Read with `evo_api_get`. Writes use `evo_api_request` (`POST` / `PATCH` / `PUT` / `DELETE`) and a JSON `body`. Confirm before `DELETE`.
 
-If 401, stop and ask for `EVO_ACCESS_TOKEN_PROD` (prod) or `EVO_ACCESS_TOKEN` (local).
+## Authenticate (personal API token)
+
+There is no email/password login in this skill. Identity is the **personal API token** already attached by MCP.
+
+1. Call `get_targets`. Report which target you will use.
+2. If that target’s token is missing, or a later call returns **401**: stop. Ask the user to create a token in the app (Account → API tokens), put it in `EVO_ACCESS_TOKEN_PROD` (prod) or `EVO_ACCESS_TOKEN` (local), then **reload the `evo-lift` MCP**. Do not collect a password. Do not call Supabase Auth.
+3. If the token is present, proceed. Do not ask them to paste the token into chat unless `get_targets` shows it is unset.
+
+If 401 after that, quote the API error and stop.
 
 ## What exists today
 
