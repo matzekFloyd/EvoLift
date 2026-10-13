@@ -60,7 +60,10 @@ function normalizeApiPath(path) {
   return trimmed.split("?")[0];
 }
 
-async function evoFetch(path, query = {}, target = DEFAULT_TARGET) {
+async function evoFetch(
+  path,
+  { query = {}, target = DEFAULT_TARGET, method = "GET", body } = {},
+) {
   const resolved = resolveTarget(target);
   if (resolved.error) {
     return jsonResult(resolved.error, true);
@@ -79,9 +82,15 @@ async function evoFetch(path, query = {}, target = DEFAULT_TARGET) {
     headers.Authorization = `Bearer ${resolved.token}`;
   }
 
+  const init = { method, headers };
+  if (body !== undefined && method !== "GET") {
+    headers["Content-Type"] = "application/json";
+    init.body = JSON.stringify(body);
+  }
+
   let response;
   try {
-    response = await fetch(url, { method: "GET", headers });
+    response = await fetch(url, init);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     const hint =
@@ -143,7 +152,7 @@ async function evoFetch(path, query = {}, target = DEFAULT_TARGET) {
 
 const server = new McpServer({
   name: "evo-lift-api",
-  version: "0.1.0",
+  version: "0.2.0",
 });
 
 server.tool(
@@ -174,7 +183,7 @@ server.tool(
   "get_openapi",
   "Fetch GET /api/openapi. Use this to see which EvoLift HTTP routes exist before calling them. Default target is prod.",
   { target: TargetSchema },
-  async ({ target }) => evoFetch("/api/openapi", {}, target ?? DEFAULT_TARGET),
+  async ({ target }) => evoFetch("/api/openapi", { target: target ?? DEFAULT_TARGET }),
 );
 
 server.tool(
@@ -185,7 +194,10 @@ server.tool(
     target: TargetSchema,
   },
   async ({ lang, target }) =>
-    evoFetch("/api/exercises", lang ? { lang } : {}, target ?? DEFAULT_TARGET),
+    evoFetch("/api/exercises", {
+      query: lang ? { lang } : {},
+      target: target ?? DEFAULT_TARGET,
+    }),
 );
 
 server.tool(
@@ -203,7 +215,42 @@ server.tool(
   },
   async ({ path, query, target }) => {
     try {
-      return await evoFetch(path, query ?? {}, target ?? DEFAULT_TARGET);
+      return await evoFetch(path, {
+        query: query ?? {},
+        target: target ?? DEFAULT_TARGET,
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      return jsonResult({ error: message }, true);
+    }
+  },
+);
+
+server.tool(
+  "evo_api_request",
+  "Call an EvoLift /api/* route (GET, POST, PATCH, PUT, DELETE). Prefer get_openapi first. JSON body for write methods. Default target is prod. Set target to local only when asked.",
+  {
+    method: z
+      .enum(["GET", "POST", "PATCH", "PUT", "DELETE"])
+      .describe("HTTP method"),
+    path: z
+      .string()
+      .describe("Path starting with /api/, for example /api/sessions"),
+    query: z
+      .record(z.string())
+      .optional()
+      .describe("Optional query string key/value pairs"),
+    body: z.any().optional().describe("JSON object body for POST, PATCH, PUT"),
+    target: TargetSchema,
+  },
+  async ({ method, path, query, body, target }) => {
+    try {
+      return await evoFetch(path, {
+        method,
+        query: query ?? {},
+        body,
+        target: target ?? DEFAULT_TARGET,
+      });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       return jsonResult({ error: message }, true);

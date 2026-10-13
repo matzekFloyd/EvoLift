@@ -135,6 +135,8 @@ Backend query logic lives in:
 Route handlers stay thin and call that data layer:
 
 - `app/api/exercises/route.ts`
+- `app/api/sessions/route.ts` and nested session exercise/set routes
+- `app/api/templates/route.ts` and `app/api/templates/[id]/sessions/route.ts`
 
 ### Browser API testing (Swagger UI)
 
@@ -190,7 +192,8 @@ Notes:
 
 - Users authenticate via Supabase Auth (email/password, OAuth, magic link, etc.).
 - Frontend gets `access_token` from Supabase session for in-app requests.
-- `GET /api/*` also accepts a personal API token created on Account → Login (`Authorization: Bearer evo_…`). Tokens are stored hashed, shown once, and do not expire until revoked.
+- Authenticated `/api/*` routes accept a session JWT or a personal API token created on Account → Login (`Authorization: Bearer evo_…`). Tokens are stored hashed, shown once, and do not expire until revoked.
+- Workout sessions and templates can be listed, created, updated, and deleted over the API (same ownership rules as the UI). Use `/docs` to try them.
 - In Swagger (`/docs`), the logged-in session is sent automatically. To use a personal token, use Authorize and paste the raw token value (without adding an extra `Bearer` prefix).
 
 ## Seed policy

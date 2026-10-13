@@ -34,16 +34,16 @@ async function userClient(accessToken: string) {
 }
 
 export async function listUserTemplates(accessToken: string): Promise<WorkoutTemplateListItem[]> {
-  const { client } = await userClient(accessToken);
-  return listTemplates(client);
+  const { client, user } = await userClient(accessToken);
+  return listTemplates(client, user.id);
 }
 
 export async function getUserTemplateById(
   accessToken: string,
   templateId: string,
 ): Promise<WorkoutTemplateWithExercises | null> {
-  const { client } = await userClient(accessToken);
-  return getTemplateById(client, templateId);
+  const { client, user } = await userClient(accessToken);
+  return getTemplateById(client, user.id, templateId);
 }
 
 export async function createUserTemplate(input: {
@@ -68,8 +68,8 @@ export async function updateUserTemplate(input: {
   notes?: string | null;
   exercises: TemplateExercisePayload[];
 }): Promise<WorkoutTemplateWithExercises> {
-  const { client } = await userClient(input.accessToken);
-  return updateTemplate(client, input.templateId, {
+  const { client, user } = await userClient(input.accessToken);
+  return updateTemplate(client, user.id, input.templateId, {
     name: input.name,
     notes: input.notes,
     exercises: input.exercises,
@@ -80,8 +80,8 @@ export async function deleteUserTemplate(
   accessToken: string,
   templateId: string,
 ): Promise<void> {
-  const { client } = await userClient(accessToken);
-  return deleteTemplate(client, templateId);
+  const { client, user } = await userClient(accessToken);
+  return deleteTemplate(client, user.id, templateId);
 }
 
 export async function instantiateUserTemplate(input: {
@@ -90,8 +90,9 @@ export async function instantiateUserTemplate(input: {
   performedOn: string;
   notes?: string | null;
 }): Promise<string> {
-  const { client } = await userClient(input.accessToken);
+  const { client, user } = await userClient(input.accessToken);
   return instantiateTemplate(client, {
+    userId: user.id,
     templateId: input.templateId,
     performedOn: input.performedOn,
     notes: input.notes,

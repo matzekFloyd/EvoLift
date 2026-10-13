@@ -136,6 +136,64 @@ const handler = createMcpHandler(
         );
       },
     );
+
+    server.tool(
+      "evo_api_request",
+      "Call an EvoLift /api/* route on this deployment (GET, POST, PATCH, PUT, DELETE). Prefer get_openapi first. JSON body for write methods.",
+      {
+        method: z
+          .enum(["GET", "POST", "PATCH", "PUT", "DELETE"])
+          .describe("HTTP method"),
+        path: z.string().describe("Path starting with /api/, for example /api/sessions"),
+        query: z
+          .record(z.string(), z.string())
+          .optional()
+          .describe("Optional query string key/value pairs"),
+        body: z.any().optional().describe("JSON object body for POST, PATCH, PUT"),
+      },
+      async ({ method, path, query, body }, extra) => {
+        const auth = await authFromExtra(extra);
+        if ("error" in auth) {
+          return jsonResult({ error: auth.error }, true);
+        }
+        const trimmed = path.trim();
+        if (!trimmed.startsWith("/api/") || trimmed.includes("..") || trimmed.includes("://")) {
+          return jsonResult({ error: "path must be a relative /api/... route" }, true);
+        }
+        const url = new URL(trimmed.split("?")[0], `${deploymentOrigin()}/`);
+        for (const [key, value] of Object.entries(query ?? {})) {
+          if (value) {
+            url.searchParams.set(key, String(value));
+          }
+        }
+        const headers: Record<string, string> = {
+          Accept: "application/json",
+          Authorization: `Bearer ${extra.authInfo?.token ?? ""}`,
+        };
+        const init: RequestInit = { method, headers };
+        if (body !== undefined && method !== "GET") {
+          headers["Content-Type"] = "application/json";
+          init.body = JSON.stringify(body);
+        }
+        const response = await fetch(url, init);
+        const text = await response.text();
+        let parsed: unknown = text;
+        try {
+          parsed = text ? JSON.parse(text) : null;
+        } catch {
+          parsed = text;
+        }
+        return jsonResult(
+          {
+            target: "deployment",
+            status: response.status,
+            url: url.toString(),
+            body: parsed,
+          },
+          !response.ok,
+        );
+      },
+    );
   },
   {},
   { basePath: "/api", maxDuration: 60, verboseLogs: false },
@@ -152,7 +210,7 @@ const verifyToken = async (
   return {
     token: bearerToken ?? "",
     clientId: auth.userId,
-    scopes: ["evo:read"],
+    scopes: ["evo:api"],
     extra: { userId: auth.userId },
   };
 };

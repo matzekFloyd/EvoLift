@@ -1,5 +1,11 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
+import { ApiHttpError } from "@/server/api/http";
+import {
+  createWorkoutSession,
+  requireWorkoutSessionDetail,
+  type WorkoutSessionDetail,
+} from "@/server/db/workouts";
 
 type TemplateExerciseInput = {
   exerciseId: string;
@@ -30,17 +36,22 @@ export type WorkoutTemplateWithExercises =
 function requireNonEmptyName(name: string): string {
   const trimmed = name.trim();
   if (!trimmed) {
-    throw new Error("Please enter a template name.");
+    throw new ApiHttpError(400, "Please enter a template name.");
+  }
+  if (trimmed.length > 120) {
+    throw new ApiHttpError(400, "Template name cannot be longer than 120 characters.");
   }
   return trimmed;
 }
 
 export async function listTemplates(
   client: SupabaseClient<Database>,
+  userId: string,
 ): Promise<WorkoutTemplateListItem[]> {
   const { data, error } = await client
     .from("workout_templates")
     .select("id, name, notes, created_at, updated_at, workout_template_exercises(id)")
+    .eq("user_id", userId)
     .order("updated_at", { ascending: false });
 
   if (error) {
@@ -59,12 +70,14 @@ export async function listTemplates(
 
 export async function getTemplateById(
   client: SupabaseClient<Database>,
+  userId: string,
   templateId: string,
 ): Promise<WorkoutTemplateWithExercises | null> {
   const { data: template, error: templateError } = await client
     .from("workout_templates")
     .select("*")
     .eq("id", templateId)
+    .eq("user_id", userId)
     .maybeSingle();
 
   if (templateError) {
@@ -103,7 +116,7 @@ export async function createTemplate(
   const notes = input.notes?.trim() ? input.notes.trim() : null;
 
   if (input.exercises.length === 0) {
-    throw new Error("Add at least one exercise to the template.");
+    throw new ApiHttpError(400, "Add at least one exercise to the template.");
   }
 
   const { data: template, error: insertError } = await client
@@ -141,7 +154,7 @@ export async function createTemplate(
     throw new Error(`Failed to save template exercises: ${exercisesError.message}`);
   }
 
-  const full = await getTemplateById(client, template.id);
+  const full = await getTemplateById(client, input.userId, template.id);
   if (!full) {
     throw new Error("Template was created but could not be reloaded.");
   }
@@ -150,6 +163,7 @@ export async function createTemplate(
 
 export async function updateTemplate(
   client: SupabaseClient<Database>,
+  userId: string,
   templateId: string,
   input: {
     name: string;
@@ -161,19 +175,25 @@ export async function updateTemplate(
   const notes = input.notes?.trim() ? input.notes.trim() : null;
 
   if (input.exercises.length === 0) {
-    throw new Error("Add at least one exercise to the template.");
+    throw new ApiHttpError(400, "Add at least one exercise to the template.");
   }
 
-  const { error: updateError } = await client
+  const { data: updated, error: updateError } = await client
     .from("workout_templates")
     .update({
       name: trimmedName,
       notes,
     })
-    .eq("id", templateId);
+    .eq("id", templateId)
+    .eq("user_id", userId)
+    .select("id")
+    .maybeSingle();
 
   if (updateError) {
     throw new Error(`Failed to update template: ${updateError.message}`);
+  }
+  if (!updated) {
+    throw new ApiHttpError(404, "Template not found.");
   }
 
   const { error: deleteError } = await client
@@ -205,7 +225,7 @@ export async function updateTemplate(
     throw new Error(`Failed to save template exercises: ${insertError.message}`);
   }
 
-  const full = await getTemplateById(client, templateId);
+  const full = await getTemplateById(client, userId, templateId);
   if (!full) {
     throw new Error("Template was updated but could not be reloaded.");
   }
@@ -214,9 +234,18 @@ export async function updateTemplate(
 
 export async function deleteTemplate(
   client: SupabaseClient<Database>,
+  userId: string,
   templateId: string,
 ): Promise<void> {
-  const { error } = await client.from("workout_templates").delete().eq("id", templateId);
+  const existing = await getTemplateById(client, userId, templateId);
+  if (!existing) {
+    throw new ApiHttpError(404, "Template not found.");
+  }
+  const { error } = await client
+    .from("workout_templates")
+    .delete()
+    .eq("id", templateId)
+    .eq("user_id", userId);
   if (error) {
     throw new Error(`Failed to delete template: ${error.message}`);
   }
@@ -225,22 +254,61 @@ export async function deleteTemplate(
 export async function instantiateTemplate(
   client: SupabaseClient<Database>,
   input: {
+    userId: string;
     templateId: string;
     performedOn: string;
     notes?: string | null;
   },
 ): Promise<string> {
-  const { data, error } = await client.rpc("instantiate_workout_template", {
-    p_template_id: input.templateId,
-    p_performed_on: input.performedOn,
-    p_notes: input.notes ?? null,
+  const session = await instantiateTemplateSession(client, input);
+  return session.id;
+}
+
+export async function instantiateTemplateSession(
+  client: SupabaseClient<Database>,
+  input: {
+    userId: string;
+    templateId: string;
+    performedOn: string;
+    notes?: string | null;
+  },
+): Promise<WorkoutSessionDetail> {
+  const template = await getTemplateById(client, input.userId, input.templateId);
+  if (!template) {
+    throw new ApiHttpError(404, "Template not found.");
+  }
+  if (template.exercises.length === 0) {
+    throw new ApiHttpError(400, "Add at least one exercise to the template.");
+  }
+
+  const notes = input.notes?.trim() ? input.notes.trim() : null;
+  const session = await createWorkoutSession(client, {
+    userId: input.userId,
+    performedOn: input.performedOn,
+    notes,
+    sourceTemplateId: template.id,
   });
 
-  if (error) {
-    throw new Error(`Failed to start session from template: ${error.message}`);
+  const exerciseRows: Database["public"]["Tables"]["workout_session_exercises"]["Insert"][] =
+    template.exercises.map((row) => ({
+      session_id: session.id,
+      exercise_id: row.exercise_id,
+      position: row.position,
+      target_sets: row.target_sets,
+      target_reps: row.target_reps,
+      target_weight_kg: row.target_weight_kg,
+      base_weight_kg: row.base_weight_kg,
+      notes: row.notes,
+    }));
+
+  const { error: exercisesError } = await client
+    .from("workout_session_exercises")
+    .insert(exerciseRows);
+
+  if (exercisesError) {
+    await client.from("workout_sessions").delete().eq("id", session.id).eq("user_id", input.userId);
+    throw new Error(`Failed to start session from template: ${exercisesError.message}`);
   }
-  if (!data || typeof data !== "string") {
-    throw new Error("Failed to start session from template: no session id returned.");
-  }
-  return data;
+
+  return requireWorkoutSessionDetail(client, input.userId, session.id);
 }
