@@ -34,6 +34,8 @@ type CreateWorkoutSessionInput = {
   performedOn?: string;
   notes?: string | null;
   sourceTemplateId?: string | null;
+  planId?: string | null;
+  planDayId?: string | null;
 };
 
 type UpdateWorkoutSetInput = {
@@ -53,6 +55,8 @@ export async function createWorkoutSession(
     performed_on: input.performedOn,
     notes: input.notes,
     source_template_id: input.sourceTemplateId,
+    plan_id: input.planId,
+    plan_day_id: input.planDayId,
   };
 
   const { data, error } = await client
@@ -109,7 +113,9 @@ export async function listWorkoutSessions(
 ): Promise<WorkoutSessionListItem[]> {
   let query = client
     .from("workout_sessions")
-    .select("id, user_id, performed_on, notes, source_template_id, created_at, updated_at, workout_session_exercises(id)")
+    .select(
+      "id, user_id, performed_on, notes, source_template_id, plan_id, plan_day_id, created_at, updated_at, workout_session_exercises(id)",
+    )
     .eq("user_id", userId)
     .order("performed_on", { ascending: false })
     .order("created_at", { ascending: false });
@@ -132,6 +138,8 @@ export async function listWorkoutSessions(
     performed_on: row.performed_on,
     notes: row.notes,
     source_template_id: row.source_template_id,
+    plan_id: row.plan_id,
+    plan_day_id: row.plan_day_id,
     created_at: row.created_at,
     updated_at: row.updated_at,
     exercise_count: row.workout_session_exercises?.length ?? 0,

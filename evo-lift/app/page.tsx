@@ -1,7 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { ClipboardList, Dumbbell, FilterX } from "lucide-react";
+import { CalendarClock, ClipboardList, FilterX, History } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
@@ -10,6 +9,7 @@ import { DateInput } from "@/app/components/date-input";
 import { PageShell } from "@/app/components/page-shell";
 import { PanelInset } from "@/app/components/panel-inset";
 import { SectionHeading } from "@/app/components/section-heading";
+import { ActivePlanPanel } from "@/app/components/active-plan-panel";
 import { NewSessionDraftCallout } from "@/app/components/new-session-draft-callout";
 import { SessionsTable, type SessionsTableRow } from "@/app/components/sessions-table";
 import { WorkoutActivityChart } from "@/app/components/workout-activity-chart";
@@ -323,9 +323,13 @@ export default function Home() {
         <PageAddAction href="/sessions/new" label="Add workout session" />
       </div>
       {userId ? <NewSessionDraftCallout userId={userId} /> : null}
+      <ActivePlanPanel />
       <section className="panel p-5">
         <div className="mb-2 flex items-center justify-between gap-2">
-          <SectionHeading>Planned workouts</SectionHeading>
+          <SectionHeading className="inline-flex items-center gap-1">
+            <CalendarClock className="h-3.5 w-3.5 text-zinc-500" />
+            Planned workouts
+          </SectionHeading>
         </div>
         {plannedSessions.length === 0 ? (
           <p className="text-sm text-zinc-500">No planned workouts.</p>
@@ -355,16 +359,10 @@ export default function Home() {
           <p className="text-sm text-red-600">{sessionsError}</p>
         ) : (
           <div className="space-y-3">
-            <div className="flex items-center justify-between gap-2">
-              <SectionHeading>Past workouts</SectionHeading>
-              <Link
-                href="/exercises"
-                className="inline-flex items-center gap-1 text-xs font-medium text-zinc-600 underline-offset-2 hover:text-sky-800 hover:underline"
-              >
-                <Dumbbell className="h-3.5 w-3.5 text-sky-700" />
-                Exercises
-              </Link>
-            </div>
+            <SectionHeading className="inline-flex items-center gap-1">
+              <History className="h-3.5 w-3.5 text-zinc-500" />
+              Past workouts
+            </SectionHeading>
             <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
               <div className="grid gap-2 sm:grid-cols-2">
                 <label className="block text-xs font-medium text-zinc-600">

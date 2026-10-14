@@ -24,6 +24,8 @@ Examples:
 
 - Use `Workout session` for a completed workout record.
 - Use `Template` for a saved, reusable list of exercises (with optional targets) that can start or prefill a session.
+- Use `Plan` for an ordered cycle of days. One plan can be active.
+- Use `Day` for a named step in a plan, with its own exercises and targets.
 - Use `Exercise` for a movement inside a session.
 - Use `Set` for logged reps/weight entries.
 - Use `Loaded (kg)` for external loaded weight.
