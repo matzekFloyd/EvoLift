@@ -593,31 +593,53 @@ function buildPublicComparison(
   return { publicNotes, comparisonHint: hints.length > 0 ? hints.join(" ") : null };
 }
 
+function groupSentence(
+  labels: string[],
+  singular: (label: string) => string,
+  plural: (count: number) => string,
+): string | null {
+  if (labels.length === 0) {
+    return null;
+  }
+  if (labels.length === 1) {
+    return singular(labels[0]);
+  }
+  return plural(labels.length);
+}
+
 function buildSummary(rows: ExerciseProgressRow[]): string {
   const judged = rows.filter((row) => row.read !== "early");
   if (judged.length === 0) {
     return "Log the same exercise on at least 3 sessions, spread over 2 weeks, to judge progress.";
   }
-  const sentences: string[] = [];
   const ahead = judged.filter((row) => row.read === "ahead").map((row) => row.label);
   const onTrack = judged.filter((row) => row.read === "on-track").map((row) => row.label);
   const room = judged.filter((row) => row.read === "room").map((row) => row.label);
   const down = judged.filter((row) => row.read === "down").map((row) => row.label);
-  if (ahead.length > 0) {
-    sentences.push(`${joinLabels(ahead)} ${ahead.length === 1 ? "is" : "are"} ahead of a steady rate.`);
-  }
-  if (onTrack.length > 0) {
-    sentences.push(`${joinLabels(onTrack)} ${onTrack.length === 1 ? "is" : "are"} on a steady rate.`);
-  }
-  if (room.length > 0) {
-    sentences.push(
-      `${joinLabels(room)} ${room.length === 1 ? "has" : "have"} room to gain. More progress there would be expected.`,
-    );
-  }
-  if (down.length > 0) {
-    sentences.push(`${joinLabels(down)} ${down.length === 1 ? "is" : "are"} down from the start of this range.`);
-  }
-  return sentences.join(" ");
+  return [
+    groupSentence(
+      ahead,
+      (label) => `${label} is ahead of a steady rate.`,
+      (count) => `${count} exercises are ahead of a steady rate.`,
+    ),
+    groupSentence(
+      onTrack,
+      (label) => `${label} is on a steady rate.`,
+      (count) => `${count} exercises are on a steady rate.`,
+    ),
+    groupSentence(
+      room,
+      (label) => `${label} has room to gain. More progress there would be expected.`,
+      (count) => `${count} exercises have room to gain. More progress there would be expected.`,
+    ),
+    groupSentence(
+      down,
+      (label) => `${label} is down from the start of this range.`,
+      (count) => `${count} exercises are down from the start of this range.`,
+    ),
+  ]
+    .filter((sentence): sentence is string => sentence != null)
+    .join(" ");
 }
 
 export function buildExerciseProgressReport(

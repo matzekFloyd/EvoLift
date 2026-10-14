@@ -5,6 +5,7 @@ import { BarChart3, Dumbbell, FileStack, House, LogOut, Menu, UserRound, X } fro
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
+  AppHeaderNavCaption,
   AppHeaderNavLink,
   appHeaderNavIconInactiveClassName,
   appHeaderNavIconInactiveGlyphClassName,
@@ -148,16 +149,16 @@ export function HeaderActions() {
             icon={Dumbbell}
           />
           <AppHeaderNavLink
-            href="/templates"
-            label="Templates"
-            isActive={pathname.startsWith("/templates")}
-            icon={FileStack}
-          />
-          <AppHeaderNavLink
             href="/insights"
             label="Insights"
             isActive={pathname.startsWith("/insights")}
             icon={BarChart3}
+          />
+          <AppHeaderNavLink
+            href="/templates"
+            label="Templates"
+            isActive={pathname.startsWith("/templates")}
+            icon={FileStack}
           />
           <AppHeaderNavLink
             href="/account"
@@ -170,10 +171,9 @@ export function HeaderActions() {
             type="button"
             onClick={handleAuthClick}
             className={appHeaderNavIconInactiveClassName}
-            aria-label="Log out"
-            title="Log out"
           >
             <LogOut className={appHeaderNavIconInactiveGlyphClassName} aria-hidden />
+            <AppHeaderNavCaption label="Log out" />
           </button>
         </div>
         <div className="md:hidden">
@@ -245,18 +245,6 @@ export function HeaderActions() {
                 Exercises
               </Link>
               <Link
-                href="/templates"
-                onClick={() => closeCompactMenu({ returnFocus: false })}
-                className={`flex items-center gap-2 rounded-md px-2 py-2 text-left text-sm ${
-                  pathname.startsWith("/templates")
-                    ? "bg-sky-50 text-sky-900"
-                    : "text-zinc-800 hover:bg-zinc-50"
-                }`}
-              >
-                <FileStack className="h-4 w-4 shrink-0" aria-hidden />
-                Templates
-              </Link>
-              <Link
                 href="/insights"
                 onClick={() => closeCompactMenu({ returnFocus: false })}
                 className={`flex items-center gap-2 rounded-md px-2 py-2 text-left text-sm ${
@@ -267,6 +255,18 @@ export function HeaderActions() {
               >
                 <BarChart3 className="h-4 w-4 shrink-0" aria-hidden />
                 Insights
+              </Link>
+              <Link
+                href="/templates"
+                onClick={() => closeCompactMenu({ returnFocus: false })}
+                className={`flex items-center gap-2 rounded-md px-2 py-2 text-left text-sm ${
+                  pathname.startsWith("/templates")
+                    ? "bg-sky-50 text-sky-900"
+                    : "text-zinc-800 hover:bg-zinc-50"
+                }`}
+              >
+                <FileStack className="h-4 w-4 shrink-0" aria-hidden />
+                Templates
               </Link>
               <Link
                 href="/account"
