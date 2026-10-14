@@ -141,6 +141,8 @@ export function buildOpenApiSpec(baseUrl: string) {
             performed_on: { type: "string", format: "date" },
             notes: { type: "string", nullable: true },
             source_template_id: { type: "string", format: "uuid", nullable: true },
+            plan_id: { type: "string", format: "uuid", nullable: true },
+            plan_day_id: { type: "string", format: "uuid", nullable: true },
             created_at: { type: "string" },
             updated_at: { type: "string" },
             exercises: {
@@ -157,6 +159,8 @@ export function buildOpenApiSpec(baseUrl: string) {
             performed_on: { type: "string", format: "date" },
             notes: { type: "string", nullable: true },
             source_template_id: { type: "string", format: "uuid", nullable: true },
+            plan_id: { type: "string", format: "uuid", nullable: true },
+            plan_day_id: { type: "string", format: "uuid", nullable: true },
             created_at: { type: "string" },
             updated_at: { type: "string" },
             exercise_count: { type: "integer" },

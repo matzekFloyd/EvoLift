@@ -25,6 +25,11 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
       "A barbell exercise that moves more than one joint. Lift comparison places your compounds next to each other, and next to published standards. The coaching ratios cover Back Squat, Deadlift, Barbell Bench Press, Overhead Press, Barbell Bent Over Row, Romanian Deadlift, Close-Grip Bench Press, and Barbell Hip Thrust. Machine, dumbbell, and leg-press loads stay out of those ratios.",
   },
   {
+    term: "Day",
+    definition:
+      "A named step in a plan, such as Day A or Push. It has its own exercises and targets. Days repeat in order.",
+  },
+  {
     term: "Exercise",
     definition: "A movement inside a workout session, such as Back Squat.",
   },
@@ -68,9 +73,14 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
       "The external weight on a set, such as plates or a dumbbell. Base weight stays separate.",
   },
   {
+    term: "Plan",
+    definition:
+      "An ordered cycle of days. One plan can be active. Starting a day copies its exercises and targets into a new workout session. Later edits do not change sessions you already started.",
+  },
+  {
     term: "Planned session",
     definition:
-      "A workout session dated after today. It stays under Planned workouts until that day. A template can prefill one.",
+      "A workout session dated after today. It stays under Planned workouts until that day. A template or a plan day can prefill one.",
   },
   {
     term: "Reps",

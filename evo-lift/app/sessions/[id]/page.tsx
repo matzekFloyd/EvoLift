@@ -36,6 +36,7 @@ import { StatusNotice } from "@/app/components/status-notice";
 import { TargetWeightSuggestion } from "@/app/components/target-weight-suggestion";
 import { WarmupSuggestion } from "@/app/components/warmup-suggestion";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
+import { formatPlanSessionSource } from "@/lib/plan-cycle";
 import { toExerciseBadge } from "@/lib/exercise-badge";
 import { exerciseOptionsForPicker } from "@/lib/exercise-picker-options";
 import {
@@ -202,7 +203,7 @@ export default function SessionDetailPage() {
   const [sessionExercises, setSessionExercises] = useState<SessionExerciseRow[]>([]);
   const [workoutSets, setWorkoutSets] = useState<WorkoutSetRow[]>([]);
   const [sessionNumber, setSessionNumber] = useState<number | null>(null);
-  const [sourceTemplateName, setSourceTemplateName] = useState<string | null>(null);
+  const [createdFromLabel, setCreatedFromLabel] = useState<string | null>(null);
   const [exerciseLabels, setExerciseLabels] = useState<Map<string, string>>(new Map());
   const [addDrafts, setAddDrafts] = useState<Record<string, Partial<SetDraft>>>({});
   const [editingSetId, setEditingSetId] = useState<string | null>(null);
@@ -325,7 +326,7 @@ export default function SessionDetailPage() {
           supabaseBrowserClient
             .from("workout_sessions")
             .select(
-              "id, user_id, performed_on, notes, created_at, updated_at, source_template_id, workout_templates(name)",
+              "id, user_id, performed_on, notes, created_at, updated_at, source_template_id, plan_id, plan_day_id, workout_templates(name), workout_plans(name), workout_plan_days(name)",
             )
             .eq("id", sessionId)
             .single(),
@@ -472,21 +473,31 @@ export default function SessionDetailPage() {
       }
 
       const sessionRow = sessionData as SessionRow;
-      const templateJoin = (
-        sessionData as unknown as {
-          workout_templates?: { name: string } | { name: string }[] | null;
-        }
-      ).workout_templates;
-      const resolvedTemplateName = Array.isArray(templateJoin)
-        ? (templateJoin[0]?.name ?? null)
-        : (templateJoin?.name ?? null);
-      setSourceTemplateName(resolvedTemplateName);
+      const joined = sessionData as unknown as {
+        workout_templates?: { name: string } | { name: string }[] | null;
+        workout_plans?: { name: string } | { name: string }[] | null;
+        workout_plan_days?: { name: string } | { name: string }[] | null;
+      };
+      function joinedName(
+        value: { name: string } | { name: string }[] | null | undefined,
+      ): string | null {
+        const row = Array.isArray(value) ? value[0] : value;
+        const name = row?.name?.trim();
+        return name ? name : null;
+      }
+      const resolvedTemplateName = joinedName(joined.workout_templates);
+      setCreatedFromLabel(
+        formatPlanSessionSource(joinedName(joined.workout_plans), joinedName(joined.workout_plan_days)) ??
+          resolvedTemplateName,
+      );
       setSession({
         id: sessionRow.id,
         user_id: sessionRow.user_id,
         performed_on: sessionRow.performed_on,
         notes: sessionRow.notes,
         source_template_id: sessionRow.source_template_id,
+        plan_id: sessionRow.plan_id,
+        plan_day_id: sessionRow.plan_day_id,
         created_at: sessionRow.created_at,
         updated_at: sessionRow.updated_at,
       });
@@ -1272,7 +1283,9 @@ export default function SessionDetailPage() {
         notes: notesPayload,
       })
       .eq("id", sessionId)
-      .select("id, user_id, performed_on, notes, created_at, updated_at, source_template_id")
+      .select(
+        "id, user_id, performed_on, notes, created_at, updated_at, source_template_id, plan_id, plan_day_id",
+      )
       .single();
 
     if (error || !data) {
@@ -1440,9 +1453,9 @@ export default function SessionDetailPage() {
                     Planned
                   </span>
                 ) : null}
-                {sourceTemplateName ? (
+                {createdFromLabel ? (
                   <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-800">
-                    Created from: {sourceTemplateName}
+                    Created from: {createdFromLabel}
                   </span>
                 ) : null}
               </p>
@@ -1466,9 +1479,9 @@ export default function SessionDetailPage() {
                   Planned
                 </span>
               ) : null}
-              {sourceTemplateName ? (
+              {createdFromLabel ? (
                 <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-800">
-                  Created from: {sourceTemplateName}
+                  Created from: {createdFromLabel}
                 </span>
               ) : null}
             </p>

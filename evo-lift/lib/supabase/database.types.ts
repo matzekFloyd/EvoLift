@@ -186,6 +186,8 @@ export type Database = {
           performed_on: string;
           notes: string | null;
           source_template_id: string | null;
+          plan_id: string | null;
+          plan_day_id: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -195,6 +197,8 @@ export type Database = {
           performed_on?: string;
           notes?: string | null;
           source_template_id?: string | null;
+          plan_id?: string | null;
+          plan_day_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -204,10 +208,34 @@ export type Database = {
           performed_on?: string;
           notes?: string | null;
           source_template_id?: string | null;
+          plan_id?: string | null;
+          plan_day_id?: string | null;
           created_at?: string;
           updated_at?: string;
         };
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "workout_sessions_source_template_id_fkey";
+            columns: ["source_template_id"];
+            isOneToOne: false;
+            referencedRelation: "workout_templates";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "workout_sessions_plan_id_fkey";
+            columns: ["plan_id"];
+            isOneToOne: false;
+            referencedRelation: "workout_plans";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "workout_sessions_plan_day_id_fkey";
+            columns: ["plan_day_id"];
+            isOneToOne: false;
+            referencedRelation: "workout_plan_days";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       workout_session_exercises: {
         Row: {
@@ -416,6 +444,125 @@ export type Database = {
         };
         Relationships: [];
       };
+      workout_plans: {
+        Row: {
+          id: string;
+          user_id: string;
+          name: string;
+          notes: string | null;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          name: string;
+          notes?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          name?: string;
+          notes?: string | null;
+          is_active?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      workout_plan_days: {
+        Row: {
+          id: string;
+          plan_id: string;
+          name: string;
+          position: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          plan_id: string;
+          name: string;
+          position: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          plan_id?: string;
+          name?: string;
+          position?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "workout_plan_days_plan_id_fkey";
+            columns: ["plan_id"];
+            isOneToOne: false;
+            referencedRelation: "workout_plans";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      workout_plan_day_exercises: {
+        Row: {
+          id: string;
+          plan_day_id: string;
+          exercise_id: string;
+          position: number;
+          target_sets: number | null;
+          target_reps: number | null;
+          target_weight_kg: number | null;
+          base_weight_kg: number | null;
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          plan_day_id: string;
+          exercise_id: string;
+          position: number;
+          target_sets?: number | null;
+          target_reps?: number | null;
+          target_weight_kg?: number | null;
+          base_weight_kg?: number | null;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          plan_day_id?: string;
+          exercise_id?: string;
+          position?: number;
+          target_sets?: number | null;
+          target_reps?: number | null;
+          target_weight_kg?: number | null;
+          base_weight_kg?: number | null;
+          notes?: string | null;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "workout_plan_day_exercises_plan_day_id_fkey";
+            columns: ["plan_day_id"];
+            isOneToOne: false;
+            referencedRelation: "workout_plan_days";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "workout_plan_day_exercises_exercise_id_fkey";
+            columns: ["exercise_id"];
+            isOneToOne: false;
+            referencedRelation: "exercises";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
     };
     Views: {
       home_session_summaries: {
@@ -449,6 +596,16 @@ export type Database = {
           p_notes?: string | null;
           p_performed_on: string;
           p_template_id: string;
+        };
+        Returns: string;
+      };
+      save_workout_plan: {
+        Args: {
+          p_plan_id: string | null;
+          p_name: string;
+          p_notes: string | null;
+          p_is_active: boolean;
+          p_days: Json;
         };
         Returns: string;
       };
