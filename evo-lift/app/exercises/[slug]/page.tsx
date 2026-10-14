@@ -35,7 +35,10 @@ import { SectionHeading } from "@/app/components/section-heading";
 import { SegmentedTabs } from "@/app/components/segmented-tabs";
 import { SetKindIndicator } from "@/app/components/set-kind-indicator";
 import { StatusNotice } from "@/app/components/status-notice";
-import { loadExerciseMetadata } from "@/lib/exercise-metadata-cache";
+import {
+  getExerciseMetadataCacheStatus,
+  loadExerciseMetadata,
+} from "@/lib/exercise-metadata-cache";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { fetchAllPages, fetchInChunks } from "@/lib/supabase/chunked-query";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
@@ -354,6 +357,7 @@ export default function ExerciseDetailPage() {
         return;
       }
 
+      perf.noteCache("exerciseMetadata", getExerciseMetadataCacheStatus(5 * 60 * 1000));
       let metadataRows: Array<{ id: string; slug: string; label: string }> = [];
       try {
         metadataRows = await perf.trackQuery("exerciseMetadata.load", () =>

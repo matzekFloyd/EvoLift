@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { History, LayoutGrid, Weight } from "lucide-react";
 import { ExerciseBadgeChip } from "@/app/components/exercise-badge-chip";
@@ -9,7 +9,10 @@ import { ExerciseFilteredList } from "@/app/components/exercise-filtered-list";
 import { PageShell } from "@/app/components/page-shell";
 import { panelInsetClass } from "@/app/components/panel-inset";
 import { StatusNotice } from "@/app/components/status-notice";
-import { loadExerciseMetadata } from "@/lib/exercise-metadata-cache";
+import {
+  getExerciseMetadataCacheStatus,
+  loadExerciseMetadata,
+} from "@/lib/exercise-metadata-cache";
 import { createPageLoadPerfTracker } from "@/lib/page-load-perf";
 import { pastSessionCountsBySlug } from "@/lib/home-session-cache";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
@@ -31,6 +34,18 @@ function ExercisesMain() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [exercises, setExercises] = useState<ExerciseListItem[]>([]);
   const [searchText, setSearchText] = useState("");
+  const prefetchedExerciseHrefs = useRef(new Set<string>());
+
+  function prefetchExercisePage(href: string) {
+    if (prefetchedExerciseHrefs.current.has(href)) {
+      return;
+    }
+    prefetchedExerciseHrefs.current.add(href);
+    // Full prefetch: this route has no loading boundary, so the default prefetch sends nothing.
+    router.prefetch(href, {
+      kind: "full",
+    } as NonNullable<Parameters<typeof router.prefetch>[1]>);
+  }
 
   const scopeAll = searchParams.get("scope") === "all";
 
@@ -74,6 +89,8 @@ function ExercisesMain() {
       }
 
       const cachedCounts = pastSessionCountsBySlug(session.user.id);
+      perf.noteCache("exerciseMetadata", getExerciseMetadataCacheStatus(5 * 60 * 1000));
+      perf.noteCache("homeSessionCounts", cachedCounts ? "hit" : "miss");
       const metadataPromise = perf
         .trackQuery("exerciseMetadata.load", () =>
           loadExerciseMetadata(supabaseBrowserClient, { ttlMs: 5 * 60 * 1000 }),
@@ -214,21 +231,28 @@ function ExercisesMain() {
               listClassName={panelInsetClass(
                 "mt-3 max-h-[min(24rem,55vh)] space-y-2 overflow-y-auto overscroll-y-contain p-3 sm:grid sm:grid-cols-2 sm:gap-2 sm:space-y-0",
               )}
-              renderItem={(exercise) => (
-                <Link
-                  href={`/exercises/${exercise.slug}`}
-                  className="flex w-full items-center justify-between gap-2 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-800 hover:border-sky-300 hover:bg-sky-50"
-                >
-                  <span className="inline-flex min-w-0 items-center gap-2">
-                    <ExerciseBadgeChip slug={exercise.slug} />
-                    <span className="truncate">{exercise.label}</span>
-                  </span>
-                  <span className="shrink-0 text-xs text-zinc-500">
-                    {exercise.sessionCount}{" "}
-                    {exercise.sessionCount === 1 ? "session" : "sessions"}
-                  </span>
-                </Link>
-              )}
+              renderItem={(exercise) => {
+                const href = `/exercises/${exercise.slug}`;
+                return (
+                  <Link
+                    href={href}
+                    prefetch={false}
+                    onMouseEnter={() => prefetchExercisePage(href)}
+                    onFocus={() => prefetchExercisePage(href)}
+                    onPointerDown={() => prefetchExercisePage(href)}
+                    className="flex w-full items-center justify-between gap-2 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-800 hover:border-sky-300 hover:bg-sky-50"
+                  >
+                    <span className="inline-flex min-w-0 items-center gap-2">
+                      <ExerciseBadgeChip slug={exercise.slug} />
+                      <span className="truncate">{exercise.label}</span>
+                    </span>
+                    <span className="shrink-0 text-xs text-zinc-500">
+                      {exercise.sessionCount}{" "}
+                      {exercise.sessionCount === 1 ? "session" : "sessions"}
+                    </span>
+                  </Link>
+                );
+              }}
             />
           )}
         </>
