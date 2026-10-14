@@ -37,7 +37,7 @@ Examples:
 - Border-first hierarchy: subtle borders + soft backgrounds over heavy shadows.
 - Rounded controls (`rounded-md`) and small radii for consistency.
 - Global header uses a branded light-blue gradient to reinforce navigation hierarchy
-  (`from-sky-200 via-sky-100 to-sky-50` with a matching sky border).
+  (`bg-gradient-to-l from-sky-200 via-sky-100 to-sky-50`, darker on the right, with no bottom border).
 
 ## Color intent
 

@@ -22,7 +22,7 @@ alwaysApply: false
 | Warning    | `amber-*` | Caution                                    |
 | Neutral    | `zinc-*`  | Secondary actions, muted text            |
 
-- **Header branding**: light sky gradient `from-sky-200 via-sky-100 to-sky-50` with matching sky border (per brand doc).
+- **Header branding**: light sky gradient `bg-gradient-to-l from-sky-200 via-sky-100 to-sky-50` (darker on the right), no bottom border (per brand doc).
 
 ## Buttons and icons
 

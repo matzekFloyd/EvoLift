@@ -16,7 +16,7 @@ const appHeaderNavControlClassName =
 /** Inactive nav icon control (shared by links and log out) so surfaces stay consistent. */
 export const appHeaderNavIconInactiveClassName = `${appHeaderNavControlClassName} bg-white text-zinc-700 hover:bg-zinc-200/80 hover:text-zinc-900 focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white`;
 
-const appHeaderNavIconActiveClassName = `${appHeaderNavControlClassName} bg-sky-700 text-white hover:bg-sky-600 focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-sky-700`;
+const appHeaderNavIconActiveClassName = `${appHeaderNavControlClassName} bg-sky-700 text-white hover:bg-sky-600 hover:!text-white focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-sky-700`;
 
 export const appHeaderNavIconInactiveGlyphClassName = "h-4 w-4 shrink-0 text-sky-800";
 
@@ -33,8 +33,8 @@ export function AppHeaderNavCaption({ label }: { label: string }) {
 
 /**
  * Desktop header nav control. Resting state is the icon. Hover and keyboard focus reveal the
- * label beside the icon without changing the control’s height. Active: filled sky; icon is always
- * explicit `text-white` on active so it cannot inherit the sky focus ring color. Focus:
+ * label beside the icon without changing the control’s height. Active: filled sky; icon and label
+ * stay `text-white` on hover so the global link hover color cannot darken the caption. Focus:
  * inactive uses sky ring + white offset; active uses white ring + sky offset so the glyph
  * stays visible.
  */
