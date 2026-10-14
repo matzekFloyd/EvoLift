@@ -690,6 +690,7 @@ function NewSessionPageContent() {
             exerciseDefaultsById={exerciseDefaultsById}
             maxNotesLength={maxNotesLength}
             onClearDraft={clearDraft}
+            showTargetWeightSuggestion
           />
 
           <div className={`flex items-center justify-end gap-3 ${isCompactView ? "hidden" : ""}`}>
