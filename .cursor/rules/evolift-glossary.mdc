@@ -1,0 +1,26 @@
+---
+description: When new user-facing words appear, check whether the glossary should define them
+alwaysApply: true
+---
+
+# Glossary for new words
+
+When a change adds a feature, screen, or user-facing copy that introduces a word users have to learn, check `evo-lift/app/glossary/page.tsx` before finishing.
+
+## Add a term when
+
+- The word is a product term the UI uses — a name, label, or abbreviation — and the glossary does not already define it.
+- Examples that belong: Session, Template, Lift, Loaded (kg), 1RM, ExRx, Compound.
+
+## Skip the glossary when
+
+- The word is an ordinary control or sentence, such as Save, Cancel, Clear filters, or an error message.
+- It is an internal code name that never appears in the UI.
+- The glossary already defines it. Reuse that wording. Do not add a second name for the same thing.
+
+## How to write the entry
+
+- Follow `evo-lift/BRAND_GUIDELINES.md`. Use the same words the UI uses.
+- One short definition in plain language. Static copy only. Do not load sessions, templates, or goals.
+- Insert the entry in alphabetical order by the term.
+- If the UI already links the term out, as with ExRx.net, keep that link in the definition.
