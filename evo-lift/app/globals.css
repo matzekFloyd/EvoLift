@@ -58,6 +58,12 @@ a:hover {
   color: var(--accent-strong);
 }
 
+/* Log out is a button, so it misses `a:hover` and the caption stays zinc. */
+button.header-nav-logout:hover,
+button.header-nav-logout:focus-visible {
+  color: var(--accent-strong);
+}
+
 a:focus-visible {
   border-radius: 4px;
 }
@@ -95,6 +101,15 @@ select:not(:disabled):hover:not(:focus-visible) {
 button.bg-sky-700:not(:disabled):hover {
   border-color: var(--accent);
   background-color: #0369a1;
+  color: #ffffff;
+}
+
+/* Header add actions are either a link or a button. Extra class beats `a:hover`
+   and `button.bg-sky-700:hover` so both lighten the same way and keep white text. */
+a.page-add-action.bg-sky-700:hover,
+button.page-add-action.bg-sky-700:not(:disabled):hover {
+  border-color: var(--accent);
+  background-color: var(--accent);
   color: #ffffff;
 }
 

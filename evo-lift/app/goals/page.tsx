@@ -1,9 +1,10 @@
 "use client";
 
-import { Plus, Target } from "lucide-react";
+import { Target } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
+import { PageAddAction } from "@/app/components/page-add-action";
 import { PageShell } from "@/app/components/page-shell";
 import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
@@ -346,13 +347,13 @@ export default function GoalsPage() {
           <Target className="h-6 w-6 text-sky-700" aria-hidden />
           Goals
         </h1>
-        <ActionButton type="button" variant="primary" onClick={() => {
-          setFormError(null);
-          setDraft(emptyGoalDraft());
-        }}>
-          <Plus className="h-4 w-4" aria-hidden />
-          Add goal
-        </ActionButton>
+        <PageAddAction
+          label="Add goal"
+          onClick={() => {
+            setFormError(null);
+            setDraft(emptyGoalDraft());
+          }}
+        />
       </div>
 
       <section className="panel p-5">

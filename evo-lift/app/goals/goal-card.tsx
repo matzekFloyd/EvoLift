@@ -60,7 +60,9 @@ export function GoalCard({
           </StatusBadge>
         ) : achievedLabel ? (
           <StatusBadge tone="success">Achieved</StatusBadge>
-        ) : null}
+        ) : (
+          <StatusBadge tone="info">In progress</StatusBadge>
+        )}
       </div>
 
       {missingBodyweight ? (
@@ -78,9 +80,9 @@ export function GoalCard({
           {achievedLabel ? <p>{achievedLabel}</p> : null}
           {roundedPercent != null ? (
             <div
-              className="mt-2 h-1.5 overflow-hidden rounded-full bg-zinc-200"
+              className="relative mt-2 h-6 overflow-hidden rounded-full bg-zinc-200"
               role="meter"
-              aria-label="Progress toward this goal"
+              aria-label={`Progress toward this goal, ${roundedPercent}%`}
               aria-valuemin={0}
               aria-valuemax={100}
               aria-valuenow={roundedPercent}
@@ -89,6 +91,14 @@ export function GoalCard({
                 className={`h-full ${achievedLabel ? "bg-emerald-600" : "bg-sky-600"}`}
                 style={{ width: `${roundedPercent}%` }}
               />
+              <span
+                aria-hidden
+                className={`absolute inset-0 flex items-center justify-center text-xs font-medium tabular-nums ${
+                  roundedPercent >= 50 ? "text-white" : "text-zinc-800"
+                }`}
+              >
+                {roundedPercent}%
+              </span>
             </div>
           ) : null}
         </div>

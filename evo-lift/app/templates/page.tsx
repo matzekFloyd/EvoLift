@@ -1,10 +1,10 @@
 "use client";
 
-import { ArrowLeft, FileStack, Pencil, Play, Plus, Trash2 } from "lucide-react";
+import { FileStack, Pencil, Play, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ActionButton } from "@/app/components/action-button";
+import { PageAddAction } from "@/app/components/page-add-action";
 import { DateInput } from "@/app/components/date-input";
 import { PageShell } from "@/app/components/page-shell";
 import { PanelInset } from "@/app/components/panel-inset";
@@ -150,14 +150,6 @@ export default function TemplatesPage() {
     }
   }
 
-  function goBack() {
-    if (window.history.length > 1) {
-      router.back();
-      return;
-    }
-    router.push("/");
-  }
-
   if (isChecking) {
     return (
       <PageShell className="items-center justify-center">
@@ -173,18 +165,7 @@ export default function TemplatesPage() {
           <FileStack className="h-6 w-6 text-sky-700" />
           Templates
         </h1>
-        <div className="flex flex-wrap items-center gap-2">
-          <Link
-            href="/sessions/new"
-            className="inline-flex h-10 items-center justify-center rounded-md border border-zinc-300 bg-zinc-50 px-3 text-sm font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
-          >
-            New session
-          </Link>
-          <ActionButton type="button" onClick={goBack} variant="secondary" size="md">
-            <ArrowLeft className="h-4 w-4 text-sky-700" />
-            Back
-          </ActionButton>
-        </div>
+        <PageAddAction href="/sessions/new" label="Add workout session" />
       </div>
 
       <section className="panel p-5">

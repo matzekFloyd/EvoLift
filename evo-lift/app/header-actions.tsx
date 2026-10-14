@@ -180,7 +180,7 @@ export function HeaderActions() {
           <button
             type="button"
             onClick={handleAuthClick}
-            className={appHeaderNavIconInactiveClassName}
+            className={`${appHeaderNavIconInactiveClassName} header-nav-logout`}
           >
             <LogOut className={appHeaderNavIconInactiveGlyphClassName} aria-hidden />
             <AppHeaderNavCaption label="Log out" />

@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { ClipboardList, Dumbbell, FilterX, Plus } from "lucide-react";
+import { ClipboardList, Dumbbell, FilterX } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
+import { PageAddAction } from "@/app/components/page-add-action";
 import { DateInput } from "@/app/components/date-input";
 import { PageShell } from "@/app/components/page-shell";
 import { PanelInset } from "@/app/components/panel-inset";
@@ -319,15 +320,7 @@ export default function Home() {
           <ClipboardList className="h-6 w-6 text-sky-700" />
           Workout sessions
         </h1>
-        <Link
-          href="/sessions/new"
-          className="inline-flex h-10 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-3 py-2 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600"
-          aria-label="Add workout session"
-          title="Add workout session"
-        >
-          <Plus className="h-3.5 w-3.5 text-white" />
-          <span className="hidden sm:inline">Add workout session</span>
-        </Link>
+        <PageAddAction href="/sessions/new" label="Add workout session" />
       </div>
       {userId ? <NewSessionDraftCallout userId={userId} /> : null}
       <section className="panel p-5">
