@@ -128,6 +128,57 @@ export type Database = {
         };
         Relationships: [];
       };
+      strength_milestones: {
+        Row: {
+          id: string;
+          user_id: string;
+          exercise_id: string;
+          milestone_type: "absolute" | "bodyweight_multiple";
+          target_weight_kg: number | null;
+          bodyweight_multiple: number | null;
+          min_reps: number;
+          due_on: string | null;
+          note: string | null;
+          achieved_at: string | null;
+          achieved_bodyweight_kg: number | null;
+          achieved_threshold_kg: number | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          exercise_id: string;
+          milestone_type: "absolute" | "bodyweight_multiple";
+          target_weight_kg?: number | null;
+          bodyweight_multiple?: number | null;
+          min_reps?: number;
+          due_on?: string | null;
+          note?: string | null;
+          achieved_at?: string | null;
+          achieved_bodyweight_kg?: number | null;
+          achieved_threshold_kg?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          exercise_id?: string;
+          milestone_type?: "absolute" | "bodyweight_multiple";
+          target_weight_kg?: number | null;
+          bodyweight_multiple?: number | null;
+          min_reps?: number;
+          due_on?: string | null;
+          note?: string | null;
+          achieved_at?: string | null;
+          achieved_bodyweight_kg?: number | null;
+          achieved_threshold_kg?: number | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       workout_sessions: {
         Row: {
           id: string;
@@ -405,6 +456,7 @@ export type Database = {
     Enums: {
       language_code: LanguageCode;
       profile_sex: "female" | "male";
+      strength_milestone_type: "absolute" | "bodyweight_multiple";
     };
     CompositeTypes: Record<string, never>;
   };
