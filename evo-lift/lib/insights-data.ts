@@ -164,6 +164,40 @@ export function peekInsightsHistory(userId: string, window: InsightsHistoryWindo
   return insightsHistoryCache.get(insightsHistoryCacheKey(userId, window)) ?? null;
 }
 
+function cachedWindowCovers(cached: InsightsHistoryWindow, requested: InsightsHistoryWindow): boolean {
+  const startsEarlyEnough = cached.from === "" || (requested.from !== "" && cached.from <= requested.from);
+  const endsLateEnough = cached.to === "" || (requested.to !== "" && cached.to >= requested.to);
+  return startsEarlyEnough && endsLateEnough;
+}
+
+/** Working sets for a date window already loaded by Insights, including a wider cached window. */
+export function peekInsightsExerciseSets(
+  userId: string,
+  window: InsightsHistoryWindow,
+): ExerciseWorkingSetSample[] | null {
+  const exact = peekInsightsHistory(userId, window);
+  if (exact) {
+    return exact.exerciseSets;
+  }
+  const prefix = `${userId}|`;
+  for (const [key, history] of insightsHistoryCache) {
+    if (!key.startsWith(prefix)) {
+      continue;
+    }
+    const rest = key.slice(prefix.length);
+    const splitAt = rest.indexOf("|");
+    if (splitAt < 0) {
+      continue;
+    }
+    const cachedWindow = { from: rest.slice(0, splitAt), to: rest.slice(splitAt + 1) };
+    if (!cachedWindowCovers(cachedWindow, window)) {
+      continue;
+    }
+    return history.exerciseSets.filter((sample) => inSelectedWindow(sample.performedOn, window));
+  }
+  return null;
+}
+
 export type ExerciseWorkingSetSample = {
   exerciseId: string;
   slug: string;

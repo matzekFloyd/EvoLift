@@ -46,8 +46,9 @@ import { createPageLoadPerfTracker } from "@/lib/page-load-perf";
 import { resolveLifterAge } from "@/lib/body-metrics";
 import { buildExerciseProgressReport, type LifterProfile } from "@/lib/exercise-progress-insights";
 import {
-  loadUserExerciseWorkingSets,
+  loadCachedInsightsHistory,
   loadUserStrengthProfile,
+  peekInsightsExerciseSets,
   type ExerciseWorkingSetSample,
 } from "@/lib/insights-data";
 import {
@@ -353,13 +354,6 @@ export default function ExerciseDetailPage() {
         return;
       }
 
-      const insightTask = Promise.all([
-        loadUserExerciseWorkingSets(supabaseBrowserClient, session.user.id),
-        loadUserStrengthProfile(supabaseBrowserClient, session.user.id),
-      ])
-        .then(([sets, profile]) => ({ sets, profile }))
-        .catch(() => null);
-
       let metadataRows: Array<{ id: string; slug: string; label: string }> = [];
       try {
         metadataRows = await perf.trackQuery("exerciseMetadata.load", () =>
@@ -381,141 +375,120 @@ export default function ExerciseDetailPage() {
 
       const exercise = exerciseData as ExerciseRow;
 
-      const { data: sessionRows, error: sessionsError } = await perf.trackQuery(
-        "workout_sessions.selectPerformedOn",
+      const { data: sessionExerciseRows, error: sessionExercisesError } = await perf.trackQuery(
+        "workout_session_exercises.selectByExerciseId",
         () =>
           fetchAllPages((from, to) =>
             supabaseBrowserClient
-              .from("workout_sessions")
-              .select("id, performed_on, created_at")
-              .eq("user_id", session.user.id)
+              .from("workout_session_exercises")
+              .select("id, session_id, base_weight_kg")
+              .eq("exercise_id", exercise.id)
               .order("id", { ascending: true })
               .range(from, to),
           ),
       );
-      if (sessionsError) {
-        setErrorMessage("Could not load your workout sessions.");
+      if (sessionExercisesError) {
+        setErrorMessage("Could not load exercise sessions.");
         setIsLoading(false);
         perf.flush();
         return;
       }
 
-      const typedSessions = (sessionRows ?? []) as SessionRow[];
-      const sessionIds = typedSessions.map((row) => row.id);
+      const typedSessionExercises = (sessionExerciseRows ?? []) as SessionExerciseRow[];
+      const sessionIds = [...new Set(typedSessionExercises.map((row) => row.session_id))];
       const sessionMetaBySessionId = new Map<string, { performedOn: string; createdAt: string }>();
-      for (const row of typedSessions) {
-        sessionMetaBySessionId.set(row.id, {
-          performedOn: row.performed_on,
-          createdAt: row.created_at,
-        });
-      }
-
-      let history: ExerciseSetHistoryRow[] = [];
       if (sessionIds.length > 0) {
-        const { data: sessionExerciseRows, error: sessionExercisesError } = await perf.trackQuery(
-          "workout_session_exercises.selectByExerciseAndSessionIds",
+        const { data: sessionRows, error: sessionsError } = await perf.trackQuery(
+          "workout_sessions.selectByIds",
           () =>
             fetchInChunks(sessionIds, (chunk, from, to) =>
               supabaseBrowserClient
-                .from("workout_session_exercises")
-                .select("id, session_id, base_weight_kg")
-                .eq("exercise_id", exercise.id)
-                .in("session_id", chunk)
+                .from("workout_sessions")
+                .select("id, performed_on, created_at")
+                .in("id", chunk)
                 .order("id", { ascending: true })
                 .range(from, to),
             ),
         );
-        if (sessionExercisesError) {
-          setErrorMessage("Could not load exercise sessions.");
+        if (sessionsError) {
+          setErrorMessage("Could not load your workout sessions.");
+          setIsLoading(false);
+          perf.flush();
+          return;
+        }
+        for (const row of (sessionRows ?? []) as SessionRow[]) {
+          sessionMetaBySessionId.set(row.id, {
+            performedOn: row.performed_on,
+            createdAt: row.created_at,
+          });
+        }
+      }
+
+      const sessionIdBySessionExerciseId = new Map<string, string>();
+      const baseWeightBySessionExerciseId = new Map<string, number>();
+      for (const row of typedSessionExercises) {
+        sessionIdBySessionExerciseId.set(row.id, row.session_id);
+        baseWeightBySessionExerciseId.set(row.id, row.base_weight_kg ?? 0);
+      }
+
+      let history: ExerciseSetHistoryRow[] = [];
+      const sessionExerciseIds = typedSessionExercises.map((row) => row.id);
+      if (sessionExerciseIds.length > 0) {
+        const { data: setRows, error: setsError } = await perf.trackQuery(
+          "workout_sets.selectBySessionExerciseIds",
+          () =>
+            fetchInChunks(sessionExerciseIds, (chunk, from, to) =>
+              supabaseBrowserClient
+                .from("workout_sets")
+                .select("session_exercise_id, set_number, reps, weight_kg, is_warmup")
+                .in("session_exercise_id", chunk)
+                .order("id", { ascending: true })
+                .range(from, to),
+            ),
+        );
+        if (setsError) {
+          setErrorMessage("Could not load exercise sets.");
           setIsLoading(false);
           perf.flush();
           return;
         }
 
-        const typedSessionExercises = (sessionExerciseRows ?? []) as SessionExerciseRow[];
-        const sessionExerciseIds = typedSessionExercises.map((row) => row.id);
-        const sessionIdBySessionExerciseId = new Map<string, string>();
-        const baseWeightBySessionExerciseId = new Map<string, number>();
-        for (const row of typedSessionExercises) {
-          sessionIdBySessionExerciseId.set(row.id, row.session_id);
-          baseWeightBySessionExerciseId.set(row.id, row.base_weight_kg ?? 0);
-        }
-
-        if (sessionExerciseIds.length > 0) {
-          const { data: setRows, error: setsError } = await perf.trackQuery(
-            "workout_sets.selectBySessionExerciseIds",
-            () =>
-              fetchInChunks(sessionExerciseIds, (chunk, from, to) =>
-                supabaseBrowserClient
-                  .from("workout_sets")
-                  .select("session_exercise_id, set_number, reps, weight_kg, is_warmup")
-                  .in("session_exercise_id", chunk)
-                  .order("id", { ascending: true })
-                  .range(from, to),
-              ),
-          );
-          if (setsError) {
-            setErrorMessage("Could not load exercise sets.");
-            setIsLoading(false);
-            perf.flush();
-            return;
-          }
-
-          history = ((setRows ?? []) as WorkoutSetRow[])
-            .map((setRow) => {
-              const sessionId = sessionIdBySessionExerciseId.get(setRow.session_exercise_id);
-              if (!sessionId) {
-                return null;
-              }
-              const sessionMeta = sessionMetaBySessionId.get(sessionId);
-              if (!sessionMeta) {
-                return null;
-              }
-              const baseWeightRaw = baseWeightBySessionExerciseId.get(setRow.session_exercise_id) ?? 0;
-              const loadedRaw = setRow.weight_kg ?? 0;
-              const baseWeightValue = Number(baseWeightRaw);
-              const loadedValue = Number(loadedRaw);
-              const baseWeightKg = Number.isFinite(baseWeightValue) ? baseWeightValue : 0;
-              const loadedKg = Number.isFinite(loadedValue) ? loadedValue : 0;
-              return {
-                sessionId,
-                performedOn: sessionMeta.performedOn,
-                sessionCreatedAt: sessionMeta.createdAt,
-                setNumber: setRow.set_number,
-                reps: setRow.reps,
-                weightKg: setRow.weight_kg,
-                totalKg: loadedKg + baseWeightKg,
-                isWarmup: setRow.is_warmup,
-              };
-            })
-            .filter((row): row is ExerciseSetHistoryRow => row !== null);
-          history = sortExerciseHistoryRowsCanonical(history);
-        }
+        history = ((setRows ?? []) as WorkoutSetRow[])
+          .map((setRow) => {
+            const sessionId = sessionIdBySessionExerciseId.get(setRow.session_exercise_id);
+            if (!sessionId) {
+              return null;
+            }
+            const sessionMeta = sessionMetaBySessionId.get(sessionId);
+            if (!sessionMeta) {
+              return null;
+            }
+            const baseWeightRaw = baseWeightBySessionExerciseId.get(setRow.session_exercise_id) ?? 0;
+            const loadedRaw = setRow.weight_kg ?? 0;
+            const baseWeightValue = Number(baseWeightRaw);
+            const loadedValue = Number(loadedRaw);
+            const baseWeightKg = Number.isFinite(baseWeightValue) ? baseWeightValue : 0;
+            const loadedKg = Number.isFinite(loadedValue) ? loadedValue : 0;
+            return {
+              sessionId,
+              performedOn: sessionMeta.performedOn,
+              sessionCreatedAt: sessionMeta.createdAt,
+              setNumber: setRow.set_number,
+              reps: setRow.reps,
+              weightKg: setRow.weight_kg,
+              totalKg: loadedKg + baseWeightKg,
+              isWarmup: setRow.is_warmup,
+            };
+          })
+          .filter((row): row is ExerciseSetHistoryRow => row !== null);
+        history = sortExerciseHistoryRowsCanonical(history);
       }
 
-      if (!isMounted) {
-        return;
-      }
-      const insight = await insightTask;
       if (!isMounted) {
         return;
       }
       setExerciseLabel(exerciseData.label);
       setHistoryRows(history);
-      if (insight) {
-        const age = resolveLifterAge({
-          dateOfBirth: insight.profile.dateOfBirth,
-          birthYear: insight.profile.birthYear,
-        });
-        setInsightSamples(insight.sets);
-        setLifterProfile({
-          sex: insight.profile.sex,
-          bodyweightKg: insight.profile.bodyweightKg,
-          ageYears: age?.ageYears ?? null,
-          ageIsApproximate: age?.ageIsApproximate ?? false,
-        });
-      }
-      setInsightReady(insight != null);
       setIsLoading(false);
       perf.flush();
     }
@@ -525,6 +498,59 @@ export default function ExerciseDetailPage() {
       isMounted = false;
     };
   }, [router, slug]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function loadInsight() {
+      if (!slug) {
+        return;
+      }
+      const {
+        data: { session },
+      } = await supabaseBrowserClient.auth.getSession();
+      if (!isMounted || !session) {
+        return;
+      }
+      const historyWindow = { from: filterState.from, to: filterState.to };
+      try {
+        const cachedSets = peekInsightsExerciseSets(session.user.id, historyWindow);
+        const [sets, profile] = await Promise.all([
+          cachedSets
+            ? Promise.resolve(cachedSets)
+            : loadCachedInsightsHistory(supabaseBrowserClient, session.user.id, historyWindow).then(
+                (history) => history.exerciseSets,
+              ),
+          loadUserStrengthProfile(supabaseBrowserClient, session.user.id),
+        ]);
+        if (!isMounted) {
+          return;
+        }
+        const age = resolveLifterAge({
+          dateOfBirth: profile.dateOfBirth,
+          birthYear: profile.birthYear,
+        });
+        setInsightSamples(sets);
+        setLifterProfile({
+          sex: profile.sex,
+          bodyweightKg: profile.bodyweightKg,
+          ageYears: age?.ageYears ?? null,
+          ageIsApproximate: age?.ageIsApproximate ?? false,
+        });
+        setInsightReady(true);
+      } catch {
+        if (!isMounted) {
+          return;
+        }
+        setInsightReady(false);
+      }
+    }
+
+    void loadInsight();
+    return () => {
+      isMounted = false;
+    };
+  }, [filterState.from, filterState.to, slug]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 768px)");
