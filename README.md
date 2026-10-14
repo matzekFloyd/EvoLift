@@ -263,13 +263,15 @@ Returns OpenAPI 3.0 JSON for documented endpoints.
 
 ## Deployment Notes
 
-Typical deployment flow:
+A pull request cannot merge to `master` until the Test workflow jobs `npm test` and `API integration` succeed. Vercel then deploys that commit to production (`https://evo-lift.vercel.app`).
+
+Before that deploy:
 
 1. Apply migrations (`supabase db push --linked`)
 2. Apply production-safe seed files as needed
-3. Ensure environment variables are set correctly in hosting platform
-4. Deploy app (`evo-lift/`)
-5. Smoke test login, dashboard, and authenticated `/api/exercises`
+3. Ensure environment variables are set correctly in the hosting platform
+
+After a successful production deploy, the Production smoke workflow checks that the login page loads and that `GET /api/openapi` returns OpenAPI JSON. It does not sign in, create a session, or call the database. Unit tests and API integration tests stay on the pull request and use local Supabase.
 
 ## Branding and UX Consistency
 
