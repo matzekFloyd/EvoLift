@@ -29,6 +29,7 @@ import { SetKindIndicator } from "@/app/components/set-kind-indicator";
 import { DateInput } from "@/app/components/date-input";
 import { ExerciseSearchSelect } from "@/app/components/exercise-search-select";
 import { NotesTextareaField } from "@/app/components/notes-textarea-field";
+import { DocumentTitle } from "@/app/components/document-title";
 import { PageShell } from "@/app/components/page-shell";
 import { panelInsetClass } from "@/app/components/panel-inset";
 import { SectionHeading } from "@/app/components/section-heading";
@@ -37,6 +38,7 @@ import { TargetWeightSuggestion } from "@/app/components/target-weight-suggestio
 import { WarmupSuggestion } from "@/app/components/warmup-suggestion";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { formatPlanSessionSource } from "@/lib/plan-cycle";
+import { workoutSessionPageTitle } from "@/lib/page-title";
 import { toExerciseBadge } from "@/lib/exercise-badge";
 import { exerciseOptionsForPicker } from "@/lib/exercise-picker-options";
 import {
@@ -1439,6 +1441,9 @@ export default function SessionDetailPage() {
           : undefined
       }
     >
+      <DocumentTitle
+        page={sessionNumber != null ? workoutSessionPageTitle(sessionNumber) : null}
+      />
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         {isCompactView ? (
           <div className="flex w-full items-start justify-between gap-2">

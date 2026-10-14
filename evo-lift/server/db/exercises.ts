@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { exercisePageTitle } from "@/lib/page-title";
 import type { Database, LanguageCode } from "@/lib/supabase/database.types";
 
 type ExerciseWithTranslations = {
@@ -58,4 +59,39 @@ export async function listExercisesWithTranslations(
     slug: exercise.slug,
     translations: translationMap.get(exercise.id) ?? [],
   }));
+}
+
+/** English name for the exercise tab title. Null when the slug is not in the catalog. */
+export async function getExercisePageTitle(
+  client: SupabaseClient<Database>,
+  slug: string,
+): Promise<string | null> {
+  const trimmedSlug = slug.trim();
+  if (!trimmedSlug) {
+    return null;
+  }
+
+  const { data: exercise, error: exerciseError } = await client
+    .from("exercises")
+    .select("id, slug")
+    .eq("slug", trimmedSlug)
+    .maybeSingle();
+  if (exerciseError) {
+    throw new Error(`Failed to load exercise: ${exerciseError.message}`);
+  }
+  if (!exercise) {
+    return null;
+  }
+
+  const { data: translation, error: translationError } = await client
+    .from("exercise_translations")
+    .select("name")
+    .eq("exercise_id", exercise.id)
+    .eq("lang_code", "en")
+    .maybeSingle();
+  if (translationError) {
+    throw new Error(`Failed to load exercise name: ${translationError.message}`);
+  }
+
+  return exercisePageTitle(translation?.name, exercise.slug);
 }
