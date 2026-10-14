@@ -396,34 +396,7 @@ export default function ExerciseDetailPage() {
 
       const typedSessionExercises = (sessionExerciseRows ?? []) as SessionExerciseRow[];
       const sessionIds = [...new Set(typedSessionExercises.map((row) => row.session_id))];
-      const sessionMetaBySessionId = new Map<string, { performedOn: string; createdAt: string }>();
-      if (sessionIds.length > 0) {
-        const { data: sessionRows, error: sessionsError } = await perf.trackQuery(
-          "workout_sessions.selectByIds",
-          () =>
-            fetchInChunks(sessionIds, (chunk, from, to) =>
-              supabaseBrowserClient
-                .from("workout_sessions")
-                .select("id, performed_on, created_at")
-                .in("id", chunk)
-                .order("id", { ascending: true })
-                .range(from, to),
-            ),
-        );
-        if (sessionsError) {
-          setErrorMessage("Could not load your workout sessions.");
-          setIsLoading(false);
-          perf.flush();
-          return;
-        }
-        for (const row of (sessionRows ?? []) as SessionRow[]) {
-          sessionMetaBySessionId.set(row.id, {
-            performedOn: row.performed_on,
-            createdAt: row.created_at,
-          });
-        }
-      }
-
+      const sessionExerciseIds = typedSessionExercises.map((row) => row.id);
       const sessionIdBySessionExerciseId = new Map<string, string>();
       const baseWeightBySessionExerciseId = new Map<string, number>();
       for (const row of typedSessionExercises) {
@@ -431,29 +404,57 @@ export default function ExerciseDetailPage() {
         baseWeightBySessionExerciseId.set(row.id, row.base_weight_kg ?? 0);
       }
 
-      let history: ExerciseSetHistoryRow[] = [];
-      const sessionExerciseIds = typedSessionExercises.map((row) => row.id);
-      if (sessionExerciseIds.length > 0) {
-        const { data: setRows, error: setsError } = await perf.trackQuery(
-          "workout_sets.selectBySessionExerciseIds",
-          () =>
-            fetchInChunks(sessionExerciseIds, (chunk, from, to) =>
-              supabaseBrowserClient
-                .from("workout_sets")
-                .select("session_exercise_id, set_number, reps, weight_kg, is_warmup")
-                .in("session_exercise_id", chunk)
-                .order("id", { ascending: true })
-                .range(from, to),
-            ),
-        );
-        if (setsError) {
-          setErrorMessage("Could not load exercise sets.");
-          setIsLoading(false);
-          perf.flush();
-          return;
-        }
+      const sessionsPromise =
+        sessionIds.length === 0
+          ? Promise.resolve({ data: [] as SessionRow[], error: null })
+          : perf.trackQuery("workout_sessions.selectByIds", () =>
+              fetchInChunks(sessionIds, (chunk, from, to) =>
+                supabaseBrowserClient
+                  .from("workout_sessions")
+                  .select("id, performed_on, created_at")
+                  .in("id", chunk)
+                  .order("id", { ascending: true })
+                  .range(from, to),
+              ),
+            );
+      const setsPromise =
+        sessionExerciseIds.length === 0
+          ? Promise.resolve({ data: [] as WorkoutSetRow[], error: null })
+          : perf.trackQuery("workout_sets.selectBySessionExerciseIds", () =>
+              fetchInChunks(sessionExerciseIds, (chunk, from, to) =>
+                supabaseBrowserClient
+                  .from("workout_sets")
+                  .select("session_exercise_id, set_number, reps, weight_kg, is_warmup")
+                  .in("session_exercise_id", chunk)
+                  .order("id", { ascending: true })
+                  .range(from, to),
+              ),
+            );
+      const [sessionsResult, setsResult] = await Promise.all([sessionsPromise, setsPromise]);
+      if (sessionsResult.error) {
+        setErrorMessage("Could not load your workout sessions.");
+        setIsLoading(false);
+        perf.flush();
+        return;
+      }
+      if (setsResult.error) {
+        setErrorMessage("Could not load exercise sets.");
+        setIsLoading(false);
+        perf.flush();
+        return;
+      }
 
-        history = ((setRows ?? []) as WorkoutSetRow[])
+      const sessionMetaBySessionId = new Map<string, { performedOn: string; createdAt: string }>();
+      for (const row of sessionsResult.data ?? []) {
+        sessionMetaBySessionId.set(row.id, {
+          performedOn: row.performed_on,
+          createdAt: row.created_at,
+        });
+      }
+
+      let history: ExerciseSetHistoryRow[] = [];
+      if (sessionExerciseIds.length > 0) {
+        history = (setsResult.data ?? [])
           .map((setRow) => {
             const sessionId = sessionIdBySessionExerciseId.get(setRow.session_exercise_id);
             if (!sessionId) {

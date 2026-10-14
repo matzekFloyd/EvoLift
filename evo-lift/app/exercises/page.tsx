@@ -73,19 +73,50 @@ function ExercisesMain() {
         return;
       }
 
-      let cachedMetadata: Array<{ id: string; slug: string; label: string }> = [];
-      try {
-        cachedMetadata = await perf.trackQuery("exerciseMetadata.load", () =>
+      const cachedCounts = pastSessionCountsBySlug(session.user.id);
+      const metadataPromise = perf
+        .trackQuery("exerciseMetadata.load", () =>
           loadExerciseMetadata(supabaseBrowserClient, { ttlMs: 5 * 60 * 1000 }),
+        )
+        .then(
+          (rows) => ({ rows, error: null as unknown }),
+          (error: unknown) => ({
+            rows: [] as Array<{ id: string; slug: string; label: string }>,
+            error,
+          }),
         );
-      } catch (error) {
-        setErrorMessage(error instanceof Error ? error.message : "Could not load exercises.");
+      const countsPromise = cachedCounts
+        ? null
+        : perf.trackQuery("exercise_past_session_counts", () =>
+            supabaseBrowserClient.rpc("exercise_past_session_counts", {
+              p_through: getTodayYyyyMmDd(),
+            }),
+          );
+      const [metadataResult, countsResult] = await Promise.all([
+        metadataPromise,
+        countsPromise ?? Promise.resolve(null),
+      ]);
+
+      if (!isMounted) {
+        return;
+      }
+      if (metadataResult.error) {
+        const metadataError = metadataResult.error;
+        setErrorMessage(
+          metadataError instanceof Error ? metadataError.message : "Could not load exercises.",
+        );
+        setIsLoading(false);
+        perf.flush();
+        return;
+      }
+      if (countsResult?.error) {
+        setErrorMessage("Could not load exercise history.");
         setIsLoading(false);
         perf.flush();
         return;
       }
 
-      const cachedCounts = pastSessionCountsBySlug(session.user.id);
+      const cachedMetadata = metadataResult.rows;
       const sessionCountBySlug = new Map<string, number>();
       const sessionCountById = new Map<string, number>();
       if (cachedCounts) {
@@ -93,20 +124,7 @@ function ExercisesMain() {
           sessionCountBySlug.set(slug, count);
         }
       } else {
-        const { data: countRows, error: countsError } = await perf.trackQuery(
-          "exercise_past_session_counts",
-          () =>
-            supabaseBrowserClient.rpc("exercise_past_session_counts", {
-              p_through: getTodayYyyyMmDd(),
-            }),
-        );
-        if (countsError) {
-          setErrorMessage("Could not load exercise history.");
-          setIsLoading(false);
-          perf.flush();
-          return;
-        }
-        for (const row of countRows ?? []) {
+        for (const row of countsResult?.data ?? []) {
           sessionCountById.set(row.exercise_id, row.session_count);
         }
       }
