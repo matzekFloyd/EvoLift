@@ -12,27 +12,18 @@ import { SectionHeading } from "@/app/components/section-heading";
 import { NewSessionDraftCallout } from "@/app/components/new-session-draft-callout";
 import { SessionsTable, type SessionsTableRow } from "@/app/components/sessions-table";
 import { WorkoutActivityChart } from "@/app/components/workout-activity-chart";
-import { rememberHomeSessionSummaries } from "@/lib/home-session-cache";
+import {
+  loadHomeSessionSummaries,
+  peekHomeSessionSummaries,
+  type HomeSessionSummaryRow,
+} from "@/lib/home-session-cache";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
-import { fetchAllPages } from "@/lib/supabase/chunked-query";
 
 type WorkoutSessionRow = {
   id: string;
   performed_on: string;
   notes: string | null;
   created_at: string;
-};
-
-type HomeSessionSummaryRow = {
-  id: string;
-  performed_on: string;
-  notes: string | null;
-  created_at: string;
-  set_count: number;
-  exercise_badges: Array<{
-    slug: string;
-    has_logged_set: boolean;
-  }> | null;
 };
 
 type SessionExerciseBadge = {
@@ -111,54 +102,63 @@ export default function Home() {
 
       setUserId(session.user.id);
 
-      const { data, error } = await fetchAllPages((from, to) =>
-        supabaseBrowserClient
-          .from("home_session_summaries")
-          .select("id, performed_on, notes, created_at, set_count, exercise_badges")
-          .order("id", { ascending: true })
-          .range(from, to),
-      );
+      function applyHomeSummaries(loadedSessions: HomeSessionSummaryRow[]) {
+        setSessions(
+          loadedSessions.map((row) => ({
+            id: row.id,
+            performed_on: row.performed_on,
+            notes: row.notes,
+            created_at: row.created_at,
+          })),
+        );
+
+        const nextSetCountBySessionId = new Map<string, number>();
+        const nextBadges = new Map<string, SessionExerciseBadge[]>();
+        for (const row of loadedSessions) {
+          const setCount = Number(row.set_count);
+          nextSetCountBySessionId.set(row.id, Number.isFinite(setCount) ? setCount : 0);
+          const badges = Array.isArray(row.exercise_badges) ? row.exercise_badges : [];
+          nextBadges.set(
+            row.id,
+            badges
+              .filter((badge) => typeof badge.slug === "string" && badge.slug.length > 0)
+              .map((badge) => ({
+                slug: badge.slug,
+                hasLoggedSet: badge.has_logged_set === true,
+              })),
+          );
+        }
+        setSetCountBySessionId(nextSetCountBySessionId);
+        setExerciseBadgesBySessionId(nextBadges);
+        setSessionsError(null);
+      }
+
+      const cached = peekHomeSessionSummaries(session.user.id);
+      if (cached) {
+        applyHomeSummaries(cached.rows);
+        setIsChecking(false);
+        if (cached.fresh) {
+          return;
+        }
+      }
+
+      const { rows, error } = await loadHomeSessionSummaries(supabaseBrowserClient, session.user.id, {
+        fresh: cached != null,
+      });
 
       if (!isMounted) {
         return;
       }
 
       if (error) {
-        setSessionsError("Could not load workout sessions.");
-        setIsChecking(false);
+        if (!cached) {
+          setSessionsError(error);
+          setIsChecking(false);
+        }
         return;
       }
 
-      const loadedSessions = (data ?? []) as HomeSessionSummaryRow[];
-      rememberHomeSessionSummaries(session.user.id, loadedSessions);
-      setSessions(
-        loadedSessions.map((row) => ({
-          id: row.id,
-          performed_on: row.performed_on,
-          notes: row.notes,
-          created_at: row.created_at,
-        })),
-      );
-
-      const nextSetCountBySessionId = new Map<string, number>();
-      const nextBadges = new Map<string, SessionExerciseBadge[]>();
-      for (const row of loadedSessions) {
-        const setCount = Number(row.set_count);
-        nextSetCountBySessionId.set(row.id, Number.isFinite(setCount) ? setCount : 0);
-        const badges = Array.isArray(row.exercise_badges) ? row.exercise_badges : [];
-        nextBadges.set(
-          row.id,
-          badges
-            .filter((badge) => typeof badge.slug === "string" && badge.slug.length > 0)
-            .map((badge) => ({
-              slug: badge.slug,
-              hasLoggedSet: badge.has_logged_set === true,
-            })),
-        );
-      }
-      setSetCountBySessionId(nextSetCountBySessionId);
-      setExerciseBadgesBySessionId(nextBadges);
-
+      applyHomeSummaries(rows);
       setIsChecking(false);
     }
 

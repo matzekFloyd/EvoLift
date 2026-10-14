@@ -159,6 +159,13 @@ function insightsHistoryCacheKey(userId: string, window: InsightsHistoryWindow):
 
 const insightsHistoryCache = new Map<string, InsightsHistory>();
 const insightsHistoryInflight = new Map<string, Promise<InsightsHistory>>();
+let insightsHistoryEpoch = 0;
+
+export function invalidateInsightsHistory() {
+  insightsHistoryEpoch += 1;
+  insightsHistoryCache.clear();
+  insightsHistoryInflight.clear();
+}
 
 export function peekInsightsHistory(userId: string, window: InsightsHistoryWindow): InsightsHistory | null {
   return insightsHistoryCache.get(insightsHistoryCacheKey(userId, window)) ?? null;
@@ -428,9 +435,12 @@ export function loadCachedInsightsHistory(
   if (pending) {
     return pending;
   }
+  const startedEpoch = insightsHistoryEpoch;
   const request = loadInsightsHistory(client, userId, window)
     .then((history) => {
-      insightsHistoryCache.set(key, history);
+      if (startedEpoch === insightsHistoryEpoch) {
+        insightsHistoryCache.set(key, history);
+      }
       insightsHistoryInflight.delete(key);
       return history;
     })

@@ -9,6 +9,8 @@ import {
   appHeaderNavIconInactiveClassName,
   appHeaderNavIconInactiveGlyphClassName,
 } from "@/app/components/app-header-nav-link";
+import { prefetchHomeSessionSummaries } from "@/lib/home-session-cache";
+import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 
 export function HeaderActions() {
@@ -46,10 +48,16 @@ export function HeaderActions() {
 
     const {
       data: { subscription },
-    } = supabaseBrowserClient.auth.onAuthStateChange((_event, session) => {
+    } = supabaseBrowserClient.auth.onAuthStateChange((event, session) => {
       setIsLoggedIn(Boolean(session));
       setUserEmail(session?.user.email ?? null);
       setIsReady(true);
+      if (event === "SIGNED_IN" && session) {
+        prefetchHomeSessionSummaries(supabaseBrowserClient, session.user.id);
+      }
+      if (event === "SIGNED_OUT") {
+        invalidateLoggedHistoryCaches();
+      }
     });
 
     return () => {
@@ -108,6 +116,7 @@ export function HeaderActions() {
   }
 
   async function handleAuthClick() {
+    invalidateLoggedHistoryCaches();
     await supabaseBrowserClient.auth.signOut();
     router.replace("/login");
   }
