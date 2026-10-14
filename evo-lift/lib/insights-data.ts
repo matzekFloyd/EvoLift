@@ -9,17 +9,6 @@ type WorkoutSessionRow = {
   performed_on: string;
 };
 
-type SessionExerciseRow = {
-  id: string;
-  session_id: string;
-};
-
-type WorkoutSetLinkRow = {
-  session_exercise_id: string | null;
-  reps: number;
-  weight_kg: number | null;
-};
-
 export type WorkoutActivityPoint = {
   date: string;
   workouts: number;
@@ -76,99 +65,6 @@ function getRangeStart(range: InsightsRange, today: Date): string | null {
   return null;
 }
 
-export async function loadUserWorkoutActivityBase(
-  client: SupabaseClient<Database>,
-  userId: string,
-): Promise<WorkoutActivityPoint[]> {
-  const { data: sessionsData, error: sessionsError } = await fetchAllPages((from, to) =>
-    client
-      .from("workout_sessions")
-      .select("id, performed_on")
-      .eq("user_id", userId)
-      .order("id", { ascending: true })
-      .range(from, to),
-  );
-  if (sessionsError) {
-    throw new Error(`Could not load workout sessions: ${sessionsError.message}`);
-  }
-
-  const sessions = sessionsData as WorkoutSessionRow[];
-  const sessionIds = sessions.map((row) => row.id);
-  const setsBySessionId = new Map<string, number>();
-  const loadedKgBySessionId = new Map<string, number>();
-
-  if (sessionIds.length > 0) {
-    const { data: sessionExercisesData, error: sessionExercisesError } = await fetchInChunks(
-      sessionIds,
-      (chunk, from, to) =>
-        client
-          .from("workout_session_exercises")
-          .select("id, session_id")
-          .in("session_id", chunk)
-          .order("id", { ascending: true })
-          .range(from, to),
-    );
-    if (sessionExercisesError) {
-      throw new Error(`Could not load session exercises: ${sessionExercisesError.message}`);
-    }
-    const sessionExercises = sessionExercisesData as SessionExerciseRow[];
-    const sessionExerciseIds = sessionExercises.map((row) => row.id);
-    const sessionIdBySessionExerciseId = new Map<string, string>();
-    for (const row of sessionExercises) {
-      sessionIdBySessionExerciseId.set(row.id, row.session_id);
-    }
-
-    if (sessionExerciseIds.length > 0) {
-      const { data: setsData, error: setsError } = await fetchInChunks(sessionExerciseIds, (chunk, from, to) =>
-        client
-          .from("workout_sets")
-          .select("session_exercise_id, reps, weight_kg")
-          .in("session_exercise_id", chunk)
-          .order("id", { ascending: true })
-          .range(from, to),
-      );
-      if (setsError) {
-        throw new Error(`Could not load workout sets: ${setsError.message}`);
-      }
-      for (const row of setsData as WorkoutSetLinkRow[]) {
-        if (!row.session_exercise_id) {
-          continue;
-        }
-        const sessionId = sessionIdBySessionExerciseId.get(row.session_exercise_id);
-        if (!sessionId) {
-          continue;
-        }
-        setsBySessionId.set(sessionId, (setsBySessionId.get(sessionId) ?? 0) + 1);
-        if (row.weight_kg != null && row.reps > 0) {
-          loadedKgBySessionId.set(
-            sessionId,
-            (loadedKgBySessionId.get(sessionId) ?? 0) + row.reps * row.weight_kg,
-          );
-        }
-      }
-    }
-  }
-
-  const aggregateByDate = new Map<string, { workouts: number; sets: number; loadedKg: number }>();
-  for (const session of sessions) {
-    const date = normalizeDateOnly(session.performed_on);
-    const current = aggregateByDate.get(date) ?? { workouts: 0, sets: 0, loadedKg: 0 };
-    current.workouts += 1;
-    current.sets += setsBySessionId.get(session.id) ?? 0;
-    current.loadedKg += loadedKgBySessionId.get(session.id) ?? 0;
-    aggregateByDate.set(date, current);
-  }
-
-  return [...aggregateByDate.entries()]
-    .map(([date, value]) => ({
-      date,
-      workouts: value.workouts,
-      sets: value.sets,
-      loadedKg: value.loadedKg,
-    }))
-    .sort((a, b) => a.date.localeCompare(b.date));
-}
-
 export function applyInsightsRange(
   points: WorkoutActivityPoint[],
   range: InsightsRange,
@@ -190,110 +86,82 @@ export function applyInsightsRange(
   });
 }
 
-export async function loadUserWeeklyVolumeBase(
-  client: SupabaseClient<Database>,
-  userId: string,
-): Promise<WeeklyVolumePoint[]> {
-  const { data: sessionsData, error: sessionsError } = await fetchAllPages((from, to) =>
-    client
-      .from("workout_sessions")
-      .select("id, performed_on")
-      .eq("user_id", userId)
-      .order("id", { ascending: true })
-      .range(from, to),
-  );
-  if (sessionsError) {
-    throw new Error(`Could not load workout sessions: ${sessionsError.message}`);
-  }
-  const sessions = sessionsData as WorkoutSessionRow[];
-  const sessionIds = sessions.map((row) => row.id);
-  if (sessionIds.length === 0) {
-    return [];
-  }
+export type InsightsHistory = {
+  activity: WorkoutActivityPoint[];
+  weekly: WeeklyVolumePoint[];
+  exerciseSets: ExerciseWorkingSetSample[];
+};
 
-  const performedOnBySessionId = new Map<string, string>();
-  for (const session of sessions) {
-    performedOnBySessionId.set(session.id, normalizeDateOnly(session.performed_on));
-  }
+export type InsightsHistoryWindow = {
+  from: string;
+  to: string;
+};
 
-  const { data: sessionExercisesData, error: sessionExercisesError } = await fetchInChunks(
-    sessionIds,
-    (chunk, from, to) =>
-      client
-        .from("workout_session_exercises")
-        .select("id, session_id")
-        .in("session_id", chunk)
-        .order("id", { ascending: true })
-        .range(from, to),
-  );
-  if (sessionExercisesError) {
-    throw new Error(`Could not load session exercises: ${sessionExercisesError.message}`);
-  }
-  const sessionExercises = sessionExercisesData as SessionExerciseRow[];
-  const sessionExerciseIds = sessionExercises.map((row) => row.id);
-  if (sessionExerciseIds.length === 0) {
-    return [];
-  }
+type SessionExerciseDetailRow = {
+  id: string;
+  session_id: string;
+  exercise_id: string;
+  base_weight_kg: number | null;
+};
 
-  const sessionIdBySessionExerciseId = new Map<string, string>();
-  for (const row of sessionExercises) {
-    sessionIdBySessionExerciseId.set(row.id, row.session_id);
-  }
+type HistorySetRow = {
+  session_exercise_id: string | null;
+  reps: number;
+  weight_kg: number | null;
+  is_warmup: boolean;
+};
 
-  const { data: setsData, error: setsError } = await fetchInChunks(sessionExerciseIds, (chunk, from, to) =>
-    client
-      .from("workout_sets")
-      .select("session_exercise_id, reps, weight_kg, is_warmup")
-      .in("session_exercise_id", chunk)
-      .order("id", { ascending: true })
-      .range(from, to),
-  );
-  if (setsError) {
-    throw new Error(`Could not load workout sets: ${setsError.message}`);
-  }
+function addDays(value: string, days: number): string {
+  const date = toDateFromYyyyMmDd(value);
+  date.setDate(date.getDate() + days);
+  return toYyyyMmDd(date);
+}
 
-  const weekly = new Map<string, { volumeKg: number; workingSets: number; sessionIds: Set<string> }>();
-  for (const setRow of setsData as Array<{
-    session_exercise_id: string | null;
-    reps: number;
-    weight_kg: number | null;
-    is_warmup: boolean;
-  }>) {
-    if (!setRow.session_exercise_id || setRow.reps <= 0) {
-      continue;
-    }
-    const sessionId = sessionIdBySessionExerciseId.get(setRow.session_exercise_id);
-    if (!sessionId) {
-      continue;
-    }
-    const performedOn = performedOnBySessionId.get(sessionId);
-    if (!performedOn) {
-      continue;
-    }
-    const weekStart = toYyyyMmDd(startOfWeekMonday(toDateFromYyyyMmDd(performedOn)));
-    const entry = weekly.get(weekStart) ?? {
-      volumeKg: 0,
-      workingSets: 0,
-      sessionIds: new Set<string>(),
-    };
-    if (setRow.weight_kg != null) {
-      entry.volumeKg += setRow.reps * setRow.weight_kg;
-    }
-    if (!setRow.is_warmup) {
-      entry.workingSets += 1;
-    }
-    entry.sessionIds.add(sessionId);
-    weekly.set(weekStart, entry);
-  }
+function inclusiveDayCount(from: string, to: string): number {
+  const ms = toDateFromYyyyMmDd(to).getTime() - toDateFromYyyyMmDd(from).getTime();
+  return Math.round(ms / 86_400_000) + 1;
+}
 
-  return [...weekly.entries()]
-    .map(([weekStart, value]) => ({
-      weekStart,
-      volumeKg: Number(value.volumeKg.toFixed(2)),
-      workingSets: value.workingSets,
-      sessionCount: value.sessionIds.size,
-    }))
-    .sort((a, b) => a.weekStart.localeCompare(b.weekStart));
+function endOfWeekSunday(value: string): string {
+  const monday = startOfWeekMonday(toDateFromYyyyMmDd(value));
+  monday.setDate(monday.getDate() + 6);
+  return toYyyyMmDd(monday);
+}
+
+/** Dates to read so the selected window and the previous window of the same length are both present. */
+function insightsFetchBounds(window: InsightsHistoryWindow): { from: string | null; to: string | null } {
+  const { from, to } = window;
+  if (from && to && from <= to) {
+    const length = inclusiveDayCount(from, to);
+    const previousTo = addDays(from, -1);
+    const previousFrom = addDays(previousTo, -(length - 1));
+    return { from: previousFrom, to: endOfWeekSunday(to) };
+  }
+  return {
+    from: from || null,
+    to: to ? endOfWeekSunday(to) : null,
+  };
+}
+
+function inSelectedWindow(date: string, window: InsightsHistoryWindow): boolean {
+  if (window.from && date < window.from) {
+    return false;
+  }
+  if (window.to && date > window.to) {
+    return false;
+  }
+  return true;
+}
+
+function insightsHistoryCacheKey(userId: string, window: InsightsHistoryWindow): string {
+  return `${userId}|${window.from}|${window.to}`;
+}
+
+const insightsHistoryCache = new Map<string, InsightsHistory>();
+const insightsHistoryInflight = new Map<string, Promise<InsightsHistory>>();
+
+export function peekInsightsHistory(userId: string, window: InsightsHistoryWindow): InsightsHistory | null {
+  return insightsHistoryCache.get(insightsHistoryCacheKey(userId, window)) ?? null;
 }
 
 export type ExerciseWorkingSetSample = {
@@ -306,139 +174,247 @@ export type ExerciseWorkingSetSample = {
   totalKg: number;
 };
 
+export async function loadInsightsHistory(
+  client: SupabaseClient<Database>,
+  userId: string,
+  window: InsightsHistoryWindow,
+): Promise<InsightsHistory> {
+  const bounds = insightsFetchBounds(window);
+  const { data: sessionsData, error: sessionsError } = await fetchAllPages((from, to) => {
+    let query = client
+      .from("workout_sessions")
+      .select("id, performed_on")
+      .eq("user_id", userId)
+      .order("id", { ascending: true });
+    if (bounds.from) {
+      query = query.gte("performed_on", bounds.from);
+    }
+    if (bounds.to) {
+      query = query.lte("performed_on", bounds.to);
+    }
+    return query.range(from, to);
+  });
+  if (sessionsError) {
+    throw new Error(`Could not load workout sessions: ${sessionsError.message}`);
+  }
+
+  const sessions = sessionsData as WorkoutSessionRow[];
+  const performedOnBySessionId = new Map(
+    sessions.map((session) => [session.id, normalizeDateOnly(session.performed_on)]),
+  );
+  const sessionIds = sessions.map((session) => session.id);
+  const setsBySessionId = new Map<string, number>();
+  const loadedKgBySessionId = new Map<string, number>();
+  const weekly = new Map<string, { volumeKg: number; workingSets: number; sessionIds: Set<string> }>();
+  const samples: ExerciseWorkingSetSample[] = [];
+
+  if (sessionIds.length > 0) {
+    const { data: sessionExercisesData, error: sessionExercisesError } = await fetchInChunks(
+      sessionIds,
+      (chunk, from, to) =>
+        client
+          .from("workout_session_exercises")
+          .select("id, session_id, exercise_id, base_weight_kg")
+          .in("session_id", chunk)
+          .order("id", { ascending: true })
+          .range(from, to),
+    );
+    if (sessionExercisesError) {
+      throw new Error(`Could not load session exercises: ${sessionExercisesError.message}`);
+    }
+    const sessionExercises = sessionExercisesData as SessionExerciseDetailRow[];
+    const sessionExerciseIds = sessionExercises.map((row) => row.id);
+    const exerciseBySessionExerciseId = new Map(sessionExercises.map((row) => [row.id, row]));
+
+    let sets: HistorySetRow[] = [];
+    if (sessionExerciseIds.length > 0) {
+      const { data: setsData, error: setsError } = await fetchInChunks(sessionExerciseIds, (chunk, from, to) =>
+        client
+          .from("workout_sets")
+          .select("session_exercise_id, reps, weight_kg, is_warmup")
+          .in("session_exercise_id", chunk)
+          .order("id", { ascending: true })
+          .range(from, to),
+      );
+      if (setsError) {
+        throw new Error(`Could not load workout sets: ${setsError.message}`);
+      }
+      sets = setsData as HistorySetRow[];
+    }
+
+    const exerciseIds = [...new Set(sessionExercises.map((row) => row.exercise_id))];
+    const slugById = new Map<string, string>();
+    const labelById = new Map<string, string>();
+    if (exerciseIds.length > 0) {
+      const { data: exerciseRows, error: exerciseError } = await fetchInChunks(exerciseIds, (chunk, from, to) =>
+        client.from("exercises").select("id, slug").in("id", chunk).order("id", { ascending: true }).range(from, to),
+      );
+      if (exerciseError) {
+        throw new Error(`Could not load exercises: ${exerciseError.message}`);
+      }
+      for (const row of exerciseRows as Array<{ id: string; slug: string }>) {
+        slugById.set(row.id, row.slug);
+      }
+      const { data: translationRows, error: translationError } = await fetchInChunks(
+        exerciseIds,
+        (chunk, from, to) =>
+          client
+            .from("exercise_translations")
+            .select("exercise_id, name")
+            .eq("lang_code", "en")
+            .in("exercise_id", chunk)
+            .order("exercise_id", { ascending: true })
+            .range(from, to),
+      );
+      if (translationError) {
+        throw new Error(`Could not load exercise names: ${translationError.message}`);
+      }
+      for (const row of translationRows as Array<{ exercise_id: string; name: string }>) {
+        labelById.set(row.exercise_id, row.name);
+      }
+    }
+
+    for (const setRow of sets) {
+      if (!setRow.session_exercise_id) {
+        continue;
+      }
+      const sessionId = exerciseBySessionExerciseId.get(setRow.session_exercise_id)?.session_id;
+      if (!sessionId) {
+        continue;
+      }
+      const performedOn = performedOnBySessionId.get(sessionId);
+      if (!performedOn) {
+        continue;
+      }
+      setsBySessionId.set(sessionId, (setsBySessionId.get(sessionId) ?? 0) + 1);
+      if (setRow.weight_kg != null && setRow.reps > 0) {
+        loadedKgBySessionId.set(
+          sessionId,
+          (loadedKgBySessionId.get(sessionId) ?? 0) + setRow.reps * setRow.weight_kg,
+        );
+      }
+      if (setRow.reps <= 0) {
+        continue;
+      }
+      const weekStart = toYyyyMmDd(startOfWeekMonday(toDateFromYyyyMmDd(performedOn)));
+      const entry = weekly.get(weekStart) ?? {
+        volumeKg: 0,
+        workingSets: 0,
+        sessionIds: new Set<string>(),
+      };
+      if (setRow.weight_kg != null) {
+        entry.volumeKg += setRow.reps * setRow.weight_kg;
+      }
+      if (!setRow.is_warmup) {
+        entry.workingSets += 1;
+      }
+      entry.sessionIds.add(sessionId);
+      weekly.set(weekStart, entry);
+
+      if (setRow.is_warmup || setRow.weight_kg == null || !inSelectedWindow(performedOn, window)) {
+        continue;
+      }
+      const sessionExercise = exerciseBySessionExerciseId.get(setRow.session_exercise_id);
+      if (!sessionExercise) {
+        continue;
+      }
+      const slug = slugById.get(sessionExercise.exercise_id);
+      if (!slug) {
+        continue;
+      }
+      const loaded = Number(setRow.weight_kg);
+      const base = Number(sessionExercise.base_weight_kg ?? 0);
+      if (!Number.isFinite(loaded) || loaded < 0) {
+        continue;
+      }
+      const totalKg = loaded + (Number.isFinite(base) ? base : 0);
+      if (totalKg <= 0) {
+        continue;
+      }
+      samples.push({
+        exerciseId: sessionExercise.exercise_id,
+        slug,
+        label: labelById.get(sessionExercise.exercise_id) ?? slug,
+        sessionId,
+        performedOn,
+        reps: setRow.reps,
+        totalKg,
+      });
+    }
+  }
+
+  const aggregateByDate = new Map<string, { workouts: number; sets: number; loadedKg: number }>();
+  for (const session of sessions) {
+    const date = normalizeDateOnly(session.performed_on);
+    if (!inSelectedWindow(date, window)) {
+      continue;
+    }
+    const current = aggregateByDate.get(date) ?? { workouts: 0, sets: 0, loadedKg: 0 };
+    current.workouts += 1;
+    current.sets += setsBySessionId.get(session.id) ?? 0;
+    current.loadedKg += loadedKgBySessionId.get(session.id) ?? 0;
+    aggregateByDate.set(date, current);
+  }
+
+  return {
+    activity: [...aggregateByDate.entries()]
+      .map(([date, value]) => ({
+        date,
+        workouts: value.workouts,
+        sets: value.sets,
+        loadedKg: value.loadedKg,
+      }))
+      .sort((a, b) => a.date.localeCompare(b.date)),
+    weekly: [...weekly.entries()]
+      .map(([weekStart, value]) => ({
+        weekStart,
+        volumeKg: Number(value.volumeKg.toFixed(2)),
+        workingSets: value.workingSets,
+        sessionCount: value.sessionIds.size,
+      }))
+      .sort((a, b) => a.weekStart.localeCompare(b.weekStart)),
+    exerciseSets: samples,
+  };
+}
+
+export function loadCachedInsightsHistory(
+  client: SupabaseClient<Database>,
+  userId: string,
+  window: InsightsHistoryWindow,
+  options?: { fresh?: boolean },
+): Promise<InsightsHistory> {
+  const key = insightsHistoryCacheKey(userId, window);
+  if (!options?.fresh) {
+    const cached = insightsHistoryCache.get(key);
+    if (cached) {
+      return Promise.resolve(cached);
+    }
+  }
+  const pending = insightsHistoryInflight.get(key);
+  if (pending) {
+    return pending;
+  }
+  const request = loadInsightsHistory(client, userId, window)
+    .then((history) => {
+      insightsHistoryCache.set(key, history);
+      insightsHistoryInflight.delete(key);
+      return history;
+    })
+    .catch((error: unknown) => {
+      insightsHistoryInflight.delete(key);
+      throw error;
+    });
+  insightsHistoryInflight.set(key, request);
+  return request;
+}
+
 /** Working sets with a logged load. Total (kg) includes that session's base. */
 export async function loadUserExerciseWorkingSets(
   client: SupabaseClient<Database>,
   userId: string,
 ): Promise<ExerciseWorkingSetSample[]> {
-  const { data: sessionsData, error: sessionsError } = await fetchAllPages((from, to) =>
-    client
-      .from("workout_sessions")
-      .select("id, performed_on")
-      .eq("user_id", userId)
-      .order("id", { ascending: true })
-      .range(from, to),
-  );
-  if (sessionsError) {
-    throw new Error(`Could not load workout sessions: ${sessionsError.message}`);
-  }
-  const sessions = sessionsData as WorkoutSessionRow[];
-  if (sessions.length === 0) {
-    return [];
-  }
-  const performedOnBySessionId = new Map(
-    sessions.map((session) => [session.id, normalizeDateOnly(session.performed_on)]),
-  );
-  const sessionIds = sessions.map((session) => session.id);
-
-  const { data: sessionExercisesData, error: sessionExercisesError } = await fetchInChunks(
-    sessionIds,
-    (chunk, from, to) =>
-      client
-        .from("workout_session_exercises")
-        .select("id, session_id, exercise_id, base_weight_kg")
-        .in("session_id", chunk)
-        .order("id", { ascending: true })
-        .range(from, to),
-  );
-  if (sessionExercisesError) {
-    throw new Error(`Could not load session exercises: ${sessionExercisesError.message}`);
-  }
-  const sessionExercises = sessionExercisesData as Array<{
-    id: string;
-    session_id: string;
-    exercise_id: string;
-    base_weight_kg: number | null;
-  }>;
-  if (sessionExercises.length === 0) {
-    return [];
-  }
-
-  const sessionExerciseIds = sessionExercises.map((row) => row.id);
-  const { data: setsData, error: setsError } = await fetchInChunks(sessionExerciseIds, (chunk, from, to) =>
-    client
-      .from("workout_sets")
-      .select("session_exercise_id, reps, weight_kg, is_warmup")
-      .in("session_exercise_id", chunk)
-      .order("id", { ascending: true })
-      .range(from, to),
-  );
-  if (setsError) {
-    throw new Error(`Could not load workout sets: ${setsError.message}`);
-  }
-
-  const exerciseIds = [...new Set(sessionExercises.map((row) => row.exercise_id))];
-  const { data: exerciseRows, error: exerciseError } = await fetchInChunks(exerciseIds, (chunk, from, to) =>
-    client.from("exercises").select("id, slug").in("id", chunk).order("id", { ascending: true }).range(from, to),
-  );
-  if (exerciseError) {
-    throw new Error(`Could not load exercises: ${exerciseError.message}`);
-  }
-  const { data: translationRows, error: translationError } = await fetchInChunks(exerciseIds, (chunk, from, to) =>
-    client
-      .from("exercise_translations")
-      .select("exercise_id, name")
-      .eq("lang_code", "en")
-      .in("exercise_id", chunk)
-      .order("exercise_id", { ascending: true })
-      .range(from, to),
-  );
-  if (translationError) {
-    throw new Error(`Could not load exercise names: ${translationError.message}`);
-  }
-
-  const slugById = new Map(
-    ((exerciseRows ?? []) as Array<{ id: string; slug: string }>).map((row) => [row.id, row.slug]),
-  );
-  const labelById = new Map(
-    ((translationRows ?? []) as Array<{ exercise_id: string; name: string }>).map((row) => [
-      row.exercise_id,
-      row.name,
-    ]),
-  );
-  const exerciseBySessionExerciseId = new Map(
-    sessionExercises.map((row) => [row.id, row]),
-  );
-
-  const samples: ExerciseWorkingSetSample[] = [];
-  for (const setRow of setsData as Array<{
-    session_exercise_id: string | null;
-    reps: number;
-    weight_kg: number | null;
-    is_warmup: boolean;
-  }>) {
-    if (!setRow.session_exercise_id || setRow.is_warmup || setRow.weight_kg == null || setRow.reps < 1) {
-      continue;
-    }
-    const sessionExercise = exerciseBySessionExerciseId.get(setRow.session_exercise_id);
-    if (!sessionExercise) {
-      continue;
-    }
-    const performedOn = performedOnBySessionId.get(sessionExercise.session_id);
-    const slug = slugById.get(sessionExercise.exercise_id);
-    if (!performedOn || !slug) {
-      continue;
-    }
-    const loaded = Number(setRow.weight_kg);
-    const base = Number(sessionExercise.base_weight_kg ?? 0);
-    if (!Number.isFinite(loaded) || loaded < 0) {
-      continue;
-    }
-    const totalKg = loaded + (Number.isFinite(base) ? base : 0);
-    if (totalKg <= 0) {
-      continue;
-    }
-    samples.push({
-      exerciseId: sessionExercise.exercise_id,
-      slug,
-      label: labelById.get(sessionExercise.exercise_id) ?? slug,
-      sessionId: sessionExercise.session_id,
-      performedOn,
-      reps: setRow.reps,
-      totalKg,
-    });
-  }
-  return samples;
+  const history = await loadInsightsHistory(client, userId, { from: "", to: "" });
+  return history.exerciseSets;
 }
 
 export type UserStrengthProfile = {
