@@ -13,6 +13,7 @@ import {
 } from "recharts";
 import type { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
+import { formatVolumeTick } from "@/app/components/exercise-session-volume-format";
 import {
   buildVolumeChangeSentence,
   type ExerciseSessionVolumeChartPoint,
@@ -21,16 +22,6 @@ import {
 type ExerciseSessionVolumeChartProps = {
   points: ExerciseSessionVolumeChartPoint[];
 };
-
-function formatVolumeTick(value: number): string {
-  if (!Number.isFinite(value)) {
-    return "";
-  }
-  if (Math.abs(value) >= 1000) {
-    return `${(value / 1000).toFixed(1)}k`;
-  }
-  return Number.isInteger(value) ? `${value}` : value.toFixed(0);
-}
 
 export function ExerciseSessionVolumeChart({ points }: ExerciseSessionVolumeChartProps) {
   const [isCompactView, setIsCompactView] = useState(false);

@@ -12,6 +12,13 @@ import {
 } from "recharts";
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  activityDateKey,
+  activityDateToLocalDate,
+  buildActivityHeatmapWeeks,
+  buildCompactActivityWeeks,
+  currentWeekStartKey,
+} from "@/app/components/workout-activity-weeks";
+import {
   activityIntensity,
   activityIntensityClass,
   activityIntensityLabel,
@@ -37,30 +44,6 @@ type WorkoutActivityHeatmapProps = {
 };
 
 const INTENSITY_LEGEND: ActivityIntensity[] = ["rest", "lighter", "usual", "heavier"];
-
-function toDate(value: string): Date {
-  const [yearText, monthText, dayText] = value.split("-");
-  const year = Number(yearText);
-  const month = Number(monthText);
-  const day = Number(dayText);
-  return new Date(year, month - 1, day);
-}
-
-function startOfWeekMonday(value: Date): Date {
-  const date = new Date(value);
-  const dayOfWeek = date.getDay();
-  const offsetToMonday = (dayOfWeek + 6) % 7;
-  date.setDate(date.getDate() - offsetToMonday);
-  date.setHours(0, 0, 0, 0);
-  return date;
-}
-
-function toYyyyMmDd(value: Date): string {
-  const year = value.getFullYear();
-  const month = `${value.getMonth() + 1}`.padStart(2, "0");
-  const day = `${value.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
 
 export function WorkoutActivityChart({
   data,
@@ -102,38 +85,13 @@ export function WorkoutActivityChart({
     return <p className="text-xs text-zinc-500">No workouts in the selected timeframe.</p>;
   }
 
-  const todayKey = toYyyyMmDd(new Date());
-  const currentWeekStart = toYyyyMmDd(startOfWeekMonday(new Date()));
+  const today = new Date();
+  const todayKey = activityDateKey(today);
+  const currentWeekStart = currentWeekStartKey(today);
   const comparisonSentence = buildActivityComparisonSentence(sortedData, todayKey);
 
   if (isCompactView) {
-    const countsByWeek = new Map<string, number>();
-    for (const item of sortedData) {
-      const weekStart = toYyyyMmDd(startOfWeekMonday(toDate(item.date)));
-      countsByWeek.set(weekStart, (countsByWeek.get(weekStart) ?? 0) + item.sets);
-    }
-    const compactData = [...countsByWeek.entries()]
-      .sort(([left], [right]) => left.localeCompare(right))
-      .slice(-10)
-      .map(([weekStart, sets]) => {
-        const start = toDate(weekStart);
-        const end = new Date(start);
-        end.setDate(start.getDate() + 6);
-        const startText = new Intl.DateTimeFormat(undefined, {
-          month: "short",
-          day: "numeric",
-        }).format(start);
-        const endText = new Intl.DateTimeFormat(undefined, {
-          month: "short",
-          day: "numeric",
-        }).format(end);
-        return {
-          weekStart,
-          sets,
-          isCurrentWeek: weekStart === currentWeekStart,
-          weekLabel: weekStart === currentWeekStart ? "This week" : `${startText}-${endText}`,
-        };
-      });
+    const compactData = buildCompactActivityWeeks(sortedData, today);
     const currentWeekInCompact = compactData.some((item) => item.isCurrentWeek);
     const selectedWeek = compactData.find((item) => item.weekStart === selectedCompactWeekStart);
 
@@ -175,11 +133,11 @@ export function WorkoutActivityChart({
                   const weekStart = entry.weekStart ?? entry.payload?.weekStart;
                   if (weekStart) {
                     setSelectedCompactWeekStart(weekStart);
-                    const weekStartDate = toDate(weekStart);
+                    const weekStartDate = activityDateToLocalDate(weekStart);
                     const weekEndDate = new Date(weekStartDate);
                     weekEndDate.setDate(weekStartDate.getDate() + 6);
-                    const weekStartKey = toYyyyMmDd(weekStartDate);
-                    const weekEndKey = toYyyyMmDd(weekEndDate);
+                    const weekStartKey = activityDateKey(weekStartDate);
+                    const weekEndKey = activityDateKey(weekEndDate);
                     const weekDates = sortedData
                       .map((item) => item.date)
                       .filter((date) => date >= weekStartKey && date <= weekEndKey);
@@ -203,57 +161,7 @@ export function WorkoutActivityChart({
     );
   }
 
-  const setsByDate = new Map(sortedData.map((item) => [item.date, item.sets]));
-  const workoutsByDate = new Map(sortedData.map((item) => [item.date, item.workouts]));
-  const firstDate = toDate(sortedData[0].date);
-  const lastDate = toDate(sortedData[sortedData.length - 1].date);
-  const firstWeekStart = startOfWeekMonday(firstDate);
-  const lastWeekStart = startOfWeekMonday(lastDate);
-
-  const weeks: Array<Array<{ date: string; sets: number; workouts: number; isInRange: boolean }>> = [];
-  const cursor = new Date(firstWeekStart);
-  while (cursor <= lastWeekStart) {
-    const week: Array<{ date: string; sets: number; workouts: number; isInRange: boolean }> = [];
-    for (let i = 0; i < 7; i += 1) {
-      const day = new Date(cursor);
-      day.setDate(cursor.getDate() + i);
-      const dateKey = toYyyyMmDd(day);
-      const isInRange = day >= firstDate && day <= lastDate;
-      week.push({
-        date: dateKey,
-        sets: isInRange ? (setsByDate.get(dateKey) ?? 0) : 0,
-        workouts: isInRange ? (workoutsByDate.get(dateKey) ?? 0) : 0,
-        isInRange,
-      });
-    }
-    weeks.push(week);
-    cursor.setDate(cursor.getDate() + 7);
-  }
-
-  const fixedVisibleWeeks = 26;
-  const slicedWeeks = weeks.length > fixedVisibleWeeks ? weeks.slice(weeks.length - fixedVisibleWeeks) : weeks;
-  const paddingWeeksNeeded = Math.max(0, fixedVisibleWeeks - slicedWeeks.length);
-  const paddedWeeks = [...slicedWeeks];
-  if (paddingWeeksNeeded > 0 && slicedWeeks.length > 0) {
-    const firstVisibleWeekStart = toDate(slicedWeeks[0][0].date);
-    for (let i = paddingWeeksNeeded; i >= 1; i -= 1) {
-      const weekStart = new Date(firstVisibleWeekStart);
-      weekStart.setDate(weekStart.getDate() - i * 7);
-      const fillerWeek: Array<{ date: string; sets: number; workouts: number; isInRange: boolean }> = [];
-      for (let day = 0; day < 7; day += 1) {
-        const current = new Date(weekStart);
-        current.setDate(weekStart.getDate() + day);
-        fillerWeek.push({
-          date: toYyyyMmDd(current),
-          sets: 0,
-          workouts: 0,
-          isInRange: false,
-        });
-      }
-      paddedWeeks.unshift(fillerWeek);
-    }
-  }
-  const visibleWeeks = paddedWeeks;
+  const visibleWeeks = buildActivityHeatmapWeeks(sortedData);
   const visibleInRangeDays = visibleWeeks.flatMap((week) => week.filter((day) => day.isInRange));
   const usualSets = usualTrainingDaySets(visibleInRangeDays.map((day) => day.sets));
   const legendItems: ActivityIntensity[] = visibleInRangeDays.some((day) => day.workouts > 0 && day.sets <= 0)
@@ -263,9 +171,9 @@ export function WorkoutActivityChart({
   const showsGoalTrophy = visibleInRangeDays.some((day) => Boolean(goalReachedByDate[day.date]));
   const weekdayLabels = ["Mon", "", "Wed", "", "Fri", "", "Sun"];
   const monthLabels = visibleWeeks.map((week, index) => {
-    const date = toDate(week[0].date);
+    const date = activityDateToLocalDate(week[0].date);
     const label = new Intl.DateTimeFormat(undefined, { month: "short" }).format(date);
-    const previous = index > 0 ? new Intl.DateTimeFormat(undefined, { month: "short" }).format(toDate(visibleWeeks[index - 1][0].date)) : null;
+    const previous = index > 0 ? new Intl.DateTimeFormat(undefined, { month: "short" }).format(activityDateToLocalDate(visibleWeeks[index - 1][0].date)) : null;
     return previous !== label ? label : "";
   });
   return (
@@ -334,7 +242,7 @@ export function WorkoutActivityChart({
               }`}
             >
               {week.map((day) => {
-                const parsedDate = toDate(day.date);
+                const parsedDate = activityDateToLocalDate(day.date);
                 const intensity = day.isInRange
                   ? activityIntensity(day.sets, day.workouts, usualSets)
                   : null;

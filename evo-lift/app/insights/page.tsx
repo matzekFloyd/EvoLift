@@ -27,6 +27,8 @@ import {
   type WeeklyVolumePoint,
   type WorkoutActivityPoint,
 } from "@/lib/insights-data";
+import { getInsightsPresetRange } from "@/app/insights/insights-presets";
+import { getTodayYyyyMmDd } from "@/lib/session-date";
 
 type RangeOption = {
   value: InsightsRange;
@@ -49,44 +51,14 @@ const emptyLifterProfile: LifterProfile = {
   ageIsApproximate: false,
 };
 
-function toYyyyMmDd(value: Date): string {
-  const year = value.getFullYear();
-  const month = `${value.getMonth() + 1}`.padStart(2, "0");
-  const day = `${value.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function getTodayYyyyMmDd(): string {
-  return toYyyyMmDd(new Date());
-}
-
-function getDateRangeForPreset(range: InsightsRange): { from: string; to: string } {
-  const today = new Date();
-  const to = toYyyyMmDd(today);
-  const fromDate = new Date(today);
-  if (range === "4w") {
-    fromDate.setDate(fromDate.getDate() - 27);
-    return { from: toYyyyMmDd(fromDate), to };
-  }
-  if (range === "12w") {
-    fromDate.setDate(fromDate.getDate() - 83);
-    return { from: toYyyyMmDd(fromDate), to };
-  }
-  if (range === "6m") {
-    fromDate.setMonth(fromDate.getMonth() - 6);
-    return { from: toYyyyMmDd(fromDate), to };
-  }
-  return { from: "", to };
-}
-
 export default function InsightsPage() {
   const router = useRouter();
   const todayYyyyMmDd = getTodayYyyyMmDd();
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedRange, setSelectedRange] = useState<InsightsRange>(defaultInsightsRange);
-  const [dateFrom, setDateFrom] = useState(() => getDateRangeForPreset(defaultInsightsRange).from);
-  const [dateTo, setDateTo] = useState(() => getDateRangeForPreset(defaultInsightsRange).to);
+  const [dateFrom, setDateFrom] = useState(() => getInsightsPresetRange(defaultInsightsRange, new Date()).from);
+  const [dateTo, setDateTo] = useState(() => getInsightsPresetRange(defaultInsightsRange, new Date()).to);
   const [trendMetric, setTrendMetric] = useState<InsightTrendMetric>("volume");
   const [basePoints, setBasePoints] = useState<WorkoutActivityPoint[]>([]);
   const [weeklyVolumeBase, setWeeklyVolumeBase] = useState<WeeklyVolumePoint[]>([]);
@@ -260,7 +232,7 @@ export default function InsightsPage() {
     if (!dateFrom || !dateTo) {
       return null;
     }
-    const preset = getDateRangeForPreset(selectedRange);
+    const preset = getInsightsPresetRange(selectedRange, new Date());
     if (dateFrom !== preset.from || dateTo !== preset.to) {
       return null;
     }
@@ -354,7 +326,7 @@ export default function InsightsPage() {
                     type="button"
                     onClick={() => {
                       setSelectedRange(option.value);
-                      const preset = getDateRangeForPreset(option.value);
+                      const preset = getInsightsPresetRange(option.value, new Date());
                       setDateFrom(preset.from);
                       setDateTo(preset.to);
                     }}

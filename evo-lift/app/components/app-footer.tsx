@@ -2,19 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
-function shouldHideFooter(pathname: string): boolean {
-  if (pathname === "/login") {
-    return true;
-  }
-  if (pathname === "/sessions/new") {
-    return true;
-  }
-  if (/^\/sessions\/[^/]+$/.test(pathname)) {
-    return true;
-  }
-  return false;
-}
+import { shouldHideFooter } from "@/app/components/footer-visibility";
 
 export function AppFooter() {
   const pathname = usePathname();

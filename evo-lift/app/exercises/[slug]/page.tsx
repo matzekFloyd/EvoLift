@@ -25,6 +25,22 @@ import {
   type HistoryPageSize,
 } from "@/app/components/history-page-controls";
 import { DateInput } from "@/app/components/date-input";
+import {
+  buildExerciseDetailFilterQueryString,
+  formatKgValue,
+  historyRowSurfaceClass,
+  historyRowTitle,
+  historyValueClass,
+  loggedLoadKg,
+  normalizeLoadedForComparison,
+  setTotalKgForStats,
+} from "./exercise-history-display";
+import {
+  compareExerciseSetHistoryForPerformedOn,
+  isRowEarlier,
+  parseExerciseDetailFiltersFromSearchParams,
+  sortExerciseHistoryRowsCanonical,
+} from "./exercise-history";
 import { ExerciseSessionVolumeChart } from "@/app/components/exercise-session-volume-chart";
 import { ExerciseWeightProgressChart } from "@/app/components/exercise-weight-progress-chart";
 import { ExerciseInsightPanel } from "@/app/components/lift-comparison-panel";
@@ -113,68 +129,6 @@ type HistorySortKey =
   | "isWarmup";
 type HistorySortDirection = "asc" | "desc";
 
-const YYYY_MM_DD = /^\d{4}-\d{2}-\d{2}$/;
-
-function clampDateToMaxYyyyMmDd(value: string, max: string): string {
-  return value > max ? max : value;
-}
-
-function parseExerciseDetailFiltersFromSearchParams(
-  sp: { get: (name: string) => string | null },
-  defaults: { from: string; to: string },
-  today: string,
-): { from: string; to: string; hideWarmups: boolean } {
-  let from = defaults.from;
-  let to = defaults.to;
-
-  const rawFrom = sp.get("from")?.trim() ?? "";
-  const rawTo = sp.get("to")?.trim() ?? "";
-  if (rawFrom && YYYY_MM_DD.test(rawFrom)) {
-    from = clampDateToMaxYyyyMmDd(rawFrom.slice(0, 10), today);
-  }
-  if (rawTo && YYYY_MM_DD.test(rawTo)) {
-    to = clampDateToMaxYyyyMmDd(rawTo.slice(0, 10), today);
-  }
-
-  const hideFlag = sp.get("hideWarmups")?.trim().toLowerCase() ?? "";
-  let hideWarmups = hideFlag !== "0" && hideFlag !== "false" && hideFlag !== "no";
-  const legacyKind = sp.get("kind")?.trim().toLowerCase() ?? "";
-  if (legacyKind === "working" || hideFlag === "1" || hideFlag === "true" || hideFlag === "yes") {
-    hideWarmups = true;
-  }
-
-  if (from > to) {
-    const swap = from;
-    from = to;
-    to = swap;
-  }
-
-  return { from, to, hideWarmups };
-}
-
-function buildExerciseDetailFilterQueryString(
-  from: string,
-  to: string,
-  hideWarmups: boolean,
-  defaults: { from: string; to: string },
-): string {
-  const p = new URLSearchParams();
-  if (from !== defaults.from) {
-    p.set("from", from);
-  }
-  if (to !== defaults.to) {
-    p.set("to", to);
-  }
-  if (!hideWarmups) {
-    p.set("hideWarmups", "0");
-  }
-  return p.toString();
-}
-
-/**
- * Compact history: fixed-ish column widths so dates, loaded (kg), total (kg), and reps line up row to row.
- * Below ~22rem container width the Type column is hidden; the Set column shows kind icon + set number on one line.
- */
 /** Prefix for tab / tabpanel ids (`SegmentedTabs` + `role="tabpanel"`). */
 const EXERCISE_DETAIL_A11Y_PREFIX = "exercise-detail";
 
@@ -185,105 +139,6 @@ const COMPACT_HISTORY_GRID =
 
 const COMPACT_HISTORY_TYPE_CELL = "hidden @min-[22rem]:flex @min-[22rem]:justify-center @min-[22rem]:items-center";
 
-/**
- * Sort exercise set history by session date, then session, then set index.
- *
- * Used for the **Session date** column (all breakpoints) and the default list order on `/exercises/[slug]`.
- *
- * 1. `performed_on` (`YYYY-MM-DD`): descending when `direction === "desc"` (newest day first), ascending when `"asc"`.
- * 2. Same calendar day: `session_created_at` (ISO from `workout_sessions.created_at`): descending with date desc
- *    (newer session first); ascending with date asc (earlier session first).
- * 3. Within a session: `set_number` **descending** when `direction === "desc"` (highest set / most recent work on top);
- *    **ascending** when `direction === "asc"` (chronological set order). Gaps (e.g. 1, 3 after a delete) keep numeric order.
- * 4. Stable tie-break: `session_id` ascending if timestamps ever match.
- */
-function compareExerciseSetHistoryForPerformedOn(
-  a: ExerciseSetHistoryRow,
-  b: ExerciseSetHistoryRow,
-  direction: HistorySortDirection,
-): number {
-  const dateCmp = a.performedOn.localeCompare(b.performedOn);
-  if (dateCmp !== 0) {
-    return direction === "desc" ? -dateCmp : dateCmp;
-  }
-  const sessionCmp = a.sessionCreatedAt.localeCompare(b.sessionCreatedAt);
-  if (sessionCmp !== 0) {
-    return direction === "desc" ? -sessionCmp : sessionCmp;
-  }
-  if (a.setNumber !== b.setNumber) {
-    if (direction === "desc") {
-      return b.setNumber - a.setNumber;
-    }
-    return a.setNumber - b.setNumber;
-  }
-  return a.sessionId.localeCompare(b.sessionId);
-}
-
-/** Default list order: newest day → newest session that day → highest set number first within the session. */
-function compareExerciseSetHistoryRowsCanonical(a: ExerciseSetHistoryRow, b: ExerciseSetHistoryRow): number {
-  return compareExerciseSetHistoryForPerformedOn(a, b, "desc");
-}
-
-function sortExerciseHistoryRowsCanonical(rows: ExerciseSetHistoryRow[]): ExerciseSetHistoryRow[] {
-  rows.sort(compareExerciseSetHistoryRowsCanonical);
-  return rows;
-}
-
-function isRowEarlier(left: ExerciseSetHistoryRow, right: ExerciseSetHistoryRow): boolean {
-  if (left.performedOn !== right.performedOn) {
-    return left.performedOn < right.performedOn;
-  }
-  if (left.sessionCreatedAt !== right.sessionCreatedAt) {
-    return left.sessionCreatedAt < right.sessionCreatedAt;
-  }
-  return left.setNumber < right.setNumber;
-}
-
-function normalizeLoadedForComparison(weightKg: number | null): number {
-  return weightKg ?? Number.NEGATIVE_INFINITY;
-}
-
-/** Working sets with an explicit logged load (kg), for load-based KPIs. */
-function loggedLoadKg(row: ExerciseSetHistoryRow): number | null {
-  if (row.weightKg == null) {
-    return null;
-  }
-  const w = Number(row.weightKg);
-  return Number.isFinite(w) ? w : null;
-}
-
-/**
- * Per-set total on the bar (kg) for KPIs: same value as the history **Total (kg)** column
- * (`loaded + session base` for this exercise). Only working sets with a **logged** load
- * (same gate as loaded KPIs); see `loggedLoadKg`.
- */
-function setTotalKgForStats(row: ExerciseSetHistoryRow): number | null {
-  if (loggedLoadKg(row) === null) {
-    return null;
-  }
-  return row.totalKg;
-}
-
-function formatKgValue(value: number | null, fractionDigits: number): string {
-  return value == null ? "—" : `${value.toFixed(fractionDigits)} kg`;
-}
-
-function historyRowTitle(row: ExerciseSetHistoryRow, isTopRepsRow: boolean): string {
-  const parts: string[] = [];
-  if (isTopRepsRow) {
-    parts.push("Best set marker: top reps (with tie-break rules).");
-  }
-  if (row.goalLabel) {
-    parts.push(`Goal reached: ${row.goalLabel}.`);
-  }
-  if (!isTopRepsRow && !row.goalLabel) {
-    parts.push("Set details for this exercise entry.");
-  }
-  parts.push("Open session.");
-  parts.push(row.isWarmup ? "Warmup: yes." : "Warmup: no.");
-  return parts.join(" ");
-}
-
 function GoalReachedMark({ label }: { label: string }) {
   return (
     <Trophy
@@ -293,26 +148,6 @@ function GoalReachedMark({ label }: { label: string }) {
       aria-label={`Goal reached: ${label}`}
     />
   );
-}
-
-function historyRowSurfaceClass(isTopRepsRow: boolean, isGoalRow: boolean): string {
-  if (isTopRepsRow) {
-    return "bg-emerald-100/70 text-emerald-950 hover:bg-emerald-100";
-  }
-  if (isGoalRow) {
-    return "bg-sky-100/70 text-sky-950 hover:bg-sky-100";
-  }
-  return "odd:bg-white even:bg-zinc-50/60 hover:bg-zinc-100/70";
-}
-
-function historyValueClass(isTopRepsRow: boolean, isGoalRow: boolean): string {
-  if (isTopRepsRow) {
-    return "font-medium text-emerald-900";
-  }
-  if (isGoalRow) {
-    return "font-medium text-sky-900";
-  }
-  return "";
 }
 
 export default function ExerciseDetailPage() {

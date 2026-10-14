@@ -8,51 +8,14 @@ import { ActionButton } from "@/app/components/action-button";
 import { PageShell } from "@/app/components/page-shell";
 import { StatusNotice } from "@/app/components/status-notice";
 import { WorkoutExerciseDraftList } from "@/app/components/workout-exercise-draft-list";
+import { createDayDraft, daysFromPlan, type DayDraft } from "@/app/plans/plan-day-draft";
 import { normalizePlanDraft } from "@/lib/plan-draft";
 import type { Database } from "@/lib/supabase/database.types";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
-import {
-  createEmptyExerciseRow,
-  exerciseDraftRowsFromTemplateLines,
-  type ExerciseDraftRow,
-} from "@/lib/workout-exercise-draft";
 import { createUserPlan, updateUserPlan } from "@/server/actions/plans";
 import type { WorkoutPlanWithDays } from "@/server/db/plans";
 
 type ExerciseDefaultsRow = Database["public"]["Tables"]["user_exercise_defaults"]["Row"];
-
-type DayDraft = {
-  key: string;
-  id: string | null;
-  name: string;
-  exerciseRows: ExerciseDraftRow[];
-};
-
-let nextDayKey = 1;
-
-function createDayDraft(partial?: Partial<Omit<DayDraft, "key">>): DayDraft {
-  return {
-    key: `plan-day-${nextDayKey++}`,
-    id: partial?.id ?? null,
-    name: partial?.name ?? "",
-    exerciseRows: partial?.exerciseRows ?? [createEmptyExerciseRow()],
-  };
-}
-
-function daysFromPlan(plan: WorkoutPlanWithDays): DayDraft[] {
-  return [...plan.days]
-    .sort((a, b) => a.position - b.position)
-    .map((day) =>
-      createDayDraft({
-        id: day.id,
-        name: day.name,
-        exerciseRows:
-          day.exercises.length > 0
-            ? exerciseDraftRowsFromTemplateLines(day.exercises)
-            : [createEmptyExerciseRow()],
-      }),
-    );
-}
 
 type Props =
   | { mode: "create" }

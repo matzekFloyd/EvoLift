@@ -9,12 +9,13 @@ import { PageShell } from "@/app/components/page-shell";
 import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
 import { GoalCard } from "@/app/goals/goal-card";
+import { draftFromRow } from "@/app/goals/goal-draft";
+import { definitionFromRow, storedFromRow } from "@/app/goals/goal-row";
 import { emptyGoalDraft, GoalEditorDialog, type GoalDraft } from "@/app/goals/goal-editor-dialog";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { exerciseOptionsForPicker, type ExercisePickerOption } from "@/lib/exercise-picker-options";
 import {
   formatBestSet,
-  formatBodyweightMultiple,
   formatGoalGap,
   formatKgAmount,
   formatMilestoneTarget,
@@ -22,7 +23,6 @@ import {
   parseGoalForm,
   resolveMilestone,
   type GoalProgress,
-  type MilestoneDefinition,
   type StoredAchievement,
 } from "@/lib/milestone-progress";
 import { coerceKg, loadMilestoneWorkingSets } from "@/lib/milestone-sets";
@@ -39,44 +39,12 @@ type GoalListItem = {
   slug: string;
 };
 
-function definitionFromRow(row: MilestoneRow): MilestoneDefinition {
-  return {
-    exerciseId: row.exercise_id,
-    milestoneType: row.milestone_type,
-    targetWeightKg: coerceKg(row.target_weight_kg),
-    bodyweightMultiple: coerceKg(row.bodyweight_multiple),
-    minReps: row.min_reps,
-  };
-}
-
-function storedFromRow(row: MilestoneRow): StoredAchievement {
-  return {
-    achievedAt: row.achieved_at,
-    achievedBodyweightKg: coerceKg(row.achieved_bodyweight_kg),
-    achievedThresholdKg: coerceKg(row.achieved_threshold_kg),
-  };
-}
-
 function formatAchievedOn(iso: string): string {
   return new Intl.DateTimeFormat(undefined, {
     year: "numeric",
     month: "short",
     day: "numeric",
   }).format(new Date(iso));
-}
-
-function draftFromRow(row: MilestoneRow): GoalDraft {
-  return {
-    id: row.id,
-    exerciseId: row.exercise_id,
-    milestoneType: row.milestone_type,
-    targetWeightKg: row.target_weight_kg == null ? "" : String(coerceKg(row.target_weight_kg)),
-    bodyweightMultiple:
-      row.bodyweight_multiple == null ? "" : formatBodyweightMultiple(Number(row.bodyweight_multiple)),
-    minReps: String(row.min_reps),
-    dueOn: row.due_on ? row.due_on.slice(0, 10) : "",
-    note: row.note ?? "",
-  };
 }
 
 export default function GoalsPage() {

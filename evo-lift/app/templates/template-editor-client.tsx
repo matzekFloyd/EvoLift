@@ -19,6 +19,7 @@ import {
   createUserTemplate,
   updateUserTemplate,
 } from "@/server/actions/templates";
+import { getTemplateDraftStorageKey, templateSaveError } from "@/app/templates/template-draft";
 import type { WorkoutTemplateWithExercises } from "@/server/db/templates";
 
 type ExerciseDefaultsRow = Database["public"]["Tables"]["user_exercise_defaults"]["Row"];
@@ -28,10 +29,6 @@ type TemplateDraftPayload = {
   notes: string;
   exerciseRows: ExerciseDraftRow[];
 };
-
-function getTemplateDraftStorageKey(userId: string, scope: string): string {
-  return `evolift:template-draft:${userId}:${scope}`;
-}
 
 type Props =
   | { mode: "create" }
@@ -205,36 +202,17 @@ export function TemplateEditorClient(props: Props) {
     const {
       data: { session },
     } = await supabaseBrowserClient.auth.getSession();
-    if (!session?.access_token) {
-      showError("You must be logged in to save a template.");
+    const saveError = templateSaveError({
+      isLoggedIn: Boolean(session?.access_token),
+      name,
+      exerciseRows,
+    });
+    if (saveError || !session?.access_token) {
+      showError(saveError ?? "You must be logged in to save a template.");
       return;
     }
 
     const trimmedName = name.trim();
-    if (!trimmedName) {
-      showError("Please enter a template name.");
-      return;
-    }
-    if (exerciseRows.length === 0) {
-      showError("Add at least one exercise.");
-      return;
-    }
-    if (exerciseRows.some((row) => !row.exerciseId)) {
-      showError("Please choose an exercise for each row.");
-      return;
-    }
-    if (
-      exerciseRows.some((row) => {
-        if (!row.baseWeightKg) {
-          return false;
-        }
-        const value = Number(row.baseWeightKg);
-        return !Number.isFinite(value) || value < 0;
-      })
-    ) {
-      showError("Please enter a valid base weight for each exercise.");
-      return;
-    }
 
     const exercises = exerciseRows.map((row) => {
       const parsedSets = row.targetSets ? Number(row.targetSets) : null;

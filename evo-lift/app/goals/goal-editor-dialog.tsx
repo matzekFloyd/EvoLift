@@ -6,19 +6,11 @@ import { ExerciseSearchSelect } from "@/app/components/exercise-search-select";
 import { SectionHeading } from "@/app/components/section-heading";
 import { SegmentedTabs } from "@/app/components/segmented-tabs";
 import { StatusNotice } from "@/app/components/status-notice";
+import type { GoalDraft } from "@/app/goals/goal-draft";
 import type { ExercisePickerOption } from "@/lib/exercise-picker-options";
-import type { MilestoneType } from "@/lib/milestone-progress";
 
-export type GoalDraft = {
-  id: string | null;
-  exerciseId: string;
-  milestoneType: MilestoneType;
-  targetWeightKg: string;
-  bodyweightMultiple: string;
-  minReps: string;
-  dueOn: string;
-  note: string;
-};
+export type { GoalDraft } from "@/app/goals/goal-draft";
+export { emptyGoalDraft } from "@/app/goals/goal-draft";
 
 type GoalEditorDialogProps = {
   draft: GoalDraft;
@@ -150,17 +142,4 @@ export function GoalEditorDialog({
       </div>
     </div>
   );
-}
-
-export function emptyGoalDraft(): GoalDraft {
-  return {
-    id: null,
-    exerciseId: "",
-    milestoneType: "absolute",
-    targetWeightKg: "",
-    bodyweightMultiple: "",
-    minReps: "1",
-    dueOn: "",
-    note: "",
-  };
 }

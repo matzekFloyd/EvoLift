@@ -15,6 +15,7 @@ import {
 import type { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
 import { SegmentedTabs } from "@/app/components/segmented-tabs";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
+import { formatKgTick } from "@/app/components/exercise-weight-progress-format";
 import {
   buildWeightChangeSentence,
   zoomedWeightAxisDomain,
@@ -29,16 +30,6 @@ type ExerciseWeightProgressChartProps = {
 
 const LINE_TOTAL = "Total (kg)";
 const LINE_LOADED = "Loaded (kg)";
-
-function formatKgTick(value: number): string {
-  if (!Number.isFinite(value)) {
-    return "";
-  }
-  if (Math.abs(value) >= 1000) {
-    return `${(value / 1000).toFixed(1)}k`;
-  }
-  return Number.isInteger(value) ? `${value}` : value.toFixed(1);
-}
 
 export function ExerciseWeightProgressChart({ points }: ExerciseWeightProgressChartProps) {
   const [seriesMode, setSeriesMode] = useState<ExerciseWeightProgressSeriesMode>("loaded");

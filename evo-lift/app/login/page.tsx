@@ -8,6 +8,12 @@ import { PageShell } from "@/app/components/page-shell";
 import { SectionHeading } from "@/app/components/section-heading";
 import { SegmentedTabs } from "@/app/components/segmented-tabs";
 import {
+  friendlyAuthError,
+  loginEmailError,
+  loginPasswordError,
+  normalizeLoginEmail,
+} from "@/app/login/login-form";
+import {
   getExerciseMetadataCacheStatus,
   loadExerciseMetadata,
 } from "@/lib/exercise-metadata-cache";
@@ -35,46 +41,6 @@ export default function LoginPage() {
       const elapsedMs = Number((performance.now() - startedAt).toFixed(1));
       console.info(`[Perf] login metadata warm-up failed after ${elapsedMs}ms`);
     }
-  }
-
-  function getFriendlyAuthError(rawMessage: string): string {
-    const messageLower = rawMessage.toLowerCase();
-    if (
-      messageLower.includes("user already registered") ||
-      messageLower.includes("already been registered")
-    ) {
-      return "This email is already registered. Try logging in instead.";
-    }
-    if (messageLower.includes("invalid login credentials")) {
-      return "Invalid email or password.";
-    }
-    return rawMessage;
-  }
-
-  function getPasswordValidationError(): string | null {
-    if (password.length < 8) {
-      return "Password must be at least 8 characters.";
-    }
-    if (!/[a-zA-Z]/.test(password) || !/[0-9]/.test(password)) {
-      return "Password must include at least one letter and one number.";
-    }
-    if (mode === "register" && password !== confirmPassword) {
-      return "Passwords do not match.";
-    }
-    return null;
-  }
-
-  function getNormalizedEmail(): string {
-    return email.trim().toLowerCase();
-  }
-
-  function getEmailValidationError(normalizedEmail: string): string | null {
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailPattern.test(normalizedEmail)) {
-      return "Please enter a valid email address.";
-    }
-
-    return null;
   }
 
   useEffect(() => {
@@ -119,14 +85,14 @@ export default function LoginPage() {
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const normalizedEmail = getNormalizedEmail();
-    const emailError = getEmailValidationError(normalizedEmail);
+    const normalizedEmail = normalizeLoginEmail(email);
+    const emailError = loginEmailError(normalizedEmail);
     if (emailError) {
       setMessage(emailError);
       return;
     }
 
-    const passwordError = getPasswordValidationError();
+    const passwordError = loginPasswordError({ password, confirmPassword, mode });
     if (passwordError) {
       setMessage(passwordError);
       return;
@@ -144,7 +110,7 @@ export default function LoginPage() {
     );
 
     if (error) {
-      setMessage(getFriendlyAuthError(error.message));
+      setMessage(friendlyAuthError(error.message));
       setIsLoading(false);
       return;
     }
@@ -156,14 +122,14 @@ export default function LoginPage() {
 
   async function handleRegister(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const normalizedEmail = getNormalizedEmail();
-    const emailError = getEmailValidationError(normalizedEmail);
+    const normalizedEmail = normalizeLoginEmail(email);
+    const emailError = loginEmailError(normalizedEmail);
     if (emailError) {
       setMessage(emailError);
       return;
     }
 
-    const passwordError = getPasswordValidationError();
+    const passwordError = loginPasswordError({ password, confirmPassword, mode });
     if (passwordError) {
       setMessage(passwordError);
       return;
@@ -182,7 +148,7 @@ export default function LoginPage() {
     });
 
     if (error) {
-      setMessage(getFriendlyAuthError(error.message));
+      setMessage(friendlyAuthError(error.message));
       setIsLoading(false);
       return;
     }
