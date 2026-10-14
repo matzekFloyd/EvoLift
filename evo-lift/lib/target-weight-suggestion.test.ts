@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { describe, it } from "node:test";
+import { describe, it } from "vitest";
 import {
   LOG_WORKING_SET_MESSAGE,
   NEED_TARGET_REPS_MESSAGE,
