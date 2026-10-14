@@ -93,3 +93,22 @@ Local demo, one signed-in browser session, from `window.__evoLiftPerfMetrics`:
 | `/sessions/[id]` | Warm metadata | 101.6 ms | 8 |
 
 On the cold exercise list, metadata (132.2 ms) and `exercise_past_session_counts` (102.6 ms) overlapped, so the load was 153.2 ms rather than about 255 ms end to end. On the cold session editor, the five reads after the session row overlapped and the load was 123 ms rather than about 283 ms end to end. On the exercise page, session rows and set rows overlapped (about 15 ms each).
+
+## Exercise route prefetch
+
+Links on the exercise list do not prefetch just because they are visible. Hover, keyboard focus, or pointer-down prefetches that one `/exercises/[slug]` route. A second intent on the same link does not send another prefetch.
+
+Local demo, time from click until set history was on screen:
+
+| Step | Exercise | Result |
+|---|---|---:|
+| Click with no prior hover | Deadlift | 252 ms |
+| Hover, then click | Barbell Bench Press | 140 ms |
+
+Bench press has the longer history and was still the faster of the two after the hover. The pages are different, so treat the gap as a hint, not a controlled benchmark.
+
+## Sampled page-load telemetry
+
+Off unless `NEXT_PUBLIC_EVOLIFT_PERF_TELEMETRY` is exactly `1`. See `evo-lift/README.md` for the sample rate and the fields in a sample. The server writes one log line and does not store the sample.
+
+With the flag on, a valid sample is logged and the response is 204. A body with an extra field is rejected and not logged. With the flag unset, the same valid sample returns 204 and is not logged. The local app was left with the flag unset, so browsing did not send samples. An exercise-page load in that session still recorded `exerciseMetadata: hit-memory` on `window.__evoLiftPerfMetrics`.

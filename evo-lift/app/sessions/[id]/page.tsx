@@ -36,7 +36,10 @@ import { StatusNotice } from "@/app/components/status-notice";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { toExerciseBadge } from "@/lib/exercise-badge";
 import { exerciseOptionsForPicker } from "@/lib/exercise-picker-options";
-import { loadExerciseMetadata } from "@/lib/exercise-metadata-cache";
+import {
+  getExerciseMetadataCacheStatus,
+  loadExerciseMetadata,
+} from "@/lib/exercise-metadata-cache";
 import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
 import { createPageLoadPerfTracker } from "@/lib/page-load-perf";
 import { isFutureSessionDate } from "@/lib/session-date";
@@ -343,6 +346,7 @@ export default function SessionDetailPage() {
       }
 
       // These reads only need the session row. Sets wait until session-exercise ids exist.
+      perf.noteCache("exerciseMetadata", getExerciseMetadataCacheStatus(5 * 60 * 1000));
       const priorSessionsPromise = perf.trackQuery("workout_sessions.countPriorByCreatedAt", () =>
         supabaseBrowserClient
           .from("workout_sessions")

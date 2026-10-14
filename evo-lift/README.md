@@ -158,6 +158,8 @@ Set these in each environment:
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 
+Optional page-load sampling stays off unless `NEXT_PUBLIC_EVOLIFT_PERF_TELEMETRY` is exactly `1`. Restart the app after changing it, because `NEXT_PUBLIC_*` values are embedded at build time. When it is on, each instrumented load (`/exercises`, `/exercises/[slug]`, `/sessions/[id]`) has a chance to POST a summary to `/api/perf`. The default chance is 10%. Set `NEXT_PUBLIC_EVOLIFT_PERF_SAMPLE_RATE` to a number from 0 to 1 to change it (`1` sends every load, `0` sends none). A sample contains the route template, load duration, query count, up to five slowest query names and durations, and cache hit/miss notes when that load already knew them. It does not contain workout notes, set values, or account data. The server writes one log line and stores nothing.
+
 **Local Docker:** from the repo root, run `supabase start`, then `supabase status -o env --override-name api.url=NEXT_PUBLIC_SUPABASE_URL` and map `ANON_KEY` / `SERVICE_ROLE_KEY` into `evo-lift/.env.local` (see the root `README.md`).
 
 Notes:
