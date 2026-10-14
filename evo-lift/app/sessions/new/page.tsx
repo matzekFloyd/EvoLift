@@ -26,6 +26,7 @@ import {
   exerciseDraftRowsFromTemplateLines,
   type ExerciseDraftRow,
 } from "@/lib/workout-exercise-draft";
+import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
 import { coalesceNewSessionDraftPerformedOn, getTodayYyyyMmDd } from "@/lib/session-date";
 import type { WorkoutTemplateWithExercises } from "@/server/db/templates";
 
@@ -389,6 +390,7 @@ function NewSessionPageContent() {
       return;
     }
 
+    invalidateLoggedHistoryCaches();
     window.localStorage.removeItem(getNewSessionDraftStorageKey(userId));
     notifyNewSessionDraftChanged();
     router.replace(createMode === "log" ? `/sessions/${sessionInsert.id}` : "/");

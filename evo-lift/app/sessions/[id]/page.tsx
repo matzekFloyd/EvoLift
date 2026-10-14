@@ -37,6 +37,7 @@ import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { toExerciseBadge } from "@/lib/exercise-badge";
 import { exerciseOptionsForPicker } from "@/lib/exercise-picker-options";
 import { loadExerciseMetadata } from "@/lib/exercise-metadata-cache";
+import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
 import { createPageLoadPerfTracker } from "@/lib/page-load-perf";
 import { isFutureSessionDate } from "@/lib/session-date";
 
@@ -827,6 +828,7 @@ export default function SessionDetailPage() {
       return;
     }
 
+    invalidateLoggedHistoryCaches();
     setWorkoutSets((prev) => [...prev, data]);
     const sessionExercise = sessionExercises.find((e) => e.id === sessionExerciseId);
     const mergedForExercise = [...getSetsForExercise(sessionExerciseId), data].sort(
@@ -895,6 +897,7 @@ export default function SessionDetailPage() {
       return;
     }
 
+    invalidateLoggedHistoryCaches();
     const previousSet = workoutSets.find((item) => item.id === setId);
     const exerciseLabel = previousSet
       ? getExerciseLabelForSessionExerciseId(previousSet.session_exercise_id)
@@ -917,6 +920,7 @@ export default function SessionDetailPage() {
       return;
     }
 
+    invalidateLoggedHistoryCaches();
     setWorkoutSets((prev) => prev.filter((set) => set.id !== setId));
     if (deletedSet) {
       const sessionExerciseId = deletedSet.session_exercise_id;
@@ -989,6 +993,7 @@ export default function SessionDetailPage() {
       return;
     }
 
+    invalidateLoggedHistoryCaches();
     router.replace("/");
   }
 
@@ -1063,6 +1068,7 @@ export default function SessionDetailPage() {
       return;
     }
 
+    invalidateLoggedHistoryCaches();
     setSessionExercises((prev) => [...prev, data].sort((a, b) => a.position - b.position));
     if (isCompactView) {
       skipNextClearMessageOnExerciseIdChangeRef.current = true;
@@ -1131,6 +1137,7 @@ export default function SessionDetailPage() {
       return;
     }
 
+    invalidateLoggedHistoryCaches();
     setSessionExercises((prev) =>
       prev.map((item) => (item.id === targetsSessionExerciseId ? data : item)),
     );
@@ -1227,6 +1234,7 @@ export default function SessionDetailPage() {
       return;
     }
 
+    invalidateLoggedHistoryCaches();
     setSession(data);
     setPerformedOnDraft(data.performed_on);
     setNotesDraft(data.notes ?? "");

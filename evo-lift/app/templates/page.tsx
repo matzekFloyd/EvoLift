@@ -9,6 +9,7 @@ import { DateInput } from "@/app/components/date-input";
 import { PageShell } from "@/app/components/page-shell";
 import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
+import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
 import { getTodayYyyyMmDd } from "@/lib/session-date";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { deleteUserTemplate, instantiateUserTemplate } from "@/server/actions/templates";
@@ -114,6 +115,7 @@ export default function TemplatesPage() {
         performedOn: usePerformedOn,
         notes: useSessionNotes.trim() ? useSessionNotes.trim() : null,
       });
+      invalidateLoggedHistoryCaches();
       setUseDialogTemplateId(null);
       router.push(`/sessions/${sessionId}`);
     } catch (err) {
