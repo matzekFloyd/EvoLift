@@ -34,6 +34,7 @@ import { panelInsetClass } from "@/app/components/panel-inset";
 import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
 import { TargetWeightSuggestion } from "@/app/components/target-weight-suggestion";
+import { WarmupSuggestion } from "@/app/components/warmup-suggestion";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { toExerciseBadge } from "@/lib/exercise-badge";
 import { exerciseOptionsForPicker } from "@/lib/exercise-picker-options";
@@ -44,6 +45,7 @@ import {
 import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
 import { createPageLoadPerfTracker } from "@/lib/page-load-perf";
 import { isFutureSessionDate } from "@/lib/session-date";
+import { suggestWarmups } from "@/lib/warmup-suggestion";
 
 type SessionRow = Database["public"]["Tables"]["workout_sessions"]["Row"];
 type SessionExerciseRow = Database["public"]["Tables"]["workout_session_exercises"]["Row"];
@@ -857,6 +859,53 @@ export default function SessionDetailPage() {
       setCompactShowExtraSetComposer(true);
       setPendingCompactSetFocusSessionExerciseId(sessionExerciseId);
     }
+    setIsSavingSet(false);
+  }
+
+  async function handleAddWarmups(sessionExerciseId: string) {
+    if (session && isFutureSessionDate(session.performed_on)) {
+      showWarning("Planned workouts cannot have sets yet. Log sets on or after the session date.");
+      return;
+    }
+
+    const existingSets = getSetsForExercise(sessionExerciseId);
+    if (existingSets.length > 0) {
+      return;
+    }
+
+    const sessionExercise = sessionExercises.find((item) => item.id === sessionExerciseId);
+    const suggestion = suggestWarmups({
+      targetWeightKg: sessionExercise?.target_weight_kg ?? null,
+      baseWeightKg: sessionExercise?.base_weight_kg ?? null,
+    });
+    if (suggestion.status !== "steps" || suggestion.steps.length === 0) {
+      return;
+    }
+
+    setIsSavingSet(true);
+    const rows = suggestion.steps.map((step, index) => ({
+      session_exercise_id: sessionExerciseId,
+      set_number: index + 1,
+      reps: step.reps,
+      weight_kg: step.loadedKg,
+      is_warmup: true,
+    }));
+
+    const { data, error } = await supabaseBrowserClient
+      .from("workout_sets")
+      .insert(rows)
+      .select("*");
+
+    if (error || !data || data.length === 0) {
+      showError(`Could not add warmups: ${error?.message ?? "Unknown error"}`);
+      setIsSavingSet(false);
+      return;
+    }
+
+    invalidateLoggedHistoryCaches();
+    setWorkoutSets((prev) => [...prev, ...data]);
+    const exerciseLabel = getExerciseLabelForSessionExerciseId(sessionExerciseId);
+    showSuccess(`Warmups added for ${exerciseLabel}.`);
     setIsSavingSet(false);
   }
 
@@ -1814,6 +1863,21 @@ export default function SessionDetailPage() {
                     </button>
                   </div>
                 </div>
+              ) : null}
+
+              {!isReadOnly ? (
+                <WarmupSuggestion
+                  targetWeightKg={sessionExercise.target_weight_kg}
+                  baseWeightKg={sessionExercise.base_weight_kg}
+                  hasSets={sets.length > 0}
+                  addDisabled={isPlannedSession || isSavingSet}
+                  addDisabledTitle={
+                    isPlannedSession
+                      ? "Planned workouts cannot have sets yet. Log sets on or after the session date."
+                      : undefined
+                  }
+                  onAdd={() => handleAddWarmups(sessionExercise.id)}
+                />
               ) : null}
 
               <div className="mt-3 space-y-3 md:hidden">
