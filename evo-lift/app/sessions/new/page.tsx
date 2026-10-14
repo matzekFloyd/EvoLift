@@ -27,6 +27,7 @@ import {
   type ExerciseDraftRow,
 } from "@/lib/workout-exercise-draft";
 import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
+import { newSessionCreateError } from "@/app/sessions/new/new-session-form";
 import { coalesceNewSessionDraftPerformedOn, getTodayYyyyMmDd } from "@/lib/session-date";
 import type { WorkoutTemplateWithExercises } from "@/server/db/templates";
 
@@ -307,32 +308,15 @@ function NewSessionPageContent() {
   async function handleCreateSession(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!userId) {
-      showError("You must be logged in to create a workout session.");
-      return;
-    }
-    if (!performedOn) {
-      showError("Please choose a performed date.");
-      return;
-    }
-    if (exerciseRows.length === 0) {
-      showError("Add at least one exercise.");
-      return;
-    }
-    if (exerciseRows.some((row) => !row.exerciseId)) {
-      showError("Please choose an exercise for each row.");
-      return;
-    }
-    if (
-      exerciseRows.some((row) => {
-        if (!row.baseWeightKg) {
-          return false;
-        }
-        const value = Number(row.baseWeightKg);
-        return !Number.isFinite(value) || value < 0;
-      })
-    ) {
-      showError("Please enter a valid base weight for each exercise.");
+    const createError = newSessionCreateError({
+      userId,
+      performedOn,
+      exerciseRows,
+    });
+    if (createError || !userId) {
+      if (createError) {
+        showError(createError);
+      }
       return;
     }
 

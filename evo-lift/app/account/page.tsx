@@ -22,6 +22,13 @@ import { ExerciseSearchSelect } from "@/app/components/exercise-search-select";
 import { PageShell } from "@/app/components/page-shell";
 import { SegmentedTabs } from "@/app/components/segmented-tabs";
 import { SettingsSection, SettingsSectionBody } from "@/app/components/settings-section";
+import {
+  accountEmailUpdateError,
+  accountPasswordUpdateError,
+  exerciseDefaultsClearError,
+  exerciseDefaultsSaveError,
+  normalizeAccountEmail,
+} from "@/app/account/account-form";
 import { AccountApiTokensSection } from "@/app/account/api-tokens-section";
 import { SettingsSectionHeader } from "@/app/components/settings-section-header";
 import { StatusNotice } from "@/app/components/status-notice";
@@ -202,12 +209,11 @@ export default function AccountPage() {
 
   async function handleEmailUpdate(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const normalized = newEmail.trim().toLowerCase();
-    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
-    if (!emailPattern.test(normalized)) {
+    const normalized = normalizeAccountEmail(newEmail);
+    const emailError = accountEmailUpdateError(newEmail);
+    if (emailError) {
       setEmailMessageTone("error");
-      setEmailMessage("Please enter a valid new email address.");
+      setEmailMessage(emailError);
       return;
     }
 
@@ -236,31 +242,17 @@ export default function AccountPage() {
   async function handlePasswordUpdate(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!userEmail) {
-      setPasswordMessageTone("error");
-      setPasswordMessage("Could not verify current user email. Please log in again.");
-      return;
-    }
-    if (!currentPassword) {
-      setPasswordMessageTone("error");
-      setPasswordMessage("Please enter your current password.");
-      return;
-    }
-    if (newPassword.length < 8) {
-      setPasswordMessageTone("error");
-      setPasswordMessage("New password must be at least 8 characters.");
-      return;
-    }
-    if (!/[a-zA-Z]/.test(newPassword) || !/[0-9]/.test(newPassword)) {
+    const passwordError = accountPasswordUpdateError({
+      userEmail,
+      currentPassword,
+      newPassword,
+      confirmNewPassword,
+    });
+    if (passwordError || !userEmail) {
       setPasswordMessageTone("error");
       setPasswordMessage(
-        "New password must include at least one letter and one number.",
+        passwordError ?? "Could not verify current user email. Please log in again.",
       );
-      return;
-    }
-    if (newPassword !== confirmNewPassword) {
-      setPasswordMessageTone("error");
-      setPasswordMessage("New password and confirmation do not match.");
       return;
     }
 
@@ -410,14 +402,19 @@ export default function AccountPage() {
   async function handleDefaultsSave(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!userId) {
-      setDefaultsMessageTone("error");
-      setDefaultsMessage("Please log in again to save defaults.");
-      return;
-    }
-    if (!selectedExerciseId) {
-      setDefaultsMessageTone("error");
-      setDefaultsMessage("Please select an exercise.");
+    const defaultsError = exerciseDefaultsSaveError({
+      userId,
+      exerciseId: selectedExerciseId,
+      baseWeightKg: defaultBaseWeightKg,
+      targetSets: defaultTargetSets,
+      targetReps: defaultTargetReps,
+      targetWeightKg: defaultTargetWeightKg,
+    });
+    if (defaultsError || !userId || !selectedExerciseId) {
+      if (defaultsError) {
+        setDefaultsMessageTone("error");
+        setDefaultsMessage(defaultsError);
+      }
       return;
     }
     setDefaultsMessage(null);
@@ -426,27 +423,6 @@ export default function AccountPage() {
     const parsedTargetSets = defaultTargetSets ? Number(defaultTargetSets) : null;
     const parsedTargetReps = defaultTargetReps ? Number(defaultTargetReps) : null;
     const parsedTargetWeight = defaultTargetWeightKg ? Number(defaultTargetWeightKg) : null;
-
-    if (parsedBaseWeight !== null && (!Number.isFinite(parsedBaseWeight) || parsedBaseWeight < 0)) {
-      setDefaultsMessageTone("error");
-      setDefaultsMessage("Please enter a valid default base weight.");
-      return;
-    }
-    if (parsedTargetSets !== null && (!Number.isFinite(parsedTargetSets) || parsedTargetSets <= 0)) {
-      setDefaultsMessageTone("error");
-      setDefaultsMessage("Please enter a valid default number of target working sets.");
-      return;
-    }
-    if (parsedTargetReps !== null && (!Number.isFinite(parsedTargetReps) || parsedTargetReps <= 0)) {
-      setDefaultsMessageTone("error");
-      setDefaultsMessage("Please enter a valid default target reps value for working sets.");
-      return;
-    }
-    if (parsedTargetWeight !== null && (!Number.isFinite(parsedTargetWeight) || parsedTargetWeight < 0)) {
-      setDefaultsMessageTone("error");
-      setDefaultsMessage("Please enter a valid default target weight (kg) for working sets.");
-      return;
-    }
 
     setIsSavingDefaults(true);
     setDefaultsMessage(null);
@@ -486,14 +462,12 @@ export default function AccountPage() {
   }
 
   async function handleClearDefaults() {
-    if (!userId) {
-      setDefaultsMessageTone("error");
-      setDefaultsMessage("Please log in again to clear defaults.");
-      return;
-    }
-    if (!selectedExerciseId) {
-      setDefaultsMessageTone("error");
-      setDefaultsMessage("Please select an exercise first.");
+    const clearError = exerciseDefaultsClearError(userId, selectedExerciseId);
+    if (clearError || !userId || !selectedExerciseId) {
+      if (clearError) {
+        setDefaultsMessageTone("error");
+        setDefaultsMessage(clearError);
+      }
       return;
     }
     setDefaultsMessage(null);

@@ -49,18 +49,28 @@ import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
 import { createPageLoadPerfTracker } from "@/lib/page-load-perf";
 import { isFutureSessionDate } from "@/lib/session-date";
 import { suggestWarmups } from "@/lib/warmup-suggestion";
+import { SESSION_DETAIL_EXERCISE_QUERY, sessionDetailHref } from "./session-detail-query";
+import {
+  nextSetNumber,
+  parseAddedSessionExercise,
+  parseLoggedSetInput,
+  parseSessionTargets,
+  PLANNED_SESSION_SETS_MESSAGE,
+  TARGETS_EXERCISE_MISSING,
+} from "./session-input";
+import {
+  parseYyyyMmDdDateOnly,
+  resolveSuggestedAddDraft,
+  SESSION_DATE_HAS_SETS,
+  sessionPerformedOnError,
+  type SessionSetDraft as SetDraft,
+} from "./session-set-draft";
 
 type SessionRow = Database["public"]["Tables"]["workout_sessions"]["Row"];
 type SessionExerciseRow = Database["public"]["Tables"]["workout_session_exercises"]["Row"];
 type WorkoutSetRow = Database["public"]["Tables"]["workout_sets"]["Row"];
 type SessionNumberCountRow = {
   id: string;
-};
-
-type SetDraft = {
-  reps: string;
-  weightKg: string;
-  isWarmup: boolean;
 };
 
 type AddExerciseDraft = {
@@ -76,96 +86,11 @@ type MessageTone = "error" | "warning" | "success";
 
 const maxSessionNotesLength = 500;
 
-/** Validates `YYYY-MM-DD` and calendar day (e.g. rejects 2024-02-31). */
-function parseYyyyMmDdDateOnly(value: string): string | null {
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return null;
-  }
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(trimmed)) {
-    return null;
-  }
-  const [year, month, day] = trimmed.split("-").map(Number);
-  const constructed = new Date(year, month - 1, day);
-  if (
-    constructed.getFullYear() !== year ||
-    constructed.getMonth() !== month - 1 ||
-    constructed.getDate() !== day
-  ) {
-    return null;
-  }
-  return trimmed;
-}
-
 const emptyDraft: SetDraft = {
   reps: "",
   weightKg: "",
   isWarmup: false,
 };
-
-/** Most recent working (non-warmup) set in `set_number` order. */
-function findLastWorkingSet(setsSorted: WorkoutSetRow[]): WorkoutSetRow | null {
-  for (let i = setsSorted.length - 1; i >= 0; i -= 1) {
-    const row = setsSorted[i];
-    if (row && !row.is_warmup) {
-      return row;
-    }
-  }
-  return null;
-}
-
-/** Session exercise targets only; omit fields not set on the row (no guesses). */
-function targetPrefillStringsFromSessionExercise(
-  sessionExercise: SessionExerciseRow,
-): { reps: string; weightKg: string } {
-  const reps =
-    sessionExercise.target_reps != null &&
-    sessionExercise.target_reps > 0 &&
-    Number.isFinite(sessionExercise.target_reps)
-      ? String(sessionExercise.target_reps)
-      : "";
-  const weightKg =
-    sessionExercise.target_weight_kg != null &&
-    Number.isFinite(Number(sessionExercise.target_weight_kg))
-      ? String(sessionExercise.target_weight_kg)
-      : "";
-  return { reps, weightKg };
-}
-
-/**
- * Add-set defaults: targets when no working set exists yet; otherwise last working set.
- * Warmup rows never supply weight/reps for the next row. `partialDraft` preserves user edits.
- * When set 1 is working, the next set copies from that row (last working), not stale targets alone.
- */
-function resolveSuggestedAddDraft(
-  sessionExercise: SessionExerciseRow | undefined,
-  setsSorted: WorkoutSetRow[],
-  partialDraft: Partial<SetDraft> | undefined,
-): SetDraft {
-  const lastWorking = findLastWorkingSet(setsSorted);
-  const targets = sessionExercise
-    ? targetPrefillStringsFromSessionExercise(sessionExercise)
-    : { reps: "", weightKg: "" };
-
-  const reps =
-    partialDraft?.reps !== undefined
-      ? partialDraft.reps
-      : lastWorking
-        ? String(lastWorking.reps)
-        : targets.reps;
-  const weightKg =
-    partialDraft?.weightKg !== undefined
-      ? partialDraft.weightKg
-      : lastWorking
-        ? lastWorking.weight_kg == null
-          ? ""
-          : String(lastWorking.weight_kg)
-        : targets.weightKg;
-  const isWarmup =
-    partialDraft?.isWarmup !== undefined ? partialDraft.isWarmup : false;
-
-  return { reps, weightKg, isWarmup };
-}
 
 const emptyAddExerciseDraft: AddExerciseDraft = {
   exerciseId: "",
@@ -177,7 +102,6 @@ const emptyAddExerciseDraft: AddExerciseDraft = {
 };
 
 /** Query param: `workout_session_exercises.id` for deep-link + reload restore. */
-const SESSION_DETAIL_EXERCISE_QUERY = "ex";
 
 function replaceSessionDetailQuery(
   router: ReturnType<typeof useRouter>,
@@ -185,10 +109,7 @@ function replaceSessionDetailQuery(
   searchParams: { toString: () => string },
   mutator: (params: URLSearchParams) => void,
 ) {
-  const params = new URLSearchParams(searchParams.toString());
-  mutator(params);
-  const qs = params.toString();
-  router.replace(`${pathname}${qs ? `?${qs}` : ""}`, { scroll: false });
+  router.replace(sessionDetailHref(pathname, searchParams.toString(), mutator), { scroll: false });
 }
 
 export default function SessionDetailPage() {
@@ -804,27 +725,18 @@ export default function SessionDetailPage() {
 
   async function handleAddSet(sessionExerciseId: string) {
     if (session && isFutureSessionDate(session.performed_on)) {
-      showWarning("Planned workouts cannot have sets yet. Log sets on or after the session date.");
+      showWarning(PLANNED_SESSION_SETS_MESSAGE);
       return;
     }
     const draft = getResolvedAddDraft(sessionExerciseId);
-    const parsedReps = Number(draft.reps);
-    if (!Number.isFinite(parsedReps) || parsedReps <= 0) {
-      showError("Please enter a valid reps value.");
+    const logged = parseLoggedSetInput(draft.reps, draft.weightKg);
+    if (!logged.ok) {
+      showError(logged.message);
       return;
     }
 
     const existingSets = getSetsForExercise(sessionExerciseId);
-    const nextSetNumber =
-      existingSets.length > 0
-        ? Math.max(...existingSets.map((set) => set.set_number)) + 1
-        : 1;
-
-    const parsedWeight = draft.weightKg ? Number(draft.weightKg) : null;
-    if (parsedWeight !== null && (!Number.isFinite(parsedWeight) || parsedWeight < 0)) {
-      showError("Please enter a valid weight.");
-      return;
-    }
+    const setNumber = nextSetNumber(existingSets.map((set) => set.set_number));
 
     setIsSavingSet(true);
 
@@ -832,9 +744,9 @@ export default function SessionDetailPage() {
       .from("workout_sets")
       .insert({
         session_exercise_id: sessionExerciseId,
-        set_number: nextSetNumber,
-        reps: parsedReps,
-        weight_kg: parsedWeight,
+        set_number: setNumber,
+        reps: logged.reps,
+        weight_kg: logged.weightKg,
         is_warmup: draft.isWarmup,
       })
       .select("*")
@@ -877,7 +789,7 @@ export default function SessionDetailPage() {
 
   async function handleAddWarmups(sessionExerciseId: string) {
     if (session && isFutureSessionDate(session.performed_on)) {
-      showWarning("Planned workouts cannot have sets yet. Log sets on or after the session date.");
+      showWarning(PLANNED_SESSION_SETS_MESSAGE);
       return;
     }
 
@@ -932,14 +844,9 @@ export default function SessionDetailPage() {
   }
 
   async function saveEdit(setId: string) {
-    const parsedReps = Number(editDraft.reps);
-    if (!Number.isFinite(parsedReps) || parsedReps <= 0) {
-      showError("Please enter a valid reps value.");
-      return;
-    }
-    const parsedWeight = editDraft.weightKg ? Number(editDraft.weightKg) : null;
-    if (parsedWeight !== null && (!Number.isFinite(parsedWeight) || parsedWeight < 0)) {
-      showError("Please enter a valid weight.");
+    const logged = parseLoggedSetInput(editDraft.reps, editDraft.weightKg);
+    if (!logged.ok) {
+      showError(logged.message);
       return;
     }
 
@@ -948,8 +855,8 @@ export default function SessionDetailPage() {
     const { data, error } = await supabaseBrowserClient
       .from("workout_sets")
       .update({
-        reps: parsedReps,
-        weight_kg: parsedWeight,
+        reps: logged.reps,
+        weight_kg: logged.weightKg,
         is_warmup: editDraft.isWarmup,
       })
       .eq("id", setId)
@@ -1066,42 +973,20 @@ export default function SessionDetailPage() {
     if (!sessionId) {
       return;
     }
-    if (!addExerciseDraft.exerciseId) {
-      showError("Please choose an exercise to add.");
-      return;
-    }
-
-    const alreadyInSession = sessionExercises.some(
-      (row) => row.exercise_id === addExerciseDraft.exerciseId,
-    );
-    if (alreadyInSession) {
-      showWarning("That exercise is already in this session.");
-      return;
-    }
-
-    const parsedSets = addExerciseDraft.targetSets ? Number(addExerciseDraft.targetSets) : null;
-    const parsedReps = addExerciseDraft.targetReps ? Number(addExerciseDraft.targetReps) : null;
-    const parsedWeight = addExerciseDraft.targetWeightKg
-      ? Number(addExerciseDraft.targetWeightKg)
-      : null;
-    const parsedBaseWeight = addExerciseDraft.baseWeightKg
-      ? Number(addExerciseDraft.baseWeightKg)
-      : null;
-
-    if (parsedSets !== null && (!Number.isFinite(parsedSets) || parsedSets <= 0)) {
-      showError("Please enter a valid number of target working sets.");
-      return;
-    }
-    if (parsedReps !== null && (!Number.isFinite(parsedReps) || parsedReps <= 0)) {
-      showError("Please enter a valid target reps value for working sets.");
-      return;
-    }
-    if (parsedWeight !== null && (!Number.isFinite(parsedWeight) || parsedWeight < 0)) {
-      showError("Please enter a valid target weight (kg) for working sets.");
-      return;
-    }
-    if (parsedBaseWeight !== null && (!Number.isFinite(parsedBaseWeight) || parsedBaseWeight < 0)) {
-      showError("Please enter a valid base weight.");
+    const added = parseAddedSessionExercise({
+      exerciseId: addExerciseDraft.exerciseId,
+      alreadyInSession: sessionExercises.some((row) => row.exercise_id === addExerciseDraft.exerciseId),
+      targetSets: addExerciseDraft.targetSets,
+      targetReps: addExerciseDraft.targetReps,
+      targetWeightKg: addExerciseDraft.targetWeightKg,
+      baseWeightKg: addExerciseDraft.baseWeightKg,
+    });
+    if (!added.ok) {
+      if (added.tone === "warning") {
+        showWarning(added.message);
+      } else {
+        showError(added.message);
+      }
       return;
     }
 
@@ -1118,10 +1003,10 @@ export default function SessionDetailPage() {
         session_id: sessionId,
         exercise_id: addExerciseDraft.exerciseId,
         position: nextPosition,
-        base_weight_kg: parsedBaseWeight,
-        target_sets: parsedSets,
-        target_reps: parsedReps,
-        target_weight_kg: parsedWeight,
+        base_weight_kg: added.baseWeightKg,
+        target_sets: added.targetSets,
+        target_reps: added.targetReps,
+        target_weight_kg: added.targetWeightKg,
         notes: addExerciseDraft.notes.trim() ? addExerciseDraft.notes.trim() : null,
       })
       .select("*")
@@ -1162,24 +1047,17 @@ export default function SessionDetailPage() {
 
   async function saveTargetsForExercise() {
     if (!targetsSessionExerciseId) {
-      showError("Could not determine which exercise targets to update.");
+      showError(TARGETS_EXERCISE_MISSING);
       return;
     }
 
-    const parsedSets = targetsSets ? Number(targetsSets) : null;
-    const parsedReps = targetsReps ? Number(targetsReps) : null;
-    const parsedWeight = targetsWeightKg ? Number(targetsWeightKg) : null;
-
-    if (parsedSets !== null && (!Number.isFinite(parsedSets) || parsedSets <= 0)) {
-      showError("Please enter a valid number of target working sets.");
-      return;
-    }
-    if (parsedReps !== null && (!Number.isFinite(parsedReps) || parsedReps <= 0)) {
-      showError("Please enter a valid target reps value for working sets.");
-      return;
-    }
-    if (parsedWeight !== null && (!Number.isFinite(parsedWeight) || parsedWeight < 0)) {
-      showError("Please enter a valid target weight (kg) for working sets.");
+    const targets = parseSessionTargets({
+      targetSets: targetsSets,
+      targetReps: targetsReps,
+      targetWeightKg: targetsWeightKg,
+    });
+    if (!targets.ok) {
+      showError(targets.message);
       return;
     }
 
@@ -1188,9 +1066,9 @@ export default function SessionDetailPage() {
     const { data, error } = await supabaseBrowserClient
       .from("workout_session_exercises")
       .update({
-        target_sets: parsedSets,
-        target_reps: parsedReps,
-        target_weight_kg: parsedWeight,
+        target_sets: targets.targetSets,
+        target_reps: targets.targetReps,
+        target_weight_kg: targets.targetWeightKg,
       })
       .eq("id", targetsSessionExerciseId)
       .select("*")
@@ -1247,21 +1125,14 @@ export default function SessionDetailPage() {
     setSessionDetailsDateError(null);
     setSessionDetailsNotesError(null);
 
-    const dateTrimmed = performedOnDraft.trim();
-    if (!dateTrimmed) {
-      setSessionDetailsDateError("Please choose a performed date.");
-      return;
-    }
-    const parsedDate = parseYyyyMmDdDateOnly(dateTrimmed);
+    const parsedDate = parseYyyyMmDdDateOnly(performedOnDraft);
     if (!parsedDate) {
-      setSessionDetailsDateError("Please enter a valid performed date (YYYY-MM-DD).");
+      setSessionDetailsDateError(sessionPerformedOnError(performedOnDraft));
       return;
     }
 
     if (workoutSets.length > 0 && isFutureSessionDate(parsedDate)) {
-      setSessionDetailsDateError(
-        "This session already has logged sets. Choose today or an earlier date.",
-      );
+      setSessionDetailsDateError(SESSION_DATE_HAS_SETS);
       return;
     }
 

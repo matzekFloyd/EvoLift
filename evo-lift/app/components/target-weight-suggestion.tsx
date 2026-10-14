@@ -12,6 +12,7 @@ import {
   suggestTargetWeight,
   type TargetWeightHistorySet,
 } from "@/lib/target-weight-suggestion";
+import { parsePlannedReps } from "@/app/components/planned-reps";
 import { getTodayYyyyMmDd } from "@/lib/session-date";
 
 type TargetWeightSuggestionProps = {
@@ -21,18 +22,6 @@ type TargetWeightSuggestionProps = {
   excludeSessionId?: string | null;
   onApply: (weightKg: string) => void;
 };
-
-function parsePlannedReps(value: string): number | null {
-  const trimmed = value.trim();
-  if (!trimmed) {
-    return null;
-  }
-  const parsed = Number(trimmed);
-  if (!Number.isFinite(parsed) || parsed <= 0) {
-    return null;
-  }
-  return parsed;
-}
 
 export function TargetWeightSuggestion({
   exerciseId,

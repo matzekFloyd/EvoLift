@@ -1,5 +1,5 @@
 ---
-description: EvoLift product terms, copy tone, brand rules, and colocated lib tests
+description: EvoLift product terms, copy tone, brand rules, and colocated unit tests
 alwaysApply: true
 ---
 
@@ -31,7 +31,9 @@ alwaysApply: true
 
 ## Tests
 
-- When you add or change behavior in `evo-lift/lib/`, add or update the Vitest file beside that module in the same change: `evo-lift/lib/foo.ts` → `evo-lift/lib/foo.test.ts`.
-- Assert the new boundary and any user-facing error text. Use in-memory fixtures. Do not call Supabase, the network, or a browser.
+- When you add or change behavior in `evo-lift/lib/` or `evo-lift/app/`, add or update the Vitest file beside that module in the same change: `evo-lift/lib/foo.ts` → `evo-lift/lib/foo.test.ts`.
+- A behavior change in a page or component belongs in a colocated `.ts` module with its test. Presentational components that only render layout, such as `ActionButton`, `PageShell`, and the logo, do not get a test file.
+- Assert the new boundary and any user-facing error text. Use in-memory fixtures. Do not call Supabase, the network, or a browser, and do not render a page.
+- Route handlers under `evo-lift/app/api` stay covered by the API integration tests, not by these unit tests.
 - Run `npm test` from `evo-lift/` before finishing.
 - Generated type modules with no runtime behavior, such as `evo-lift/lib/supabase/database.types.ts`, do not get a test file.

@@ -17,6 +17,7 @@ import type {
   NameType,
   ValueType,
 } from "recharts/types/component/DefaultTooltipContent";
+import { formatCompactNumber } from "@/app/components/insights-weekly-volume-format";
 
 type WeeklyVolumeChartPoint = {
   weekStart: string;
@@ -42,13 +43,6 @@ function formatWeekLabel(dateText: string): string {
 function toDate(value: string): Date {
   const [yearText, monthText, dayText] = value.split("-");
   return new Date(Number(yearText), Number(monthText) - 1, Number(dayText));
-}
-
-function formatCompactNumber(value: number): string {
-  if (value >= 1000) {
-    return `${(value / 1000).toFixed(1)}k`;
-  }
-  return `${Math.round(value)}`;
 }
 
 export function InsightsWeeklyVolumeChart({ data, metric }: InsightsWeeklyVolumeChartProps) {

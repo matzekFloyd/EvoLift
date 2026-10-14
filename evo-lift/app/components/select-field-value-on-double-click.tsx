@@ -1,21 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-
-/** Input types where double-click should not select (secrets or non-text interaction). */
-const NON_SELECT_INPUT_TYPES = new Set([
-  "button",
-  "checkbox",
-  "color",
-  "file",
-  "hidden",
-  "image",
-  "password",
-  "radio",
-  "range",
-  "reset",
-  "submit",
-]);
+import { isSelectableInputType } from "@/app/components/selectable-text-control";
 
 function isSelectableTextControl(
   target: EventTarget | null,
@@ -26,7 +12,7 @@ function isSelectableTextControl(
   if (!(target instanceof HTMLInputElement)) {
     return false;
   }
-  return !NON_SELECT_INPUT_TYPES.has(target.type);
+  return isSelectableInputType(target.type);
 }
 
 /**

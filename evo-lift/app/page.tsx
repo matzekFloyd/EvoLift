@@ -20,6 +20,13 @@ import {
   type HomeSessionSummaryRow,
 } from "@/lib/home-session-cache";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
+import { homeExerciseBadges, homeSetCount } from "@/app/home-sessions";
+import { getDefaultHomeDateRange } from "@/app/home-date-range";
+import {
+  formatDateToYyyyMmDd,
+  getTodayYyyyMmDd,
+  normalizeSessionDateOnly,
+} from "@/lib/session-date";
 
 type WorkoutSessionRow = {
   id: string;
@@ -33,43 +40,10 @@ type SessionExerciseBadge = {
   hasLoggedSet: boolean;
 };
 
-function formatDateToYyyyMmDd(date: Date): string {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function getDefaultDateRange(): { from: string; to: string } {
-  const today = new Date();
-  const oneYearAgo = new Date(today);
-  oneYearAgo.setFullYear(today.getFullYear() - 1);
-  return {
-    from: formatDateToYyyyMmDd(oneYearAgo),
-    to: formatDateToYyyyMmDd(today),
-  };
-}
-
-function normalizeDateOnly(value: string): string {
-  // Supabase may return date-only or datetime strings; normalize to YYYY-MM-DD.
-  return value.slice(0, 10);
-}
-
-function dateToYyyyMmDd(value: Date): string {
-  const year = value.getFullYear();
-  const month = `${value.getMonth() + 1}`.padStart(2, "0");
-  const day = `${value.getDate()}`.padStart(2, "0");
-  return `${year}-${month}-${day}`;
-}
-
-function getTodayYyyyMmDd(): string {
-  return dateToYyyyMmDd(new Date());
-}
-
 export default function Home() {
   const router = useRouter();
   const todayYyyyMmDd = getTodayYyyyMmDd();
-  const defaultDateRange = useMemo(() => getDefaultDateRange(), []);
+  const defaultDateRange = useMemo(() => getDefaultHomeDateRange(new Date()), []);
   const [isSmallPhone, setIsSmallPhone] = useState(false);
   const [isChecking, setIsChecking] = useState(true);
   const [sessions, setSessions] = useState<WorkoutSessionRow[]>([]);
@@ -118,18 +92,8 @@ export default function Home() {
         const nextSetCountBySessionId = new Map<string, number>();
         const nextBadges = new Map<string, SessionExerciseBadge[]>();
         for (const row of loadedSessions) {
-          const setCount = Number(row.set_count);
-          nextSetCountBySessionId.set(row.id, Number.isFinite(setCount) ? setCount : 0);
-          const badges = Array.isArray(row.exercise_badges) ? row.exercise_badges : [];
-          nextBadges.set(
-            row.id,
-            badges
-              .filter((badge) => typeof badge.slug === "string" && badge.slug.length > 0)
-              .map((badge) => ({
-                slug: badge.slug,
-                hasLoggedSet: badge.has_logged_set === true,
-              })),
-          );
+          nextSetCountBySessionId.set(row.id, homeSetCount(row.set_count));
+          nextBadges.set(row.id, homeExerciseBadges(row.exercise_badges));
         }
         setSetCountBySessionId(nextSetCountBySessionId);
         setExerciseBadgesBySessionId(nextBadges);
@@ -206,14 +170,14 @@ export default function Home() {
   }, []);
 
   const completedSessions = useMemo(
-    () => sessions.filter((session) => normalizeDateOnly(session.performed_on) <= todayYyyyMmDd),
+    () => sessions.filter((session) => normalizeSessionDateOnly(session.performed_on) <= todayYyyyMmDd),
     [sessions, todayYyyyMmDd],
   );
 
   const plannedSessions = useMemo(
     () =>
       sessions
-        .filter((session) => normalizeDateOnly(session.performed_on) > todayYyyyMmDd)
+        .filter((session) => normalizeSessionDateOnly(session.performed_on) > todayYyyyMmDd)
         .sort((a, b) => a.performed_on.localeCompare(b.performed_on)),
     [sessions, todayYyyyMmDd],
   );
@@ -221,7 +185,7 @@ export default function Home() {
 
   const filteredSessions = useMemo(() => {
     return completedSessions.filter((session) => {
-      const performedOn = normalizeDateOnly(session.performed_on);
+      const performedOn = normalizeSessionDateOnly(session.performed_on);
       if (dateFrom && performedOn < dateFrom) {
         return false;
       }
@@ -234,15 +198,15 @@ export default function Home() {
 
   const workoutActivityData = useMemo(() => {
     const completedSessions = filteredSessions.filter(
-      (session) => normalizeDateOnly(session.performed_on) <= todayYyyyMmDd,
+      (session) => normalizeSessionDateOnly(session.performed_on) <= todayYyyyMmDd,
     );
     const sortedCompletedDates = completedSessions
-      .map((session) => normalizeDateOnly(session.performed_on))
+      .map((session) => normalizeSessionDateOnly(session.performed_on))
       .sort();
     const fallbackTo = todayYyyyMmDd;
     const fallbackFromDate = new Date(`${fallbackTo}T00:00:00`);
     fallbackFromDate.setDate(fallbackFromDate.getDate() - 26 * 7 + 1);
-    const fallbackFrom = dateToYyyyMmDd(fallbackFromDate);
+    const fallbackFrom = formatDateToYyyyMmDd(fallbackFromDate);
     const effectiveFrom = dateFrom || sortedCompletedDates[0] || fallbackFrom;
     const requestedTo = dateTo || sortedCompletedDates[sortedCompletedDates.length - 1] || fallbackTo;
     const effectiveTo = requestedTo > todayYyyyMmDd ? todayYyyyMmDd : requestedTo;
@@ -256,12 +220,12 @@ export default function Home() {
     const workoutsByDate = new Map<string, number>();
     const setsByDate = new Map<string, number>();
     for (const session of completedSessions) {
-      const day = normalizeDateOnly(session.performed_on);
+      const day = normalizeSessionDateOnly(session.performed_on);
       workoutsByDate.set(day, (workoutsByDate.get(day) ?? 0) + 1);
       setsByDate.set(day, (setsByDate.get(day) ?? 0) + (setCountBySessionId.get(session.id) ?? 0));
     }
     while (current <= end) {
-      const day = dateToYyyyMmDd(current);
+      const day = formatDateToYyyyMmDd(current);
       points.push({
         date: day,
         workouts: workoutsByDate.get(day) ?? 0,
