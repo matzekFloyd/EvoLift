@@ -324,6 +324,33 @@ export default function Home() {
       </div>
       {userId ? <NewSessionDraftCallout userId={userId} /> : null}
       <section className="panel p-5">
+        <div className="mb-2 flex items-center justify-between gap-2">
+          <SectionHeading>Planned workouts</SectionHeading>
+        </div>
+        {plannedSessions.length === 0 ? (
+          <p className="text-sm text-zinc-500">No planned workouts.</p>
+        ) : (
+          <PanelInset className="p-3">
+            <SessionsTable
+              rows={plannedTableRows}
+              dateHeaderLabel="Planned on"
+              emptyMessage="No planned workouts."
+              showNotesColumn={!isSmallPhone}
+              compactMode={isSmallPhone}
+              openingRowId={openingSessionId}
+              highlightedPerformedOnDates={highlightedActivityDates}
+              onOpenRow={(rowId) => {
+                if (openingSessionId) {
+                  return;
+                }
+                setOpeningSessionId(rowId);
+                router.push(`/sessions/${rowId}`);
+              }}
+            />
+          </PanelInset>
+        )}
+      </section>
+      <section className="panel p-5">
         {sessionsError ? (
           <p className="text-sm text-red-600">{sessionsError}</p>
         ) : (
@@ -402,33 +429,6 @@ export default function Home() {
               />
             </PanelInset>
           </div>
-        )}
-      </section>
-      <section className="panel p-5">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <SectionHeading>Planned workouts</SectionHeading>
-        </div>
-        {plannedSessions.length === 0 ? (
-          <p className="text-sm text-zinc-500">No planned workouts.</p>
-        ) : (
-          <PanelInset className="p-3">
-            <SessionsTable
-              rows={plannedTableRows}
-              dateHeaderLabel="Planned on"
-              emptyMessage="No planned workouts."
-              showNotesColumn={!isSmallPhone}
-              compactMode={isSmallPhone}
-              openingRowId={openingSessionId}
-              highlightedPerformedOnDates={highlightedActivityDates}
-              onOpenRow={(rowId) => {
-                if (openingSessionId) {
-                  return;
-                }
-                setOpeningSessionId(rowId);
-                router.push(`/sessions/${rowId}`);
-              }}
-            />
-          </PanelInset>
         )}
       </section>
     </PageShell>

@@ -82,6 +82,11 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
     definition: "One logged line for an exercise: the weight and the reps.",
   },
   {
+    term: "Suggested target",
+    definition:
+      "A Loaded (kg) offered for Target weight (kg), from recent working sets for that exercise. The field changes only when you apply it.",
+  },
+  {
     term: "Target reps",
     definition:
       "How many reps you plan on each working set, written as 8 reps. Warmup sets do not count.",

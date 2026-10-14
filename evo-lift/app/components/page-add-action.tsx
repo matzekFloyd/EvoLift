@@ -5,8 +5,8 @@ const className =
   "page-add-action inline-flex h-10 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-3 py-2 text-sm font-medium text-white [&_svg]:text-white";
 
 type PageAddActionProps =
-  | { label: string; href: string; onClick?: never; disabled?: never }
-  | { label: string; href?: never; onClick: () => void; disabled?: boolean };
+  | { label: string; href: string }
+  | { label: string; onClick: () => void; disabled?: boolean };
 
 /** Page-header primary action. Label hides below the `sm` breakpoint; the accessible name stays. */
 export function PageAddAction(props: PageAddActionProps) {

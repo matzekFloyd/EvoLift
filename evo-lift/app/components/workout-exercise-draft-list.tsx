@@ -18,6 +18,7 @@ import { SectionHeading } from "@/app/components/section-heading";
 import { ExerciseSearchSelect } from "@/app/components/exercise-search-select";
 import { InfoPopover } from "@/app/components/info-popover";
 import { NotesTextareaField } from "@/app/components/notes-textarea-field";
+import { TargetWeightSuggestion } from "@/app/components/target-weight-suggestion";
 import {
   createEmptyExerciseRow,
   type ExerciseDefaultsRow,
@@ -34,6 +35,8 @@ export type WorkoutExerciseDraftListProps = {
   exerciseDefaultsById: Map<string, ExerciseDefaultsRow>;
   maxNotesLength?: number;
   onClearDraft?: () => void;
+  /** Session planning only. Template editing leaves this off. */
+  showTargetWeightSuggestion?: boolean;
 };
 
 export function WorkoutExerciseDraftList({
@@ -44,6 +47,7 @@ export function WorkoutExerciseDraftList({
   exerciseDefaultsById,
   maxNotesLength = 500,
   onClearDraft,
+  showTargetWeightSuggestion = false,
 }: WorkoutExerciseDraftListProps) {
   const [expandedExerciseNotes, setExpandedExerciseNotes] = useState<Set<number>>(new Set());
   const [collapsedExercises, setCollapsedExercises] = useState<Set<string>>(new Set());
@@ -185,6 +189,20 @@ export function WorkoutExerciseDraftList({
       next.add(rowId);
       return next;
     });
+  }
+
+  function renderTargetWeightSuggestion(row: ExerciseDraftRow, index: number) {
+    if (!showTargetWeightSuggestion || !row.exerciseId) {
+      return null;
+    }
+    return (
+      <TargetWeightSuggestion
+        exerciseId={row.exerciseId}
+        plannedReps={row.targetReps}
+        currentWeightKg={row.targetWeightKg}
+        onApply={(weightKg) => updateExerciseRow(index, "targetWeightKg", weightKg)}
+      />
+    );
   }
 
   function focusExercisePicker(index: number) {
@@ -488,6 +506,7 @@ export function WorkoutExerciseDraftList({
                     />
                   </label>
                 </div>
+                {renderTargetWeightSuggestion(row, index)}
               </div>
               <div className="mt-6 block text-sm font-medium">
                 <button
@@ -680,6 +699,7 @@ export function WorkoutExerciseDraftList({
                     />
                   </label>
                 </div>
+                {renderTargetWeightSuggestion(row, index)}
               </div>
               <div className="mt-5 block text-sm font-medium">
                 <button

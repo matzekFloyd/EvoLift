@@ -33,6 +33,7 @@ import { PageShell } from "@/app/components/page-shell";
 import { panelInsetClass } from "@/app/components/panel-inset";
 import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
+import { TargetWeightSuggestion } from "@/app/components/target-weight-suggestion";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { toExerciseBadge } from "@/lib/exercise-badge";
 import { exerciseOptionsForPicker } from "@/lib/exercise-picker-options";
@@ -1344,6 +1345,8 @@ export default function SessionDetailPage() {
     }
     return exerciseLabels.get(selected.exercise_id) ?? selected.exercise_id;
   })();
+  const targetsExerciseId =
+    sessionExercises.find((item) => item.id === targetsSessionExerciseId)?.exercise_id ?? "";
 
   const activeWorkingSetCount =
     activeSessionExercise == null
@@ -1782,6 +1785,15 @@ export default function SessionDetailPage() {
                       />
                     </label>
                   </div>
+                  {targetsExerciseId ? (
+                    <TargetWeightSuggestion
+                      exerciseId={targetsExerciseId}
+                      plannedReps={targetsReps}
+                      currentWeightKg={targetsWeightKg}
+                      excludeSessionId={sessionId ?? null}
+                      onApply={setTargetsWeightKg}
+                    />
+                  ) : null}
                   <div className="mt-3 flex justify-end gap-2">
                     <button
                       type="button"
@@ -2460,6 +2472,19 @@ export default function SessionDetailPage() {
                         placeholder="e.g. 8"
                       />
                     </label>
+                    {addExerciseDraft.exerciseId ? (
+                      <div className="sm:col-span-2">
+                        <TargetWeightSuggestion
+                          exerciseId={addExerciseDraft.exerciseId}
+                          plannedReps={addExerciseDraft.targetReps}
+                          currentWeightKg={addExerciseDraft.targetWeightKg}
+                          excludeSessionId={sessionId ?? null}
+                          onApply={(weightKg) =>
+                            setAddExerciseDraft((prev) => ({ ...prev, targetWeightKg: weightKg }))
+                          }
+                        />
+                      </div>
+                    ) : null}
                     <div className="sm:col-span-2">
                       <NotesTextareaField
                         label="Notes (optional)"
@@ -2603,6 +2628,15 @@ export default function SessionDetailPage() {
                   />
                 </label>
               </div>
+              {targetsExerciseId ? (
+                <TargetWeightSuggestion
+                  exerciseId={targetsExerciseId}
+                  plannedReps={targetsReps}
+                  currentWeightKg={targetsWeightKg}
+                  excludeSessionId={sessionId ?? null}
+                  onApply={setTargetsWeightKg}
+                />
+              ) : null}
               <div className="mt-4 flex gap-2">
                 <button
                   type="button"
@@ -2723,6 +2757,17 @@ export default function SessionDetailPage() {
                     />
                   </label>
                 </div>
+                {addExerciseDraft.exerciseId ? (
+                  <TargetWeightSuggestion
+                    exerciseId={addExerciseDraft.exerciseId}
+                    plannedReps={addExerciseDraft.targetReps}
+                    currentWeightKg={addExerciseDraft.targetWeightKg}
+                    excludeSessionId={sessionId ?? null}
+                    onApply={(weightKg) =>
+                      setAddExerciseDraft((prev) => ({ ...prev, targetWeightKg: weightKg }))
+                    }
+                  />
+                ) : null}
                 <NotesTextareaField
                   label="Notes (optional)"
                   value={addExerciseDraft.notes}
