@@ -19,10 +19,9 @@ import { buildInsightsComparisonSentence } from "@/lib/insights-chart-summary";
 import { resolveLifterAge } from "@/lib/body-metrics";
 import {
   applyInsightsRange,
+  loadCachedInsightsHistory,
   loadUserStrengthProfile,
-  loadUserExerciseWorkingSets,
-  loadUserWorkoutActivityBase,
-  loadUserWeeklyVolumeBase,
+  peekInsightsHistory,
   type ExerciseWorkingSetSample,
   type InsightsRange,
   type WeeklyVolumePoint,
@@ -94,9 +93,11 @@ export default function InsightsPage() {
   const [exerciseSets, setExerciseSets] = useState<ExerciseWorkingSetSample[]>([]);
   const [lifterProfile, setLifterProfile] = useState<LifterProfile>(emptyLifterProfile);
   const isMountedRef = useRef(true);
+  const loadRequestRef = useRef(0);
 
   const loadInsights = useCallback(
     async (mode: "initial" | "refresh") => {
+      const requestId = ++loadRequestRef.current;
       const {
         data: { session },
       } = await supabaseBrowserClient.auth.getSession();
@@ -111,18 +112,23 @@ export default function InsightsPage() {
         return;
       }
 
-      if (mode === "initial") {
+      const historyWindow = { from: dateFrom, to: dateTo };
+      const cached = mode === "refresh" ? null : peekInsightsHistory(session.user.id, historyWindow);
+      if (mode === "initial" && !cached) {
         setIsLoading(true);
       }
 
       try {
-        const [points, weekly, sets, profile] = await Promise.all([
-          loadUserWorkoutActivityBase(supabaseBrowserClient, session.user.id),
-          loadUserWeeklyVolumeBase(supabaseBrowserClient, session.user.id),
-          loadUserExerciseWorkingSets(supabaseBrowserClient, session.user.id),
+        const [history, profile] = await Promise.all([
+          loadCachedInsightsHistory(supabaseBrowserClient, session.user.id, historyWindow, {
+            fresh: mode === "refresh",
+          }),
           loadUserStrengthProfile(supabaseBrowserClient, session.user.id),
         ]);
-        if (!isMountedRef.current) {
+        const points = history.activity;
+        const weekly = history.weekly;
+        const sets = history.exerciseSets;
+        if (!isMountedRef.current || requestId !== loadRequestRef.current) {
           return;
         }
         const age = resolveLifterAge({
@@ -140,17 +146,17 @@ export default function InsightsPage() {
         });
         setErrorMessage(null);
       } catch (error) {
-        if (!isMountedRef.current) {
+        if (!isMountedRef.current || requestId !== loadRequestRef.current) {
           return;
         }
         setErrorMessage(error instanceof Error ? error.message : "Could not load insights.");
       } finally {
-        if (isMountedRef.current && mode === "initial") {
+        if (isMountedRef.current && requestId === loadRequestRef.current) {
           setIsLoading(false);
         }
       }
     },
-    [router],
+    [dateFrom, dateTo, router],
   );
 
   useEffect(() => {
