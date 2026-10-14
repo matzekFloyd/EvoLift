@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
 import { DateInput } from "@/app/components/date-input";
 import { PageShell } from "@/app/components/page-shell";
+import { PanelInset } from "@/app/components/panel-inset";
 import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
 import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
@@ -186,97 +187,98 @@ export default function TemplatesPage() {
         </div>
       </div>
 
-      <p className="mt-2 text-sm text-zinc-600">
-        Save a reusable exercise list with targets. Use a template to start a logged workout session
-        in one step, or prefill a planned session from{" "}
-        <Link href="/sessions/new" className="font-medium text-sky-800 underline-offset-2 hover:underline">
-          New workout session
-        </Link>
-        .
-      </p>
-
-      {message ? (
-        <StatusNotice
-          message={message}
-          tone={messageTone}
-          onDismiss={clearMessage}
-          className="mt-4"
-        />
-      ) : null}
-
-      {loadError ? (
-        <p className="mt-4 text-sm text-red-600">{loadError}</p>
-      ) : templates.length === 0 ? (
-        <section className="panel mt-6 p-6 text-center text-sm text-zinc-600">
-          <p>No templates yet.</p>
-          <Link
-            href="/templates/new"
-            className="mt-4 inline-flex h-10 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-3 py-2 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600 [&_svg]:text-white"
-          >
-            <Plus className="h-4 w-4 text-white" />
-            Create template
+      <section className="panel p-5">
+        <p className="text-sm text-zinc-600">
+          Save a reusable exercise list with targets. Use a template to start a logged workout session
+          in one step, or prefill a planned session from{" "}
+          <Link href="/sessions/new" className="font-medium text-sky-800 underline-offset-2 hover:underline">
+            New workout session
           </Link>
-        </section>
-      ) : (
-        <section className="panel mt-6 overflow-x-auto p-0">
-          <table className="min-w-full divide-y divide-zinc-200 text-sm">
-            <thead>
-              <tr className="bg-zinc-50/80 text-left text-xs font-medium uppercase tracking-wide text-zinc-600">
-                <th className="px-4 py-3">Name</th>
-                <th className="px-4 py-3">Exercises</th>
-                <th className="px-4 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100">
-              {templates.map((row) => (
-                <tr key={row.id} className="bg-white">
-                  <td className="px-4 py-3 font-medium text-zinc-900">{row.name}</td>
-                  <td className="px-4 py-3 text-zinc-600">{row.exerciseCount}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex flex-wrap justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => openUseDialog(row.id)}
-                        className="inline-flex items-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-2 py-1 text-xs font-medium text-white hover:border-sky-600 hover:bg-sky-600"
-                      >
-                        <Play className="h-3.5 w-3.5 text-white" />
-                        Use
-                      </button>
-                      <Link
-                        href={`/templates/${row.id}/edit`}
-                        className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
-                      >
-                        <Pencil className="h-3.5 w-3.5 text-sky-700" />
-                        Edit
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => setDeleteTargetId(row.id)}
-                        className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-800 hover:border-red-300"
-                      >
-                        <Trash2 className="h-3.5 w-3.5 text-red-600" />
-                        Delete
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </section>
-      )}
+          .
+        </p>
 
-      {templates.length > 0 ? (
-        <div className="mt-6 flex justify-end">
-          <Link
-            href="/templates/new"
-            className="inline-flex h-10 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-3 py-2 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600 [&_svg]:text-white"
-          >
-            <Plus className="h-4 w-4 text-white" />
-            Create template
-          </Link>
-        </div>
-      ) : null}
+        {message ? (
+          <StatusNotice
+            message={message}
+            tone={messageTone}
+            onDismiss={clearMessage}
+            className="mt-4"
+          />
+        ) : null}
+
+        {loadError ? (
+          <p className="mt-4 text-sm text-red-600">{loadError}</p>
+        ) : templates.length === 0 ? (
+          <div className="mt-4 text-center text-sm text-zinc-600">
+            <p>No templates yet.</p>
+            <Link
+              href="/templates/new"
+              className="mt-4 inline-flex h-10 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-3 py-2 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600 [&_svg]:text-white"
+            >
+              <Plus className="h-4 w-4 text-white" />
+              Create template
+            </Link>
+          </div>
+        ) : (
+          <>
+            <PanelInset className="mt-4 overflow-x-auto p-0">
+              <table className="min-w-full divide-y divide-zinc-200 text-sm">
+                <thead>
+                  <tr className="text-left text-xs font-medium uppercase tracking-wide text-zinc-600">
+                    <th className="px-4 py-3">Name</th>
+                    <th className="px-4 py-3">Exercises</th>
+                    <th className="px-4 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-zinc-100">
+                  {templates.map((row) => (
+                    <tr key={row.id} className="bg-white">
+                      <td className="px-4 py-3 font-medium text-zinc-900">{row.name}</td>
+                      <td className="px-4 py-3 text-zinc-600">{row.exerciseCount}</td>
+                      <td className="px-4 py-3">
+                        <div className="flex flex-wrap justify-end gap-2">
+                          <button
+                            type="button"
+                            onClick={() => openUseDialog(row.id)}
+                            className="inline-flex items-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-2 py-1 text-xs font-medium text-white hover:border-sky-600 hover:bg-sky-600"
+                          >
+                            <Play className="h-3.5 w-3.5 text-white" />
+                            Use
+                          </button>
+                          <Link
+                            href={`/templates/${row.id}/edit`}
+                            className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
+                          >
+                            <Pencil className="h-3.5 w-3.5 text-sky-700" />
+                            Edit
+                          </Link>
+                          <button
+                            type="button"
+                            onClick={() => setDeleteTargetId(row.id)}
+                            className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-800 hover:border-red-300"
+                          >
+                            <Trash2 className="h-3.5 w-3.5 text-red-600" />
+                            Delete
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </PanelInset>
+            <div className="mt-4 flex justify-end">
+              <Link
+                href="/templates/new"
+                className="inline-flex h-10 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-3 py-2 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600 [&_svg]:text-white"
+              >
+                <Plus className="h-4 w-4 text-white" />
+                Create template
+              </Link>
+            </div>
+          </>
+        )}
+      </section>
 
       {useDialogTemplateId ? (
         <div
