@@ -25,6 +25,7 @@ It focuses on fast session creation, compact in-session logging, and practical d
 - **Backend/Data:** Supabase (Postgres + Auth + RLS-aware querying)
 - **Charting:** Recharts
 - **Linting:** ESLint + `eslint-config-next`
+- **Tests:** Vitest
 
 ## Repository Structure
 
@@ -189,6 +190,7 @@ The account gets about 16 weeks of sessions (a missed week, a deload, and a heav
 ```bash
 cd evo-lift
 npm run lint
+npm test
 npm run build
 ```
 
@@ -280,6 +282,7 @@ From `evo-lift/`:
 - `npm run build` - Build production bundle
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
+- `npm test` - Run unit tests
 
 ## License
 
@@ -290,7 +293,7 @@ This project is licensed under the MIT License. See [`LICENSE`](LICENSE).
 Contributions are welcome.
 
 - Open an issue first for larger changes so approach and scope are clear.
-- Keep pull requests focused and include validation steps (for example `npm run lint` and `npm run build` from `evo-lift/`).
+- Keep pull requests focused and include validation steps (for example `npm test`, `npm run lint`, and `npm run build` from `evo-lift/`).
 - If you change schema or seed behavior, include the relevant updates under `supabase/migrations/` or `supabase/seeds/`.
 
 ## Support

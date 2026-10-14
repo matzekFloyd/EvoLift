@@ -1,0 +1,81 @@
+import assert from "node:assert/strict";
+import { describe, it } from "vitest";
+import { coerceKg, loadMilestoneWorkingSets } from "./milestone-sets";
+
+function setsClient(options: {
+  exercises?: unknown;
+  exercisesError?: string;
+  sets?: unknown;
+  setsError?: string;
+}) {
+  return {
+    from(table: string) {
+      const failed = table === "workout_session_exercises" ? options.exercisesError : options.setsError;
+      const data = table === "workout_session_exercises" ? (options.exercises ?? []) : (options.sets ?? []);
+      const result = failed ? { data: null, error: { message: failed } } : { data, error: null };
+      const builder: Record<string, unknown> = {};
+      const chain = () => builder;
+      for (const name of ["select", "eq", "order", "in", "range"]) {
+        builder[name] = chain;
+      }
+      builder.then = (onFulfilled: (value: unknown) => unknown) => Promise.resolve(result).then(onFulfilled);
+      return builder;
+    },
+  };
+}
+
+describe("coerceKg", () => {
+  it("returns a rounded number or nothing", () => {
+    assert.equal(coerceKg(null), null);
+    assert.equal(coerceKg(""), null);
+    assert.equal(coerceKg("nope"), null);
+    assert.equal(coerceKg("62.555"), 62.56);
+  });
+});
+
+describe("loadMilestoneWorkingSets", () => {
+  it("returns nothing when no exercises are requested", async () => {
+    assert.deepEqual(await loadMilestoneWorkingSets(setsClient({}) as never, ["", ""]), []);
+  });
+
+  it("adds the session base weight and skips a set with no load", async () => {
+    const sets = await loadMilestoneWorkingSets(
+      setsClient({
+        exercises: [{ id: "se-1", exercise_id: "squat", base_weight_kg: 20 }],
+        sets: [
+          {
+            session_exercise_id: "se-1",
+            reps: 5,
+            weight_kg: 60,
+            is_warmup: false,
+            performed_at: "2026-10-14T12:00:00Z",
+          },
+          {
+            session_exercise_id: "se-1",
+            reps: 5,
+            weight_kg: null,
+            is_warmup: false,
+            performed_at: "2026-10-14T12:05:00Z",
+          },
+        ],
+      }) as never,
+      ["squat"],
+    );
+    assert.deepEqual(sets, [
+      {
+        exerciseId: "squat",
+        reps: 5,
+        totalKg: 80,
+        isWarmup: false,
+        performedAt: "2026-10-14T12:00:00Z",
+      },
+    ]);
+  });
+
+  it("reports a failed read", async () => {
+    await assert.rejects(
+      () => loadMilestoneWorkingSets(setsClient({ exercisesError: "down" }) as never, ["squat"]),
+      /Could not load workout sets\./,
+    );
+  });
+});

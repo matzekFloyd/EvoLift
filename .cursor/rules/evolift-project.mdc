@@ -1,5 +1,5 @@
 ---
-description: EvoLift product terms, copy tone, and where to read full brand rules
+description: EvoLift product terms, copy tone, brand rules, and colocated lib tests
 alwaysApply: true
 ---
 
@@ -28,3 +28,10 @@ alwaysApply: true
 
 - Prefer existing primitives: `ActionButton`, `StatusNotice`, layout helpers under `evo-lift/app/components/` before inventing new button/alert styles.
 - **Supabase** backs data; keep server/client boundaries idiomatic for this Next app.
+
+## Tests
+
+- When you add or change behavior in `evo-lift/lib/`, add or update the Vitest file beside that module in the same change: `evo-lift/lib/foo.ts` → `evo-lift/lib/foo.test.ts`.
+- Assert the new boundary and any user-facing error text. Use in-memory fixtures. Do not call Supabase, the network, or a browser.
+- Run `npm test` from `evo-lift/` before finishing.
+- Generated type modules with no runtime behavior, such as `evo-lift/lib/supabase/database.types.ts`, do not get a test file.

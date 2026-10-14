@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "test": "tsx --test lib/target-weight-suggestion.test.ts lib/warmup-suggestion.test.ts"
+    "test": "vitest run"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.26.0",
@@ -30,8 +30,9 @@
     "@types/swagger-ui-dist": "^3.30.6",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
+    "happy-dom": "^21.0.1",
     "tailwindcss": "^4",
-    "tsx": "^4.23.15",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^4.1.11"
   }
 }
