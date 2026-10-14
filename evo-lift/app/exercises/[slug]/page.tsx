@@ -37,6 +37,7 @@ import { SetKindIndicator } from "@/app/components/set-kind-indicator";
 import { StatusNotice } from "@/app/components/status-notice";
 import { loadExerciseMetadata } from "@/lib/exercise-metadata-cache";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
+import { fetchAllPages, fetchInChunks } from "@/lib/supabase/chunked-query";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { toExerciseBadge } from "@/lib/exercise-badge";
 import { buildExerciseSessionVolumeChartPoints } from "@/lib/exercise-session-volume-chart";
@@ -383,10 +384,14 @@ export default function ExerciseDetailPage() {
       const { data: sessionRows, error: sessionsError } = await perf.trackQuery(
         "workout_sessions.selectPerformedOn",
         () =>
-          supabaseBrowserClient
-            .from("workout_sessions")
-            .select("id, performed_on, created_at")
-            .eq("user_id", session.user.id),
+          fetchAllPages((from, to) =>
+            supabaseBrowserClient
+              .from("workout_sessions")
+              .select("id, performed_on, created_at")
+              .eq("user_id", session.user.id)
+              .order("id", { ascending: true })
+              .range(from, to),
+          ),
       );
       if (sessionsError) {
         setErrorMessage("Could not load your workout sessions.");
@@ -410,11 +415,15 @@ export default function ExerciseDetailPage() {
         const { data: sessionExerciseRows, error: sessionExercisesError } = await perf.trackQuery(
           "workout_session_exercises.selectByExerciseAndSessionIds",
           () =>
-            supabaseBrowserClient
-              .from("workout_session_exercises")
-              .select("id, session_id, base_weight_kg")
-              .eq("exercise_id", exercise.id)
-              .in("session_id", sessionIds),
+            fetchInChunks(sessionIds, (chunk, from, to) =>
+              supabaseBrowserClient
+                .from("workout_session_exercises")
+                .select("id, session_id, base_weight_kg")
+                .eq("exercise_id", exercise.id)
+                .in("session_id", chunk)
+                .order("id", { ascending: true })
+                .range(from, to),
+            ),
         );
         if (sessionExercisesError) {
           setErrorMessage("Could not load exercise sessions.");
@@ -436,10 +445,14 @@ export default function ExerciseDetailPage() {
           const { data: setRows, error: setsError } = await perf.trackQuery(
             "workout_sets.selectBySessionExerciseIds",
             () =>
-              supabaseBrowserClient
-                .from("workout_sets")
-                .select("session_exercise_id, set_number, reps, weight_kg, is_warmup")
-                .in("session_exercise_id", sessionExerciseIds),
+              fetchInChunks(sessionExerciseIds, (chunk, from, to) =>
+                supabaseBrowserClient
+                  .from("workout_sets")
+                  .select("session_exercise_id, set_number, reps, weight_kg, is_warmup")
+                  .in("session_exercise_id", chunk)
+                  .order("id", { ascending: true })
+                  .range(from, to),
+              ),
           );
           if (setsError) {
             setErrorMessage("Could not load exercise sets.");

@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllPages, fetchInChunks } from "@/lib/supabase/chunked-query";
 import type { Database } from "@/lib/supabase/database.types";
 
 export type InsightsRange = "4w" | "12w" | "6m" | "all";
@@ -79,28 +80,38 @@ export async function loadUserWorkoutActivityBase(
   client: SupabaseClient<Database>,
   userId: string,
 ): Promise<WorkoutActivityPoint[]> {
-  const { data: sessionsData, error: sessionsError } = await client
-    .from("workout_sessions")
-    .select("id, performed_on")
-    .eq("user_id", userId);
+  const { data: sessionsData, error: sessionsError } = await fetchAllPages((from, to) =>
+    client
+      .from("workout_sessions")
+      .select("id, performed_on")
+      .eq("user_id", userId)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
   if (sessionsError) {
     throw new Error(`Could not load workout sessions: ${sessionsError.message}`);
   }
 
-  const sessions = (sessionsData ?? []) as WorkoutSessionRow[];
+  const sessions = sessionsData as WorkoutSessionRow[];
   const sessionIds = sessions.map((row) => row.id);
   const setsBySessionId = new Map<string, number>();
   const loadedKgBySessionId = new Map<string, number>();
 
   if (sessionIds.length > 0) {
-    const { data: sessionExercisesData, error: sessionExercisesError } = await client
-      .from("workout_session_exercises")
-      .select("id, session_id")
-      .in("session_id", sessionIds);
+    const { data: sessionExercisesData, error: sessionExercisesError } = await fetchInChunks(
+      sessionIds,
+      (chunk, from, to) =>
+        client
+          .from("workout_session_exercises")
+          .select("id, session_id")
+          .in("session_id", chunk)
+          .order("id", { ascending: true })
+          .range(from, to),
+    );
     if (sessionExercisesError) {
       throw new Error(`Could not load session exercises: ${sessionExercisesError.message}`);
     }
-    const sessionExercises = (sessionExercisesData ?? []) as SessionExerciseRow[];
+    const sessionExercises = sessionExercisesData as SessionExerciseRow[];
     const sessionExerciseIds = sessionExercises.map((row) => row.id);
     const sessionIdBySessionExerciseId = new Map<string, string>();
     for (const row of sessionExercises) {
@@ -108,14 +119,18 @@ export async function loadUserWorkoutActivityBase(
     }
 
     if (sessionExerciseIds.length > 0) {
-      const { data: setsData, error: setsError } = await client
-        .from("workout_sets")
-        .select("session_exercise_id, reps, weight_kg")
-        .in("session_exercise_id", sessionExerciseIds);
+      const { data: setsData, error: setsError } = await fetchInChunks(sessionExerciseIds, (chunk, from, to) =>
+        client
+          .from("workout_sets")
+          .select("session_exercise_id, reps, weight_kg")
+          .in("session_exercise_id", chunk)
+          .order("id", { ascending: true })
+          .range(from, to),
+      );
       if (setsError) {
         throw new Error(`Could not load workout sets: ${setsError.message}`);
       }
-      for (const row of (setsData ?? []) as WorkoutSetLinkRow[]) {
+      for (const row of setsData as WorkoutSetLinkRow[]) {
         if (!row.session_exercise_id) {
           continue;
         }
@@ -179,14 +194,18 @@ export async function loadUserWeeklyVolumeBase(
   client: SupabaseClient<Database>,
   userId: string,
 ): Promise<WeeklyVolumePoint[]> {
-  const { data: sessionsData, error: sessionsError } = await client
-    .from("workout_sessions")
-    .select("id, performed_on")
-    .eq("user_id", userId);
+  const { data: sessionsData, error: sessionsError } = await fetchAllPages((from, to) =>
+    client
+      .from("workout_sessions")
+      .select("id, performed_on")
+      .eq("user_id", userId)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
   if (sessionsError) {
     throw new Error(`Could not load workout sessions: ${sessionsError.message}`);
   }
-  const sessions = (sessionsData ?? []) as WorkoutSessionRow[];
+  const sessions = sessionsData as WorkoutSessionRow[];
   const sessionIds = sessions.map((row) => row.id);
   if (sessionIds.length === 0) {
     return [];
@@ -197,14 +216,20 @@ export async function loadUserWeeklyVolumeBase(
     performedOnBySessionId.set(session.id, normalizeDateOnly(session.performed_on));
   }
 
-  const { data: sessionExercisesData, error: sessionExercisesError } = await client
-    .from("workout_session_exercises")
-    .select("id, session_id")
-    .in("session_id", sessionIds);
+  const { data: sessionExercisesData, error: sessionExercisesError } = await fetchInChunks(
+    sessionIds,
+    (chunk, from, to) =>
+      client
+        .from("workout_session_exercises")
+        .select("id, session_id")
+        .in("session_id", chunk)
+        .order("id", { ascending: true })
+        .range(from, to),
+  );
   if (sessionExercisesError) {
     throw new Error(`Could not load session exercises: ${sessionExercisesError.message}`);
   }
-  const sessionExercises = (sessionExercisesData ?? []) as SessionExerciseRow[];
+  const sessionExercises = sessionExercisesData as SessionExerciseRow[];
   const sessionExerciseIds = sessionExercises.map((row) => row.id);
   if (sessionExerciseIds.length === 0) {
     return [];
@@ -215,16 +240,20 @@ export async function loadUserWeeklyVolumeBase(
     sessionIdBySessionExerciseId.set(row.id, row.session_id);
   }
 
-  const { data: setsData, error: setsError } = await client
-    .from("workout_sets")
-    .select("session_exercise_id, reps, weight_kg, is_warmup")
-    .in("session_exercise_id", sessionExerciseIds);
+  const { data: setsData, error: setsError } = await fetchInChunks(sessionExerciseIds, (chunk, from, to) =>
+    client
+      .from("workout_sets")
+      .select("session_exercise_id, reps, weight_kg, is_warmup")
+      .in("session_exercise_id", chunk)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
   if (setsError) {
     throw new Error(`Could not load workout sets: ${setsError.message}`);
   }
 
   const weekly = new Map<string, { volumeKg: number; workingSets: number; sessionIds: Set<string> }>();
-  for (const setRow of (setsData ?? []) as Array<{
+  for (const setRow of setsData as Array<{
     session_exercise_id: string | null;
     reps: number;
     weight_kg: number | null;
@@ -282,14 +311,18 @@ export async function loadUserExerciseWorkingSets(
   client: SupabaseClient<Database>,
   userId: string,
 ): Promise<ExerciseWorkingSetSample[]> {
-  const { data: sessionsData, error: sessionsError } = await client
-    .from("workout_sessions")
-    .select("id, performed_on")
-    .eq("user_id", userId);
+  const { data: sessionsData, error: sessionsError } = await fetchAllPages((from, to) =>
+    client
+      .from("workout_sessions")
+      .select("id, performed_on")
+      .eq("user_id", userId)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
   if (sessionsError) {
     throw new Error(`Could not load workout sessions: ${sessionsError.message}`);
   }
-  const sessions = (sessionsData ?? []) as WorkoutSessionRow[];
+  const sessions = sessionsData as WorkoutSessionRow[];
   if (sessions.length === 0) {
     return [];
   }
@@ -298,14 +331,20 @@ export async function loadUserExerciseWorkingSets(
   );
   const sessionIds = sessions.map((session) => session.id);
 
-  const { data: sessionExercisesData, error: sessionExercisesError } = await client
-    .from("workout_session_exercises")
-    .select("id, session_id, exercise_id, base_weight_kg")
-    .in("session_id", sessionIds);
+  const { data: sessionExercisesData, error: sessionExercisesError } = await fetchInChunks(
+    sessionIds,
+    (chunk, from, to) =>
+      client
+        .from("workout_session_exercises")
+        .select("id, session_id, exercise_id, base_weight_kg")
+        .in("session_id", chunk)
+        .order("id", { ascending: true })
+        .range(from, to),
+  );
   if (sessionExercisesError) {
     throw new Error(`Could not load session exercises: ${sessionExercisesError.message}`);
   }
-  const sessionExercises = (sessionExercisesData ?? []) as Array<{
+  const sessionExercises = sessionExercisesData as Array<{
     id: string;
     session_id: string;
     exercise_id: string;
@@ -316,27 +355,34 @@ export async function loadUserExerciseWorkingSets(
   }
 
   const sessionExerciseIds = sessionExercises.map((row) => row.id);
-  const { data: setsData, error: setsError } = await client
-    .from("workout_sets")
-    .select("session_exercise_id, reps, weight_kg, is_warmup")
-    .in("session_exercise_id", sessionExerciseIds);
+  const { data: setsData, error: setsError } = await fetchInChunks(sessionExerciseIds, (chunk, from, to) =>
+    client
+      .from("workout_sets")
+      .select("session_exercise_id, reps, weight_kg, is_warmup")
+      .in("session_exercise_id", chunk)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
   if (setsError) {
     throw new Error(`Could not load workout sets: ${setsError.message}`);
   }
 
   const exerciseIds = [...new Set(sessionExercises.map((row) => row.exercise_id))];
-  const { data: exerciseRows, error: exerciseError } = await client
-    .from("exercises")
-    .select("id, slug")
-    .in("id", exerciseIds);
+  const { data: exerciseRows, error: exerciseError } = await fetchInChunks(exerciseIds, (chunk, from, to) =>
+    client.from("exercises").select("id, slug").in("id", chunk).order("id", { ascending: true }).range(from, to),
+  );
   if (exerciseError) {
     throw new Error(`Could not load exercises: ${exerciseError.message}`);
   }
-  const { data: translationRows, error: translationError } = await client
-    .from("exercise_translations")
-    .select("exercise_id, name")
-    .eq("lang_code", "en")
-    .in("exercise_id", exerciseIds);
+  const { data: translationRows, error: translationError } = await fetchInChunks(exerciseIds, (chunk, from, to) =>
+    client
+      .from("exercise_translations")
+      .select("exercise_id, name")
+      .eq("lang_code", "en")
+      .in("exercise_id", chunk)
+      .order("exercise_id", { ascending: true })
+      .range(from, to),
+  );
   if (translationError) {
     throw new Error(`Could not load exercise names: ${translationError.message}`);
   }
@@ -355,7 +401,7 @@ export async function loadUserExerciseWorkingSets(
   );
 
   const samples: ExerciseWorkingSetSample[] = [];
-  for (const setRow of (setsData ?? []) as Array<{
+  for (const setRow of setsData as Array<{
     session_exercise_id: string | null;
     reps: number;
     weight_kg: number | null;

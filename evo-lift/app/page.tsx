@@ -13,6 +13,7 @@ import { NewSessionDraftCallout } from "@/app/components/new-session-draft-callo
 import { SessionsTable, type SessionsTableRow } from "@/app/components/sessions-table";
 import { WorkoutActivityChart } from "@/app/components/workout-activity-chart";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
+import { fetchAllPages, fetchInChunks } from "@/lib/supabase/chunked-query";
 
 type WorkoutSessionRow = {
   id: string;
@@ -112,9 +113,13 @@ export default function Home() {
 
       setUserId(session.user.id);
 
-      const { data, error } = await supabaseBrowserClient
-        .from("workout_sessions")
-        .select("id, performed_on, notes, created_at");
+      const { data, error } = await fetchAllPages((from, to) =>
+        supabaseBrowserClient
+          .from("workout_sessions")
+          .select("id, performed_on, notes, created_at")
+          .order("id", { ascending: true })
+          .range(from, to),
+      );
 
       if (!isMounted) {
         return;
@@ -131,10 +136,16 @@ export default function Home() {
 
       const sessionIds = loadedSessions.map((row) => row.id);
       if (sessionIds.length > 0) {
-        const { data: sessionExercisesData, error: sessionExercisesError } = await supabaseBrowserClient
-          .from("workout_session_exercises")
-          .select("id, session_id, exercise_id")
-          .in("session_id", sessionIds);
+        const { data: sessionExercisesData, error: sessionExercisesError } = await fetchInChunks(
+          sessionIds,
+          (chunk, from, to) =>
+            supabaseBrowserClient
+              .from("workout_session_exercises")
+              .select("id, session_id, exercise_id")
+              .in("session_id", chunk)
+              .order("id", { ascending: true })
+              .range(from, to),
+        );
 
         if (sessionExercisesError) {
           setSessionsError("Could not load session exercises.");
@@ -148,10 +159,16 @@ export default function Home() {
         const sessionExerciseIdsWithSets = new Set<string>();
 
         if (sessionExerciseIds.length > 0) {
-          const { data: setsData, error: setsError } = await supabaseBrowserClient
-            .from("workout_sets")
-            .select("session_exercise_id")
-            .in("session_exercise_id", sessionExerciseIds);
+          const { data: setsData, error: setsError } = await fetchInChunks(
+            sessionExerciseIds,
+            (chunk, from, to) =>
+              supabaseBrowserClient
+                .from("workout_sets")
+                .select("session_exercise_id")
+                .in("session_exercise_id", chunk)
+                .order("id", { ascending: true })
+                .range(from, to),
+          );
 
           if (setsError) {
             setSessionsError("Could not load workout sets.");

@@ -12,6 +12,7 @@ import { StatusNotice } from "@/app/components/status-notice";
 import { loadExerciseMetadata } from "@/lib/exercise-metadata-cache";
 import { createPageLoadPerfTracker } from "@/lib/page-load-perf";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
+import { fetchAllPages, fetchInChunks } from "@/lib/supabase/chunked-query";
 import { isFutureSessionDate } from "@/lib/session-date";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
 
@@ -95,11 +96,15 @@ function ExercisesMain() {
 
       const { data: sessionRows, error: sessionsError } = await perf.trackQuery(
         "workout_sessions.selectUserIds",
-        async () =>
-          await supabaseBrowserClient
-            .from("workout_sessions")
-            .select("id, performed_on")
-            .eq("user_id", session.user.id),
+        () =>
+          fetchAllPages((from, to) =>
+            supabaseBrowserClient
+              .from("workout_sessions")
+              .select("id, performed_on")
+              .eq("user_id", session.user.id)
+              .order("id", { ascending: true })
+              .range(from, to),
+          ),
       );
       if (sessionsError) {
         setErrorMessage("Could not load your workout sessions.");
@@ -115,11 +120,15 @@ function ExercisesMain() {
       if (sessionIds.length > 0) {
         const { data: sessionExerciseRows, error: sessionExercisesError } = await perf.trackQuery(
           "workout_session_exercises.selectBySessionIds",
-          async () =>
-            await supabaseBrowserClient
-              .from("workout_session_exercises")
-              .select("exercise_id")
-              .in("session_id", sessionIds),
+          () =>
+            fetchInChunks(sessionIds, (chunk, from, to) =>
+              supabaseBrowserClient
+                .from("workout_session_exercises")
+                .select("exercise_id")
+                .in("session_id", chunk)
+                .order("id", { ascending: true })
+                .range(from, to),
+            ),
         );
         if (sessionExercisesError) {
           setErrorMessage("Could not load exercise history.");
