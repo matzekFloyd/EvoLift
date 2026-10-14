@@ -1,5 +1,6 @@
 "use client";
 
+import { Trophy } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { ActionButton } from "@/app/components/action-button";
 import { AppTable } from "@/app/components/app-table";
@@ -27,6 +28,8 @@ type SessionsTableProps = {
   emptyMessage: string;
   openingRowId?: string | null;
   highlightedPerformedOnDates?: string[] | null;
+  /** Session dates (`YYYY-MM-DD`) that reached a goal, with the goal names for that day. */
+  goalReachedByDate?: Record<string, string>;
   onOpenRow: (rowId: string) => void;
   pageSize?: number;
   showNotesColumn?: boolean;
@@ -39,6 +42,7 @@ export function SessionsTable({
   emptyMessage,
   openingRowId = null,
   highlightedPerformedOnDates = null,
+  goalReachedByDate = {},
   onOpenRow,
   pageSize = 20,
   showNotesColumn = true,
@@ -105,7 +109,7 @@ export function SessionsTable({
         }`}
       >
           <colgroup>
-            <col className={compactMode ? "w-[130px]" : "w-[180px]"} />
+            <col className={compactMode ? "w-[152px]" : "w-[180px]"} />
             <col className={showNotesColumn ? "w-[260px]" : "w-auto"} />
             {showNotesColumn ? <col className={compactMode ? "w-[140px]" : "w-[180px]"} /> : null}
           </colgroup>
@@ -143,7 +147,9 @@ export function SessionsTable({
                 const visibleNotes =
                   needsTruncate && !isExpanded ? `${row.notes.slice(0, 64)}[...]` : row.notes || "-";
                 const isOpening = openingRowId === row.id;
-                const isHighlighted = highlightedDateSet.has(row.performedOn.slice(0, 10));
+                const performedOnKey = row.performedOn.slice(0, 10);
+                const goalLabel = goalReachedByDate[performedOnKey];
+                const isHighlighted = highlightedDateSet.has(performedOnKey);
                 return (
                   <tr
                     key={row.id}
@@ -157,8 +163,16 @@ export function SessionsTable({
                     onClick={() => onOpenRow(row.id)}
                   >
                     <td className="px-2 py-2">
-                      <span className="inline-flex items-center gap-2">
+                      <span className="inline-flex items-center gap-1 whitespace-nowrap">
                         {formatDateOnlyForLocale(row.performedOn)}
+                        {goalLabel ? (
+                          <Trophy
+                            className="h-3.5 w-3.5 shrink-0 fill-yellow-400 text-amber-500"
+                            strokeWidth={1.75}
+                            role="img"
+                            aria-label={`Goal reached: ${goalLabel}`}
+                          />
+                        ) : null}
                         {isOpening ? <span className="text-xs font-medium text-sky-700">Opening...</span> : null}
                       </span>
                     </td>
