@@ -68,10 +68,28 @@ Measured as query flow counts from previous page-load logic.
 
 - Cold-cache first hit still performs metadata queries.
 - Metadata can be stale for up to 5 minutes; this is acceptable for non-critical exercise naming/slug metadata.
-- Session number computation in `/sessions/[id]` still scans user session ids; this remains unchanged for behavior safety.
+- Session number on `/sessions/[id]` is a prior-session count plus a same-timestamp id lookup. Those reads now run with the other independent loads.
 
 ## Next Steps (Optional)
 
 - Add a tiny dev-only diagnostics panel to inspect `window.__evoLiftPerfMetrics` without opening console.
-- Optimize `/sessions/[id]` session number lookup with a focused count strategy if needed.
 - Add explicit metadata cache invalidation wherever exercise definitions/translations are edited in-app.
+
+## Read waterfalls
+
+Independent reads on the three page loads now start together. Query counts are unchanged. Load time is the slowest read in each group, not the sum.
+
+`/sessions/[id]` names the session-exercise and set columns on the initial load. Insert and update responses still use `select("*")`.
+
+Local demo, one signed-in browser session, from `window.__evoLiftPerfMetrics`:
+
+| Page | Cache | Load | Queries |
+|---|---|---:|---:|
+| `/exercises` | Cold metadata, counts fetched | 153.2 ms | 3 |
+| `/exercises` | Warm metadata, home summary already loaded | 15.8 ms | 2 |
+| `/exercises/[slug]` | Cold metadata | 102.0 ms | 5 |
+| `/exercises/[slug]` | Warm metadata | 93.9 ms | 5 |
+| `/sessions/[id]` | Cold metadata | 123.0 ms | 8 |
+| `/sessions/[id]` | Warm metadata | 101.6 ms | 8 |
+
+On the cold exercise list, metadata (132.2 ms) and `exercise_past_session_counts` (102.6 ms) overlapped, so the load was 153.2 ms rather than about 255 ms end to end. On the cold session editor, the five reads after the session row overlapped and the load was 123 ms rather than about 283 ms end to end. On the exercise page, session rows and set rows overlapped (about 15 ms each).
