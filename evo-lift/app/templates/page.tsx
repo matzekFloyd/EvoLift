@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
 import { DateInput } from "@/app/components/date-input";
 import { PageShell } from "@/app/components/page-shell";
+import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
 import { getTodayYyyyMmDd } from "@/lib/session-date";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
@@ -283,9 +284,7 @@ export default function TemplatesPage() {
           aria-labelledby="use-template-title"
         >
           <div className="w-full max-w-md rounded-lg border border-zinc-200 bg-white p-4 shadow-lg">
-            <h2 id="use-template-title" className="text-base font-semibold text-zinc-900">
-              Start session from template
-            </h2>
+            <SectionHeading id="use-template-title">Start session from template</SectionHeading>
             <p className="mt-1 text-xs text-zinc-600">
               Creates a workout session with this template&apos;s exercises and targets. You can
               still edit before logging sets.
@@ -338,9 +337,7 @@ export default function TemplatesPage() {
           aria-labelledby="delete-template-title"
         >
           <div className="w-full max-w-sm rounded-lg border border-zinc-200 bg-white p-4 shadow-lg">
-            <h2 id="delete-template-title" className="text-base font-semibold text-zinc-900">
-              Delete template?
-            </h2>
+            <SectionHeading id="delete-template-title">Delete template?</SectionHeading>
             <p className="mt-1 text-sm text-zinc-600">
               This removes the template only. Existing workout sessions stay unchanged.
             </p>

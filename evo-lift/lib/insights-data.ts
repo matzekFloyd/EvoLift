@@ -266,3 +266,160 @@ export async function loadUserWeeklyVolumeBase(
     }))
     .sort((a, b) => a.weekStart.localeCompare(b.weekStart));
 }
+
+export type ExerciseWorkingSetSample = {
+  exerciseId: string;
+  slug: string;
+  label: string;
+  sessionId: string;
+  performedOn: string;
+  reps: number;
+  totalKg: number;
+};
+
+/** Working sets with a logged load. Total (kg) includes that session's base. */
+export async function loadUserExerciseWorkingSets(
+  client: SupabaseClient<Database>,
+  userId: string,
+): Promise<ExerciseWorkingSetSample[]> {
+  const { data: sessionsData, error: sessionsError } = await client
+    .from("workout_sessions")
+    .select("id, performed_on")
+    .eq("user_id", userId);
+  if (sessionsError) {
+    throw new Error(`Could not load workout sessions: ${sessionsError.message}`);
+  }
+  const sessions = (sessionsData ?? []) as WorkoutSessionRow[];
+  if (sessions.length === 0) {
+    return [];
+  }
+  const performedOnBySessionId = new Map(
+    sessions.map((session) => [session.id, normalizeDateOnly(session.performed_on)]),
+  );
+  const sessionIds = sessions.map((session) => session.id);
+
+  const { data: sessionExercisesData, error: sessionExercisesError } = await client
+    .from("workout_session_exercises")
+    .select("id, session_id, exercise_id, base_weight_kg")
+    .in("session_id", sessionIds);
+  if (sessionExercisesError) {
+    throw new Error(`Could not load session exercises: ${sessionExercisesError.message}`);
+  }
+  const sessionExercises = (sessionExercisesData ?? []) as Array<{
+    id: string;
+    session_id: string;
+    exercise_id: string;
+    base_weight_kg: number | null;
+  }>;
+  if (sessionExercises.length === 0) {
+    return [];
+  }
+
+  const sessionExerciseIds = sessionExercises.map((row) => row.id);
+  const { data: setsData, error: setsError } = await client
+    .from("workout_sets")
+    .select("session_exercise_id, reps, weight_kg, is_warmup")
+    .in("session_exercise_id", sessionExerciseIds);
+  if (setsError) {
+    throw new Error(`Could not load workout sets: ${setsError.message}`);
+  }
+
+  const exerciseIds = [...new Set(sessionExercises.map((row) => row.exercise_id))];
+  const { data: exerciseRows, error: exerciseError } = await client
+    .from("exercises")
+    .select("id, slug")
+    .in("id", exerciseIds);
+  if (exerciseError) {
+    throw new Error(`Could not load exercises: ${exerciseError.message}`);
+  }
+  const { data: translationRows, error: translationError } = await client
+    .from("exercise_translations")
+    .select("exercise_id, name")
+    .eq("lang_code", "en")
+    .in("exercise_id", exerciseIds);
+  if (translationError) {
+    throw new Error(`Could not load exercise names: ${translationError.message}`);
+  }
+
+  const slugById = new Map(
+    ((exerciseRows ?? []) as Array<{ id: string; slug: string }>).map((row) => [row.id, row.slug]),
+  );
+  const labelById = new Map(
+    ((translationRows ?? []) as Array<{ exercise_id: string; name: string }>).map((row) => [
+      row.exercise_id,
+      row.name,
+    ]),
+  );
+  const exerciseBySessionExerciseId = new Map(
+    sessionExercises.map((row) => [row.id, row]),
+  );
+
+  const samples: ExerciseWorkingSetSample[] = [];
+  for (const setRow of (setsData ?? []) as Array<{
+    session_exercise_id: string | null;
+    reps: number;
+    weight_kg: number | null;
+    is_warmup: boolean;
+  }>) {
+    if (!setRow.session_exercise_id || setRow.is_warmup || setRow.weight_kg == null || setRow.reps < 1) {
+      continue;
+    }
+    const sessionExercise = exerciseBySessionExerciseId.get(setRow.session_exercise_id);
+    if (!sessionExercise) {
+      continue;
+    }
+    const performedOn = performedOnBySessionId.get(sessionExercise.session_id);
+    const slug = slugById.get(sessionExercise.exercise_id);
+    if (!performedOn || !slug) {
+      continue;
+    }
+    const loaded = Number(setRow.weight_kg);
+    const base = Number(sessionExercise.base_weight_kg ?? 0);
+    if (!Number.isFinite(loaded) || loaded < 0) {
+      continue;
+    }
+    const totalKg = loaded + (Number.isFinite(base) ? base : 0);
+    if (totalKg <= 0) {
+      continue;
+    }
+    samples.push({
+      exerciseId: sessionExercise.exercise_id,
+      slug,
+      label: labelById.get(sessionExercise.exercise_id) ?? slug,
+      sessionId: sessionExercise.session_id,
+      performedOn,
+      reps: setRow.reps,
+      totalKg,
+    });
+  }
+  return samples;
+}
+
+export type UserStrengthProfile = {
+  sex: "female" | "male" | null;
+  bodyweightKg: number | null;
+  dateOfBirth: string | null;
+  birthYear: number | null;
+};
+
+export async function loadUserStrengthProfile(
+  client: SupabaseClient<Database>,
+  userId: string,
+): Promise<UserStrengthProfile> {
+  const { data, error } = await client
+    .from("user_profile_metrics")
+    .select("bodyweight_kg, sex, date_of_birth, birth_year")
+    .eq("user_id", userId)
+    .maybeSingle();
+  if (error) {
+    throw new Error(`Could not load profile: ${error.message}`);
+  }
+  const bodyweight = data?.bodyweight_kg;
+  const sex = data?.sex === "female" || data?.sex === "male" ? data.sex : null;
+  return {
+    sex,
+    bodyweightKg: bodyweight == null || !Number.isFinite(Number(bodyweight)) ? null : Number(bodyweight),
+    dateOfBirth: data?.date_of_birth ?? null,
+    birthYear: data?.birth_year ?? null,
+  };
+}

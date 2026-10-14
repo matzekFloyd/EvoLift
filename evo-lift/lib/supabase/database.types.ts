@@ -101,6 +101,8 @@ export type Database = {
           bodyweight_kg: number | null;
           height_cm: number | null;
           birth_year: number | null;
+          sex: "female" | "male" | null;
+          date_of_birth: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -109,6 +111,8 @@ export type Database = {
           bodyweight_kg?: number | null;
           height_cm?: number | null;
           birth_year?: number | null;
+          sex?: "female" | "male" | null;
+          date_of_birth?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -117,6 +121,8 @@ export type Database = {
           bodyweight_kg?: number | null;
           height_cm?: number | null;
           birth_year?: number | null;
+          sex?: "female" | "male" | null;
+          date_of_birth?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -373,6 +379,7 @@ export type Database = {
     };
     Enums: {
       language_code: LanguageCode;
+      profile_sex: "female" | "male";
     };
     CompositeTypes: Record<string, never>;
   };

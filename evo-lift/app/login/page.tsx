@@ -5,6 +5,7 @@ import { FormEvent, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { PageShell } from "@/app/components/page-shell";
+import { SectionHeading } from "@/app/components/section-heading";
 import { SegmentedTabs } from "@/app/components/segmented-tabs";
 import {
   getExerciseMetadataCacheStatus,
@@ -289,10 +290,10 @@ export default function LoginPage() {
 
       {successEmail ? (
         <section className="panel p-4 text-sm">
-          <h2 className="inline-flex items-center gap-1 font-medium text-sky-900">
-            <CircleCheck className="h-4 w-4" />
+          <SectionHeading className="inline-flex items-center gap-1">
+            <CircleCheck className="h-4 w-4 text-sky-700" />
             Check your inbox
-          </h2>
+          </SectionHeading>
           <p className="mt-1 text-zinc-700">
             We sent a confirmation link to <span className="font-medium">{successEmail}</span>.
             Confirm your email, then log in.

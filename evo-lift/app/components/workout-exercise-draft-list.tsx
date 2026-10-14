@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ActionButton } from "@/app/components/action-button";
+import { panelInsetClass } from "@/app/components/panel-inset";
+import { SectionHeading } from "@/app/components/section-heading";
 import { ExerciseSearchSelect } from "@/app/components/exercise-search-select";
 import { InfoPopover } from "@/app/components/info-popover";
 import { NotesTextareaField } from "@/app/components/notes-textarea-field";
@@ -210,10 +212,10 @@ export function WorkoutExerciseDraftList({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="inline-flex items-center gap-1 text-sm font-medium">
+        <SectionHeading className="inline-flex items-center gap-1">
           <Dumbbell className="h-3.5 w-3.5 text-zinc-500" />
           Exercises
-        </h2>
+        </SectionHeading>
         {isCompactView && exerciseRows.length > 0 ? (
           <span className="rounded-md border border-sky-200 bg-sky-50 px-2 py-1 text-xs font-semibold text-sky-800">
             Exercise {activeExerciseIndex + 1} of {exerciseRows.length}
@@ -276,8 +278,8 @@ export function WorkoutExerciseDraftList({
           onFocusCapture={() => setActiveExerciseIndex(index)}
           className={
             isCompactView
-              ? "rounded-md border border-zinc-200 bg-zinc-50/70 p-3"
-              : "panel panel-nested border-zinc-200 bg-zinc-50/80 p-5 text-sm shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+              ? panelInsetClass("p-3")
+              : panelInsetClass("p-5 text-sm")
           }
         >
           <div className="mb-2 mt-1 flex items-center justify-between">

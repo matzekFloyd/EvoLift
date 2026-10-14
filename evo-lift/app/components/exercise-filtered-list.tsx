@@ -6,6 +6,7 @@ import {
   type ExercisePickerOption,
   filterExercisePickerOptionsByQuery,
 } from "@/lib/exercise-picker-options";
+import { panelInsetClass } from "@/app/components/panel-inset";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
 
 export type ExerciseFilteredListItem = ExercisePickerOption;
@@ -31,7 +32,7 @@ export function ExerciseFilteredList<T extends ExerciseFilteredListItem>({
   searchPlaceholder = "Search by name or badge",
   debounceMs = 280,
   emptyFilterMessage = "No exercises match that search.",
-  listClassName = "mt-3 max-h-64 space-y-2 overflow-y-auto rounded-md border border-zinc-200 bg-zinc-50/80 p-3",
+  listClassName = panelInsetClass("mt-3 max-h-64 space-y-2 overflow-y-auto p-3"),
   searchText: controlledSearch,
   onSearchTextChange,
 }: ExerciseFilteredListProps<T>) {

@@ -16,12 +16,22 @@ import {
 } from "lucide-react";
 import { ActionButton } from "@/app/components/action-button";
 import { AppTable } from "@/app/components/app-table";
+import {
+  HistoryPageNav,
+  HistoryPageSizeToggle,
+  historyPageCount,
+  sliceRowsForPage,
+  type HistoryPageSize,
+} from "@/app/components/history-page-controls";
 import { DateInput } from "@/app/components/date-input";
 import { ExerciseSessionVolumeChart } from "@/app/components/exercise-session-volume-chart";
 import { ExerciseWeightProgressChart } from "@/app/components/exercise-weight-progress-chart";
+import { ExerciseInsightPanel } from "@/app/components/lift-comparison-panel";
 import { InfoPopover } from "@/app/components/info-popover";
 import { KpiBadge } from "@/app/components/kpi-badge";
 import { PageShell } from "@/app/components/page-shell";
+import { panelInsetClass } from "@/app/components/panel-inset";
+import { SectionHeading } from "@/app/components/section-heading";
 import { SegmentedTabs } from "@/app/components/segmented-tabs";
 import { SetKindIndicator } from "@/app/components/set-kind-indicator";
 import { StatusNotice } from "@/app/components/status-notice";
@@ -32,6 +42,13 @@ import { toExerciseBadge } from "@/lib/exercise-badge";
 import { buildExerciseSessionVolumeChartPoints } from "@/lib/exercise-session-volume-chart";
 import { buildExerciseSessionWeightChartPoints } from "@/lib/exercise-session-weight-chart";
 import { createPageLoadPerfTracker } from "@/lib/page-load-perf";
+import { resolveLifterAge } from "@/lib/body-metrics";
+import { buildExerciseProgressReport, type LifterProfile } from "@/lib/exercise-progress-insights";
+import {
+  loadUserExerciseWorkingSets,
+  loadUserStrengthProfile,
+  type ExerciseWorkingSetSample,
+} from "@/lib/insights-data";
 import {
   getDefaultRollingYearDateRange,
   getTodayYyyyMmDd,
@@ -107,10 +124,9 @@ function parseExerciseDetailFiltersFromSearchParams(
   }
 
   const hideFlag = sp.get("hideWarmups")?.trim().toLowerCase() ?? "";
-  let hideWarmups =
-    hideFlag === "1" || hideFlag === "true" || hideFlag === "yes";
+  let hideWarmups = hideFlag !== "0" && hideFlag !== "false" && hideFlag !== "no";
   const legacyKind = sp.get("kind")?.trim().toLowerCase() ?? "";
-  if (legacyKind === "working") {
+  if (legacyKind === "working" || hideFlag === "1" || hideFlag === "true" || hideFlag === "yes") {
     hideWarmups = true;
   }
 
@@ -136,8 +152,8 @@ function buildExerciseDetailFilterQueryString(
   if (to !== defaults.to) {
     p.set("to", to);
   }
-  if (hideWarmups) {
-    p.set("hideWarmups", "1");
+  if (!hideWarmups) {
+    p.set("hideWarmups", "0");
   }
   return p.toString();
 }
@@ -251,9 +267,19 @@ export default function ExerciseDetailPage() {
   const [isNotFound, setIsNotFound] = useState(false);
   const [exerciseLabel, setExerciseLabel] = useState("");
   const [historyRows, setHistoryRows] = useState<ExerciseSetHistoryRow[]>([]);
+  const [insightSamples, setInsightSamples] = useState<ExerciseWorkingSetSample[]>([]);
+  const [lifterProfile, setLifterProfile] = useState<LifterProfile>({
+    sex: null,
+    bodyweightKg: null,
+    ageYears: null,
+    ageIsApproximate: false,
+  });
+  const [insightReady, setInsightReady] = useState(false);
   const [isCompactView, setIsCompactView] = useState(false);
   const [sortKey, setSortKey] = useState<HistorySortKey>("performedOn");
   const [sortDirection, setSortDirection] = useState<HistorySortDirection>("desc");
+  const [historyPageSize, setHistoryPageSize] = useState<HistoryPageSize>("25");
+  const [historyPage, setHistoryPage] = useState(1);
   const [detailPanelTab, setDetailPanelTab] = useState<ExerciseDetailPanelTab>("data");
 
   const filterState = useMemo(
@@ -265,6 +291,12 @@ export default function ExerciseDetailPage() {
       ),
     [searchParams, defaultDateRange],
   );
+  const historyFilterKey = `${filterState.from}|${filterState.to}|${filterState.hideWarmups}`;
+  const [historyPageFilterKey, setHistoryPageFilterKey] = useState(historyFilterKey);
+  if (historyPageFilterKey !== historyFilterKey) {
+    setHistoryPageFilterKey(historyFilterKey);
+    setHistoryPage(1);
+  }
 
   const commitExerciseFilters = useCallback(
     (patch: Partial<{ from: string; to: string; hideWarmups: boolean }>) => {
@@ -319,6 +351,13 @@ export default function ExerciseDetailPage() {
         router.replace("/login");
         return;
       }
+
+      const insightTask = Promise.all([
+        loadUserExerciseWorkingSets(supabaseBrowserClient, session.user.id),
+        loadUserStrengthProfile(supabaseBrowserClient, session.user.id),
+      ])
+        .then(([sets, profile]) => ({ sets, profile }))
+        .catch(() => null);
 
       let metadataRows: Array<{ id: string; slug: string; label: string }> = [];
       try {
@@ -444,8 +483,26 @@ export default function ExerciseDetailPage() {
       if (!isMounted) {
         return;
       }
+      const insight = await insightTask;
+      if (!isMounted) {
+        return;
+      }
       setExerciseLabel(exerciseData.label);
       setHistoryRows(history);
+      if (insight) {
+        const age = resolveLifterAge({
+          dateOfBirth: insight.profile.dateOfBirth,
+          birthYear: insight.profile.birthYear,
+        });
+        setInsightSamples(insight.sets);
+        setLifterProfile({
+          sex: insight.profile.sex,
+          bodyweightKg: insight.profile.bodyweightKg,
+          ageYears: age?.ageYears ?? null,
+          ageIsApproximate: age?.ageIsApproximate ?? false,
+        });
+      }
+      setInsightReady(insight != null);
       setIsLoading(false);
       perf.flush();
     }
@@ -485,6 +542,16 @@ export default function ExerciseDetailPage() {
     !filterState.hideWarmups &&
     filterState.from === fullHistoryClearDateRange.from &&
     filterState.to === fullHistoryClearDateRange.to;
+
+  const exerciseInsight = useMemo(
+    () =>
+      buildExerciseProgressReport(
+        insightSamples,
+        { from: filterState.from, to: filterState.to },
+        lifterProfile,
+      ),
+    [filterState.from, filterState.to, insightSamples, lifterProfile],
+  );
 
   const filteredHistoryRows = useMemo(() => {
     const inRange = historyRows.filter((row) => {
@@ -645,13 +712,30 @@ export default function ExerciseDetailPage() {
     return next;
   }, [filteredHistoryRows, sortDirection, sortKey]);
 
+  const historyTotalPages = historyPageCount(filteredHistoryRows.length, historyPageSize);
+  const historyPageIndex = Math.min(historyPage, historyTotalPages);
+  const pagedCompactHistoryRows = useMemo(
+    () => sliceRowsForPage(compactHistoryRows, historyPageIndex, historyPageSize),
+    [compactHistoryRows, historyPageIndex, historyPageSize],
+  );
+  const pagedTableRows = useMemo(
+    () => sliceRowsForPage(sortedTableRows, historyPageIndex, historyPageSize),
+    [historyPageIndex, historyPageSize, sortedTableRows],
+  );
+
   function handleSort(nextKey: HistorySortKey) {
+    setHistoryPage(1);
     if (sortKey === nextKey) {
       setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
       return;
     }
     setSortKey(nextKey);
     setSortDirection(nextKey === "performedOn" ? "desc" : "asc");
+  }
+
+  function handleHistoryPageSize(nextSize: HistoryPageSize) {
+    setHistoryPageSize(nextSize);
+    setHistoryPage(1);
   }
 
   function renderSortIndicator(nextKey: HistorySortKey) {
@@ -699,6 +783,7 @@ export default function ExerciseDetailPage() {
           </p>
         ) : (
           <div className="flex flex-col gap-4">
+            {insightReady ? <ExerciseInsightPanel report={exerciseInsight} slug={slug ?? ""} /> : null}
             <SegmentedTabs<ExerciseDetailPanelTab>
               value={detailPanelTab}
               onChange={setDetailPanelTab}
@@ -728,7 +813,7 @@ export default function ExerciseDetailPage() {
               hidden={detailPanelTab !== "data"}
               className="flex flex-col gap-4"
             >
-            <div className="flex flex-col gap-3 rounded-lg border border-zinc-200 bg-white/70 p-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:p-4">
+            <div className={panelInsetClass("flex flex-col gap-3 p-3 sm:p-4")}>
               <p className="text-xs text-zinc-600">
                 Showing{" "}
                 <span className="font-medium text-zinc-800">{filteredHistoryRows.length}</span> of{" "}
@@ -794,15 +879,12 @@ export default function ExerciseDetailPage() {
               Narrow: 3–2–2 rows (6-col grid). Mid: neutral row + load/total row (12-col). Wide: one row (7-col).
             */}
             <section
-              className="rounded-lg border border-zinc-200 bg-zinc-50/80 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)] sm:p-5"
+              className={panelInsetClass("p-4 sm:p-5")}
               aria-labelledby="exercise-detail-summary-heading"
             >
-              <h2
-                id="exercise-detail-summary-heading"
-                className="mb-3 text-sm font-semibold text-zinc-900"
-              >
+              <SectionHeading id="exercise-detail-summary-heading" className="mb-3">
                 Summary
-              </h2>
+              </SectionHeading>
             <div className="@container">
               <div className="grid w-full grid-cols-6 gap-2 @min-[28rem]:grid-cols-12 @min-[56rem]:grid-cols-7">
                 <KpiBadge
@@ -864,21 +946,23 @@ export default function ExerciseDetailPage() {
             </section>
 
             <section
-              className="rounded-lg border border-zinc-200 bg-zinc-50/80 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)] sm:p-5"
+              className={panelInsetClass("p-4 sm:p-5")}
               aria-labelledby="exercise-detail-history-heading"
             >
-              <h2
-                id="exercise-detail-history-heading"
-                className="text-sm font-semibold text-zinc-900"
-              >
-                Set history
-              </h2>
-            <p className="mb-3 mt-1 text-xs text-zinc-600">
-              Each row is one set for this exercise. Open a workout session to edit or review
-              details.
-            </p>
+              <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <div className="min-w-0">
+                  <SectionHeading id="exercise-detail-history-heading">Set history</SectionHeading>
+                  <p className="mt-1 text-xs text-zinc-600">
+                    Each row is one set for this exercise. Open a workout session to edit or review
+                    details.
+                  </p>
+                </div>
+                {filteredHistoryRows.length > 0 ? (
+                  <HistoryPageSizeToggle value={historyPageSize} onChange={handleHistoryPageSize} />
+                ) : null}
+              </div>
             {filteredHistoryRows.length === 0 ? (
-              <div className="rounded-md border border-zinc-200 bg-zinc-50/90 p-4 text-sm text-zinc-700">
+              <div className={panelInsetClass("p-4 text-sm text-zinc-700")}>
                 <p className="text-zinc-800">No sets match the current filters.</p>
                 <ActionButton
                   type="button"
@@ -915,7 +999,7 @@ export default function ExerciseDetailPage() {
                   </span>
                   <span className="text-right">Reps</span>
                 </div>
-                {compactHistoryRows.map((row, index) => (
+                {pagedCompactHistoryRows.map((row, index) => (
                   <article
                     key={`${row.sessionId}-${row.setNumber}-${index}`}
                     className={`cursor-pointer border-b px-2 py-1.5 text-xs last:border-b-0 ${
@@ -1032,7 +1116,7 @@ export default function ExerciseDetailPage() {
                     </tr>
                   </thead>
                   <tbody>
-                    {sortedTableRows.map((row, index) => (
+                    {pagedTableRows.map((row, index) => (
                       (() => {
                         const rowKey = `${row.sessionId}-${row.setNumber}`;
                         const isTopRepsRow = rowKey === topRepsRowKey;
@@ -1079,6 +1163,13 @@ export default function ExerciseDetailPage() {
                   </tbody>
               </AppTable>
             )}
+            {filteredHistoryRows.length > 0 ? (
+              <HistoryPageNav
+                page={historyPageIndex}
+                totalPages={historyTotalPages}
+                onPageChange={setHistoryPage}
+              />
+            ) : null}
             </section>
             </div>
 
@@ -1090,16 +1181,13 @@ export default function ExerciseDetailPage() {
               className="flex flex-col gap-4"
             >
             <section
-              className="rounded-lg border border-zinc-200 bg-zinc-50/80 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)] sm:p-5"
+              className={panelInsetClass("p-4 sm:p-5")}
               aria-labelledby="exercise-detail-chart-heading"
             >
               <div className="flex items-center gap-2">
-                <h2
-                  id="exercise-detail-chart-heading"
-                  className="min-w-0 flex-1 text-sm font-semibold text-zinc-900"
-                >
+                <SectionHeading id="exercise-detail-chart-heading" className="min-w-0 flex-1">
                   Weight by session
-                </h2>
+                </SectionHeading>
                 <InfoPopover label="How this chart works">
                   <div className="space-y-2">
                     <p>
@@ -1121,16 +1209,13 @@ export default function ExerciseDetailPage() {
             </section>
 
             <section
-              className="rounded-lg border border-zinc-200 bg-zinc-50/80 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.05)] sm:p-5"
+              className={panelInsetClass("p-4 sm:p-5")}
               aria-labelledby="exercise-detail-volume-heading"
             >
               <div className="flex items-center gap-2">
-                <h2
-                  id="exercise-detail-volume-heading"
-                  className="min-w-0 flex-1 text-sm font-semibold text-zinc-900"
-                >
+                <SectionHeading id="exercise-detail-volume-heading" className="min-w-0 flex-1">
                   Session volume
-                </h2>
+                </SectionHeading>
                 <InfoPopover label="How session volume works">
                   <div className="space-y-2">
                     <p>

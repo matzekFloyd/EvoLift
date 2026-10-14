@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { SectionHeading } from "@/app/components/section-heading";
 
 type SettingsSectionHeaderProps = {
   title: string;
@@ -13,10 +14,10 @@ export function SettingsSectionHeader({
 }: SettingsSectionHeaderProps) {
   return (
     <>
-      <h2 className="inline-flex items-center gap-2 text-base font-semibold tracking-tight text-zinc-900">
+      <SectionHeading className="inline-flex items-center gap-2">
         {icon}
         {title}
-      </h2>
+      </SectionHeading>
       {description ? (
         <p className="mt-1.5 max-w-prose text-sm leading-snug text-zinc-600">{description}</p>
       ) : null}

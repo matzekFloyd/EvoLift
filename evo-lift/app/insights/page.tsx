@@ -5,16 +5,25 @@ import { BarChart3, Dumbbell, FilterX, Hash, Weight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
 import { KpiBadge } from "@/app/components/kpi-badge";
+import { ExerciseProgressPanel } from "@/app/components/exercise-progress-panel";
+import { LiftComparisonPanel } from "@/app/components/lift-comparison-panel";
 import { InsightsWeeklyVolumeChart } from "@/app/components/insights-weekly-volume-chart";
 import { DateInput } from "@/app/components/date-input";
 import { PageShell } from "@/app/components/page-shell";
+import { PanelInset } from "@/app/components/panel-inset";
+import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
+import { buildExerciseProgressReport, type LifterProfile } from "@/lib/exercise-progress-insights";
 import { buildInsightsComparisonSentence } from "@/lib/insights-chart-summary";
+import { resolveLifterAge } from "@/lib/body-metrics";
 import {
   applyInsightsRange,
+  loadUserStrengthProfile,
+  loadUserExerciseWorkingSets,
   loadUserWorkoutActivityBase,
   loadUserWeeklyVolumeBase,
+  type ExerciseWorkingSetSample,
   type InsightsRange,
   type WeeklyVolumePoint,
   type WorkoutActivityPoint,
@@ -33,6 +42,13 @@ const rangeOptions: RangeOption[] = [
   { value: "all", label: "All" },
 ];
 const defaultInsightsRange: InsightsRange = "12w";
+
+const emptyLifterProfile: LifterProfile = {
+  sex: null,
+  bodyweightKg: null,
+  ageYears: null,
+  ageIsApproximate: false,
+};
 
 function toYyyyMmDd(value: Date): string {
   const year = value.getFullYear();
@@ -75,6 +91,8 @@ export default function InsightsPage() {
   const [trendMetric, setTrendMetric] = useState<InsightTrendMetric>("volume");
   const [basePoints, setBasePoints] = useState<WorkoutActivityPoint[]>([]);
   const [weeklyVolumeBase, setWeeklyVolumeBase] = useState<WeeklyVolumePoint[]>([]);
+  const [exerciseSets, setExerciseSets] = useState<ExerciseWorkingSetSample[]>([]);
+  const [lifterProfile, setLifterProfile] = useState<LifterProfile>(emptyLifterProfile);
   const isMountedRef = useRef(true);
 
   const loadInsights = useCallback(
@@ -98,15 +116,28 @@ export default function InsightsPage() {
       }
 
       try {
-        const [points, weekly] = await Promise.all([
+        const [points, weekly, sets, profile] = await Promise.all([
           loadUserWorkoutActivityBase(supabaseBrowserClient, session.user.id),
           loadUserWeeklyVolumeBase(supabaseBrowserClient, session.user.id),
+          loadUserExerciseWorkingSets(supabaseBrowserClient, session.user.id),
+          loadUserStrengthProfile(supabaseBrowserClient, session.user.id),
         ]);
         if (!isMountedRef.current) {
           return;
         }
+        const age = resolveLifterAge({
+          dateOfBirth: profile.dateOfBirth,
+          birthYear: profile.birthYear,
+        });
         setBasePoints(points);
         setWeeklyVolumeBase(weekly);
+        setExerciseSets(sets);
+        setLifterProfile({
+          sex: profile.sex,
+          bodyweightKg: profile.bodyweightKg,
+          ageYears: age?.ageYears ?? null,
+          ageIsApproximate: age?.ageIsApproximate ?? false,
+        });
         setErrorMessage(null);
       } catch (error) {
         if (!isMountedRef.current) {
@@ -252,6 +283,11 @@ export default function InsightsPage() {
     [comparisonPeriodName, dateFrom, dateTo, trendMetric, weeklyVolumeBase, weeklyVolumeFiltered],
   );
 
+  const exerciseProgress = useMemo(
+    () => buildExerciseProgressReport(exerciseSets, { from: dateFrom, to: dateTo }, lifterProfile),
+    [dateFrom, dateTo, exerciseSets, lifterProfile],
+  );
+
   const trendMetricKpi = useMemo(() => {
     if (trendMetric === "workingSets") {
       return {
@@ -278,7 +314,7 @@ export default function InsightsPage() {
           Insights
         </h1>
         <p className="mt-1 text-sm text-zinc-600">
-          Review your training trends. Visualizations will expand in follow-up tickets.
+          See which lifts are moving, and which ones have more room than a steady rate.
         </p>
       </section>
 
@@ -385,11 +421,13 @@ export default function InsightsPage() {
                 tone="neutral"
               />
             </div>
-            <div className="rounded-md border border-zinc-200 bg-white p-4">
+            <LiftComparisonPanel report={exerciseProgress} />
+            <ExerciseProgressPanel report={exerciseProgress} />
+            <PanelInset className="p-4">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                <h2 className="text-sm font-medium text-zinc-800">
+                <SectionHeading>
                   {trendMetric === "volume" ? "Volume trend" : "Working sets trend"}
-                </h2>
+                </SectionHeading>
                 <div className="grid w-full grid-cols-2 rounded-md border border-zinc-300 bg-zinc-50 p-1 sm:inline-flex sm:w-auto">
                   <button
                     type="button"
@@ -433,7 +471,7 @@ export default function InsightsPage() {
                   </div>
                 </>
               )}
-            </div>
+            </PanelInset>
           </div>
         )}
       </section>

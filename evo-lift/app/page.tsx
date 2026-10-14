@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
 import { DateInput } from "@/app/components/date-input";
 import { PageShell } from "@/app/components/page-shell";
+import { PanelInset } from "@/app/components/panel-inset";
+import { SectionHeading } from "@/app/components/section-heading";
 import { NewSessionDraftCallout } from "@/app/components/new-session-draft-callout";
 import { SessionsTable, type SessionsTableRow } from "@/app/components/sessions-table";
 import { WorkoutActivityChart } from "@/app/components/workout-activity-chart";
@@ -383,7 +385,7 @@ export default function Home() {
         ) : (
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-2">
-              <h2 className="text-base font-medium text-zinc-800">Past workouts</h2>
+              <SectionHeading>Past workouts</SectionHeading>
               <Link
                 href="/exercises"
                 className="inline-flex items-center gap-1 text-xs font-medium text-zinc-600 underline-offset-2 hover:text-sky-800 hover:underline"
@@ -435,48 +437,52 @@ export default function Home() {
               highlightedDates={highlightedActivityDates}
               onHighlightDatesChange={setHighlightedActivityDates}
             />
-          <SessionsTable
-            rows={completedTableRows}
-            dateHeaderLabel="Performed on"
-            emptyMessage="No completed workout sessions in the selected timeframe."
-            showNotesColumn={!isSmallPhone}
-            compactMode={isSmallPhone}
-            openingRowId={openingSessionId}
-            highlightedPerformedOnDates={highlightedActivityDates}
-            onOpenRow={(rowId) => {
-              if (openingSessionId) {
-                return;
-              }
-              setOpeningSessionId(rowId);
-              router.push(`/sessions/${rowId}`);
-            }}
-          />
+            <PanelInset className="p-3">
+              <SessionsTable
+                rows={completedTableRows}
+                dateHeaderLabel="Performed on"
+                emptyMessage="No completed workout sessions in the selected timeframe."
+                showNotesColumn={!isSmallPhone}
+                compactMode={isSmallPhone}
+                openingRowId={openingSessionId}
+                highlightedPerformedOnDates={highlightedActivityDates}
+                onOpenRow={(rowId) => {
+                  if (openingSessionId) {
+                    return;
+                  }
+                  setOpeningSessionId(rowId);
+                  router.push(`/sessions/${rowId}`);
+                }}
+              />
+            </PanelInset>
           </div>
         )}
       </section>
       <section className="panel p-5">
         <div className="mb-2 flex items-center justify-between gap-2">
-          <h2 className="text-base font-medium text-zinc-800">Planned workouts</h2>
+          <SectionHeading>Planned workouts</SectionHeading>
         </div>
         {plannedSessions.length === 0 ? (
           <p className="text-sm text-zinc-500">No planned workouts.</p>
         ) : (
-          <SessionsTable
-            rows={plannedTableRows}
-            dateHeaderLabel="Planned on"
-            emptyMessage="No planned workouts."
-            showNotesColumn={!isSmallPhone}
-            compactMode={isSmallPhone}
-            openingRowId={openingSessionId}
-            highlightedPerformedOnDates={highlightedActivityDates}
-            onOpenRow={(rowId) => {
-              if (openingSessionId) {
-                return;
-              }
-              setOpeningSessionId(rowId);
-              router.push(`/sessions/${rowId}`);
-            }}
-          />
+          <PanelInset className="p-3">
+            <SessionsTable
+              rows={plannedTableRows}
+              dateHeaderLabel="Planned on"
+              emptyMessage="No planned workouts."
+              showNotesColumn={!isSmallPhone}
+              compactMode={isSmallPhone}
+              openingRowId={openingSessionId}
+              highlightedPerformedOnDates={highlightedActivityDates}
+              onOpenRow={(rowId) => {
+                if (openingSessionId) {
+                  return;
+                }
+                setOpeningSessionId(rowId);
+                router.push(`/sessions/${rowId}`);
+              }}
+            />
+          </PanelInset>
         )}
       </section>
     </PageShell>

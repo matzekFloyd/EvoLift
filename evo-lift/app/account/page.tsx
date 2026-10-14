@@ -15,7 +15,8 @@ import { useRouter } from "next/navigation";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import type { Database } from "@/lib/supabase/database.types";
 import { ExerciseBadgeChip } from "@/app/components/exercise-badge-chip";
-import { approximateAge, validateBodyMetricsInput } from "@/lib/body-metrics";
+import { approximateAge, ageFromDateOfBirth, birthYearFromDate, validateBodyMetricsInput } from "@/lib/body-metrics";
+import { DateInput } from "@/app/components/date-input";
 import { ExerciseFilteredList } from "@/app/components/exercise-filtered-list";
 import { ExerciseSearchSelect } from "@/app/components/exercise-search-select";
 import { PageShell } from "@/app/components/page-shell";
@@ -56,7 +57,9 @@ export default function AccountPage() {
   const [defaultsMessageTone, setDefaultsMessageTone] = useState<"error" | "success">("success");
   const [bodyweightKg, setBodyweightKg] = useState("");
   const [heightCm, setHeightCm] = useState("");
-  const [birthYear, setBirthYear] = useState("");
+  const [sex, setSex] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [birthYearFallback, setBirthYearFallback] = useState<number | null>(null);
   const [isSavingMetrics, setIsSavingMetrics] = useState(false);
   const [metricsMessage, setMetricsMessage] = useState<string | null>(null);
   const [metricsMessageTone, setMetricsMessageTone] = useState<"error" | "success">("success");
@@ -116,7 +119,7 @@ export default function AccountPage() {
         await Promise.all([
           supabaseBrowserClient
             .from("user_profile_metrics")
-            .select("bodyweight_kg,height_cm,birth_year")
+            .select("bodyweight_kg,height_cm,birth_year,sex,date_of_birth")
             .eq("user_id", session.user.id)
             .maybeSingle(),
           supabaseBrowserClient
@@ -142,7 +145,9 @@ export default function AccountPage() {
         profile?.bodyweight_kg == null ? "" : String(profile.bodyweight_kg),
       );
       setHeightCm(profile?.height_cm == null ? "" : String(profile.height_cm));
-      setBirthYear(profile?.birth_year == null ? "" : String(profile.birth_year));
+      setSex(profile?.sex ?? "");
+      setDateOfBirth(profile?.date_of_birth ?? "");
+      setBirthYearFallback(profile?.date_of_birth ? null : (profile?.birth_year ?? null));
 
       const hiddenSet = new Set<string>();
       for (const row of hiddenRows ?? []) {
@@ -302,10 +307,11 @@ export default function AccountPage() {
       setMetricsMessage("Please log in again to save body metrics.");
       return;
     }
-    const calendarYear = new Date().getFullYear();
+    const today = new Date();
+    const todayIso = `${today.getFullYear()}-${`${today.getMonth() + 1}`.padStart(2, "0")}-${`${today.getDate()}`.padStart(2, "0")}`;
     const parsed = validateBodyMetricsInput(
-      { bodyweightKg: bodyweightKg, heightCm: heightCm, birthYear: birthYear },
-      calendarYear,
+      { bodyweightKg, heightCm, sex, dateOfBirth },
+      todayIso,
     );
     if (!parsed.ok) {
       setMetricsMessageTone("error");
@@ -318,7 +324,11 @@ export default function AccountPage() {
     const payload = {
       bodyweight_kg: parsed.value.bodyweight_kg,
       height_cm: parsed.value.height_cm,
-      birth_year: parsed.value.birth_year,
+      sex: parsed.value.sex,
+      date_of_birth: parsed.value.date_of_birth,
+      birth_year: parsed.value.date_of_birth
+        ? birthYearFromDate(parsed.value.date_of_birth)
+        : birthYearFallback,
     };
 
     const { data: updatedRows, error: updateError } = await supabaseBrowserClient
@@ -349,6 +359,9 @@ export default function AccountPage() {
 
     setMetricsMessageTone("success");
     setMetricsMessage("Body metrics saved.");
+    if (parsed.value.date_of_birth) {
+      setBirthYearFallback(null);
+    }
     setIsSavingMetrics(false);
   }
 
@@ -524,11 +537,11 @@ export default function AccountPage() {
   }
 
   const calendarYear = new Date().getFullYear();
-  const birthYearNum = birthYear.trim() === "" ? null : Number(birthYear);
-  const derivedAge =
-    birthYearNum != null && Number.isInteger(birthYearNum)
-      ? approximateAge(birthYearNum, calendarYear)
-      : null;
+  const today = new Date();
+  const todayIso = `${today.getFullYear()}-${`${today.getMonth() + 1}`.padStart(2, "0")}-${`${today.getDate()}`.padStart(2, "0")}`;
+  const exactAge = dateOfBirth.trim() === "" ? null : ageFromDateOfBirth(dateOfBirth.trim(), today);
+  const yearOnlyAge =
+    exactAge == null && birthYearFallback != null ? approximateAge(birthYearFallback, calendarYear) : null;
 
   useEffect(() => {
     setEmailMessage(null);
@@ -686,12 +699,12 @@ export default function AccountPage() {
       <SettingsSection>
         <SettingsSectionHeader
           title="Body metrics"
-          description="Optional. Enter your current bodyweight and height in kg/cm. These values are saved to your profile and do not change the weights you log in workouts."
+          description="Optional. Bodyweight, sex, and date of birth are used on Insights to compare your main lifts with published standards. They do not change the weights you log."
           icon={<UserRound className="h-4 w-4 text-zinc-500" />}
         />
         <SettingsSectionBody>
         <form onSubmit={handleMetricsSave} className="space-y-3">
-          <div className="grid gap-3 sm:grid-cols-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <label className="block text-sm font-medium">
               Bodyweight (kg)
               <input
@@ -719,19 +732,32 @@ export default function AccountPage() {
               />
             </label>
             <label className="block text-sm font-medium">
-              Year of birth
-              <input
-                type="number"
-                min={1900}
-                max={calendarYear}
-                step={1}
-                value={birthYear}
-                onChange={(event) => setBirthYear(event.target.value)}
+              Sex
+              <select
+                value={sex}
+                onChange={(event) => setSex(event.target.value)}
                 className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
-                placeholder="Optional"
+              >
+                <option value="">Not set</option>
+                <option value="female">Female</option>
+                <option value="male">Male</option>
+              </select>
+            </label>
+            <label className="block text-sm font-medium">
+              Date of birth
+              <DateInput
+                min="1900-01-01"
+                max={todayIso}
+                value={dateOfBirth}
+                onChange={(event) => setDateOfBirth(event.target.value)}
+                className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
               />
-              {derivedAge != null ? (
-                <span className="mt-1 block text-sm text-zinc-500">About {derivedAge} years old</span>
+              {exactAge != null ? (
+                <span className="mt-1 block text-sm text-zinc-500">{exactAge} years old</span>
+              ) : yearOnlyAge != null ? (
+                <span className="mt-1 block text-sm text-zinc-500">
+                  Year of birth on file: {birthYearFallback}. About {yearOnlyAge} years old.
+                </span>
               ) : null}
             </label>
           </div>

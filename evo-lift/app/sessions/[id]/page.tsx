@@ -30,6 +30,8 @@ import { DateInput } from "@/app/components/date-input";
 import { ExerciseSearchSelect } from "@/app/components/exercise-search-select";
 import { NotesTextareaField } from "@/app/components/notes-textarea-field";
 import { PageShell } from "@/app/components/page-shell";
+import { panelInsetClass } from "@/app/components/panel-inset";
+import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { toExerciseBadge } from "@/lib/exercise-badge";
@@ -1490,12 +1492,12 @@ export default function SessionDetailPage() {
       </div>
       <section className="text-sm">
         {isReadOnly && session.notes?.trim() ? (
-          <p className="rounded-md border border-zinc-200 bg-zinc-50 p-3">
+          <p className={panelInsetClass("p-3")}>
             <span className="font-medium">Notes:</span> {session.notes}
           </p>
         ) : null}
         {!isReadOnly ? (
-          <div className="mt-3 space-y-3 rounded-md border border-zinc-200 bg-zinc-50/80 p-4">
+          <div className={panelInsetClass("mt-3 space-y-3 p-4")}>
             {!isEditingSessionDetails ? (
               <>
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1602,7 +1604,7 @@ export default function SessionDetailPage() {
         ) : null}
 
         {sessionExercises.length === 0 ? (
-          <section className="panel-nested panel-nested-odd mt-4 p-4 text-sm text-zinc-600">
+          <section className={panelInsetClass("mt-4 p-4 text-sm text-zinc-600")}>
             No exercises were added to this session.
           </section>
         ) : (
@@ -1641,11 +1643,9 @@ export default function SessionDetailPage() {
 
           const exercisePanelClass = shouldUseSingleExerciseFlow
             ? "min-h-[calc(100vh-24rem)] p-1 text-sm"
-            : `rounded-xl border p-5 text-sm shadow-[0_1px_2px_rgba(0,0,0,0.05)] ${
-                targetSetsMet
-                  ? "border-sky-200/90 bg-sky-50/40"
-                  : "border-zinc-200 bg-zinc-50/80"
-              }`;
+            : targetSetsMet
+              ? "rounded-md border border-sky-200/90 bg-sky-50/40 p-5 text-sm"
+              : panelInsetClass("p-5 text-sm");
 
           return (
             <section
@@ -1797,7 +1797,7 @@ export default function SessionDetailPage() {
               <div className="mt-3 space-y-3 md:hidden">
                 {sets.map((set) =>
                   editingSetId === set.id ? (
-                    <div key={set.id} className="rounded-md border border-zinc-200 bg-zinc-50/80 p-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+                    <div key={set.id} className={panelInsetClass("p-3")}>
                       <p className="text-xs font-medium text-zinc-600">Set {set.set_number}</p>
                       <div className="mt-2 grid grid-cols-2 gap-2">
                         <label className="text-xs font-medium text-zinc-600">
@@ -1849,7 +1849,7 @@ export default function SessionDetailPage() {
                       </div>
                     </div>
                   ) : (
-                    <div key={set.id} className="rounded-md border border-zinc-200 bg-zinc-50/80 p-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+                    <div key={set.id} className={panelInsetClass("p-3")}>
                       {isCompactView ? (
                         <>
                           <div className="flex items-center justify-between gap-2">
@@ -1979,7 +1979,7 @@ export default function SessionDetailPage() {
                       className={
                         compactNewSetPanelHighlight
                           ? "rounded-md border border-sky-200 bg-sky-50/55 p-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
-                          : "rounded-md border border-zinc-200 bg-zinc-50/80 p-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+                          : panelInsetClass("p-3")
                       }
                     >
                       <p
@@ -2337,7 +2337,7 @@ export default function SessionDetailPage() {
           isCompactView ? (
             null
           ) : (
-            <section className="panel mt-4 border-zinc-200 bg-zinc-50/80 p-5 text-sm shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+            <section className="panel mt-4 p-5 text-sm">
               <div className="flex items-center gap-2">
                 <button
                   type="button"
@@ -2544,7 +2544,7 @@ export default function SessionDetailPage() {
           <div className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-xl bg-white p-4 shadow-2xl">
             <div className="mx-auto w-full max-w-5xl">
               <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-base font-semibold">Set targets</h2>
+                <SectionHeading>Set targets</SectionHeading>
                 <button
                   type="button"
                   onClick={cancelTargetsEdit}
@@ -2634,7 +2634,7 @@ export default function SessionDetailPage() {
           <div className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-xl bg-white p-4 shadow-2xl">
             <div className="mx-auto w-full max-w-5xl">
               <div className="mb-3 flex items-center justify-between">
-                <h2 className="text-base font-semibold">Add exercise</h2>
+                <SectionHeading>Add exercise</SectionHeading>
                 <button
                   type="button"
                   onClick={() => setIsAddExerciseSheetOpen(false)}

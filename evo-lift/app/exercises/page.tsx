@@ -7,6 +7,7 @@ import { History, LayoutGrid, Weight } from "lucide-react";
 import { ExerciseBadgeChip } from "@/app/components/exercise-badge-chip";
 import { ExerciseFilteredList } from "@/app/components/exercise-filtered-list";
 import { PageShell } from "@/app/components/page-shell";
+import { panelInsetClass } from "@/app/components/panel-inset";
 import { StatusNotice } from "@/app/components/status-notice";
 import { loadExerciseMetadata } from "@/lib/exercise-metadata-cache";
 import { createPageLoadPerfTracker } from "@/lib/page-load-perf";
@@ -171,7 +172,7 @@ function ExercisesMain() {
   const pillInactive = "border-zinc-300 bg-zinc-50 text-zinc-700 hover:border-zinc-400 hover:bg-zinc-100";
 
   return (
-    <section className="rounded-md border border-zinc-200 bg-white p-4 sm:p-5">
+    <section className="panel p-4 sm:p-5">
       <p className="mb-3 text-sm text-zinc-600">
         Open an exercise to review your full set history.
       </p>
@@ -213,7 +214,9 @@ function ExercisesMain() {
               filterLabel="Search exercises"
               searchPlaceholder="Search by name or badge"
               emptyFilterMessage="No exercises match that search."
-              listClassName="mt-3 max-h-[min(24rem,55vh)] space-y-2 overflow-y-auto overscroll-y-contain rounded-md border border-zinc-200 bg-zinc-50/80 p-3 sm:grid sm:grid-cols-2 sm:gap-2 sm:space-y-0"
+              listClassName={panelInsetClass(
+                "mt-3 max-h-[min(24rem,55vh)] space-y-2 overflow-y-auto overscroll-y-contain p-3 sm:grid sm:grid-cols-2 sm:gap-2 sm:space-y-0",
+              )}
               renderItem={(exercise) => (
                 <Link
                   href={`/exercises/${exercise.slug}`}
@@ -249,7 +252,7 @@ export default function ExercisesPage() {
 
       <Suspense
         fallback={
-          <section className="rounded-md border border-zinc-200 bg-white p-4 sm:p-5">
+          <section className="panel p-4 sm:p-5">
             <p className="text-sm text-zinc-600">Loading exercises...</p>
           </section>
         }
