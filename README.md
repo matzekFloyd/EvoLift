@@ -191,8 +191,11 @@ The account gets about 16 weeks of sessions (a missed week, a deload, and a heav
 cd evo-lift
 npm run lint
 npm test
+npm run test:integration
 npm run build
 ```
+
+`npm run test:integration` calls the workout API against local Supabase. Start it with `supabase start` from the repository root first. The URL must be `127.0.0.1` or `localhost`.
 
 ## Supabase Workflow
 
@@ -283,6 +286,7 @@ From `evo-lift/`:
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
 - `npm test` - Run unit tests
+- `npm run test:integration` - Run workout API tests against local Supabase
 
 ## License
 
