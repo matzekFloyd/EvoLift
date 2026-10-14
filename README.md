@@ -1,6 +1,6 @@
 # EvoLift
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Test](https://github.com/matzekFloyd/EvoLift/actions/workflows/test.yml/badge.svg)](https://github.com/matzekFloyd/EvoLift/actions/workflows/test.yml)
 
 EvoLift is a mobile-first workout logging application built with Next.js and Supabase.
 
