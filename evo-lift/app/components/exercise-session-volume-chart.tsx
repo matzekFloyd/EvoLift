@@ -13,7 +13,10 @@ import {
 } from "recharts";
 import type { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
-import type { ExerciseSessionVolumeChartPoint } from "@/lib/exercise-session-volume-chart";
+import {
+  buildVolumeChangeSentence,
+  type ExerciseSessionVolumeChartPoint,
+} from "@/lib/exercise-session-volume-chart";
 
 type ExerciseSessionVolumeChartProps = {
   points: ExerciseSessionVolumeChartPoint[];
@@ -83,11 +86,7 @@ export function ExerciseSessionVolumeChart({ points }: ExerciseSessionVolumeChar
 
   return (
     <div className="space-y-3">
-      {points.length === 1 ? (
-        <p className="text-xs text-zinc-600">
-          One session with volume logged — add more sessions to see a trend line.
-        </p>
-      ) : null}
+      <p className="text-sm leading-snug text-zinc-800">{buildVolumeChangeSentence(points)}</p>
 
       <div
         className="exercise-session-volume-chart relative h-52 w-full sm:h-64"

@@ -1108,17 +1108,15 @@ export default function ExerciseDetailPage() {
                       idea as your max-total stat).
                     </p>
                     <p>
-                      Warmups and sets with no logged weight are omitted. Use Total, Loaded, or
-                      Both for the line; tap or hover a point for loaded, total, and base together.
+                      The line starts on Loaded (kg). Switch to Total or Both to include the base.
+                      Warmups and sets with no logged weight are omitted. Tap or hover a point for
+                      loaded, total, and base together.
                     </p>
                   </div>
                 </InfoPopover>
               </div>
               <div className="mt-3">
-                <ExerciseWeightProgressChart
-                  points={sessionWeightChartPoints}
-                  seriesHint="Heaviest logged working set per session—weight on the bar, including base."
-                />
+                <ExerciseWeightProgressChart points={sessionWeightChartPoints} />
               </div>
             </section>
 
@@ -1148,9 +1146,6 @@ export default function ExerciseDetailPage() {
                   </div>
                 </InfoPopover>
               </div>
-              <p className="mt-1 max-w-prose text-xs text-zinc-600">
-                Total reps × Total (kg) per session, working sets only (warmups excluded).
-              </p>
               <div className="mt-3">
                 <ExerciseSessionVolumeChart points={sessionVolumeChartPoints} />
               </div>

@@ -109,3 +109,40 @@ export function buildExerciseSessionVolumeChartPoints(
 
   return withLabels;
 }
+
+function formatVolumeKg(value: number): string {
+  return `${value.toFixed(1)} kg`;
+}
+
+function workingSetDeltaClause(delta: number, lastCount: number): string {
+  if (delta === 0) {
+    return `the same number of working sets (${lastCount})`;
+  }
+  const amount = Math.abs(delta);
+  const noun = amount === 1 ? "working set" : "working sets";
+  return delta > 0 ? `${amount} more ${noun}` : `${amount} fewer ${noun}`;
+}
+
+/** Last session volume versus the session before, including a set-count change when it differs. */
+export function buildVolumeChangeSentence(points: ExerciseSessionVolumeChartPoint[]): string {
+  if (points.length === 0) {
+    return "";
+  }
+  const last = points[points.length - 1];
+  const lastVolume = formatVolumeKg(last.volumeKg);
+  if (points.length === 1) {
+    const setNoun = last.workingSetsIncluded === 1 ? "working set" : "working sets";
+    return `Last session volume is ${lastVolume} across ${last.workingSetsIncluded} ${setNoun}. Log another session to see the change.`;
+  }
+  const previous = points[points.length - 2];
+  const delta = last.volumeKg - previous.volumeKg;
+  const volumeClause =
+    Math.abs(delta) < 0.05
+      ? "the same volume as the session before"
+      : `${formatVolumeKg(Math.abs(delta))} ${delta > 0 ? "more" : "less"} than the session before`;
+  const setClause = workingSetDeltaClause(
+    last.workingSetsIncluded - previous.workingSetsIncluded,
+    last.workingSetsIncluded,
+  );
+  return `Last session volume is ${lastVolume}, ${volumeClause}, with ${setClause}.`;
+}

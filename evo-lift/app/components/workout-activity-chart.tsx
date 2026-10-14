@@ -4,11 +4,21 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   ResponsiveContainer,
   XAxis,
   YAxis,
 } from "recharts";
 import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  activityIntensity,
+  activityIntensityClass,
+  activityIntensityLabel,
+  activityIntensityPhrase,
+  buildActivityComparisonSentence,
+  usualTrainingDaySets,
+  type ActivityIntensity,
+} from "@/lib/workout-activity-summary";
 
 type WorkoutActivityPoint = {
   date: string;
@@ -23,15 +33,7 @@ type WorkoutActivityHeatmapProps = {
   onHighlightDatesChange?: (dates: string[] | null) => void;
 };
 
-function getIntensityClass(sets: number, workouts: number): string {
-  if (sets <= 0) {
-    return workouts > 0 ? "bg-zinc-400" : "bg-zinc-100";
-  }
-  if (sets <= 17) return "bg-sky-200";
-  if (sets <= 24) return "bg-sky-300";
-  if (sets <= 35) return "bg-sky-400";
-  return "bg-sky-500";
-}
+const INTENSITY_LEGEND: ActivityIntensity[] = ["rest", "lighter", "usual", "heavier"];
 
 function toDate(value: string): Date {
   const [yearText, monthText, dayText] = value.split("-");
@@ -96,6 +98,10 @@ export function WorkoutActivityChart({
     return <p className="text-xs text-zinc-500">No workouts in the selected timeframe.</p>;
   }
 
+  const todayKey = toYyyyMmDd(new Date());
+  const currentWeekStart = toYyyyMmDd(startOfWeekMonday(new Date()));
+  const comparisonSentence = buildActivityComparisonSentence(sortedData, todayKey);
+
   if (isCompactView) {
     const countsByWeek = new Map<string, number>();
     for (const item of sortedData) {
@@ -120,15 +126,18 @@ export function WorkoutActivityChart({
         return {
           weekStart,
           sets,
-          weekLabel: `${startText}-${endText}`,
+          isCurrentWeek: weekStart === currentWeekStart,
+          weekLabel: weekStart === currentWeekStart ? "This week" : `${startText}-${endText}`,
         };
       });
+    const currentWeekInCompact = compactData.some((item) => item.isCurrentWeek);
     const selectedWeek = compactData.find((item) => item.weekStart === selectedCompactWeekStart);
 
     return (
       <div>
-        <div className="mb-2 text-xs text-zinc-600">
-          {totalSets} sets across {totalWorkouts} workouts in last 10 weeks
+        <p className="text-sm text-zinc-800">{comparisonSentence}</p>
+        <div className="mb-2 mt-1 text-xs text-zinc-600">
+          {totalSets} sets across {totalWorkouts} workouts in the last 10 weeks
         </div>
         <div
           ref={compactChartRef}
@@ -173,7 +182,16 @@ export function WorkoutActivityChart({
                     onHighlightDatesChange?.(weekDates);
                   }
                 }}
-              />
+              >
+                {compactData.map((item) => (
+                  <Cell
+                    key={item.weekStart}
+                    fill={
+                      item.isCurrentWeek ? "#0369a1" : currentWeekInCompact ? "#7dd3fc" : "#0284c7"
+                    }
+                  />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -232,6 +250,12 @@ export function WorkoutActivityChart({
     }
   }
   const visibleWeeks = paddedWeeks;
+  const visibleInRangeDays = visibleWeeks.flatMap((week) => week.filter((day) => day.isInRange));
+  const usualSets = usualTrainingDaySets(visibleInRangeDays.map((day) => day.sets));
+  const legendItems: ActivityIntensity[] = visibleInRangeDays.some((day) => day.workouts > 0 && day.sets <= 0)
+    ? [...INTENSITY_LEGEND, "no-sets"]
+    : [...INTENSITY_LEGEND];
+  const currentWeekVisible = visibleWeeks.some((week) => week[0].date === currentWeekStart);
   const weekdayLabels = ["Mon", "", "Wed", "", "Fri", "", "Sun"];
   const monthLabels = visibleWeeks.map((week, index) => {
     const date = toDate(week[0].date);
@@ -241,33 +265,28 @@ export function WorkoutActivityChart({
   });
   return (
     <div>
-      <div className="mb-3 flex items-center justify-between text-xs text-zinc-600">
-        <p>{totalSets} sets across {totalWorkouts} workouts in range</p>
-        <div className="grid grid-cols-3 gap-x-2 gap-y-1 text-[10px] text-zinc-500 sm:grid-cols-6">
-          <span className="inline-flex items-center gap-1">
-            <span className="h-3 w-3 rounded-sm border border-zinc-200 bg-zinc-100" />
-            none
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <span className="h-3 w-3 rounded-sm bg-zinc-400" />
-            no sets
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <span className="h-3 w-3 rounded-sm bg-sky-200" />
-            1-17
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <span className="h-3 w-3 rounded-sm bg-sky-300" />
-            18-24
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <span className="h-3 w-3 rounded-sm bg-sky-400" />
-            25-34
-          </span>
-          <span className="inline-flex items-center gap-1">
-            <span className="h-3 w-3 rounded-sm bg-sky-500" />
-            35+
-          </span>
+      <div className="mb-3 space-y-2">
+        <p className="text-sm text-zinc-800">{comparisonSentence}</p>
+        <div className="flex flex-col gap-2 text-xs text-zinc-600 sm:flex-row sm:items-start sm:justify-between">
+          <p className="max-w-prose">
+            {totalSets} sets across {totalWorkouts} workouts in this range. Shading compares each
+            training day with your usual day on this chart.
+            {currentWeekVisible ? " The outlined column is this week." : ""}
+          </p>
+          <div className="grid shrink-0 grid-cols-2 gap-x-2 gap-y-1 text-[10px] text-zinc-500 sm:grid-cols-4">
+            {legendItems.map((intensity) => (
+              <span
+                key={intensity}
+                className="inline-flex items-center gap-1"
+                title={activityIntensityPhrase(intensity)}
+              >
+                <span
+                  className={`h-3 w-3 rounded-sm border border-zinc-200 ${activityIntensityClass(intensity)}`}
+                />
+                {activityIntensityLabel(intensity)}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
       <div className="grid grid-cols-[32px_minmax(0,1fr)] gap-2">
@@ -276,11 +295,17 @@ export function WorkoutActivityChart({
           className="grid gap-1.5 px-[1px] text-[10px] text-zinc-500"
           style={{ gridTemplateColumns: `repeat(${visibleWeeks.length}, minmax(0, 1fr))` }}
         >
-          {monthLabels.map((label, index) => (
-            <div key={`month-${index}`} className="truncate">
-              {label}
-            </div>
-          ))}
+          {visibleWeeks.map((week, index) => {
+            const isCurrentWeek = week[0].date === currentWeekStart;
+            return (
+              <div
+                key={`month-${index}`}
+                className={isCurrentWeek ? "font-medium text-sky-800" : "truncate text-zinc-500"}
+              >
+                {isCurrentWeek ? "Now" : monthLabels[index]}
+              </div>
+            );
+          })}
         </div>
         <div className="grid grid-rows-7 gap-1.5 text-[10px] leading-3 text-zinc-500">
           {weekdayLabels.map((label, index) => (
@@ -293,10 +318,21 @@ export function WorkoutActivityChart({
           className="grid gap-1.5"
           style={{ gridTemplateColumns: `repeat(${visibleWeeks.length}, minmax(0, 1fr))` }}
         >
-          {visibleWeeks.map((week, weekIndex) => (
-            <div key={`week-${weekIndex}`} className="grid grid-rows-7 gap-1.5">
+          {visibleWeeks.map((week, weekIndex) => {
+            const isCurrentWeek = week[0].date === currentWeekStart;
+            return (
+            <div
+              key={`week-${weekIndex}`}
+              className={`grid grid-rows-7 gap-1.5 ${
+                isCurrentWeek ? "rounded-sm outline outline-2 outline-sky-600 outline-offset-1" : ""
+              }`}
+            >
               {week.map((day) => {
                 const parsedDate = toDate(day.date);
+                const intensity = day.isInRange
+                  ? activityIntensity(day.sets, day.workouts, usualSets)
+                  : null;
+                const isToday = day.date === todayKey;
                 const tooltip = `${new Intl.DateTimeFormat(undefined, {
                   weekday: "short",
                   year: "numeric",
@@ -304,19 +340,21 @@ export function WorkoutActivityChart({
                   day: "numeric",
                 }).format(parsedDate)}: ${day.sets} set${day.sets === 1 ? "" : "s"} across ${
                   day.workouts
-                } workout${day.workouts === 1 ? "" : "s"}`;
+                } workout${day.workouts === 1 ? "" : "s"}${
+                  intensity ? ` ${activityIntensityPhrase(intensity)}` : ""
+                }${isCurrentWeek ? " This week." : ""}${isToday ? " Today." : ""}`;
                 return (
                   <div
                     key={day.date}
                     title={tooltip}
                     aria-label={tooltip}
                     className={`cursor-pointer rounded-sm border transition hover:brightness-95 active:scale-95 ${
-                      highlightedDateSet.has(day.date) && day.isInRange
-                        ? "border-sky-700 ring-1 ring-sky-600/40"
-                        : "border-zinc-200"
-                    } ${
-                      day.isInRange ? getIntensityClass(day.sets, day.workouts) : "bg-zinc-100"
-                    }`}
+                      isToday
+                        ? "border-zinc-900 ring-2 ring-zinc-900 ring-offset-1"
+                        : highlightedDateSet.has(day.date) && day.isInRange
+                          ? "border-sky-700 ring-1 ring-sky-600/40"
+                          : "border-zinc-200"
+                    } ${intensity ? activityIntensityClass(intensity) : "bg-zinc-100"}`}
                     style={{ width: "100%", aspectRatio: "1 / 1", height: "auto" }}
                     onMouseEnter={() => {
                       if (!day.isInRange) {
@@ -329,7 +367,8 @@ export function WorkoutActivityChart({
                 );
               })}
             </div>
-          ))}
+            );
+          })}
         </div>
       </div>
     </div>

@@ -112,3 +112,68 @@ export function buildExerciseSessionWeightChartPoints(
 
   return withLabels;
 }
+
+function formatKg(value: number): string {
+  return `${value.toFixed(1)} kg`;
+}
+
+function comparedWithPrevious(delta: number): string {
+  if (Math.abs(delta) < 0.05) {
+    return "the same as the session before";
+  }
+  const amount = formatKg(Math.abs(delta));
+  return `${amount} ${delta > 0 ? "more" : "less"} than the session before`;
+}
+
+/** Last session versus the session before, for the series on screen. */
+export function buildWeightChangeSentence(
+  points: ExerciseSessionWeightChartPoint[],
+  mode: "total" | "loaded" | "both",
+): string {
+  if (points.length === 0) {
+    return "";
+  }
+  const last = points[points.length - 1];
+  if (points.length === 1) {
+    if (mode === "total") {
+      return `Last session: ${formatKg(last.heaviestTotalKg)} total. Log another session to see the change.`;
+    }
+    if (mode === "both") {
+      return `Last session: ${formatKg(last.heaviestLoadedKg)} loaded and ${formatKg(last.heaviestTotalKg)} total. Log another session to see the change.`;
+    }
+    return `Last session: ${formatKg(last.heaviestLoadedKg)} loaded. Log another session to see the change.`;
+  }
+
+  const previous = points[points.length - 2];
+  if (mode === "both") {
+    const loadedDelta = last.heaviestLoadedKg - previous.heaviestLoadedKg;
+    const totalDelta = last.heaviestTotalKg - previous.heaviestTotalKg;
+    return `Last session: ${formatKg(last.heaviestLoadedKg)} loaded, ${comparedWithPrevious(loadedDelta)}, and ${formatKg(last.heaviestTotalKg)} total, ${comparedWithPrevious(totalDelta)}.`;
+  }
+
+  const lastValue = mode === "total" ? last.heaviestTotalKg : last.heaviestLoadedKg;
+  const previousValue = mode === "total" ? previous.heaviestTotalKg : previous.heaviestLoadedKg;
+  const unit = mode === "total" ? "total" : "loaded";
+  return `Last session: ${formatKg(lastValue)} ${unit}, ${comparedWithPrevious(lastValue - previousValue)}.`;
+}
+
+/** Y-axis bounds around the plotted weights so small changes stay visible. */
+export function zoomedWeightAxisDomain(values: number[]): [number, number] {
+  const finite = values.filter((value) => Number.isFinite(value));
+  if (finite.length === 0) {
+    return [0, 1];
+  }
+  const min = Math.min(...finite);
+  const max = Math.max(...finite);
+  const span = Math.max(max - min, 2.5);
+  const pad = Math.max(span * 0.2, 1);
+  let low = Math.max(0, min - pad);
+  let high = max + pad;
+  const step = span >= 40 ? 5 : span >= 15 ? 2.5 : span >= 5 ? 1 : 0.5;
+  low = Math.floor(low / step) * step;
+  high = Math.ceil(high / step) * step;
+  if (high <= low) {
+    high = low + step;
+  }
+  return [Number(low.toFixed(2)), Number(high.toFixed(2))];
+}

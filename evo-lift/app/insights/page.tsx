@@ -10,6 +10,7 @@ import { DateInput } from "@/app/components/date-input";
 import { PageShell } from "@/app/components/page-shell";
 import { StatusNotice } from "@/app/components/status-notice";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
+import { buildInsightsComparisonSentence } from "@/lib/insights-chart-summary";
 import {
   applyInsightsRange,
   loadUserWorkoutActivityBase,
@@ -218,6 +219,39 @@ export default function InsightsPage() {
     [weeklyVolumeFiltered],
   );
 
+  const comparisonPeriodName = useMemo(() => {
+    if (!dateFrom || !dateTo) {
+      return null;
+    }
+    const preset = getDateRangeForPreset(selectedRange);
+    if (dateFrom !== preset.from || dateTo !== preset.to) {
+      return null;
+    }
+    if (selectedRange === "4w") {
+      return "4 weeks";
+    }
+    if (selectedRange === "12w") {
+      return "12 weeks";
+    }
+    if (selectedRange === "6m") {
+      return "6 months";
+    }
+    return null;
+  }, [dateFrom, dateTo, selectedRange]);
+
+  const comparisonSentence = useMemo(
+    () =>
+      buildInsightsComparisonSentence({
+        metric: trendMetric,
+        currentWeeks: weeklyVolumeFiltered,
+        allWeeks: weeklyVolumeBase,
+        dateFrom,
+        dateTo,
+        periodName: comparisonPeriodName,
+      }),
+    [comparisonPeriodName, dateFrom, dateTo, trendMetric, weeklyVolumeBase, weeklyVolumeFiltered],
+  );
+
   const trendMetricKpi = useMemo(() => {
     if (trendMetric === "workingSets") {
       return {
@@ -388,10 +422,11 @@ export default function InsightsPage() {
                 </p>
               ) : (
                 <>
+                  <p className="mt-2 text-sm text-zinc-800">{comparisonSentence}</p>
                   <p className="mt-1 text-xs text-zinc-500">
                     {trendMetric === "volume"
-                      ? "Weekly total volume (loaded kg × reps) with session count in tooltip."
-                      : "Weekly non-warmup set count with session count in tooltip."}
+                      ? "Weekly total of loaded kg × reps. The line is a 4-week average."
+                      : "Weekly working sets, warmups excluded. The line is a 4-week average."}
                   </p>
                   <div className="mt-3">
                     <InsightsWeeklyVolumeChart data={weeklyVolumeChartData} metric={trendMetric} />

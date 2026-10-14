@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   CartesianGrid,
   Legend,
@@ -15,14 +15,16 @@ import {
 import type { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
 import { SegmentedTabs } from "@/app/components/segmented-tabs";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
-import type { ExerciseSessionWeightChartPoint } from "@/lib/exercise-session-weight-chart";
+import {
+  buildWeightChangeSentence,
+  zoomedWeightAxisDomain,
+  type ExerciseSessionWeightChartPoint,
+} from "@/lib/exercise-session-weight-chart";
 
 export type ExerciseWeightProgressSeriesMode = "total" | "loaded" | "both";
 
 type ExerciseWeightProgressChartProps = {
   points: ExerciseSessionWeightChartPoint[];
-  /** Shown on the same row as the Total / Loaded / Both control (left side). */
-  seriesHint?: ReactNode;
 };
 
 const LINE_TOTAL = "Total (kg)";
@@ -38,8 +40,8 @@ function formatKgTick(value: number): string {
   return Number.isInteger(value) ? `${value}` : value.toFixed(1);
 }
 
-export function ExerciseWeightProgressChart({ points, seriesHint }: ExerciseWeightProgressChartProps) {
-  const [seriesMode, setSeriesMode] = useState<ExerciseWeightProgressSeriesMode>("total");
+export function ExerciseWeightProgressChart({ points }: ExerciseWeightProgressChartProps) {
+  const [seriesMode, setSeriesMode] = useState<ExerciseWeightProgressSeriesMode>("loaded");
   const [isCompactView, setIsCompactView] = useState(false);
 
   useEffect(() => {
@@ -62,6 +64,20 @@ export function ExerciseWeightProgressChart({ points, seriesHint }: ExerciseWeig
 
   const showTotal = seriesMode === "total" || seriesMode === "both";
   const showLoaded = seriesMode === "loaded" || seriesMode === "both";
+  const changeSentence = buildWeightChangeSentence(points, seriesMode);
+  const yDomain = useMemo(() => {
+    const values = chartData.flatMap((point) => {
+      const seriesValues: number[] = [];
+      if (showTotal) {
+        seriesValues.push(point.totalValue);
+      }
+      if (showLoaded) {
+        seriesValues.push(point.loadedValue);
+      }
+      return seriesValues;
+    });
+    return zoomedWeightAxisDomain(values);
+  }, [chartData, showLoaded, showTotal]);
 
   const renderTooltip = ({
     active,
@@ -102,34 +118,21 @@ export function ExerciseWeightProgressChart({ points, seriesHint }: ExerciseWeig
 
   return (
     <div className="space-y-3">
-      <div
-        className={[
-          "flex w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-2",
-          seriesHint ? "" : "justify-end",
-        ].join(" ")}
-      >
-        {seriesHint ? (
-          <p className="min-w-0 flex-1 text-xs leading-snug text-zinc-600">{seriesHint}</p>
-        ) : null}
+      <div className="flex w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-2">
+        <p className="min-w-0 flex-1 text-sm leading-snug text-zinc-800">{changeSentence}</p>
         <SegmentedTabs<ExerciseWeightProgressSeriesMode>
           value={seriesMode}
           onChange={setSeriesMode}
-          className={seriesHint ? "w-auto min-w-[10.5rem] shrink-0" : "w-full sm:w-auto sm:min-w-[13.5rem]"}
+          className="w-auto min-w-[10.5rem] shrink-0"
           buttonLayout="equal-row"
           buttonMinWidthClassName="min-w-0"
           options={[
-            { value: "total", label: "Total" },
             { value: "loaded", label: "Loaded" },
+            { value: "total", label: "Total" },
             { value: "both", label: "Both" },
           ]}
         />
       </div>
-
-      {points.length === 1 ? (
-        <p className="text-xs text-zinc-600">
-          One session with logged working weights — add more sessions to see a trend line.
-        </p>
-      ) : null}
 
       <div
         className="exercise-weight-progress-chart relative h-52 w-full sm:h-64"
@@ -145,9 +148,11 @@ export function ExerciseWeightProgressChart({ points, seriesHint }: ExerciseWeig
               minTickGap={isCompactView ? 28 : 12}
             />
             <YAxis
+              domain={yDomain}
+              allowDataOverflow
               tick={{ fill: "#52525b", fontSize: 11 }}
               tickFormatter={(v: number) => `${formatKgTick(v)} kg`}
-              width={isCompactView ? 52 : 60}
+              width={isCompactView ? 56 : 64}
             />
             <Tooltip content={renderTooltip} />
             {seriesMode === "both" ? (

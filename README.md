@@ -177,6 +177,13 @@ App runs at:
 
 - `http://localhost:3000`
 
+`npm run dev` creates a local demo user when Supabase is already running, the URL is localhost, and that user has no sessions yet:
+
+- Email: `demo@example.com`
+- Password: `demo1234`
+
+The account gets about 16 weeks of sessions (a missed week, a deload, and a heavier week) so the home chart, Insights, and exercise charts have data. It does not run against a hosted Supabase project. `npm run seed:local` runs the same step on its own.
+
 ### 5) Quality checks
 
 ```bash

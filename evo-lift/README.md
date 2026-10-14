@@ -200,6 +200,7 @@ Notes:
 
 - Keep production-safe seeds under `supabase/seeds` (catalog/reference data).
 - Keep dev-only sample/test data in separate files (for example `9xx_dev_*.sql`) and do not run these in production.
+- Local demo workouts are created by `scripts/seed-local-demo.mjs` on `npm run dev`, and only when the Supabase URL is localhost. They are not applied to hosted projects.
 - Prefer idempotent seeds using `on conflict do nothing` or `on conflict ... do update`.
 
 ## Security notes
