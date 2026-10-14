@@ -10,6 +10,7 @@ import {
   appHeaderNavIconInactiveClassName,
   appHeaderNavIconInactiveGlyphClassName,
 } from "@/app/components/app-header-nav-link";
+import { EvoLiftMark } from "@/app/components/evo-lift-logo";
 import { prefetchHomeSessionSummaries } from "@/lib/home-session-cache";
 import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
@@ -132,13 +133,16 @@ export function HeaderActions() {
   }
 
   return (
-    <header className="border-b border-sky-200 bg-gradient-to-r from-sky-200 via-sky-100 to-sky-50">
+    <header className="bg-gradient-to-l from-sky-200 via-sky-100 to-sky-50">
       <nav className="mx-auto flex w-full max-w-5xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
         <Link
-          className="inline-flex items-center rounded px-1 py-1 text-base font-semibold tracking-tight text-zinc-900 hover:text-sky-800"
+          className="group inline-flex items-center gap-2 rounded-md px-1.5 py-1 transition-colors duration-150 hover:bg-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 focus-visible:ring-offset-2 focus-visible:ring-offset-sky-100"
           href="/"
         >
-          EvoLift
+          <EvoLiftMark className="h-8 w-8 shrink-0 transition-transform duration-150 group-hover:scale-105" />
+          <span className="text-lg leading-none font-bold tracking-[-0.04em] text-sky-900 transition-colors duration-150 group-hover:text-sky-950">
+            EvoLift
+          </span>
         </Link>
         <div className="hidden shrink-0 items-center justify-end gap-1 sm:gap-2 md:flex">
           <AppHeaderNavLink href="/" label="Home" isActive={pathname === "/"} icon={House} />

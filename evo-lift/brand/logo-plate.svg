@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="EvoLift">
+  <rect width="64" height="64" rx="18" fill="#38bdf8"/>
+  <g fill="#0c4a6e">
+    <rect x="11.5" y="25.5" width="5" height="13" rx="2"/>
+    <rect x="18" y="20.5" width="6" height="23" rx="2.4"/>
+    <rect x="22.5" y="29.5" width="19" height="5" rx="1.5"/>
+    <rect x="40" y="20.5" width="6" height="23" rx="2.4"/>
+    <rect x="47.5" y="25.5" width="5" height="13" rx="2"/>
+  </g>
+</svg>
