@@ -21,6 +21,10 @@ vi.mock("@/server/auth/api-request", () => ({
 
 const EXERCISE_ID = "123e4567-e89b-12d3-a456-426614174000";
 
+function requestReturning(body: () => Promise<unknown>): NextRequest {
+  return { json: body } as unknown as NextRequest;
+}
+
 function messageOf(run: () => void): string {
   try {
     run();
@@ -118,11 +122,13 @@ describe("API reps, loaded weight, and notes", () => {
 
 describe("readJsonObject", () => {
   it("requires a JSON object", async () => {
-    const request = { json: async () => ({ performed_on: "2026-10-14" }) } as NextRequest;
-    assert.deepEqual(await readJsonObject(request), { performed_on: "2026-10-14" });
+    assert.deepEqual(
+      await readJsonObject(requestReturning(async () => ({ performed_on: "2026-10-14" }))),
+      { performed_on: "2026-10-14" },
+    );
 
     await assert.rejects(
-      () => readJsonObject({ json: async () => Promise.reject(new Error("bad")) } as NextRequest),
+      () => readJsonObject(requestReturning(async () => Promise.reject(new Error("bad")))),
       (error: unknown) => {
         assert.ok(error instanceof ApiHttpError);
         assert.equal(error.message, "Request body must be valid JSON.");
@@ -130,7 +136,7 @@ describe("readJsonObject", () => {
       },
     );
     await assert.rejects(
-      () => readJsonObject({ json: async () => [] } as NextRequest),
+      () => readJsonObject(requestReturning(async () => [])),
       (error: unknown) => {
         assert.ok(error instanceof ApiHttpError);
         assert.equal(error.message, "Request body must be a JSON object.");
