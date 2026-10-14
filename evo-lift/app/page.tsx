@@ -12,6 +12,7 @@ import { SectionHeading } from "@/app/components/section-heading";
 import { NewSessionDraftCallout } from "@/app/components/new-session-draft-callout";
 import { SessionsTable, type SessionsTableRow } from "@/app/components/sessions-table";
 import { WorkoutActivityChart } from "@/app/components/workout-activity-chart";
+import { rememberHomeSessionSummaries } from "@/lib/home-session-cache";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { fetchAllPages } from "@/lib/supabase/chunked-query";
 
@@ -129,6 +130,7 @@ export default function Home() {
       }
 
       const loadedSessions = (data ?? []) as HomeSessionSummaryRow[];
+      rememberHomeSessionSummaries(session.user.id, loadedSessions);
       setSessions(
         loadedSessions.map((row) => ({
           id: row.id,

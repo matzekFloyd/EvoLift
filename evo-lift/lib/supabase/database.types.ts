@@ -384,6 +384,15 @@ export type Database = {
       };
     };
     Functions: {
+      exercise_past_session_counts: {
+        Args: {
+          p_through: string;
+        };
+        Returns: Array<{
+          exercise_id: string;
+          session_count: number;
+        }>;
+      };
       instantiate_workout_template: {
         Args: {
           p_notes?: string | null;

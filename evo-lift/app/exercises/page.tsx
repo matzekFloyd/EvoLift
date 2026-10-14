@@ -11,19 +11,10 @@ import { panelInsetClass } from "@/app/components/panel-inset";
 import { StatusNotice } from "@/app/components/status-notice";
 import { loadExerciseMetadata } from "@/lib/exercise-metadata-cache";
 import { createPageLoadPerfTracker } from "@/lib/page-load-perf";
+import { pastSessionCountsBySlug } from "@/lib/home-session-cache";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
-import { fetchAllPages, fetchInChunks } from "@/lib/supabase/chunked-query";
-import { isFutureSessionDate } from "@/lib/session-date";
+import { getTodayYyyyMmDd } from "@/lib/session-date";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
-
-type SessionIdRow = {
-  id: string;
-  performed_on: string;
-};
-
-type SessionExerciseRow = {
-  exercise_id: string;
-};
 
 type ExerciseListItem = {
   id: string;
@@ -94,50 +85,29 @@ function ExercisesMain() {
         return;
       }
 
-      const { data: sessionRows, error: sessionsError } = await perf.trackQuery(
-        "workout_sessions.selectUserIds",
-        () =>
-          fetchAllPages((from, to) =>
-            supabaseBrowserClient
-              .from("workout_sessions")
-              .select("id, performed_on")
-              .eq("user_id", session.user.id)
-              .order("id", { ascending: true })
-              .range(from, to),
-          ),
-      );
-      if (sessionsError) {
-        setErrorMessage("Could not load your workout sessions.");
-        setIsLoading(false);
-        perf.flush();
-        return;
-      }
-
-      const sessionIds = ((sessionRows ?? []) as SessionIdRow[])
-        .filter((row) => !isFutureSessionDate(row.performed_on))
-        .map((row) => row.id);
-      const exerciseCountById = new Map<string, number>();
-      if (sessionIds.length > 0) {
-        const { data: sessionExerciseRows, error: sessionExercisesError } = await perf.trackQuery(
-          "workout_session_exercises.selectBySessionIds",
+      const cachedCounts = pastSessionCountsBySlug(session.user.id);
+      const sessionCountBySlug = new Map<string, number>();
+      const sessionCountById = new Map<string, number>();
+      if (cachedCounts) {
+        for (const [slug, count] of cachedCounts) {
+          sessionCountBySlug.set(slug, count);
+        }
+      } else {
+        const { data: countRows, error: countsError } = await perf.trackQuery(
+          "exercise_past_session_counts",
           () =>
-            fetchInChunks(sessionIds, (chunk, from, to) =>
-              supabaseBrowserClient
-                .from("workout_session_exercises")
-                .select("exercise_id")
-                .in("session_id", chunk)
-                .order("id", { ascending: true })
-                .range(from, to),
-            ),
+            supabaseBrowserClient.rpc("exercise_past_session_counts", {
+              p_through: getTodayYyyyMmDd(),
+            }),
         );
-        if (sessionExercisesError) {
+        if (countsError) {
           setErrorMessage("Could not load exercise history.");
           setIsLoading(false);
           perf.flush();
           return;
         }
-        for (const row of (sessionExerciseRows ?? []) as SessionExerciseRow[]) {
-          exerciseCountById.set(row.exercise_id, (exerciseCountById.get(row.exercise_id) ?? 0) + 1);
+        for (const row of countRows ?? []) {
+          sessionCountById.set(row.exercise_id, row.session_count);
         }
       }
 
@@ -145,7 +115,7 @@ function ExercisesMain() {
         id: row.id,
         slug: row.slug,
         label: row.label,
-        sessionCount: exerciseCountById.get(row.id) ?? 0,
+        sessionCount: cachedCounts ? (sessionCountBySlug.get(row.slug) ?? 0) : (sessionCountById.get(row.id) ?? 0),
       }));
 
       setExercises(nextItems);
