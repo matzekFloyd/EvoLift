@@ -13,7 +13,7 @@ import { NewSessionDraftCallout } from "@/app/components/new-session-draft-callo
 import { SessionsTable, type SessionsTableRow } from "@/app/components/sessions-table";
 import { WorkoutActivityChart } from "@/app/components/workout-activity-chart";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
-import { fetchAllPages, fetchInChunks } from "@/lib/supabase/chunked-query";
+import { fetchAllPages } from "@/lib/supabase/chunked-query";
 
 type WorkoutSessionRow = {
   id: string;
@@ -22,19 +22,16 @@ type WorkoutSessionRow = {
   created_at: string;
 };
 
-type SessionExerciseRow = {
+type HomeSessionSummaryRow = {
   id: string;
-  session_id: string;
-  exercise_id: string;
-};
-
-type WorkoutSetLinkRow = {
-  session_exercise_id: string | null;
-};
-
-type ExerciseRow = {
-  id: string;
-  slug: string;
+  performed_on: string;
+  notes: string | null;
+  created_at: string;
+  set_count: number;
+  exercise_badges: Array<{
+    slug: string;
+    has_logged_set: boolean;
+  }> | null;
 };
 
 type SessionExerciseBadge = {
@@ -115,8 +112,8 @@ export default function Home() {
 
       const { data, error } = await fetchAllPages((from, to) =>
         supabaseBrowserClient
-          .from("workout_sessions")
-          .select("id, performed_on, notes, created_at")
+          .from("home_session_summaries")
+          .select("id, performed_on, notes, created_at, set_count, exercise_badges")
           .order("id", { ascending: true })
           .range(from, to),
       );
@@ -131,111 +128,34 @@ export default function Home() {
         return;
       }
 
-      const loadedSessions = (data ?? []) as WorkoutSessionRow[];
-      setSessions(loadedSessions);
+      const loadedSessions = (data ?? []) as HomeSessionSummaryRow[];
+      setSessions(
+        loadedSessions.map((row) => ({
+          id: row.id,
+          performed_on: row.performed_on,
+          notes: row.notes,
+          created_at: row.created_at,
+        })),
+      );
 
-      const sessionIds = loadedSessions.map((row) => row.id);
-      if (sessionIds.length > 0) {
-        const { data: sessionExercisesData, error: sessionExercisesError } = await fetchInChunks(
-          sessionIds,
-          (chunk, from, to) =>
-            supabaseBrowserClient
-              .from("workout_session_exercises")
-              .select("id, session_id, exercise_id")
-              .in("session_id", chunk)
-              .order("id", { ascending: true })
-              .range(from, to),
+      const nextSetCountBySessionId = new Map<string, number>();
+      const nextBadges = new Map<string, SessionExerciseBadge[]>();
+      for (const row of loadedSessions) {
+        const setCount = Number(row.set_count);
+        nextSetCountBySessionId.set(row.id, Number.isFinite(setCount) ? setCount : 0);
+        const badges = Array.isArray(row.exercise_badges) ? row.exercise_badges : [];
+        nextBadges.set(
+          row.id,
+          badges
+            .filter((badge) => typeof badge.slug === "string" && badge.slug.length > 0)
+            .map((badge) => ({
+              slug: badge.slug,
+              hasLoggedSet: badge.has_logged_set === true,
+            })),
         );
-
-        if (sessionExercisesError) {
-          setSessionsError("Could not load session exercises.");
-          setIsChecking(false);
-          return;
-        }
-
-        const typedSessionExercises = (sessionExercisesData ?? []) as SessionExerciseRow[];
-        const uniqueExerciseIds = [...new Set(typedSessionExercises.map((item) => item.exercise_id))];
-        const sessionExerciseIds = typedSessionExercises.map((item) => item.id);
-        const sessionExerciseIdsWithSets = new Set<string>();
-
-        if (sessionExerciseIds.length > 0) {
-          const { data: setsData, error: setsError } = await fetchInChunks(
-            sessionExerciseIds,
-            (chunk, from, to) =>
-              supabaseBrowserClient
-                .from("workout_sets")
-                .select("session_exercise_id")
-                .in("session_exercise_id", chunk)
-                .order("id", { ascending: true })
-                .range(from, to),
-          );
-
-          if (setsError) {
-            setSessionsError("Could not load workout sets.");
-            setIsChecking(false);
-            return;
-          }
-
-          for (const row of (setsData ?? []) as WorkoutSetLinkRow[]) {
-            if (row.session_exercise_id) {
-              sessionExerciseIdsWithSets.add(row.session_exercise_id);
-            }
-          }
-
-          const sessionIdBySessionExerciseId = new Map<string, string>();
-          for (const exerciseRow of typedSessionExercises) {
-            sessionIdBySessionExerciseId.set(exerciseRow.id, exerciseRow.session_id);
-          }
-          const nextSetCountBySessionId = new Map<string, number>();
-          for (const row of (setsData ?? []) as WorkoutSetLinkRow[]) {
-            if (!row.session_exercise_id) {
-              continue;
-            }
-            const sessionId = sessionIdBySessionExerciseId.get(row.session_exercise_id);
-            if (!sessionId) {
-              continue;
-            }
-            nextSetCountBySessionId.set(sessionId, (nextSetCountBySessionId.get(sessionId) ?? 0) + 1);
-          }
-          setSetCountBySessionId(nextSetCountBySessionId);
-        }
-
-        const slugByExerciseId = new Map<string, string>();
-        if (uniqueExerciseIds.length > 0) {
-          const { data: exercisesData, error: exercisesError } = await supabaseBrowserClient
-            .from("exercises")
-            .select("id, slug")
-            .in("id", uniqueExerciseIds);
-
-          if (exercisesError) {
-            setSessionsError("Could not load exercises.");
-            setIsChecking(false);
-            return;
-          }
-
-          for (const exercise of (exercisesData ?? []) as ExerciseRow[]) {
-            slugByExerciseId.set(exercise.id, exercise.slug);
-          }
-        }
-
-        const nextMap = new Map<string, SessionExerciseBadge[]>();
-        for (const item of typedSessionExercises) {
-          const slug = slugByExerciseId.get(item.exercise_id);
-          if (!slug) {
-            continue;
-          }
-          const current = nextMap.get(item.session_id) ?? [];
-          current.push({
-            slug,
-            hasLoggedSet: sessionExerciseIdsWithSets.has(item.id),
-          });
-          nextMap.set(item.session_id, current);
-        }
-        setExerciseBadgesBySessionId(nextMap);
-      } else {
-        setExerciseBadgesBySessionId(new Map());
-        setSetCountBySessionId(new Map());
       }
+      setSetCountBySessionId(nextSetCountBySessionId);
+      setExerciseBadgesBySessionId(nextBadges);
 
       setIsChecking(false);
     }

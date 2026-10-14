@@ -366,7 +366,23 @@ export type Database = {
         Relationships: [];
       };
     };
-    Views: Record<string, never>;
+    Views: {
+      home_session_summaries: {
+        Row: {
+          id: string;
+          user_id: string;
+          performed_on: string;
+          notes: string | null;
+          created_at: string;
+          set_count: number;
+          exercise_badges: Array<{
+            slug: string;
+            has_logged_set: boolean;
+          }>;
+        };
+        Relationships: [];
+      };
+    };
     Functions: {
       instantiate_workout_template: {
         Args: {
