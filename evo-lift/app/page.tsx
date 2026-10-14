@@ -12,6 +12,7 @@ import { SectionHeading } from "@/app/components/section-heading";
 import { NewSessionDraftCallout } from "@/app/components/new-session-draft-callout";
 import { SessionsTable, type SessionsTableRow } from "@/app/components/sessions-table";
 import { WorkoutActivityChart } from "@/app/components/workout-activity-chart";
+import { loadGoalReachedSessionDates } from "@/lib/goal-reached-dates";
 import {
   loadHomeSessionSummaries,
   peekHomeSessionSummaries,
@@ -81,6 +82,7 @@ export default function Home() {
   >(new Map());
   const [setCountBySessionId, setSetCountBySessionId] = useState<Map<string, number>>(new Map());
   const [userId, setUserId] = useState<string | null>(null);
+  const [goalReachedByDate, setGoalReachedByDate] = useState<Record<string, string>>({});
   const reloadHomeSessionsRef = useRef<() => void>(() => {});
 
   useEffect(() => {
@@ -133,22 +135,32 @@ export default function Home() {
         setSessionsError(null);
       }
 
+      const goalDatesPromise = loadGoalReachedSessionDates(supabaseBrowserClient).catch(() => ({}));
       const cached = peekHomeSessionSummaries(session.user.id);
       if (cached) {
         applyHomeSummaries(cached.rows);
         setIsChecking(false);
         if (cached.fresh) {
+          const goalDates = await goalDatesPromise;
+          if (isMounted) {
+            setGoalReachedByDate(goalDates);
+          }
           return;
         }
       }
 
-      const { rows, error } = await loadHomeSessionSummaries(supabaseBrowserClient, session.user.id, {
-        fresh: cached != null,
-      });
+      const [{ rows, error }, goalDates] = await Promise.all([
+        loadHomeSessionSummaries(supabaseBrowserClient, session.user.id, {
+          fresh: cached != null,
+        }),
+        goalDatesPromise,
+      ]);
 
       if (!isMounted) {
         return;
       }
+
+      setGoalReachedByDate(goalDates);
 
       if (error) {
         if (!cached) {
@@ -375,6 +387,7 @@ export default function Home() {
               isCompactView={isSmallPhone}
               highlightedDates={highlightedActivityDates}
               onHighlightDatesChange={setHighlightedActivityDates}
+              goalReachedByDate={goalReachedByDate}
             />
             <PanelInset className="p-3">
               <SessionsTable
@@ -385,6 +398,7 @@ export default function Home() {
                 compactMode={isSmallPhone}
                 openingRowId={openingSessionId}
                 highlightedPerformedOnDates={highlightedActivityDates}
+                goalReachedByDate={goalReachedByDate}
                 onOpenRow={(rowId) => {
                   if (openingSessionId) {
                     return;

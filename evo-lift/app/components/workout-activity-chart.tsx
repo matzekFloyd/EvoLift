@@ -1,5 +1,6 @@
 "use client";
 
+import { Trophy } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -31,6 +32,8 @@ type WorkoutActivityHeatmapProps = {
   isCompactView?: boolean;
   highlightedDates?: string[] | null;
   onHighlightDatesChange?: (dates: string[] | null) => void;
+  /** Session dates (`YYYY-MM-DD`) that reached a goal, with the goal names for that day. */
+  goalReachedByDate?: Record<string, string>;
 };
 
 const INTENSITY_LEGEND: ActivityIntensity[] = ["rest", "lighter", "usual", "heavier"];
@@ -64,6 +67,7 @@ export function WorkoutActivityChart({
   isCompactView = false,
   highlightedDates = null,
   onHighlightDatesChange,
+  goalReachedByDate = {},
 }: WorkoutActivityHeatmapProps) {
   const sortedData = [...data].sort((a, b) => a.date.localeCompare(b.date));
   const totalWorkouts = sortedData.reduce((sum, item) => sum + item.workouts, 0);
@@ -256,6 +260,7 @@ export function WorkoutActivityChart({
     ? [...INTENSITY_LEGEND, "no-sets"]
     : [...INTENSITY_LEGEND];
   const currentWeekVisible = visibleWeeks.some((week) => week[0].date === currentWeekStart);
+  const showsGoalTrophy = visibleInRangeDays.some((day) => Boolean(goalReachedByDate[day.date]));
   const weekdayLabels = ["Mon", "", "Wed", "", "Fri", "", "Sun"];
   const monthLabels = visibleWeeks.map((week, index) => {
     const date = toDate(week[0].date);
@@ -272,6 +277,7 @@ export function WorkoutActivityChart({
             {totalSets} sets across {totalWorkouts} workouts in this range. Shading compares each
             training day with your usual day on this chart.
             {currentWeekVisible ? " The outlined column is this week." : ""}
+            {showsGoalTrophy ? " A trophy marks a day a goal was reached." : ""}
           </p>
           <div className="grid shrink-0 grid-cols-2 gap-x-2 gap-y-1 text-[10px] text-zinc-500 sm:grid-cols-4">
             {legendItems.map((intensity) => (
@@ -333,6 +339,7 @@ export function WorkoutActivityChart({
                   ? activityIntensity(day.sets, day.workouts, usualSets)
                   : null;
                 const isToday = day.date === todayKey;
+                const goalLabel = day.isInRange ? goalReachedByDate[day.date] : undefined;
                 const tooltip = `${new Intl.DateTimeFormat(undefined, {
                   weekday: "short",
                   year: "numeric",
@@ -342,13 +349,15 @@ export function WorkoutActivityChart({
                   day.workouts
                 } workout${day.workouts === 1 ? "" : "s"}${
                   intensity ? ` ${activityIntensityPhrase(intensity)}` : ""
-                }${isCurrentWeek ? " This week." : ""}${isToday ? " Today." : ""}`;
+                }${goalLabel ? ` Goal reached: ${goalLabel}.` : ""}${
+                  isCurrentWeek ? " This week." : ""
+                }${isToday ? " Today." : ""}`;
                 return (
                   <div
                     key={day.date}
                     title={tooltip}
                     aria-label={tooltip}
-                    className={`cursor-pointer rounded-sm border transition hover:brightness-95 active:scale-95 ${
+                    className={`flex cursor-pointer items-center justify-center overflow-hidden rounded-sm border transition hover:brightness-95 active:scale-95 ${
                       isToday
                         ? "border-zinc-900 ring-2 ring-zinc-900 ring-offset-1"
                         : highlightedDateSet.has(day.date) && day.isInRange
@@ -363,7 +372,15 @@ export function WorkoutActivityChart({
                       onHighlightDatesChange?.([day.date]);
                     }}
                     onMouseLeave={() => onHighlightDatesChange?.(null)}
-                  />
+                  >
+                    {goalLabel ? (
+                      <Trophy
+                        className="pointer-events-none h-[62%] w-[62%] fill-yellow-400 text-amber-500"
+                        strokeWidth={1.75}
+                        aria-hidden
+                      />
+                    ) : null}
+                  </div>
                 );
               })}
             </div>

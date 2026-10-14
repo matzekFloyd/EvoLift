@@ -11,6 +11,7 @@ import {
   LayoutList,
   LineChart,
   Medal,
+  Trophy,
   TrendingUp,
   Weight,
 } from "lucide-react";
@@ -42,6 +43,7 @@ import {
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { fetchAllPages, fetchInChunks } from "@/lib/supabase/chunked-query";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
+import { formatMilestoneTarget } from "@/lib/milestone-progress";
 import { toExerciseBadge } from "@/lib/exercise-badge";
 import { buildExerciseSessionVolumeChartPoints } from "@/lib/exercise-session-volume-chart";
 import { buildExerciseSessionWeightChartPoints } from "@/lib/exercise-session-weight-chart";
@@ -82,6 +84,7 @@ type WorkoutSetRow = {
   reps: number;
   weight_kg: number | null;
   is_warmup: boolean;
+  performed_at: string;
 };
 
 type ExerciseSetHistoryRow = {
@@ -89,11 +92,15 @@ type ExerciseSetHistoryRow = {
   performedOn: string;
   /** `workout_sessions.created_at` (ISO); disambiguates multiple sessions on the same `performed_on` day. */
   sessionCreatedAt: string;
+  /** `workout_sets.performed_at`. Matches a goal's achieved time when this set reached it. */
+  performedAt: string;
   setNumber: number;
   reps: number;
   weightKg: number | null;
   totalKg: number;
   isWarmup: boolean;
+  /** Set when this row is the set that reached one or more goals. */
+  goalLabel: string | null;
 };
 
 type HistorySortKey =
@@ -173,7 +180,7 @@ const EXERCISE_DETAIL_A11Y_PREFIX = "exercise-detail";
 type ExerciseDetailPanelTab = "data" | "charts";
 
 const COMPACT_HISTORY_GRID =
-  "grid grid-cols-[minmax(5.5rem,1fr)_minmax(4rem,5.5rem)_2.75rem_3.25rem_2.125rem] gap-x-1.5 @min-[22rem]:grid-cols-[minmax(5.5rem,1fr)_3.5rem_minmax(1.75rem,2.25rem)_2.75rem_3.25rem_2.125rem]";
+  "grid grid-cols-[minmax(6.75rem,1fr)_minmax(2.75rem,3.5rem)_2.75rem_3.25rem_2.125rem] gap-x-1.5 @min-[22rem]:grid-cols-[minmax(6.75rem,1fr)_3.5rem_minmax(1.75rem,2.25rem)_2.75rem_3.25rem_2.125rem]";
 
 const COMPACT_HISTORY_TYPE_CELL = "hidden @min-[22rem]:flex @min-[22rem]:justify-center @min-[22rem]:items-center";
 
@@ -258,6 +265,53 @@ function setTotalKgForStats(row: ExerciseSetHistoryRow): number | null {
 
 function formatKgValue(value: number | null, fractionDigits: number): string {
   return value == null ? "—" : `${value.toFixed(fractionDigits)} kg`;
+}
+
+function historyRowTitle(row: ExerciseSetHistoryRow, isTopRepsRow: boolean): string {
+  const parts: string[] = [];
+  if (isTopRepsRow) {
+    parts.push("Best set marker: top reps (with tie-break rules).");
+  }
+  if (row.goalLabel) {
+    parts.push(`Goal reached: ${row.goalLabel}.`);
+  }
+  if (!isTopRepsRow && !row.goalLabel) {
+    parts.push("Set details for this exercise entry.");
+  }
+  parts.push("Open session.");
+  parts.push(row.isWarmup ? "Warmup: yes." : "Warmup: no.");
+  return parts.join(" ");
+}
+
+function GoalReachedMark({ label }: { label: string }) {
+  return (
+    <Trophy
+      className="h-3.5 w-3.5 shrink-0 fill-yellow-400 text-amber-500"
+      strokeWidth={1.75}
+      role="img"
+      aria-label={`Goal reached: ${label}`}
+    />
+  );
+}
+
+function historyRowSurfaceClass(isTopRepsRow: boolean, isGoalRow: boolean): string {
+  if (isTopRepsRow) {
+    return "bg-emerald-100/70 text-emerald-950 hover:bg-emerald-100";
+  }
+  if (isGoalRow) {
+    return "bg-sky-100/70 text-sky-950 hover:bg-sky-100";
+  }
+  return "odd:bg-white even:bg-zinc-50/60 hover:bg-zinc-100/70";
+}
+
+function historyValueClass(isTopRepsRow: boolean, isGoalRow: boolean): string {
+  if (isTopRepsRow) {
+    return "font-medium text-emerald-900";
+  }
+  if (isGoalRow) {
+    return "font-medium text-sky-900";
+  }
+  return "";
 }
 
 export default function ExerciseDetailPage() {
@@ -428,13 +482,24 @@ export default function ExerciseDetailPage() {
               fetchInChunks(sessionExerciseIds, (chunk, from, to) =>
                 supabaseBrowserClient
                   .from("workout_sets")
-                  .select("session_exercise_id, set_number, reps, weight_kg, is_warmup")
+                  .select("session_exercise_id, set_number, reps, weight_kg, is_warmup, performed_at")
                   .in("session_exercise_id", chunk)
                   .order("id", { ascending: true })
                   .range(from, to),
               ),
             );
-      const [sessionsResult, setsResult] = await Promise.all([sessionsPromise, setsPromise]);
+      const milestonesPromise = perf.trackQuery("strength_milestones.selectByExerciseId", () =>
+        supabaseBrowserClient
+          .from("strength_milestones")
+          .select("milestone_type, target_weight_kg, bodyweight_multiple, min_reps, achieved_at")
+          .eq("exercise_id", exercise.id)
+          .not("achieved_at", "is", null),
+      );
+      const [sessionsResult, setsResult, milestonesResult] = await Promise.all([
+        sessionsPromise,
+        setsPromise,
+        milestonesPromise,
+      ]);
       if (sessionsResult.error) {
         setErrorMessage("Could not load your workout sessions.");
         setIsLoading(false);
@@ -456,6 +521,29 @@ export default function ExerciseDetailPage() {
         });
       }
 
+      const goalLabelsByAchievedAt = new Map<number, string[]>();
+      for (const milestone of milestonesResult.data ?? []) {
+        if (!milestone.achieved_at) {
+          continue;
+        }
+        const achievedAtMs = new Date(milestone.achieved_at).getTime();
+        if (!Number.isFinite(achievedAtMs)) {
+          continue;
+        }
+        const label = formatMilestoneTarget({
+          exerciseId: exercise.id,
+          milestoneType: milestone.milestone_type,
+          targetWeightKg:
+            milestone.target_weight_kg == null ? null : Number(milestone.target_weight_kg),
+          bodyweightMultiple:
+            milestone.bodyweight_multiple == null ? null : Number(milestone.bodyweight_multiple),
+          minReps: milestone.min_reps,
+        });
+        const labels = goalLabelsByAchievedAt.get(achievedAtMs) ?? [];
+        labels.push(label);
+        goalLabelsByAchievedAt.set(achievedAtMs, labels);
+      }
+
       let history: ExerciseSetHistoryRow[] = [];
       if (sessionExerciseIds.length > 0) {
         history = (setsResult.data ?? [])
@@ -474,15 +562,21 @@ export default function ExerciseDetailPage() {
             const loadedValue = Number(loadedRaw);
             const baseWeightKg = Number.isFinite(baseWeightValue) ? baseWeightValue : 0;
             const loadedKg = Number.isFinite(loadedValue) ? loadedValue : 0;
+            const performedAtMs = new Date(setRow.performed_at).getTime();
+            const goalLabels = Number.isFinite(performedAtMs)
+              ? goalLabelsByAchievedAt.get(performedAtMs)
+              : undefined;
             return {
               sessionId,
               performedOn: sessionMeta.performedOn,
               sessionCreatedAt: sessionMeta.createdAt,
+              performedAt: setRow.performed_at,
               setNumber: setRow.set_number,
               reps: setRow.reps,
               weightKg: setRow.weight_kg,
               totalKg: loadedKg + baseWeightKg,
               isWarmup: setRow.is_warmup,
+              goalLabel: goalLabels && goalLabels.length > 0 ? goalLabels.join(", ") : null,
             };
           })
           .filter((row): row is ExerciseSetHistoryRow => row !== null);
@@ -607,6 +701,8 @@ export default function ExerciseDetailPage() {
     }
     return inRange;
   }, [historyRows, filterState.from, filterState.to, filterState.hideWarmups]);
+
+  const hasWarmupSets = useMemo(() => historyRows.some((row) => row.isWarmup), [historyRows]);
 
   const workingRows = useMemo(
     () => filteredHistoryRows.filter((row) => !row.isWarmup),
@@ -887,17 +983,19 @@ export default function ExerciseDetailPage() {
                   </label>
                 </div>
                 <div className="flex flex-row flex-wrap items-center justify-between gap-x-2 gap-y-1">
-                  <label className="flex min-h-10 min-w-0 cursor-pointer items-center gap-2 text-sm font-medium text-zinc-800">
-                    <input
-                      type="checkbox"
-                      checked={filterState.hideWarmups}
-                      onChange={(event) =>
-                        commitExerciseFilters({ hideWarmups: event.target.checked })
-                      }
-                      className="h-4 w-4 shrink-0 rounded border-zinc-300 text-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500/50"
-                    />
-                    Hide warmups
-                  </label>
+                  {hasWarmupSets ? (
+                    <label className="flex min-h-10 min-w-0 cursor-pointer items-center gap-2 text-sm font-medium text-zinc-800">
+                      <input
+                        type="checkbox"
+                        checked={filterState.hideWarmups}
+                        onChange={(event) =>
+                          commitExerciseFilters({ hideWarmups: event.target.checked })
+                        }
+                        className="h-4 w-4 shrink-0 rounded border-zinc-300 text-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500/50"
+                      />
+                      Hide warmups
+                    </label>
+                  ) : null}
                   <ActionButton
                     type="button"
                     onClick={() =>
@@ -910,7 +1008,7 @@ export default function ExerciseDetailPage() {
                     disabled={isExerciseFiltersFullyCleared}
                     variant="secondary"
                     size="sm"
-                    className="shrink-0 text-sm font-normal text-amber-800 hover:text-amber-900"
+                    className="ml-auto shrink-0 text-sm font-normal text-amber-800 hover:text-amber-900"
                     iconColor="amber"
                   >
                     <FilterX className="h-3.5 w-3.5" />
@@ -997,8 +1095,8 @@ export default function ExerciseDetailPage() {
                 <div className="min-w-0">
                   <SectionHeading id="exercise-detail-history-heading">Set history</SectionHeading>
                   <p className="mt-1 text-xs text-zinc-600">
-                    Each row is one set for this exercise. Open a workout session to edit or review
-                    details.
+                    Each row is one set for this exercise. A trophy marks the set that reached a goal.
+                    Open a workout session to edit or review details.
                   </p>
                 </div>
                 {filteredHistoryRows.length > 0 ? (
@@ -1046,22 +1144,17 @@ export default function ExerciseDetailPage() {
                 {pagedCompactHistoryRows.map((row, index) => (
                   <article
                     key={`${row.sessionId}-${row.setNumber}-${index}`}
-                    className={`cursor-pointer border-b px-2 py-1.5 text-xs last:border-b-0 ${
-                      `${row.sessionId}-${row.setNumber}` === topRepsRowKey
-                        ? "bg-emerald-100/70 text-emerald-950 hover:bg-emerald-100"
-                        : "odd:bg-white even:bg-zinc-50/60 hover:bg-zinc-100/70"
-                    }`}
+                    className={`cursor-pointer border-b px-2 py-1.5 text-xs last:border-b-0 ${historyRowSurfaceClass(
+                      `${row.sessionId}-${row.setNumber}` === topRepsRowKey,
+                      Boolean(row.goalLabel),
+                    )}`}
                     onClick={() => router.push(`/sessions/${row.sessionId}`)}
-                    title={
-                      (`${row.sessionId}-${row.setNumber}` === topRepsRowKey
-                        ? "Best set marker: top reps (with tie-break rules). Open session."
-                        : "Set details for this exercise entry. Open session.") +
-                      (row.isWarmup ? " Warmup: yes." : " Warmup: no.")
-                    }
+                    title={historyRowTitle(row, `${row.sessionId}-${row.setNumber}` === topRepsRowKey)}
                   >
                     {(() => {
                       const rowKey = `${row.sessionId}-${row.setNumber}`;
                       const isTopRepsRow = rowKey === topRepsRowKey;
+                      const isGoalRow = Boolean(row.goalLabel);
                       return (
                         <div className={`${COMPACT_HISTORY_GRID} items-center text-zinc-700`}>
                           <div className="flex min-w-0 items-center gap-1">
@@ -1069,13 +1162,15 @@ export default function ExerciseDetailPage() {
                               {formatDateOnlyForLocale(row.performedOn)}
                             </span>
                             {isTopRepsRow ? (
-                              <Medal
-                                className="h-3.5 w-3.5 shrink-0 text-amber-600"
-                                aria-hidden
-                              />
+                              <Medal className="h-3.5 w-3.5 shrink-0 text-amber-600" aria-hidden />
+                            ) : isGoalRow && row.goalLabel ? (
+                              <GoalReachedMark label={row.goalLabel} />
                             ) : (
                               <span className="inline-block h-3.5 w-3.5 shrink-0" aria-hidden />
                             )}
+                            {isTopRepsRow && row.goalLabel ? (
+                              <GoalReachedMark label={row.goalLabel} />
+                            ) : null}
                           </div>
                           <span className={`text-zinc-600 ${COMPACT_HISTORY_TYPE_CELL}`}>
                             <SetKindIndicator isWarmup={row.isWarmup} density="compact" />
@@ -1091,25 +1186,13 @@ export default function ExerciseDetailPage() {
                               <span>{row.setNumber}</span>
                             </span>
                           </span>
-                          <span
-                            className={`text-right tabular-nums ${
-                              isTopRepsRow ? "font-medium text-emerald-900" : ""
-                            }`}
-                          >
+                          <span className={`text-right tabular-nums ${historyValueClass(isTopRepsRow, isGoalRow)}`}>
                             {row.weightKg ?? "—"}
                           </span>
-                          <span
-                            className={`text-right tabular-nums ${
-                              isTopRepsRow ? "font-medium text-emerald-900" : ""
-                            }`}
-                          >
+                          <span className={`text-right tabular-nums ${historyValueClass(isTopRepsRow, isGoalRow)}`}>
                             {row.totalKg.toFixed(1)}
                           </span>
-                          <span
-                            className={`text-right tabular-nums ${
-                              isTopRepsRow ? "font-medium text-emerald-900" : ""
-                            }`}
-                          >
+                          <span className={`text-right tabular-nums ${historyValueClass(isTopRepsRow, isGoalRow)}`}>
                             {row.reps}
                           </span>
                         </div>
@@ -1164,40 +1247,34 @@ export default function ExerciseDetailPage() {
                       (() => {
                         const rowKey = `${row.sessionId}-${row.setNumber}`;
                         const isTopRepsRow = rowKey === topRepsRowKey;
+                        const isGoalRow = Boolean(row.goalLabel);
                         return (
                       <tr
                         key={`${row.sessionId}-${row.setNumber}-${index}`}
-                        className={`cursor-pointer border-b last:border-b-0 ${
-                          isTopRepsRow
-                            ? "bg-emerald-100/70 text-emerald-950 hover:bg-emerald-100"
-                            : "odd:bg-white even:bg-zinc-50/60 hover:bg-zinc-100/70"
-                        }`}
+                        className={`cursor-pointer border-b last:border-b-0 ${historyRowSurfaceClass(isTopRepsRow, isGoalRow)}`}
                         onClick={() => router.push(`/sessions/${row.sessionId}`)}
-                        title={
-                          isTopRepsRow
-                            ? "Best set marker: top reps (with tie-break rules). Open session."
-                            : "Set details for this exercise entry. Open session."
-                        }
+                        title={historyRowTitle(row, isTopRepsRow)}
                       >
                         <td className="px-2 py-2">
                           <span className="inline-flex items-center gap-1">
                             {formatDateOnlyForLocale(row.performedOn)}
                             {isTopRepsRow ? (
-                              <Medal className="h-3.5 w-3.5 text-amber-600" />
+                              <Medal className="h-3.5 w-3.5 shrink-0 text-amber-600" aria-hidden />
                             ) : null}
+                            {row.goalLabel ? <GoalReachedMark label={row.goalLabel} /> : null}
                           </span>
                         </td>
                         <td className="px-2 py-2">
                           <SetKindIndicator isWarmup={row.isWarmup} density="default" />
                         </td>
                         <td className="px-2 py-2">{row.setNumber}</td>
-                        <td className={`px-2 py-2 ${isTopRepsRow ? "font-medium text-emerald-900" : ""}`}>
+                        <td className={`px-2 py-2 ${historyValueClass(isTopRepsRow, isGoalRow)}`}>
                           {row.weightKg ?? "-"}
                         </td>
-                        <td className={`px-2 py-2 ${isTopRepsRow ? "font-medium text-emerald-900" : ""}`}>
+                        <td className={`px-2 py-2 ${historyValueClass(isTopRepsRow, isGoalRow)}`}>
                           {row.totalKg.toFixed(1)}
                         </td>
-                        <td className={`px-2 py-2 ${isTopRepsRow ? "font-medium text-emerald-900" : ""}`}>
+                        <td className={`px-2 py-2 ${historyValueClass(isTopRepsRow, isGoalRow)}`}>
                           {row.reps}
                         </td>
                       </tr>

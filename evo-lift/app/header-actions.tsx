@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { BarChart3, Dumbbell, FileStack, House, LogOut, Menu, UserRound, X } from "lucide-react";
+import { BarChart3, Dumbbell, FileStack, House, LogOut, Menu, Target, UserRound, X } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
@@ -136,11 +136,11 @@ export function HeaderActions() {
     <header className="bg-gradient-to-l from-sky-200 via-sky-100 to-sky-50">
       <nav className="mx-auto flex w-full max-w-5xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
         <Link
-          className="group inline-flex items-center gap-2 rounded-md px-1.5 py-1 transition-colors duration-150 hover:bg-white/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 focus-visible:ring-offset-2 focus-visible:ring-offset-sky-100"
+          className="group inline-flex items-center gap-2 rounded-md px-1.5 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 focus-visible:ring-offset-2 focus-visible:ring-offset-sky-100"
           href="/"
         >
-          <EvoLiftMark className="h-8 w-8 shrink-0 transition-transform duration-150 group-hover:scale-105" />
-          <span className="text-lg leading-none font-bold tracking-[-0.04em] text-sky-900 transition-colors duration-150 group-hover:text-sky-950">
+          <EvoLiftMark className="h-8 w-8 shrink-0 transition-transform duration-150 group-hover:scale-110" />
+          <span className="origin-left text-lg leading-none font-bold tracking-[-0.04em] text-sky-900 transition-transform duration-150 group-hover:scale-110">
             EvoLift
           </span>
         </Link>
@@ -157,6 +157,12 @@ export function HeaderActions() {
             label="Insights"
             isActive={pathname.startsWith("/insights")}
             icon={BarChart3}
+          />
+          <AppHeaderNavLink
+            href="/goals"
+            label="Goals"
+            isActive={pathname.startsWith("/goals")}
+            icon={Target}
           />
           <AppHeaderNavLink
             href="/templates"
@@ -259,6 +265,18 @@ export function HeaderActions() {
               >
                 <BarChart3 className="h-4 w-4 shrink-0" aria-hidden />
                 Insights
+              </Link>
+              <Link
+                href="/goals"
+                onClick={() => closeCompactMenu({ returnFocus: false })}
+                className={`flex items-center gap-2 rounded-md px-2 py-2 text-left text-sm ${
+                  pathname.startsWith("/goals")
+                    ? "bg-sky-50 text-sky-900"
+                    : "text-zinc-800 hover:bg-zinc-50"
+                }`}
+              >
+                <Target className="h-4 w-4 shrink-0" aria-hidden />
+                Goals
               </Link>
               <Link
                 href="/templates"
