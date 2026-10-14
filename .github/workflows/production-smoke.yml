@@ -1,0 +1,46 @@
+name: Production smoke
+
+on:
+  deployment_status:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  smoke:
+    name: Production smoke
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (
+        github.event.deployment_status.state == 'success' &&
+        github.event.deployment.environment == 'Production'
+      )
+    runs-on: ubuntu-latest
+    steps:
+      - name: Login page loads
+        run: |
+          set -euo pipefail
+          code=$(curl -sS -o /tmp/login.html -w "%{http_code}" --max-time 30 https://evo-lift.vercel.app/login)
+          if [[ "$code" != "200" ]]; then
+            echo "Login page returned HTTP ${code}"
+            exit 1
+          fi
+          if ! grep -q "Log in" /tmp/login.html; then
+            echo "Login page did not include Log in"
+            exit 1
+          fi
+
+      - name: OpenAPI JSON
+        run: |
+          set -euo pipefail
+          code=$(curl -sS -D /tmp/openapi.headers -o /tmp/openapi.json -w "%{http_code}" --max-time 30 https://evo-lift.vercel.app/api/openapi)
+          if [[ "$code" != "200" ]]; then
+            echo "/api/openapi returned HTTP ${code}"
+            exit 1
+          fi
+          if ! grep -qi "application/json" /tmp/openapi.headers; then
+            echo "/api/openapi did not return JSON"
+            exit 1
+          fi
+          jq -e '.openapi | strings | startswith("3.")' /tmp/openapi.json >/dev/null
