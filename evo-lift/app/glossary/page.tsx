@@ -4,7 +4,7 @@ import { BookMarked } from "lucide-react";
 import { PageShell } from "@/app/components/page-shell";
 
 export const metadata: Metadata = {
-  title: "Glossary · Evo Lift",
+  title: "Glossary",
   description: "Definitions for the words EvoLift uses.",
 };
 

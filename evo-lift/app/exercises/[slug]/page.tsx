@@ -30,6 +30,7 @@ import { ExerciseWeightProgressChart } from "@/app/components/exercise-weight-pr
 import { ExerciseInsightPanel } from "@/app/components/lift-comparison-panel";
 import { InfoPopover } from "@/app/components/info-popover";
 import { KpiBadge } from "@/app/components/kpi-badge";
+import { DocumentTitle } from "@/app/components/document-title";
 import { PageShell } from "@/app/components/page-shell";
 import { panelInsetClass } from "@/app/components/panel-inset";
 import { SectionHeading } from "@/app/components/section-heading";
@@ -887,6 +888,7 @@ export default function ExerciseDetailPage() {
 
   return (
     <PageShell>
+      <DocumentTitle page={exerciseLabel.trim() ? exerciseLabel : null} />
       <section>
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex min-w-0 items-center gap-2">
