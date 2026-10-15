@@ -2,6 +2,7 @@
 
 import { CircleCheck, Dumbbell, Lock, Mail } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { PageShell } from "@/app/components/page-shell";
@@ -252,6 +253,11 @@ export default function LoginPage() {
             </button>
           </div>
         </form>
+        <p className="mt-4 text-sm">
+          <Link href="/privacy" className="font-medium text-sky-800 underline-offset-2 hover:underline">
+            Privacy policy
+          </Link>
+        </p>
       </section>
 
       {successEmail ? (
