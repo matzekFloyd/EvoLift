@@ -4,11 +4,13 @@ import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.WindowManager;
 import android.webkit.WebView;
 import androidx.activity.OnBackPressedCallback;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.BridgeWebViewClient;
 
 public class MainActivity extends BridgeActivity {
 
@@ -19,6 +21,15 @@ public class MainActivity extends BridgeActivity {
         WindowInsetsControllerCompat insets = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
         insets.setAppearanceLightStatusBars(true);
         insets.setAppearanceLightNavigationBars(true);
+        if (getBridge() != null) {
+            getBridge().setWebViewClient(new BridgeWebViewClient(getBridge()) {
+                @Override
+                public void doUpdateVisitedHistory(WebView view, String url, boolean isReload) {
+                    super.doUpdateVisitedHistory(view, url, isReload);
+                    applyScreenHold(url);
+                }
+            });
+        }
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
@@ -52,6 +63,27 @@ public class MainActivity extends BridgeActivity {
         });
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        WebView webView = getBridge() == null ? null : getBridge().getWebView();
+        applyScreenHold(webView == null ? null : webView.getUrl());
+    }
+
+    @Override
+    public void onPause() {
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+        super.onPause();
+    }
+
+    private void applyScreenHold(String url) {
+        if (screenStaysAwake(url)) {
+            getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+            return;
+        }
+        getWindow().clearFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    }
+
     /**
      * Home always leaves the app. Any other page goes back when the WebView has history.
      * Same rule as backLeavesTheApp in shell/server-config.cjs.
@@ -61,6 +93,31 @@ public class MainActivity extends BridgeActivity {
             return true;
         }
         return !canGoBack;
+    }
+
+    /**
+     * True for /sessions/new and /sessions/[id]. Same rule as screenStaysAwake in shell/server-config.cjs.
+     */
+    static boolean screenStaysAwake(String url) {
+        if (url == null || url.trim().isEmpty()) {
+            return false;
+        }
+        try {
+            String path = Uri.parse(url).getPath();
+            if (path == null || path.isEmpty()) {
+                return false;
+            }
+            while (path.length() > 1 && path.endsWith("/")) {
+                path = path.substring(0, path.length() - 1);
+            }
+            if (!path.startsWith("/sessions/")) {
+                return false;
+            }
+            String rest = path.substring("/sessions/".length());
+            return !rest.isEmpty() && !rest.contains("/");
+        } catch (Exception ex) {
+            return false;
+        }
     }
 
     static boolean isShellHome(String url) {

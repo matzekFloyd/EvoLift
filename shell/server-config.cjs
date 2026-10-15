@@ -86,6 +86,23 @@ function backLeavesTheApp(url, canGoBack) {
   return !canGoBack;
 }
 
+/**
+ * True while the open page is a workout session.
+ * Matches /sessions/new and /sessions/[id], including a trailing slash or query.
+ * Mirrors MainActivity.screenStaysAwake.
+ */
+function screenStaysAwake(url) {
+  if (typeof url !== "string" || url.trim() === "") {
+    return false;
+  }
+  try {
+    const path = new URL(url).pathname.replace(/\/+$/, "") || "/";
+    return /^\/sessions\/[^/]+$/.test(path);
+  } catch {
+    return false;
+  }
+}
+
 function isShellHome(url) {
   if (typeof url !== "string" || url.trim() === "") {
     return true;
@@ -235,4 +252,5 @@ module.exports = {
   readDebugServerFile,
   mayLoadInShell,
   backLeavesTheApp,
+  screenStaysAwake,
 };

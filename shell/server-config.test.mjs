@@ -9,6 +9,7 @@ import {
   PRODUCTION_SITE_URL,
   PRODUCTION_SUPABASE_HOST,
   backLeavesTheApp,
+  screenStaysAwake,
   createCapacitorConfig,
   mayLoadInShell,
   readDebugServerFile,
@@ -167,6 +168,22 @@ test("Android Back leaves home and returns from a session", () => {
     false,
   );
   assert.equal(backLeavesTheApp("https://evo-lift.vercel.app/sessions/session-1", false), true);
+});
+
+test("the screen stays awake only on an open session", () => {
+  assert.equal(screenStaysAwake("https://evo-lift.vercel.app/sessions/new"), true);
+  assert.equal(screenStaysAwake("https://evo-lift.vercel.app/sessions/session-1"), true);
+  assert.equal(screenStaysAwake("https://evo-lift.vercel.app/sessions/session-1/"), true);
+  assert.equal(screenStaysAwake("https://evo-lift.vercel.app/sessions/session-1?set=2"), true);
+  assert.equal(screenStaysAwake("http://10.0.2.2:3000/sessions/session-1"), true);
+  assert.equal(screenStaysAwake("https://evo-lift.vercel.app/"), false);
+  assert.equal(screenStaysAwake("https://evo-lift.vercel.app/sessions"), false);
+  assert.equal(screenStaysAwake("https://evo-lift.vercel.app/sessions/session-1/edit"), false);
+  assert.equal(screenStaysAwake("https://evo-lift.vercel.app/insights"), false);
+  assert.equal(screenStaysAwake("https://evo-lift.vercel.app/goals"), false);
+  assert.equal(screenStaysAwake("https://evo-lift.vercel.app/account"), false);
+  assert.equal(screenStaysAwake(""), false);
+  assert.equal(screenStaysAwake("not a url"), false);
 });
 
 test("rejects a debug file server URL that is not a string", () => {
