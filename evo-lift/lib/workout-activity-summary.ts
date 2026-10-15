@@ -4,7 +4,7 @@ export type ActivityDay = {
   sets: number;
 };
 
-export type ActivityIntensity = "rest" | "no-sets" | "lighter" | "usual" | "heavier";
+export type ActivityIntensity = "rest" | "no-sets" | "workout";
 
 function parseDate(value: string): Date {
   const [yearText, monthText, dayText] = value.split("-");
@@ -58,37 +58,12 @@ function sumWeek(days: ActivityDay[], weekStart: string): { sessions: number; se
   return { sessions, sets };
 }
 
-export function median(values: number[]): number | null {
-  if (values.length === 0) {
-    return null;
-  }
-  const sorted = [...values].sort((left, right) => left - right);
-  const mid = Math.floor(sorted.length / 2);
-  if (sorted.length % 2 === 0) {
-    return (sorted[mid - 1] + sorted[mid]) / 2;
-  }
-  return sorted[mid];
-}
-
-/** Median set count on days that have at least one set. */
-export function usualTrainingDaySets(setCounts: number[]): number | null {
-  return median(setCounts.filter((sets) => sets > 0));
-}
-
-export function activityIntensity(sets: number, workouts: number, usualSets: number | null): ActivityIntensity {
+/** Rest, a planned workout with nothing logged, or a day a workout was done. */
+export function activityIntensity(sets: number, workouts: number): ActivityIntensity {
   if (sets <= 0) {
     return workouts > 0 ? "no-sets" : "rest";
   }
-  if (usualSets == null || usualSets <= 0) {
-    return "usual";
-  }
-  if (sets < usualSets * 0.8) {
-    return "lighter";
-  }
-  if (sets > usualSets * 1.25) {
-    return "heavier";
-  }
-  return "usual";
+  return "workout";
 }
 
 export function activityIntensityClass(intensity: ActivityIntensity): string {
@@ -97,11 +72,7 @@ export function activityIntensityClass(intensity: ActivityIntensity): string {
       return "bg-zinc-100";
     case "no-sets":
       return "bg-zinc-400";
-    case "lighter":
-      return "bg-sky-200";
-    case "usual":
-      return "bg-sky-400";
-    case "heavier":
+    case "workout":
       return "bg-sky-600";
   }
 }
@@ -109,30 +80,22 @@ export function activityIntensityClass(intensity: ActivityIntensity): string {
 export function activityIntensityLabel(intensity: ActivityIntensity): string {
   switch (intensity) {
     case "rest":
-      return "Rest";
+      return "No Workout";
     case "no-sets":
-      return "No sets";
-    case "lighter":
-      return "Lighter";
-    case "usual":
-      return "Usual";
-    case "heavier":
-      return "Heavier";
+      return "No Sets";
+    case "workout":
+      return "Workout";
   }
 }
 
 export function activityIntensityPhrase(intensity: ActivityIntensity): string {
   switch (intensity) {
     case "rest":
-      return "Rest day.";
+      return "No workout.";
     case "no-sets":
-      return "Session logged, no sets.";
-    case "lighter":
-      return "Lighter than your usual training day.";
-    case "usual":
-      return "In line with your usual training day.";
-    case "heavier":
-      return "Heavier than your usual training day.";
+      return "A workout is planned, and no exercises are logged yet.";
+    case "workout":
+      return "A workout was done.";
   }
 }
 

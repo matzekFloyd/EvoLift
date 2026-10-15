@@ -7,8 +7,6 @@ import {
   activityIntensityLabel,
   activityIntensityPhrase,
   buildActivityComparisonSentence,
-  median,
-  usualTrainingDaySets,
   type ActivityDay,
 } from "./workout-activity-summary";
 
@@ -25,23 +23,23 @@ function mondayOf(date: Date): Date {
 }
 
 describe("activity intensity", () => {
-  it("uses the middle value, or the average of the two middle values", () => {
-    assert.equal(median([]), null);
-    assert.equal(median([9, 1, 3]), 3);
-    assert.equal(median([4, 1, 3, 2]), 2.5);
-    assert.equal(usualTrainingDaySets([0, 4, 0, 8]), 6);
-  });
-
-  it("classifies a day against the usual training-day set count", () => {
-    assert.equal(activityIntensity(0, 0, 10), "rest");
-    assert.equal(activityIntensity(0, 1, 10), "no-sets");
-    assert.equal(activityIntensity(4, 1, null), "usual");
-    assert.equal(activityIntensity(7, 1, 10), "lighter");
-    assert.equal(activityIntensity(8, 1, 10), "usual");
-    assert.equal(activityIntensity(13, 1, 10), "heavier");
-    assert.equal(activityIntensityLabel("heavier"), "Heavier");
+  it("marks rest, a session with no sets, or a day a workout was done", () => {
+    assert.equal(activityIntensity(0, 0), "rest");
+    assert.equal(activityIntensity(0, 1), "no-sets");
+    assert.equal(activityIntensity(4, 1), "workout");
+    assert.equal(activityIntensity(13, 1), "workout");
+    assert.equal(activityIntensityLabel("rest"), "No Workout");
+    assert.equal(activityIntensityLabel("no-sets"), "No Sets");
+    assert.equal(activityIntensityLabel("workout"), "Workout");
+    assert.equal(activityIntensityClass("workout"), "bg-sky-600");
     assert.equal(activityIntensityClass("rest"), "bg-zinc-100");
-    assert.equal(activityIntensityPhrase("no-sets"), "Session logged, no sets.");
+    assert.equal(activityIntensityClass("no-sets"), "bg-zinc-400");
+    assert.equal(activityIntensityPhrase("rest"), "No workout.");
+    assert.equal(activityIntensityPhrase("workout"), "A workout was done.");
+    assert.equal(
+      activityIntensityPhrase("no-sets"),
+      "A workout is planned, and no exercises are logged yet.",
+    );
   });
 });
 

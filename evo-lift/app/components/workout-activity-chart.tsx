@@ -24,7 +24,6 @@ import {
   activityIntensityLabel,
   activityIntensityPhrase,
   buildActivityComparisonSentence,
-  usualTrainingDaySets,
   type ActivityIntensity,
 } from "@/lib/workout-activity-summary";
 
@@ -43,7 +42,7 @@ type WorkoutActivityHeatmapProps = {
   goalReachedByDate?: Record<string, string>;
 };
 
-const INTENSITY_LEGEND: ActivityIntensity[] = ["rest", "lighter", "usual", "heavier"];
+const INTENSITY_LEGEND: ActivityIntensity[] = ["rest", "no-sets", "workout"];
 
 export function WorkoutActivityChart({
   data,
@@ -162,13 +161,6 @@ export function WorkoutActivityChart({
   }
 
   const visibleWeeks = buildActivityHeatmapWeeks(sortedData);
-  const visibleInRangeDays = visibleWeeks.flatMap((week) => week.filter((day) => day.isInRange));
-  const usualSets = usualTrainingDaySets(visibleInRangeDays.map((day) => day.sets));
-  const legendItems: ActivityIntensity[] = visibleInRangeDays.some((day) => day.workouts > 0 && day.sets <= 0)
-    ? [...INTENSITY_LEGEND, "no-sets"]
-    : [...INTENSITY_LEGEND];
-  const currentWeekVisible = visibleWeeks.some((week) => week[0].date === currentWeekStart);
-  const showsGoalTrophy = visibleInRangeDays.some((day) => Boolean(goalReachedByDate[day.date]));
   const weekdayLabels = ["Mon", "", "Wed", "", "Fri", "", "Sun"];
   const monthLabels = visibleWeeks.map((week, index) => {
     const date = activityDateToLocalDate(week[0].date);
@@ -182,13 +174,10 @@ export function WorkoutActivityChart({
         <p className="text-sm text-zinc-800">{comparisonSentence}</p>
         <div className="flex flex-col gap-2 text-xs text-zinc-600 sm:flex-row sm:items-start sm:justify-between">
           <p className="max-w-prose">
-            {totalSets} sets across {totalWorkouts} workouts in this range. Shading compares each
-            training day with your usual day on this chart.
-            {currentWeekVisible ? " The outlined column is this week." : ""}
-            {showsGoalTrophy ? " A trophy marks a day a goal was reached." : ""}
+            {totalSets} sets across {totalWorkouts} workouts in this range.
           </p>
-          <div className="grid shrink-0 grid-cols-2 gap-x-2 gap-y-1 text-[10px] text-zinc-500 sm:grid-cols-4">
-            {legendItems.map((intensity) => (
+          <div className="flex shrink-0 flex-wrap gap-x-3 gap-y-1 text-[10px] text-zinc-500">
+            {INTENSITY_LEGEND.map((intensity) => (
               <span
                 key={intensity}
                 className="inline-flex items-center gap-1"
@@ -243,9 +232,7 @@ export function WorkoutActivityChart({
             >
               {week.map((day) => {
                 const parsedDate = activityDateToLocalDate(day.date);
-                const intensity = day.isInRange
-                  ? activityIntensity(day.sets, day.workouts, usualSets)
-                  : null;
+                const intensity = day.isInRange ? activityIntensity(day.sets, day.workouts) : null;
                 const isToday = day.date === todayKey;
                 const goalLabel = day.isInRange ? goalReachedByDate[day.date] : undefined;
                 const tooltip = `${new Intl.DateTimeFormat(undefined, {

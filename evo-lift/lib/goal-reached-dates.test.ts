@@ -88,9 +88,17 @@ describe("loadGoalReachedSessionDates", () => {
         data: [{ id: "session-1", performed_on: "2026-10-13" }],
         error: null,
       },
+      exercises: {
+        data: [{ id: "squat", slug: "back-squat" }],
+        error: null,
+      },
+      exercise_translations: {
+        data: [{ exercise_id: "squat", name: "Back Squat" }],
+        error: null,
+      },
     });
     assert.deepEqual(await loadGoalReachedSessionDates(client as never), {
-      "2026-10-13": "100 kg × 5 reps",
+      "2026-10-13": "Back Squat (100 kg × 5 reps)",
     });
   });
 });
