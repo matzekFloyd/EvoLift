@@ -129,23 +129,11 @@ function earliestReachingSet(
   return earliest;
 }
 
-function liveThresholdKg(
-  definition: MilestoneDefinition,
-  bodyweightKg: number | null,
-): number | "missing_bodyweight" | null {
-  if (definition.milestoneType === "absolute") {
-    if (definition.targetWeightKg == null || definition.targetWeightKg <= 0) {
-      return null;
-    }
-    return roundKg(definition.targetWeightKg);
-  }
-  if (bodyweightKg == null || !(bodyweightKg > 0)) {
-    return "missing_bodyweight";
-  }
-  if (definition.bodyweightMultiple == null || definition.bodyweightMultiple <= 0) {
+function absoluteThresholdKg(definition: MilestoneDefinition): number | null {
+  if (definition.targetWeightKg == null || definition.targetWeightKg <= 0) {
     return null;
   }
-  return roundKg(definition.bodyweightMultiple * bodyweightKg);
+  return roundKg(definition.targetWeightKg);
 }
 
 function isPastDue(dueOn: string | null, today: string, achieved: boolean): boolean {
@@ -324,7 +312,7 @@ export function resolveMilestone(input: {
     });
   }
 
-  const threshold = liveThresholdKg(input.definition, null);
+  const threshold = absoluteThresholdKg(input.definition);
   if (threshold == null) {
     return {
       progress: progressFromThreshold("active", 0, null, null, false),
