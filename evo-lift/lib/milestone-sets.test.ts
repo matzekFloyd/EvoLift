@@ -7,11 +7,23 @@ function setsClient(options: {
   exercisesError?: string;
   sets?: unknown;
   setsError?: string;
+  sessions?: unknown;
+  sessionsError?: string;
 }) {
   return {
     from(table: string) {
-      const failed = table === "workout_session_exercises" ? options.exercisesError : options.setsError;
-      const data = table === "workout_session_exercises" ? (options.exercises ?? []) : (options.sets ?? []);
+      const failed =
+        table === "workout_session_exercises"
+          ? options.exercisesError
+          : table === "workout_sessions"
+            ? options.sessionsError
+            : options.setsError;
+      const data =
+        table === "workout_session_exercises"
+          ? (options.exercises ?? [])
+          : table === "workout_sessions"
+            ? (options.sessions ?? [])
+            : (options.sets ?? []);
       const result = failed ? { data: null, error: { message: failed } } : { data, error: null };
       const builder: Record<string, unknown> = {};
       const chain = () => builder;
@@ -41,7 +53,8 @@ describe("loadMilestoneWorkingSets", () => {
   it("adds the session base weight and skips a set with no load", async () => {
     const sets = await loadMilestoneWorkingSets(
       setsClient({
-        exercises: [{ id: "se-1", exercise_id: "squat", base_weight_kg: 20 }],
+        exercises: [{ id: "se-1", exercise_id: "squat", base_weight_kg: 20, session_id: "session-1" }],
+        sessions: [{ id: "session-1", performed_on: "2026-10-14" }],
         sets: [
           {
             session_exercise_id: "se-1",
@@ -68,6 +81,7 @@ describe("loadMilestoneWorkingSets", () => {
         totalKg: 80,
         isWarmup: false,
         performedAt: "2026-10-14T12:00:00Z",
+        performedOn: "2026-10-14",
       },
     ]);
   });

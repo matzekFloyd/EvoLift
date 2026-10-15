@@ -47,6 +47,7 @@ const defaultInsightsRange: InsightsRange = "12w";
 const emptyLifterProfile: LifterProfile = {
   sex: null,
   bodyweightKg: null,
+  bodyweightEntries: [],
   ageYears: null,
   ageIsApproximate: false,
 };
@@ -113,6 +114,7 @@ export default function InsightsPage() {
         setLifterProfile({
           sex: profile.sex,
           bodyweightKg: profile.bodyweightKg,
+          bodyweightEntries: profile.bodyweightEntries,
           ageYears: age?.ageYears ?? null,
           ageIsApproximate: age?.ageIsApproximate ?? false,
         });

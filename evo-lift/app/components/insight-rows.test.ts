@@ -22,6 +22,7 @@ function progressRow(read: ProgressRead, partial: Partial<ExerciseProgressRow> =
     read,
     detail: "Detail for this lift.",
     ...partial,
+    bestPerformedOn: partial.bestPerformedOn ?? null,
   };
 }
 

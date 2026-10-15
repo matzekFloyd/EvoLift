@@ -166,6 +166,7 @@ export default function ExerciseDetailPage() {
   const [lifterProfile, setLifterProfile] = useState<LifterProfile>({
     sex: null,
     bodyweightKg: null,
+    bodyweightEntries: [],
     ageYears: null,
     ageIsApproximate: false,
   });
@@ -469,6 +470,7 @@ export default function ExerciseDetailPage() {
         setLifterProfile({
           sex: profile.sex,
           bodyweightKg: profile.bodyweightKg,
+          bodyweightEntries: profile.bodyweightEntries,
           ageYears: age?.ageYears ?? null,
           ageIsApproximate: age?.ageIsApproximate ?? false,
         });

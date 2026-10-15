@@ -145,6 +145,7 @@ describe("loadUserStrengthProfile", () => {
     assert.deepEqual(await loadUserStrengthProfile(client as never, "user-1"), {
       sex: null,
       bodyweightKg: 80.5,
+      bodyweightEntries: [],
       dateOfBirth: "1990-05-01",
       birthYear: 1990,
     });

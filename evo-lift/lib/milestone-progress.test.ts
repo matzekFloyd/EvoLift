@@ -41,6 +41,7 @@ function set(overrides: Partial<MilestoneWorkingSet> = {}): MilestoneWorkingSet 
     totalKg: 80,
     isWarmup: false,
     performedAt: "2026-10-01T12:00:00Z",
+    performedOn: "2026-10-01",
     ...overrides,
   };
 }
@@ -146,7 +147,7 @@ describe("resolveMilestone", () => {
       definition: definition(),
       stored: emptyStored,
       sets: [set({ totalKg: 80, reps: 4 }), set({ totalKg: 90, isWarmup: true })],
-      bodyweightKg: null,
+      bodyweightEntries: [],
       dueOn: "2026-10-01",
       today: "2026-10-14",
       recalculate: false,
@@ -163,7 +164,7 @@ describe("resolveMilestone", () => {
       definition: definition(),
       stored: emptyStored,
       sets: [set({ totalKg: 100, performedAt: "2026-10-10T12:00:00Z" })],
-      bodyweightKg: null,
+      bodyweightEntries: [],
       dueOn: null,
       today: "2026-10-14",
       recalculate: false,
@@ -183,7 +184,7 @@ describe("resolveMilestone", () => {
       definition: definition(),
       stored,
       sets: [],
-      bodyweightKg: null,
+      bodyweightEntries: [],
       dueOn: "2026-08-01",
       today: "2026-10-14",
       recalculate: false,
@@ -208,7 +209,7 @@ describe("resolveMilestone", () => {
         achievedThresholdKg: 120,
       },
       sets: [],
-      bodyweightKg: null,
+      bodyweightEntries: [],
       dueOn: null,
       today: "2026-10-14",
       recalculate: true,
@@ -216,5 +217,80 @@ describe("resolveMilestone", () => {
     assert.deepEqual(missing.progress, { kind: "missing_bodyweight", pastDue: false });
     assert.equal(missing.stored.achievedAt, null);
     assert.equal(missing.shouldWrite, true);
+  });
+
+  it("scores each session against the bodyweight on or before that date", () => {
+    const definitionForMultiple = definition({
+      milestoneType: "bodyweight_multiple",
+      targetWeightKg: null,
+      bodyweightMultiple: 1.5,
+    });
+    const entries = [
+      { loggedOn: "2026-10-01", bodyweightKg: 80 },
+      { loggedOn: "2026-10-10", bodyweightKg: 70 },
+    ];
+    const open = resolveMilestone({
+      definition: definitionForMultiple,
+      stored: emptyStored,
+      sets: [
+        set({ totalKg: 100, performedAt: "2026-10-01T12:00:00Z", performedOn: "2026-10-01" }),
+        set({ totalKg: 100, performedAt: "2026-10-10T12:00:00Z", performedOn: "2026-10-10" }),
+      ],
+      bodyweightEntries: entries,
+      dueOn: null,
+      today: "2026-10-15",
+      recalculate: false,
+    });
+    assert.equal(open.progress.kind, "active");
+    if (open.progress.kind === "active") {
+      assert.equal(open.progress.thresholdKg, 105);
+    }
+
+    const reached = resolveMilestone({
+      definition: definitionForMultiple,
+      stored: emptyStored,
+      sets: [set({ totalKg: 120, performedAt: "2026-10-01T12:00:00Z", performedOn: "2026-10-01" })],
+      bodyweightEntries: entries,
+      dueOn: null,
+      today: "2026-10-15",
+      recalculate: false,
+    });
+    assert.equal(reached.progress.kind, "achieved");
+    assert.equal(reached.stored.achievedBodyweightKg, 80);
+    assert.equal(reached.stored.achievedThresholdKg, 120);
+
+    const beforeTheLog = resolveMilestone({
+      definition: definitionForMultiple,
+      stored: emptyStored,
+      sets: [set({ totalKg: 200, performedAt: "2026-09-01T12:00:00Z", performedOn: "2026-09-01" })],
+      bodyweightEntries: entries,
+      dueOn: null,
+      today: "2026-10-15",
+      recalculate: false,
+    });
+    assert.equal(beforeTheLog.progress.kind, "missing_bodyweight");
+  });
+
+  it("keeps a reached bodyweight goal when the log changes later", () => {
+    const kept = resolveMilestone({
+      definition: definition({
+        milestoneType: "bodyweight_multiple",
+        targetWeightKg: null,
+        bodyweightMultiple: 1.5,
+      }),
+      stored: {
+        achievedAt: "2026-10-01T12:00:00Z",
+        achievedBodyweightKg: 80,
+        achievedThresholdKg: 120,
+      },
+      sets: [set({ totalKg: 120, performedOn: "2026-10-01" })],
+      bodyweightEntries: [{ loggedOn: "2026-10-15", bodyweightKg: 90 }],
+      dueOn: null,
+      today: "2026-10-15",
+      recalculate: false,
+    });
+    assert.equal(kept.shouldWrite, false);
+    assert.equal(kept.stored.achievedBodyweightKg, 80);
+    assert.equal(kept.stored.achievedThresholdKg, 120);
   });
 });
