@@ -77,6 +77,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      user_bodyweight_log: {
+        Row: {
+          id: string;
+          user_id: string;
+          logged_on: string;
+          bodyweight_kg: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          logged_on: string;
+          bodyweight_kg: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          logged_on?: string;
+          bodyweight_kg?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       user_hidden_exercises: {
         Row: {
           user_id: string;

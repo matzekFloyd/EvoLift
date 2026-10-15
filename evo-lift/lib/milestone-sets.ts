@@ -13,6 +13,7 @@ type SessionExerciseRow = {
   id: string;
   exercise_id: string;
   base_weight_kg: number | null;
+  session_id: string;
 };
 
 type SetRow = {
@@ -38,7 +39,7 @@ export async function loadMilestoneWorkingSets(
     (chunk, from, to) =>
       client
         .from("workout_session_exercises")
-        .select("id, exercise_id, base_weight_kg")
+        .select("id, exercise_id, base_weight_kg, session_id")
         .in("exercise_id", chunk)
         .order("id", { ascending: true })
         .range(from, to),
@@ -67,10 +68,32 @@ export async function loadMilestoneWorkingSets(
     throw new Error("Could not load workout sets.");
   }
 
+  const sessionIds = [...new Set(exercises.map((row) => row.session_id).filter(Boolean))];
+  const performedOnBySessionId = new Map<string, string>();
+  if (sessionIds.length > 0) {
+    const { data: sessionRows, error: sessionsError } = await fetchInChunks(sessionIds, (chunk, from, to) =>
+      client
+        .from("workout_sessions")
+        .select("id, performed_on")
+        .in("id", chunk)
+        .order("id", { ascending: true })
+        .range(from, to),
+    );
+    if (sessionsError) {
+      throw new Error("Could not load workout sets.");
+    }
+    for (const session of sessionRows) {
+      performedOnBySessionId.set(session.id, session.performed_on.slice(0, 10));
+    }
+  }
+
   const sets: MilestoneWorkingSet[] = [];
   for (const row of setRows as SetRow[]) {
     const sessionExercise = exerciseBySessionExerciseId.get(row.session_exercise_id);
-    if (!sessionExercise) {
+    const performedOn = sessionExercise
+      ? performedOnBySessionId.get(sessionExercise.session_id)
+      : undefined;
+    if (!sessionExercise || !performedOn) {
       continue;
     }
     const totalKg = workingSetTotalKg(row.weight_kg, sessionExercise.base_weight_kg);
@@ -83,6 +106,7 @@ export async function loadMilestoneWorkingSets(
       totalKg,
       isWarmup: row.is_warmup,
       performedAt: row.performed_at,
+      performedOn,
     });
   }
   return sets;

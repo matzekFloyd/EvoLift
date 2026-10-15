@@ -1,4 +1,5 @@
 import type { ProfileSex } from "@/lib/body-metrics";
+import { bodyweightOnOrBefore, type BodyweightLogEntry } from "@/lib/bodyweight-log";
 import type { ExerciseWorkingSetSample } from "@/lib/insights-data";
 import { classifyExrxLift, EXRX_AGE_BAND, exrxTableUrl, isPublicStandardLift } from "@/lib/strength-standards";
 
@@ -11,6 +12,8 @@ export type ExerciseProgressRow = {
   sessionCount: number;
   latestE1rmKg: number | null;
   bestE1rmKg: number | null;
+  /** Session date of the working set behind `bestE1rmKg`. */
+  bestPerformedOn: string | null;
   changeKg: number | null;
   read: ProgressRead;
   detail: string;
@@ -31,7 +34,9 @@ export type LiftBalanceNote = {
 
 export type LifterProfile = {
   sex: ProfileSex | null;
+  /** Latest account bodyweight. Used only when the log is empty. */
   bodyweightKg: number | null;
+  bodyweightEntries: readonly BodyweightLogEntry[];
   ageYears: number | null;
   ageIsApproximate: boolean;
 };
@@ -528,6 +533,16 @@ function buildCoverageNotes(samples: ExerciseWorkingSetSample[]): LiftBalanceNot
   return notes;
 }
 
+function bodyweightForEstimate(profile: LifterProfile, performedOn: string | null): number | null {
+  if (profile.bodyweightEntries.length > 0) {
+    if (!performedOn) {
+      return null;
+    }
+    return bodyweightOnOrBefore(profile.bodyweightEntries, performedOn);
+  }
+  return profile.bodyweightKg != null && profile.bodyweightKg > 0 ? profile.bodyweightKg : null;
+}
+
 function buildPublicComparison(
   rows: ExerciseProgressRow[],
   profile: LifterProfile,
@@ -537,7 +552,9 @@ function buildPublicComparison(
     const row = bySlug.get(slug);
     return row?.bestE1rmKg != null ? [row] : [];
   });
-  const hasBodyweight = profile.bodyweightKg != null && profile.bodyweightKg > 0;
+  const hasBodyweight = gradedLifts.some(
+    (row) => bodyweightForEstimate(profile, row.bestPerformedOn) != null,
+  );
   const canGrade = profile.sex != null && hasBodyweight && profile.ageYears != null && profile.ageYears >= 18;
 
   if (!canGrade) {
@@ -560,14 +577,15 @@ function buildPublicComparison(
   const sexWord = profile.sex === "female" ? "women" : "men";
   const publicNotes: LiftBalanceNote[] = [];
   for (const row of gradedLifts) {
-    if (row.bestE1rmKg == null || profile.sex == null || profile.bodyweightKg == null || !isPublicStandardLift(row.slug)) {
+    const bodyweightKg = bodyweightForEstimate(profile, row.bestPerformedOn);
+    if (row.bestE1rmKg == null || profile.sex == null || bodyweightKg == null || !isPublicStandardLift(row.slug)) {
       continue;
     }
-    const level = classifyExrxLift(row.slug, row.bestE1rmKg, profile.sex, profile.bodyweightKg);
+    const level = classifyExrxLift(row.slug, row.bestE1rmKg, profile.sex, bodyweightKg);
     if (level == null) {
       continue;
     }
-    const multiple = (row.bestE1rmKg / profile.bodyweightKg).toFixed(1);
+    const multiple = (row.bestE1rmKg / bodyweightKg).toFixed(1);
     publicNotes.push({
       id: `public-${row.slug}`,
       slugs: [row.slug],
@@ -688,6 +706,7 @@ export function buildExerciseProgressReport(
         sessionCount,
         latestE1rmKg: latest.e1rmKg,
         bestE1rmKg: null,
+        bestPerformedOn: null,
         changeKg: null,
         read: "early",
         detail: `${first.label} logs the assistance, not the load, so this weight is not used for progress or comparisons.`,
@@ -733,6 +752,7 @@ export function buildExerciseProgressReport(
       sessionCount,
       latestE1rmKg: latest.e1rmKg,
       bestE1rmKg: best.e1rmKg,
+      bestPerformedOn: best.performedOn,
       changeKg,
       read,
       detail,

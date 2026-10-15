@@ -1,3 +1,4 @@
+import { latestBodyweightEntry, type BodyweightLogEntry } from "@/lib/bodyweight-log";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fetchAllPages, fetchInChunks } from "@/lib/supabase/chunked-query";
 import type { Database } from "@/lib/supabase/database.types";
@@ -464,6 +465,7 @@ export async function loadUserExerciseWorkingSets(
 export type UserStrengthProfile = {
   sex: "female" | "male" | null;
   bodyweightKg: number | null;
+  bodyweightEntries: BodyweightLogEntry[];
   dateOfBirth: string | null;
   birthYear: number | null;
 };
@@ -472,19 +474,42 @@ export async function loadUserStrengthProfile(
   client: SupabaseClient<Database>,
   userId: string,
 ): Promise<UserStrengthProfile> {
-  const { data, error } = await client
-    .from("user_profile_metrics")
-    .select("bodyweight_kg, sex, date_of_birth, birth_year")
-    .eq("user_id", userId)
-    .maybeSingle();
+  const [{ data, error }, { data: logRows, error: logError }] = await Promise.all([
+    client
+      .from("user_profile_metrics")
+      .select("bodyweight_kg, sex, date_of_birth, birth_year")
+      .eq("user_id", userId)
+      .maybeSingle(),
+    client
+      .from("user_bodyweight_log")
+      .select("logged_on, bodyweight_kg")
+      .eq("user_id", userId)
+      .order("logged_on", { ascending: true }),
+  ]);
   if (error) {
     throw new Error(`Could not load profile: ${error.message}`);
   }
-  const bodyweight = data?.bodyweight_kg;
+  if (logError) {
+    throw new Error(`Could not load bodyweight log: ${logError.message}`);
+  }
+  const bodyweightEntries = (logRows ?? []).flatMap((row) => {
+    const bodyweightKg = Number(row.bodyweight_kg);
+    if (!Number.isFinite(bodyweightKg) || bodyweightKg <= 0) {
+      return [];
+    }
+    return [{ loggedOn: row.logged_on.slice(0, 10), bodyweightKg }];
+  });
+  const latest = latestBodyweightEntry(bodyweightEntries);
+  const profileBodyweight = data?.bodyweight_kg;
   const sex = data?.sex === "female" || data?.sex === "male" ? data.sex : null;
   return {
     sex,
-    bodyweightKg: bodyweight == null || !Number.isFinite(Number(bodyweight)) ? null : Number(bodyweight),
+    bodyweightKg:
+      latest?.bodyweightKg ??
+      (profileBodyweight == null || !Number.isFinite(Number(profileBodyweight))
+        ? null
+        : Number(profileBodyweight)),
+    bodyweightEntries,
     dateOfBirth: data?.date_of_birth ?? null,
     birthYear: data?.birth_year ?? null,
   };

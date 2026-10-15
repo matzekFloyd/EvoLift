@@ -25,7 +25,8 @@ import {
   type GoalProgress,
   type StoredAchievement,
 } from "@/lib/milestone-progress";
-import { coerceKg, loadMilestoneWorkingSets } from "@/lib/milestone-sets";
+import { loadMilestoneWorkingSets } from "@/lib/milestone-sets";
+import { type BodyweightLogEntry } from "@/lib/bodyweight-log";
 import { getTodayYyyyMmDd } from "@/lib/session-date";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import type { Database } from "@/lib/supabase/database.types";
@@ -55,7 +56,7 @@ export default function GoalsPage() {
   const [progressById, setProgressById] = useState<Map<string, GoalProgress>>(new Map());
   const [exerciseOptions, setExerciseOptions] = useState<ExercisePickerOption[]>([]);
   const [hiddenExerciseIds, setHiddenExerciseIds] = useState<Set<string>>(new Set());
-  const [bodyweightKg, setBodyweightKg] = useState<number | null>(null);
+  const [bodyweightEntries, setBodyweightEntries] = useState<BodyweightLogEntry[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [draft, setDraft] = useState<GoalDraft | null>(null);
@@ -66,17 +67,17 @@ export default function GoalsPage() {
 
   async function loadGoals(currentUserId: string) {
     const today = getTodayYyyyMmDd();
-    const [milestoneResult, metricsResult, exerciseResult, translationResult, hiddenResult] =
+    const [milestoneResult, logResult, exerciseResult, translationResult, hiddenResult] =
       await Promise.all([
         supabaseBrowserClient
           .from("strength_milestones")
           .select("*")
           .order("created_at", { ascending: true }),
         supabaseBrowserClient
-          .from("user_profile_metrics")
-          .select("bodyweight_kg")
+          .from("user_bodyweight_log")
+          .select("logged_on, bodyweight_kg")
           .eq("user_id", currentUserId)
-          .maybeSingle(),
+          .order("logged_on", { ascending: true }),
         supabaseBrowserClient.from("exercises").select("id, slug").order("slug", { ascending: true }),
         supabaseBrowserClient
           .from("exercise_translations")
@@ -85,7 +86,7 @@ export default function GoalsPage() {
         supabaseBrowserClient.from("user_hidden_exercises").select("exercise_id").eq("user_id", currentUserId),
       ]);
 
-    if (milestoneResult.error || exerciseResult.error) {
+    if (milestoneResult.error || logResult.error || exerciseResult.error) {
       setLoadError("Could not load goals.");
       return;
     }
@@ -100,7 +101,13 @@ export default function GoalsPage() {
       label: translationMap.get(exercise.id) ?? exercise.slug,
     }));
     const milestones = milestoneResult.data ?? [];
-    const bodyweight = coerceKg(metricsResult.data?.bodyweight_kg);
+    const entries: BodyweightLogEntry[] = (logResult.data ?? []).flatMap((row) => {
+      const bodyweightKg = Number(row.bodyweight_kg);
+      if (!Number.isFinite(bodyweightKg) || bodyweightKg <= 0) {
+        return [];
+      }
+      return [{ loggedOn: row.logged_on.slice(0, 10), bodyweightKg }];
+    });
     const sets = await loadMilestoneWorkingSets(
       supabaseBrowserClient,
       milestones.map((row) => row.exercise_id),
@@ -113,7 +120,7 @@ export default function GoalsPage() {
         definition: definitionFromRow(row),
         stored: storedFromRow(row),
         sets,
-        bodyweightKg: bodyweight,
+        bodyweightEntries: entries,
         dueOn: row.due_on,
         today,
         recalculate: false,
@@ -146,7 +153,7 @@ export default function GoalsPage() {
     setProgressById(progress);
     setExerciseOptions(options);
     setHiddenExerciseIds(new Set((hiddenResult.data ?? []).map((row) => row.exercise_id)));
-    setBodyweightKg(bodyweight);
+    setBodyweightEntries(entries);
     setLoadError(null);
   }
 
@@ -254,7 +261,7 @@ export default function GoalsPage() {
           definition: parsed.definition,
           stored: existing ? storedFromRow(existing) : { achievedAt: null, achievedBodyweightKg: null, achievedThresholdKg: null },
           sets,
-          bodyweightKg,
+          bodyweightEntries,
           dueOn: parsed.dueOn,
           today: getTodayYyyyMmDd(),
           recalculate: true,

@@ -20,6 +20,11 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
       "Optional weight for an exercise on a session, such as the bar. You set it once for that exercise. Total (kg) adds it to Loaded (kg).",
   },
   {
+    term: "Bodyweight log",
+    definition:
+      "Dated bodyweight entries. The latest entry is the current bodyweight. An open bodyweight goal and Lift comparison use the latest entry on or before the workout session date.",
+  },
+  {
     term: "Compound",
     definition:
       "A barbell exercise that moves more than one joint. Lift comparison places your compounds next to each other, and next to published standards. The coaching ratios cover Back Squat, Deadlift, Barbell Bench Press, Overhead Press, Barbell Bent Over Row, Romanian Deadlift, Close-Grip Bench Press, and Barbell Hip Thrust. Machine, dumbbell, and leg-press loads stay out of those ratios.",

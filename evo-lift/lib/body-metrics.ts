@@ -1,5 +1,5 @@
-const BODYWEIGHT_MIN = 20;
-const BODYWEIGHT_MAX = 400;
+import { bodyweightInputError } from "@/lib/bodyweight-log";
+
 const HEIGHT_CM_MIN = 100;
 const HEIGHT_CM_MAX = 250;
 
@@ -46,16 +46,9 @@ export function validateBodyMetricsInput(
   const bodyweight_kg = bwTrim === "" ? null : Number(bwTrim);
   const height_cm = hTrim === "" ? null : Number(hTrim);
 
-  if (bodyweight_kg !== null) {
-    if (!Number.isFinite(bodyweight_kg)) {
-      return { ok: false, message: "Please enter a valid bodyweight." };
-    }
-    if (bodyweight_kg < BODYWEIGHT_MIN || bodyweight_kg > BODYWEIGHT_MAX) {
-      return {
-        ok: false,
-        message: `Bodyweight must be between ${BODYWEIGHT_MIN} and ${BODYWEIGHT_MAX} kg.`,
-      };
-    }
+  const bodyweightError = bodyweightInputError(bwTrim);
+  if (bodyweightError) {
+    return { ok: false, message: bodyweightError };
   }
 
   if (height_cm !== null) {

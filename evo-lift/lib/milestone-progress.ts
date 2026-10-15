@@ -1,3 +1,5 @@
+import { bodyweightOnOrBefore, type BodyweightLogEntry } from "@/lib/bodyweight-log";
+
 export type MilestoneType = "absolute" | "bodyweight_multiple";
 
 export type MilestoneDefinition = {
@@ -20,6 +22,8 @@ export type MilestoneWorkingSet = {
   totalKg: number;
   isWarmup: boolean;
   performedAt: string;
+  /** Workout session date, `YYYY-MM-DD`. */
+  performedOn: string;
 };
 
 export type GoalProgress =
@@ -189,11 +193,103 @@ function achievementsEqual(left: StoredAchievement, right: StoredAchievement): b
   );
 }
 
+function missingBodyweight(
+  input: {
+    stored: StoredAchievement;
+    dueOn: string | null;
+    today: string;
+    recalculate: boolean;
+  },
+): { progress: GoalProgress; stored: StoredAchievement; shouldWrite: boolean } {
+  const clear = input.recalculate && input.stored.achievedAt != null;
+  return {
+    progress: {
+      kind: "missing_bodyweight",
+      pastDue: isPastDue(input.dueOn, input.today, false),
+    },
+    stored: clear ? emptyAchievement : input.stored,
+    shouldWrite: clear,
+  };
+}
+
+function resolveBodyweightMilestone(input: {
+  definition: MilestoneDefinition;
+  stored: StoredAchievement;
+  qualifying: MilestoneWorkingSet[];
+  bodyweightEntries: readonly BodyweightLogEntry[];
+  dueOn: string | null;
+  today: string;
+  recalculate: boolean;
+}): { progress: GoalProgress; stored: StoredAchievement; shouldWrite: boolean } {
+  const multiple = input.definition.bodyweightMultiple;
+  if (multiple == null || multiple <= 0) {
+    return {
+      progress: progressFromThreshold("active", 0, null, null, false),
+      stored: input.stored,
+      shouldWrite: false,
+    };
+  }
+
+  const covered = input.qualifying.flatMap((set) => {
+    const bodyweightKg = bodyweightOnOrBefore(input.bodyweightEntries, set.performedOn);
+    if (bodyweightKg == null) {
+      return [];
+    }
+    return [{ set, bodyweightKg, thresholdKg: roundKg(multiple * bodyweightKg) }];
+  });
+  if (covered.length === 0) {
+    return missingBodyweight(input);
+  }
+
+  let hitting: (typeof covered)[number] | null = null;
+  for (const item of covered) {
+    if (roundKg(item.set.totalKg) < item.thresholdKg) {
+      continue;
+    }
+    if (!hitting || item.set.performedAt < hitting.set.performedAt) {
+      hitting = item;
+    }
+  }
+
+  const best = bestQualifyingSet(covered.map((item) => item.set));
+  if (hitting) {
+    const next: StoredAchievement = {
+      achievedAt: hitting.set.performedAt,
+      achievedBodyweightKg: roundKg(hitting.bodyweightKg),
+      achievedThresholdKg: hitting.thresholdKg,
+    };
+    return {
+      progress: progressFromThreshold("achieved", hitting.thresholdKg, best, next.achievedAt, false),
+      stored: next,
+      shouldWrite: !achievementsEqual(input.stored, next),
+    };
+  }
+
+  const currentBodyweight = bodyweightOnOrBefore(input.bodyweightEntries, input.today);
+  const latestCovered = covered.reduce((current, item) =>
+    item.set.performedOn > current.set.performedOn ? item : current,
+  );
+  const displayThreshold =
+    currentBodyweight == null ? latestCovered.thresholdKg : roundKg(multiple * currentBodyweight);
+  const cleared = input.stored.achievedAt != null;
+  return {
+    progress: progressFromThreshold(
+      "active",
+      displayThreshold,
+      best,
+      null,
+      isPastDue(input.dueOn, input.today, false),
+    ),
+    stored: cleared ? emptyAchievement : input.stored,
+    shouldWrite: cleared,
+  };
+}
+
 export function resolveMilestone(input: {
   definition: MilestoneDefinition;
   stored: StoredAchievement;
   sets: MilestoneWorkingSet[];
-  bodyweightKg: number | null;
+  bodyweightEntries?: readonly BodyweightLogEntry[];
   dueOn: string | null;
   today: string;
   /** True after the exercise, type, target, multiple, or rep condition changes. */
@@ -216,19 +312,19 @@ export function resolveMilestone(input: {
     };
   }
 
-  const threshold = liveThresholdKg(input.definition, input.bodyweightKg);
-  if (threshold === "missing_bodyweight") {
-    const clear = input.recalculate && input.stored.achievedAt != null;
-    return {
-      progress: {
-        kind: "missing_bodyweight",
-        pastDue: isPastDue(input.dueOn, input.today, false),
-      },
-      stored: clear ? emptyAchievement : input.stored,
-      shouldWrite: clear,
-    };
+  if (input.definition.milestoneType === "bodyweight_multiple") {
+    return resolveBodyweightMilestone({
+      definition: input.definition,
+      stored: input.stored,
+      qualifying,
+      bodyweightEntries: input.bodyweightEntries ?? [],
+      dueOn: input.dueOn,
+      today: input.today,
+      recalculate: input.recalculate,
+    });
   }
 
+  const threshold = liveThresholdKg(input.definition, null);
   if (threshold == null) {
     return {
       progress: progressFromThreshold("active", 0, null, null, false),
@@ -241,8 +337,7 @@ export function resolveMilestone(input: {
   if (hitting) {
     const next: StoredAchievement = {
       achievedAt: hitting.performedAt,
-      achievedBodyweightKg:
-        input.definition.milestoneType === "bodyweight_multiple" ? roundKg(input.bodyweightKg ?? 0) : null,
+      achievedBodyweightKg: null,
       achievedThresholdKg: threshold,
     };
     return {

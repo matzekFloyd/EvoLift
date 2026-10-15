@@ -12,6 +12,7 @@ const RANGE = { from: "2026-01-01", to: "2026-03-01" };
 const NO_PROFILE: LifterProfile = {
   sex: null,
   bodyweightKg: null,
+  bodyweightEntries: [],
   ageYears: null,
   ageIsApproximate: false,
 };
@@ -117,6 +118,7 @@ describe("buildExerciseProgressReport", () => {
     const report = buildExerciseProgressReport([sample({ totalKg: 100, reps: 1 })], RANGE, {
       sex: "male",
       bodyweightKg: 80,
+      bodyweightEntries: [],
       ageYears: 30,
       ageIsApproximate: false,
     });
@@ -129,6 +131,7 @@ describe("buildExerciseProgressReport", () => {
     const underage = buildExerciseProgressReport(samples, RANGE, {
       sex: "female",
       bodyweightKg: 60,
+      bodyweightEntries: [],
       ageYears: 17,
       ageIsApproximate: false,
     });
@@ -138,5 +141,48 @@ describe("buildExerciseProgressReport", () => {
     );
     const missing = buildExerciseProgressReport(samples, RANGE, NO_PROFILE);
     assert.match(missing.comparisonHint ?? "", /Add sex, date of birth, and bodyweight/);
+  });
+
+  it("grades each lift with the bodyweight on or before its best session", () => {
+    const report = buildExerciseProgressReport(
+      [
+        sample({ sessionId: "squat", performedOn: "2026-01-01", totalKg: 100, reps: 1 }),
+        sample({
+          exerciseId: "ex-deadlift",
+          slug: "deadlift",
+          label: "Deadlift",
+          sessionId: "deadlift",
+          performedOn: "2026-02-01",
+          totalKg: 100,
+          reps: 1,
+        }),
+        sample({
+          exerciseId: "ex-press",
+          slug: "overhead-press",
+          label: "Overhead Press",
+          sessionId: "press",
+          performedOn: "2025-12-01",
+          totalKg: 40,
+          reps: 1,
+        }),
+      ],
+      { from: "2025-12-01", to: "2026-03-01" },
+      {
+        sex: "male",
+        bodyweightKg: 90,
+        bodyweightEntries: [
+          { loggedOn: "2026-01-01", bodyweightKg: 80 },
+          { loggedOn: "2026-02-01", bodyweightKg: 100 },
+        ],
+        ageYears: 30,
+        ageIsApproximate: false,
+      },
+    );
+    const squat = report.publicNotes.find((note) => note.title === "Back Squat");
+    const deadlift = report.publicNotes.find((note) => note.title === "Deadlift");
+    const press = report.publicNotes.find((note) => note.title === "Overhead Press");
+    assert.match(squat?.meta ?? "", /1\.3× bodyweight/);
+    assert.match(deadlift?.meta ?? "", /1\.0× bodyweight/);
+    assert.equal(press, undefined);
   });
 });

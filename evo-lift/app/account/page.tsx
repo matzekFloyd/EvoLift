@@ -16,6 +16,7 @@ import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import type { Database } from "@/lib/supabase/database.types";
 import { ExerciseBadgeChip } from "@/app/components/exercise-badge-chip";
 import { approximateAge, ageFromDateOfBirth, birthYearFromDate, validateBodyMetricsInput } from "@/lib/body-metrics";
+import { latestBodyweightEntry } from "@/lib/bodyweight-log";
 import { isCompoundExercise } from "@/lib/compound-exercise";
 import { warmupSuggestionsEnabled } from "@/lib/warmup-suggestion";
 import { DateInput } from "@/app/components/date-input";
@@ -33,6 +34,7 @@ import {
   parseMaxWarmupSets,
 } from "@/app/account/account-form";
 import { AccountApiTokensSection } from "@/app/account/api-tokens-section";
+import { BodyweightLogPanel, type BodyweightLogRow } from "@/app/account/bodyweight-log-panel";
 import { SettingsSectionHeader } from "@/app/components/settings-section-header";
 import { StatusNotice } from "@/app/components/status-notice";
 
@@ -70,6 +72,7 @@ export default function AccountPage() {
   const [defaultsMessage, setDefaultsMessage] = useState<string | null>(null);
   const [defaultsMessageTone, setDefaultsMessageTone] = useState<"error" | "success">("success");
   const [bodyweightKg, setBodyweightKg] = useState("");
+  const [bodyweightLog, setBodyweightLog] = useState<BodyweightLogRow[]>([]);
   const [heightCm, setHeightCm] = useState("");
   const [sex, setSex] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
@@ -129,20 +132,28 @@ export default function AccountPage() {
       }));
       setExerciseOptions(options);
 
-      const [{ data: profile, error: profileError }, { data: hiddenRows, error: hiddenError }] =
-        await Promise.all([
-          supabaseBrowserClient
-            .from("user_profile_metrics")
-            .select("bodyweight_kg,height_cm,birth_year,sex,date_of_birth,max_suggested_warmup_sets")
-            .eq("user_id", session.user.id)
-            .maybeSingle(),
-          supabaseBrowserClient
-            .from("user_hidden_exercises")
-            .select("exercise_id")
-            .eq("user_id", session.user.id),
-        ]);
+      const [
+        { data: profile, error: profileError },
+        { data: hiddenRows, error: hiddenError },
+        { data: logRows, error: logError },
+      ] = await Promise.all([
+        supabaseBrowserClient
+          .from("user_profile_metrics")
+          .select("bodyweight_kg,height_cm,birth_year,sex,date_of_birth,max_suggested_warmup_sets")
+          .eq("user_id", session.user.id)
+          .maybeSingle(),
+        supabaseBrowserClient
+          .from("user_hidden_exercises")
+          .select("exercise_id")
+          .eq("user_id", session.user.id),
+        supabaseBrowserClient
+          .from("user_bodyweight_log")
+          .select("id, logged_on, bodyweight_kg")
+          .eq("user_id", session.user.id)
+          .order("logged_on", { ascending: false }),
+      ]);
 
-      if (profileError) {
+      if (profileError || logError) {
         setMetricsMessageTone("error");
         setMetricsMessage("Could not load profile.");
         setIsChecking(false);
@@ -155,8 +166,19 @@ export default function AccountPage() {
         return;
       }
 
+      const log = (logRows ?? []).map((row) => ({
+        id: row.id,
+        loggedOn: row.logged_on.slice(0, 10),
+        bodyweightKg: Number(row.bodyweight_kg),
+      }));
+      const latestBodyweight = latestBodyweightEntry(log);
+      setBodyweightLog(log);
       setBodyweightKg(
-        profile?.bodyweight_kg == null ? "" : String(profile.bodyweight_kg),
+        latestBodyweight
+          ? String(latestBodyweight.bodyweightKg)
+          : profile?.bodyweight_kg == null
+            ? ""
+            : String(profile.bodyweight_kg),
       );
       setHeightCm(profile?.height_cm == null ? "" : String(profile.height_cm));
       setSex(profile?.sex ?? "");
@@ -331,8 +353,38 @@ export default function AccountPage() {
     setIsSavingMetrics(true);
     setMetricsMessage(null);
 
+    let nextLog = bodyweightLog;
+    if (parsed.value.bodyweight_kg != null) {
+      const { data: savedEntry, error: logWriteError } = await supabaseBrowserClient
+        .from("user_bodyweight_log")
+        .upsert(
+          {
+            user_id: userId,
+            logged_on: todayIso,
+            bodyweight_kg: parsed.value.bodyweight_kg,
+          },
+          { onConflict: "user_id,logged_on" },
+        )
+        .select("id, logged_on, bodyweight_kg")
+        .single();
+      if (logWriteError || !savedEntry) {
+        setMetricsMessageTone("error");
+        setMetricsMessage(`Could not save body metrics: ${logWriteError?.message ?? "Unknown error"}`);
+        setIsSavingMetrics(false);
+        return;
+      }
+      const savedRow = {
+        id: savedEntry.id,
+        loggedOn: savedEntry.logged_on.slice(0, 10),
+        bodyweightKg: Number(savedEntry.bodyweight_kg),
+      };
+      nextLog = [...bodyweightLog.filter((entry) => entry.loggedOn !== savedRow.loggedOn), savedRow];
+      setBodyweightLog(nextLog);
+    }
+
+    const latestBodyweight = latestBodyweightEntry(nextLog);
     const payload = {
-      bodyweight_kg: parsed.value.bodyweight_kg,
+      bodyweight_kg: latestBodyweight?.bodyweightKg ?? null,
       height_cm: parsed.value.height_cm,
       sex: parsed.value.sex,
       date_of_birth: parsed.value.date_of_birth,
@@ -369,10 +421,91 @@ export default function AccountPage() {
 
     setMetricsMessageTone("success");
     setMetricsMessage("Body metrics saved.");
+    setBodyweightKg(latestBodyweight == null ? "" : String(latestBodyweight.bodyweightKg));
     if (parsed.value.date_of_birth) {
       setBirthYearFallback(null);
     }
     setIsSavingMetrics(false);
+  }
+
+  async function syncProfileBodyweight(nextLog: BodyweightLogRow[]): Promise<string | null> {
+    if (!userId) {
+      return "Please log in again to save body metrics.";
+    }
+    const latest = latestBodyweightEntry(nextLog);
+    const bodyweight_kg = latest?.bodyweightKg ?? null;
+    const { data: updatedRows, error: updateError } = await supabaseBrowserClient
+      .from("user_profile_metrics")
+      .update({ bodyweight_kg })
+      .eq("user_id", userId)
+      .select("user_id");
+    if (updateError) {
+      return `Could not save bodyweight: ${updateError.message}`;
+    }
+    if (!updatedRows?.length) {
+      const { error: insertError } = await supabaseBrowserClient.from("user_profile_metrics").insert({
+        user_id: userId,
+        bodyweight_kg,
+      });
+      if (insertError) {
+        return `Could not save bodyweight: ${insertError.message}`;
+      }
+      setHasProfileMetrics(true);
+    }
+    setBodyweightKg(bodyweight_kg == null ? "" : String(bodyweight_kg));
+    return null;
+  }
+
+  async function saveBodyweightEntry(input: {
+    id: string | null;
+    loggedOn: string;
+    bodyweightKg: number;
+  }): Promise<string | null> {
+    if (!userId) {
+      return "Please log in again to save body metrics.";
+    }
+    const loggedOn = input.loggedOn.slice(0, 10);
+    const write = input.id
+      ? supabaseBrowserClient
+          .from("user_bodyweight_log")
+          .update({ logged_on: loggedOn, bodyweight_kg: input.bodyweightKg })
+          .eq("id", input.id)
+      : supabaseBrowserClient.from("user_bodyweight_log").insert({
+          user_id: userId,
+          logged_on: loggedOn,
+          bodyweight_kg: input.bodyweightKg,
+        });
+    const { data, error } = await write.select("id, logged_on, bodyweight_kg").single();
+    if (error || !data) {
+      if (error?.code === "23505") {
+        return "That date already has a bodyweight.";
+      }
+      return `Could not save bodyweight: ${error?.message ?? "Unknown error"}`;
+    }
+    const saved = {
+      id: data.id,
+      loggedOn: data.logged_on.slice(0, 10),
+      bodyweightKg: Number(data.bodyweight_kg),
+    };
+    const nextLog = [
+      ...bodyweightLog.filter((entry) => entry.id !== saved.id && entry.loggedOn !== saved.loggedOn),
+      saved,
+    ];
+    setBodyweightLog(nextLog);
+    return syncProfileBodyweight(nextLog);
+  }
+
+  async function removeBodyweightEntry(id: string): Promise<string | null> {
+    if (!userId) {
+      return "Please log in again to save body metrics.";
+    }
+    const { error } = await supabaseBrowserClient.from("user_bodyweight_log").delete().eq("id", id);
+    if (error) {
+      return `Could not remove bodyweight: ${error.message}`;
+    }
+    const nextLog = bodyweightLog.filter((entry) => entry.id !== id);
+    setBodyweightLog(nextLog);
+    return syncProfileBodyweight(nextLog);
   }
 
   async function handleHiddenToggle(exerciseId: string, hide: boolean) {
@@ -736,32 +869,6 @@ export default function AccountPage() {
         <form onSubmit={handleMetricsSave} className="space-y-3">
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block text-sm font-medium">
-              Bodyweight (kg)
-              <input
-                type="number"
-                min={20}
-                max={400}
-                step="0.1"
-                value={bodyweightKg}
-                onChange={(event) => setBodyweightKg(event.target.value)}
-                className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
-                placeholder="Optional"
-              />
-            </label>
-            <label className="block text-sm font-medium">
-              Height (cm)
-              <input
-                type="number"
-                min={100}
-                max={250}
-                step="0.1"
-                value={heightCm}
-                onChange={(event) => setHeightCm(event.target.value)}
-                className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
-                placeholder="Optional"
-              />
-            </label>
-            <label className="block text-sm font-medium">
               Sex
               <select
                 value={sex}
@@ -789,6 +896,30 @@ export default function AccountPage() {
                   Year of birth on file: {birthYearFallback}. About {yearOnlyAge} years old.
                 </span>
               ) : null}
+            </label>
+            <label className="block text-sm font-medium">
+              Height (cm)
+              <input
+                type="number"
+                min={100}
+                max={250}
+                step="0.1"
+                value={heightCm}
+                onChange={(event) => setHeightCm(event.target.value)}
+                className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                placeholder="Optional"
+              />
+            </label>
+            <label className="block text-sm font-medium">
+              Bodyweight (kg)
+              <input
+                type="number"
+                step="0.1"
+                value={bodyweightKg}
+                onChange={(event) => setBodyweightKg(event.target.value)}
+                className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                placeholder="Optional"
+              />
             </label>
           </div>
           <div className="grid gap-3 sm:grid-cols-3 sm:items-start">
@@ -820,6 +951,12 @@ export default function AccountPage() {
             </div>
           </div>
         </form>
+        <BodyweightLogPanel
+          entries={bodyweightLog}
+          today={todayIso}
+          onSave={saveBodyweightEntry}
+          onRemove={removeBodyweightEntry}
+        />
         </SettingsSectionBody>
       </SettingsSection>
       ) : null}
