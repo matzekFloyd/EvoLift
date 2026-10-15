@@ -1,6 +1,6 @@
 "use client";
 
-import { Target } from "lucide-react";
+import { ChevronRight, Target } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
@@ -8,7 +8,10 @@ import { PageAddAction } from "@/app/components/page-add-action";
 import { PageShell } from "@/app/components/page-shell";
 import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
+import { formatGoalBodyweightTarget } from "@/app/goals/goal-bodyweight-label";
 import { GoalCard } from "@/app/goals/goal-card";
+import { GoalSummaryChart } from "@/app/goals/goal-summary-chart";
+import { buildGoalSummaryBars } from "@/app/goals/goal-summary";
 import { draftFromRow } from "@/app/goals/goal-draft";
 import { definitionFromRow, storedFromRow } from "@/app/goals/goal-row";
 import { emptyGoalDraft, GoalEditorDialog, type GoalDraft } from "@/app/goals/goal-editor-dialog";
@@ -18,7 +21,6 @@ import {
   formatBestSet,
   formatGoalGap,
   formatKgAmount,
-  formatMilestoneTarget,
   milestoneDefinitionChanged,
   parseGoalForm,
   resolveMilestone,
@@ -222,6 +224,25 @@ export default function GoalsPage() {
       return rightAt.localeCompare(leftAt);
     });
 
+  function bodyweightTarget(item: GoalListItem): string {
+    return formatGoalBodyweightTarget({
+      definition: definitionFromRow(item.row),
+      progress: item.progress,
+      achievedBodyweightKg: storedFromRow(item.row).achievedBodyweightKg,
+      bodyweightEntries,
+      today: getTodayYyyyMmDd(),
+    });
+  }
+
+  const summaryBars = buildGoalSummaryBars(
+    items.map((item) => ({
+      id: item.row.id,
+      label: item.label,
+      targetLabel: bodyweightTarget(item),
+      progress: item.progress,
+    })),
+  );
+
   const editorOptions = exerciseOptionsForPicker(
     exerciseOptions,
     hiddenExerciseIds,
@@ -340,8 +361,16 @@ export default function GoalsPage() {
         ) : null}
         {loadError ? <p className="mt-4 text-sm text-red-600">{loadError}</p> : null}
 
-        <div className="mt-5">
-          <SectionHeading>Active</SectionHeading>
+        <GoalSummaryChart bars={summaryBars} />
+
+        <details className="group mt-5">
+          <summary className="w-fit cursor-pointer list-none rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60 [&::-webkit-details-marker]:hidden">
+            <SectionHeading className="inline-flex items-center gap-1.5">
+              <ChevronRight className="h-4 w-4 text-zinc-500 transition-transform group-open:rotate-90" aria-hidden />
+              Active
+              <span className="font-normal tabular-nums text-zinc-500">{activeItems.length}</span>
+            </SectionHeading>
+          </summary>
           {activeItems.length === 0 ? (
             <p className="mt-3 text-sm text-zinc-600">Add a goal to track a lift.</p>
           ) : (
@@ -351,10 +380,16 @@ export default function GoalsPage() {
               ))}
             </div>
           )}
-        </div>
+        </details>
 
-        <div className="mt-6">
-          <SectionHeading>Achieved</SectionHeading>
+        <details className="group mt-6">
+          <summary className="w-fit cursor-pointer list-none rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60 [&::-webkit-details-marker]:hidden">
+            <SectionHeading className="inline-flex items-center gap-1.5">
+              <ChevronRight className="h-4 w-4 text-zinc-500 transition-transform group-open:rotate-90" aria-hidden />
+              Achieved
+              <span className="font-normal tabular-nums text-zinc-500">{achievedItems.length}</span>
+            </SectionHeading>
+          </summary>
           {achievedItems.length === 0 ? (
             <p className="mt-3 text-sm text-zinc-600">No achieved goals yet.</p>
           ) : (
@@ -364,7 +399,7 @@ export default function GoalsPage() {
               ))}
             </div>
           )}
-        </div>
+        </details>
       </section>
 
       {draft ? (
@@ -425,7 +460,7 @@ export default function GoalsPage() {
     return {
       exerciseLabel: item.label,
       exerciseSlug: item.slug,
-      targetLabel: formatMilestoneTarget(definition),
+      targetLabel: bodyweightTarget(item),
       thresholdLabel:
         definition.milestoneType === "bodyweight_multiple" && measured
           ? `Threshold: ${formatKgAmount(measured.thresholdKg)}`

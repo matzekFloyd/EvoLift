@@ -268,7 +268,30 @@ describe("resolveMilestone", () => {
       today: "2026-10-15",
       recalculate: false,
     });
-    assert.equal(beforeTheLog.progress.kind, "missing_bodyweight");
+    assert.equal(beforeTheLog.progress.kind, "active");
+    if (beforeTheLog.progress.kind === "active") {
+      assert.equal(beforeTheLog.progress.thresholdKg, 105);
+      assert.equal(beforeTheLog.progress.bestTotalKg, null);
+    }
+
+    const noSets = resolveMilestone({
+      definition: definition({
+        milestoneType: "bodyweight_multiple",
+        targetWeightKg: null,
+        bodyweightMultiple: 1,
+      }),
+      stored: emptyStored,
+      sets: [],
+      bodyweightEntries: [{ loggedOn: "2026-10-15", bodyweightKg: 85 }],
+      dueOn: null,
+      today: "2026-10-15",
+      recalculate: false,
+    });
+    assert.equal(noSets.progress.kind, "active");
+    if (noSets.progress.kind === "active") {
+      assert.equal(noSets.progress.thresholdKg, 85);
+      assert.equal(noSets.progress.bestTotalKg, null);
+    }
   });
 
   it("keeps a reached bodyweight goal when the log changes later", () => {

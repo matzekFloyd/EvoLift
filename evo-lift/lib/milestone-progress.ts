@@ -226,7 +226,22 @@ function resolveBodyweightMilestone(input: {
     return [{ set, bodyweightKg, thresholdKg: roundKg(multiple * bodyweightKg) }];
   });
   if (covered.length === 0) {
-    return missingBodyweight(input);
+    const currentBodyweight = bodyweightOnOrBefore(input.bodyweightEntries, input.today);
+    if (currentBodyweight == null) {
+      return missingBodyweight(input);
+    }
+    const cleared = input.stored.achievedAt != null;
+    return {
+      progress: progressFromThreshold(
+        "active",
+        roundKg(multiple * currentBodyweight),
+        null,
+        null,
+        isPastDue(input.dueOn, input.today, false),
+      ),
+      stored: cleared ? emptyAchievement : input.stored,
+      shouldWrite: cleared,
+    };
   }
 
   let hitting: (typeof covered)[number] | null = null;
