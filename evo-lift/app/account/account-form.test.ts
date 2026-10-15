@@ -5,7 +5,10 @@ import {
   accountPasswordUpdateError,
   exerciseDefaultsClearError,
   exerciseDefaultsSaveError,
+  MAX_WARMUP_SETS_INVALID,
+  maxWarmupSetsSaveError,
   normalizeAccountEmail,
+  parseMaxWarmupSets,
 } from "./account-form";
 
 const passwordInput = {
@@ -22,6 +25,7 @@ const defaultsInput = {
   targetSets: "",
   targetReps: "",
   targetWeightKg: "",
+  maxWarmupSets: "",
 };
 
 describe("account form", () => {
@@ -71,20 +75,29 @@ describe("account form", () => {
     );
     assert.equal(
       exerciseDefaultsSaveError({ ...defaultsInput, baseWeightKg: "-1" }),
-      "Please enter a valid default base weight.",
+      "Please enter a valid base weight.",
     );
     assert.equal(
       exerciseDefaultsSaveError({ ...defaultsInput, targetSets: "0" }),
-      "Please enter a valid default number of target working sets.",
+      "Please enter a valid number of target working sets.",
     );
     assert.equal(
       exerciseDefaultsSaveError({ ...defaultsInput, targetReps: "nope" }),
-      "Please enter a valid default target reps value for working sets.",
+      "Please enter a valid target reps value for working sets.",
     );
     assert.equal(
       exerciseDefaultsSaveError({ ...defaultsInput, targetWeightKg: "-0.5" }),
-      "Please enter a valid default target weight (kg) for working sets.",
+      "Please enter a valid target weight (kg) for working sets.",
     );
+    assert.equal(exerciseDefaultsSaveError({ ...defaultsInput, maxWarmupSets: "2" }), null);
+    assert.equal(
+      exerciseDefaultsSaveError({ ...defaultsInput, maxWarmupSets: "0" }),
+      MAX_WARMUP_SETS_INVALID,
+    );
+    assert.equal(maxWarmupSetsSaveError(""), null);
+    assert.equal(maxWarmupSetsSaveError("2.5"), MAX_WARMUP_SETS_INVALID);
+    assert.equal(parseMaxWarmupSets(" 3 "), 3);
+    assert.equal(parseMaxWarmupSets(""), null);
   });
 
   it("uses the clear-defaults copy when nothing is selected", () => {

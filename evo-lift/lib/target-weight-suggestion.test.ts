@@ -6,6 +6,7 @@ import {
   REP_TARGET_MISMATCH_RATIONALE,
   THIN_HISTORY_MESSAGE,
   suggestTargetWeight,
+  targetSuggestionsEnabled,
   type TargetWeightHistorySet,
 } from "./target-weight-suggestion";
 
@@ -38,6 +39,14 @@ function suggest(
 ) {
   return suggestTargetWeight({ sets, plannedReps, excludeSessionId, today: TODAY });
 }
+
+describe("targetSuggestionsEnabled", () => {
+  it("stays on unless the account turns it off", () => {
+    assert.equal(targetSuggestionsEnabled(undefined), true);
+    assert.equal(targetSuggestionsEnabled(true), true);
+    assert.equal(targetSuggestionsEnabled(false), false);
+  });
+});
 
 describe("suggestTargetWeight", () => {
   it("increases by one step when the last two sessions hit the same load", () => {

@@ -16,6 +16,11 @@ export const THIN_HISTORY_MESSAGE = "Not enough recent working sets to suggest a
 export const NEED_TARGET_REPS_MESSAGE = "Enter target reps to get a suggestion.";
 export const REP_TARGET_MISMATCH_RATIONALE = "History is for a different rep target.";
 
+/** Missing account rows stay on, same as an explicit true. */
+export function targetSuggestionsEnabled(suggestTarget: boolean | null | undefined): boolean {
+  return suggestTarget !== false;
+}
+
 /**
  * One logged set used to suggest Target weight (kg).
  * Loaded (kg) only — base weight is not part of the suggestion.

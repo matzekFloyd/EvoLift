@@ -23,6 +23,8 @@ export type WarmupSuggestionInput = {
    * It is not a warmup step, and it is not subtracted from the target.
    */
   baseWeightKg?: number | null;
+  /** Keep this many heaviest steps. Null or empty keeps the full ladder. */
+  maxSteps?: number | null;
 };
 
 type RatioStep = {
@@ -79,6 +81,28 @@ export function filterWarmupSteps(
   return kept;
 }
 
+/** Keep the heaviest steps when a maximum is set. A missing maximum leaves the ladder unchanged. */
+export function capWarmupSteps(steps: WarmupStep[], maxSteps: number | null | undefined): WarmupStep[] {
+  if (maxSteps == null || !Number.isInteger(maxSteps) || maxSteps < 1 || steps.length <= maxSteps) {
+    return steps;
+  }
+  return steps.slice(steps.length - maxSteps);
+}
+
+/**
+ * A stored true or false wins.
+ * A missing row stays on for compounds and off for every other exercise.
+ */
+export function warmupSuggestionsEnabled(
+  suggestWarmups: boolean | null | undefined,
+  isCompound = false,
+): boolean {
+  if (suggestWarmups == null) {
+    return isCompound;
+  }
+  return suggestWarmups;
+}
+
 function bandForTarget(targetWeightKg: number): RatioStep[] {
   if (targetWeightKg < 20) {
     return [{ ratio: 0.6, reps: 5 }];
@@ -116,7 +140,10 @@ export function suggestWarmups(input: WarmupSuggestionInput): WarmupSuggestion {
     reps: step.reps,
   }));
 
-  return { status: "steps", steps: filterWarmupSteps(rawSteps, targetWeightKg) };
+  return {
+    status: "steps",
+    steps: capWarmupSteps(filterWarmupSteps(rawSteps, targetWeightKg), input.maxSteps),
+  };
 }
 
 /** `20 kg × 8 reps` */

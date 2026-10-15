@@ -16,6 +16,8 @@ import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import type { Database } from "@/lib/supabase/database.types";
 import { ExerciseBadgeChip } from "@/app/components/exercise-badge-chip";
 import { approximateAge, ageFromDateOfBirth, birthYearFromDate, validateBodyMetricsInput } from "@/lib/body-metrics";
+import { isCompoundExercise } from "@/lib/compound-exercise";
+import { warmupSuggestionsEnabled } from "@/lib/warmup-suggestion";
 import { DateInput } from "@/app/components/date-input";
 import { ExerciseFilteredList } from "@/app/components/exercise-filtered-list";
 import { ExerciseSearchSelect } from "@/app/components/exercise-search-select";
@@ -28,6 +30,7 @@ import {
   exerciseDefaultsClearError,
   exerciseDefaultsSaveError,
   normalizeAccountEmail,
+  parseMaxWarmupSets,
 } from "@/app/account/account-form";
 import { AccountApiTokensSection } from "@/app/account/api-tokens-section";
 import { SettingsSectionHeader } from "@/app/components/settings-section-header";
@@ -48,6 +51,10 @@ export default function AccountPage() {
   const [defaultTargetSets, setDefaultTargetSets] = useState("");
   const [defaultTargetReps, setDefaultTargetReps] = useState("");
   const [defaultTargetWeightKg, setDefaultTargetWeightKg] = useState("");
+  const [maxWarmupSets, setMaxWarmupSets] = useState("");
+  const [suggestWarmups, setSuggestWarmups] = useState(true);
+  const [suggestTarget, setSuggestTarget] = useState(true);
+  const [hasProfileMetrics, setHasProfileMetrics] = useState(false);
   const [newEmail, setNewEmail] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -126,7 +133,7 @@ export default function AccountPage() {
         await Promise.all([
           supabaseBrowserClient
             .from("user_profile_metrics")
-            .select("bodyweight_kg,height_cm,birth_year,sex,date_of_birth")
+            .select("bodyweight_kg,height_cm,birth_year,sex,date_of_birth,max_suggested_warmup_sets")
             .eq("user_id", session.user.id)
             .maybeSingle(),
           supabaseBrowserClient
@@ -155,6 +162,10 @@ export default function AccountPage() {
       setSex(profile?.sex ?? "");
       setDateOfBirth(profile?.date_of_birth ?? "");
       setBirthYearFallback(profile?.date_of_birth ? null : (profile?.birth_year ?? null));
+      setHasProfileMetrics(profile != null);
+      setMaxWarmupSets(
+        profile?.max_suggested_warmup_sets == null ? "" : String(profile.max_suggested_warmup_sets),
+      );
 
       const hiddenSet = new Set<string>();
       for (const row of hiddenRows ?? []) {
@@ -205,7 +216,14 @@ export default function AccountPage() {
         ? ""
         : String(selectedDefault.default_target_weight_kg),
     );
-  }, [defaultsByExerciseId, selectedExerciseId]);
+    const selectedSlug = exerciseOptions.find((option) => option.id === selectedExerciseId)?.slug;
+    setSuggestWarmups(
+      selectedExerciseId
+        ? warmupSuggestionsEnabled(selectedDefault?.suggest_warmups, isCompoundExercise(selectedSlug))
+        : true,
+    );
+    setSuggestTarget(selectedDefault?.suggest_target !== false);
+  }, [defaultsByExerciseId, exerciseOptions, selectedExerciseId]);
 
   async function handleEmailUpdate(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -409,6 +427,7 @@ export default function AccountPage() {
       targetSets: defaultTargetSets,
       targetReps: defaultTargetReps,
       targetWeightKg: defaultTargetWeightKg,
+      maxWarmupSets,
     });
     if (defaultsError || !userId || !selectedExerciseId) {
       if (defaultsError) {
@@ -423,9 +442,38 @@ export default function AccountPage() {
     const parsedTargetSets = defaultTargetSets ? Number(defaultTargetSets) : null;
     const parsedTargetReps = defaultTargetReps ? Number(defaultTargetReps) : null;
     const parsedTargetWeight = defaultTargetWeightKg ? Number(defaultTargetWeightKg) : null;
+    const parsedMaxWarmupSets = parseMaxWarmupSets(maxWarmupSets);
 
     setIsSavingDefaults(true);
     setDefaultsMessage(null);
+
+    if (parsedMaxWarmupSets != null || hasProfileMetrics) {
+      const maxPayload = { max_suggested_warmup_sets: parsedMaxWarmupSets };
+      const { data: updatedRows, error: maxUpdateError } = await supabaseBrowserClient
+        .from("user_profile_metrics")
+        .update(maxPayload)
+        .eq("user_id", userId)
+        .select("user_id");
+      if (maxUpdateError) {
+        setDefaultsMessageTone("error");
+        setDefaultsMessage(`Could not save warmup suggestions: ${maxUpdateError.message}`);
+        setIsSavingDefaults(false);
+        return;
+      }
+      if (!updatedRows?.length) {
+        const { error: maxInsertError } = await supabaseBrowserClient.from("user_profile_metrics").insert({
+          user_id: userId,
+          ...maxPayload,
+        });
+        if (maxInsertError) {
+          setDefaultsMessageTone("error");
+          setDefaultsMessage(`Could not save warmup suggestions: ${maxInsertError.message}`);
+          setIsSavingDefaults(false);
+          return;
+        }
+      }
+      setHasProfileMetrics(true);
+    }
 
     const payload: Database["public"]["Tables"]["user_exercise_defaults"]["Insert"] = {
       user_id: userId,
@@ -434,6 +482,8 @@ export default function AccountPage() {
       default_target_sets: parsedTargetSets,
       default_target_reps: parsedTargetReps,
       default_target_weight_kg: parsedTargetWeight,
+      suggest_warmups: suggestWarmups,
+      suggest_target: suggestTarget,
     };
 
     const { data, error } = await supabaseBrowserClient
@@ -475,6 +525,8 @@ export default function AccountPage() {
     setIsClearingDefaults(true);
     setDefaultsMessage(null);
 
+    const selectedSlug = exerciseOptions.find((option) => option.id === selectedExerciseId)?.slug;
+    const suggestWarmupsDefault = isCompoundExercise(selectedSlug);
     const payload: Database["public"]["Tables"]["user_exercise_defaults"]["Insert"] = {
       user_id: userId,
       exercise_id: selectedExerciseId,
@@ -482,6 +534,8 @@ export default function AccountPage() {
       default_target_sets: null,
       default_target_reps: null,
       default_target_weight_kg: null,
+      suggest_warmups: suggestWarmupsDefault,
+      suggest_target: true,
     };
 
     const { data, error } = await supabaseBrowserClient
@@ -506,6 +560,8 @@ export default function AccountPage() {
     setDefaultTargetSets("");
     setDefaultTargetReps("");
     setDefaultTargetWeightKg("");
+    setSuggestWarmups(suggestWarmupsDefault);
+    setSuggestTarget(true);
     setDefaultsMessage(null);
     setIsClearingDefaults(false);
   }
@@ -833,7 +889,7 @@ export default function AccountPage() {
               />
             </label>
             <label className="block text-sm font-medium">
-              Default base weight (kg)
+              Base weight (kg)
               <input
                 type="number"
                 min={0}
@@ -846,14 +902,14 @@ export default function AccountPage() {
             </label>
           </div>
           <div className="space-y-2 border-t border-zinc-200 pt-3">
-            <h3 className="text-sm font-medium text-zinc-800">Default targets</h3>
+            <h3 className="text-sm font-medium text-zinc-800">Targets</h3>
             <p className="text-sm leading-snug text-zinc-600">
               Targets are your usual sets, weight, and reps for this exercise. Those values are
               prefilled when you add the exercise to a session.
             </p>
             <div className="grid gap-3 sm:grid-cols-3">
               <label className="block text-sm font-medium">
-                Default target working sets
+                Target working sets
                 <input
                   type="number"
                   min={1}
@@ -864,7 +920,7 @@ export default function AccountPage() {
                 />
               </label>
               <label className="block text-sm font-medium">
-                Default target weight (kg)
+                Target weight (kg)
                 <input
                   type="number"
                   min={0}
@@ -876,7 +932,7 @@ export default function AccountPage() {
                 />
               </label>
               <label className="block text-sm font-medium">
-                Default target reps (working sets)
+                Target reps (working sets)
                 <input
                   type="number"
                   min={1}
@@ -884,6 +940,49 @@ export default function AccountPage() {
                   onChange={(event) => setDefaultTargetReps(event.target.value)}
                   className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
                   placeholder="e.g. 8"
+                />
+              </label>
+            </div>
+          </div>
+          <div className="space-y-2 border-t border-zinc-200 pt-3">
+            <h3 className="text-sm font-medium text-zinc-800">Suggestions</h3>
+            <p className="text-sm leading-snug text-zinc-600">
+              The warmup ladder is the suggested warmup sets, stepping up toward the target weight.
+              The maximum applies to every exercise: leave it empty to keep every step, or enter a
+              number to keep that many of the heaviest steps.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-3">
+              <label className="block text-sm font-medium">
+                Suggest a target weight
+                <select
+                  value={suggestTarget ? "yes" : "no"}
+                  onChange={(event) => setSuggestTarget(event.target.value === "yes")}
+                  className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                >
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
+                </select>
+              </label>
+              <label className="block text-sm font-medium">
+                Suggest warmups
+                <select
+                  value={suggestWarmups ? "yes" : "no"}
+                  onChange={(event) => setSuggestWarmups(event.target.value === "yes")}
+                  className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                >
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
+                </select>
+              </label>
+              <label className="block text-sm font-medium">
+                Maximum warmup sets
+                <input
+                  type="number"
+                  step={1}
+                  value={maxWarmupSets}
+                  onChange={(event) => setMaxWarmupSets(event.target.value)}
+                  className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                  placeholder="e.g. 2"
                 />
               </label>
             </div>

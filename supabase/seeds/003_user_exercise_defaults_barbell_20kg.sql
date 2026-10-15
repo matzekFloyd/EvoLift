@@ -12,11 +12,17 @@ with barbell_exercise_slugs(slug) as (
     ('overhead-press'),
     ('romanian-deadlift')
 )
-insert into public.user_exercise_defaults (user_id, exercise_id, default_base_weight_kg)
+insert into public.user_exercise_defaults (
+  user_id,
+  exercise_id,
+  default_base_weight_kg,
+  suggest_warmups
+)
 select
   u.id,
   e.id,
-  20
+  20,
+  true
 from public.app_users u
 join public.exercises e
   on e.slug in (select slug from barbell_exercise_slugs)

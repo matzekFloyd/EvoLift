@@ -27,6 +27,9 @@ import { panelInsetClass } from "@/app/components/panel-inset";
 import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
 import { TargetWeightSuggestion } from "@/app/components/target-weight-suggestion";
+import { targetSuggestionsEnabled } from "@/lib/target-weight-suggestion";
+import { isCompoundExercise } from "@/lib/compound-exercise";
+import { warmupSuggestionsEnabled } from "@/lib/warmup-suggestion";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { formatPlanSessionSource } from "@/lib/plan-cycle";
 import { workoutSessionPageTitle } from "@/lib/page-title";
@@ -116,6 +119,13 @@ export default function SessionDetailPage() {
   const skipNextClearMessageOnExerciseIdChangeRef = useRef(false);
   const lastSessionExerciseIdsKeyRef = useRef<string>("");
   const [hiddenExerciseIds, setHiddenExerciseIds] = useState<Set<string>>(new Set());
+  const [suggestWarmupsByExerciseId, setSuggestWarmupsByExerciseId] = useState<Map<string, boolean>>(
+    () => new Map(),
+  );
+  const [targetSuggestionsDisabledExerciseIds, setTargetSuggestionsDisabledExerciseIds] = useState<
+    Set<string>
+  >(() => new Set());
+  const [maxSuggestedWarmupSets, setMaxSuggestedWarmupSets] = useState<number | null>(null);
   /** Compact single-exercise flow: show full new-set composer after target working sets are met. */
   const [compactShowExtraSetComposer, setCompactShowExtraSetComposer] = useState(false);
   const [pendingCompactSetFocusSessionExerciseId, setPendingCompactSetFocusSessionExerciseId] =
@@ -130,6 +140,19 @@ export default function SessionDetailPage() {
   const [sessionDetailsNotesError, setSessionDetailsNotesError] = useState<string | null>(null);
   const [isSavingSessionDetails, setIsSavingSessionDetails] = useState(false);
   const [isEditingSessionDetails, setIsEditingSessionDetails] = useState(false);
+
+  const warmupSuggestionsDisabledExerciseIds = useMemo(() => {
+    const disabled = new Set<string>();
+    for (const option of exerciseOptions) {
+      const stored = suggestWarmupsByExerciseId.has(option.id)
+        ? suggestWarmupsByExerciseId.get(option.id)
+        : undefined;
+      if (!warmupSuggestionsEnabled(stored, isCompoundExercise(option.slug))) {
+        disabled.add(option.id);
+      }
+    }
+    return disabled;
+  }, [exerciseOptions, suggestWarmupsByExerciseId]);
 
   const addExercisePickerOptions = useMemo(
     () =>
@@ -171,6 +194,45 @@ export default function SessionDetailPage() {
   const clearMessage = useCallback(() => {
     setMessage(null);
   }, []);
+
+  useEffect(() => {
+    const userId = session?.user_id;
+    if (!userId) {
+      return;
+    }
+    let cancelled = false;
+    async function loadSuggestionSettings() {
+      const [{ data: metrics }, { data: defaults }] = await Promise.all([
+        supabaseBrowserClient
+          .from("user_profile_metrics")
+          .select("max_suggested_warmup_sets")
+          .eq("user_id", userId)
+          .maybeSingle(),
+        supabaseBrowserClient
+          .from("user_exercise_defaults")
+          .select("exercise_id, suggest_warmups, suggest_target")
+          .eq("user_id", userId),
+      ]);
+      if (cancelled) {
+        return;
+      }
+      setMaxSuggestedWarmupSets(metrics?.max_suggested_warmup_sets ?? null);
+      const warmupByExercise = new Map<string, boolean>();
+      const targetDisabled = new Set<string>();
+      for (const row of defaults ?? []) {
+        warmupByExercise.set(row.exercise_id, row.suggest_warmups);
+        if (row.suggest_target === false) {
+          targetDisabled.add(row.exercise_id);
+        }
+      }
+      setSuggestWarmupsByExerciseId(warmupByExercise);
+      setTargetSuggestionsDisabledExerciseIds(targetDisabled);
+    }
+    void loadSuggestionSettings();
+    return () => {
+      cancelled = true;
+    };
+  }, [session?.user_id]);
 
   function getReadOnlyStorageKey(currentSessionId: string) {
     return `evolift:session-readonly:${currentSessionId}`;
@@ -707,6 +769,8 @@ export default function SessionDetailPage() {
     setIsEditingSessionDetails,
     setIsSavingSessionDetails,
     setSession,
+    warmupSuggestionsDisabledExerciseIds,
+    maxSuggestedWarmupSets,
   });
 
   function goBack() {
@@ -1140,6 +1204,11 @@ export default function SessionDetailPage() {
                 onAddWarmups={(sessionExerciseId) => {
                   void handleAddWarmups(sessionExerciseId);
                 }}
+                suggestTarget={
+                  !targetSuggestionsDisabledExerciseIds.has(sessionExercise.exercise_id)
+                }
+                suggestWarmups={!warmupSuggestionsDisabledExerciseIds.has(sessionExercise.exercise_id)}
+                maxWarmupSets={maxSuggestedWarmupSets}
                 onAddSet={(sessionExerciseId) => {
                   void handleAddSet(sessionExerciseId);
                 }}
@@ -1292,6 +1361,9 @@ export default function SessionDetailPage() {
                           plannedReps={addExerciseDraft.targetReps}
                           currentWeightKg={addExerciseDraft.targetWeightKg}
                           excludeSessionId={sessionId ?? null}
+                          enabled={targetSuggestionsEnabled(
+                            !targetSuggestionsDisabledExerciseIds.has(addExerciseDraft.exerciseId),
+                          )}
                           onApply={(weightKg) =>
                             setAddExerciseDraft((prev) => ({ ...prev, targetWeightKg: weightKg }))
                           }
@@ -1447,6 +1519,9 @@ export default function SessionDetailPage() {
                   plannedReps={targetsReps}
                   currentWeightKg={targetsWeightKg}
                   excludeSessionId={sessionId ?? null}
+                  enabled={targetSuggestionsEnabled(
+                    !targetSuggestionsDisabledExerciseIds.has(targetsExerciseId),
+                  )}
                   onApply={setTargetsWeightKg}
                 />
               ) : null}
@@ -1576,6 +1651,9 @@ export default function SessionDetailPage() {
                     plannedReps={addExerciseDraft.targetReps}
                     currentWeightKg={addExerciseDraft.targetWeightKg}
                     excludeSessionId={sessionId ?? null}
+                    enabled={targetSuggestionsEnabled(
+                      !targetSuggestionsDisabledExerciseIds.has(addExerciseDraft.exerciseId),
+                    )}
                     onApply={(weightKg) =>
                       setAddExerciseDraft((prev) => ({ ...prev, targetWeightKg: weightKg }))
                     }

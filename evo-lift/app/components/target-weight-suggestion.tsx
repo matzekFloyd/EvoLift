@@ -10,6 +10,7 @@ import {
   formatSuggestedTargetInput,
   suggestionMatchesField,
   suggestTargetWeight,
+  targetSuggestionsEnabled,
   type TargetWeightHistorySet,
 } from "@/lib/target-weight-suggestion";
 import { parsePlannedReps } from "@/app/components/planned-reps";
@@ -20,6 +21,8 @@ type TargetWeightSuggestionProps = {
   plannedReps: string;
   currentWeightKg: string;
   excludeSessionId?: string | null;
+  /** Account preference. Missing stays on. */
+  enabled?: boolean;
   onApply: (weightKg: string) => void;
 };
 
@@ -28,6 +31,7 @@ export function TargetWeightSuggestion({
   plannedReps,
   currentWeightKg,
   excludeSessionId = null,
+  enabled = true,
   onApply,
 }: TargetWeightSuggestionProps) {
   const [history, setHistory] = useState<{
@@ -36,7 +40,12 @@ export function TargetWeightSuggestion({
   } | null>(null);
   const [error, setError] = useState<{ exerciseId: string; message: string } | null>(null);
 
+  const showSuggestion = targetSuggestionsEnabled(enabled);
+
   useEffect(() => {
+    if (!showSuggestion) {
+      return;
+    }
     let cancelled = false;
     void loadTargetWeightHistory(supabaseBrowserClient, exerciseId)
       .then((sets) => {
@@ -54,7 +63,7 @@ export function TargetWeightSuggestion({
     return () => {
       cancelled = true;
     };
-  }, [exerciseId]);
+  }, [exerciseId, showSuggestion]);
 
   const suggestion = useMemo(() => {
     if (!history || history.exerciseId !== exerciseId) {
@@ -67,6 +76,10 @@ export function TargetWeightSuggestion({
       today: getTodayYyyyMmDd(),
     });
   }, [excludeSessionId, exerciseId, history, plannedReps]);
+
+  if (!showSuggestion) {
+    return null;
+  }
 
   if (error?.exerciseId === exerciseId) {
     return <StatusNotice message={error.message} tone="error" className="mt-2" />;

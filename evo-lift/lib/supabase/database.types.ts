@@ -103,6 +103,7 @@ export type Database = {
           birth_year: number | null;
           sex: "female" | "male" | null;
           date_of_birth: string | null;
+          max_suggested_warmup_sets: number | null;
           created_at: string;
           updated_at: string;
         };
@@ -113,6 +114,7 @@ export type Database = {
           birth_year?: number | null;
           sex?: "female" | "male" | null;
           date_of_birth?: string | null;
+          max_suggested_warmup_sets?: number | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -123,6 +125,7 @@ export type Database = {
           birth_year?: number | null;
           sex?: "female" | "male" | null;
           date_of_birth?: string | null;
+          max_suggested_warmup_sets?: number | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -353,6 +356,8 @@ export type Database = {
           default_target_sets: number | null;
           default_target_reps: number | null;
           default_target_weight_kg: number | null;
+          suggest_warmups: boolean;
+          suggest_target: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -363,6 +368,8 @@ export type Database = {
           default_target_sets?: number | null;
           default_target_reps?: number | null;
           default_target_weight_kg?: number | null;
+          suggest_warmups?: boolean;
+          suggest_target?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -373,6 +380,8 @@ export type Database = {
           default_target_sets?: number | null;
           default_target_reps?: number | null;
           default_target_weight_kg?: number | null;
+          suggest_warmups?: boolean;
+          suggest_target?: boolean;
           created_at?: string;
           updated_at?: string;
         };
