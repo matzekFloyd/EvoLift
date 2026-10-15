@@ -22,7 +22,7 @@ export function formatDateToYyyyMmDd(date: Date): string {
 }
 
 /**
- * Same rolling window as the home “Past workouts” filter: local calendar, one year back through today.
+ * Exercise history window: local calendar, one year back through today.
  */
 export function getDefaultRollingYearDateRange(): { from: string; to: string } {
   const today = new Date();

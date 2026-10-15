@@ -25,6 +25,26 @@ export function nextSetNumber(setNumbers: number[]): number {
   return Math.max(...setNumbers) + 1;
 }
 
+/**
+ * Close gaps after a set is removed. Updates are in ascending current number order
+ * so a unique (exercise, set number) constraint is not hit while shifting down.
+ */
+export function compactSetNumbers<T extends { id: string; set_number: number }>(
+  remainingSets: T[],
+): Array<{ id: string; setNumber: number }> {
+  const ordered = [...remainingSets].sort(
+    (left, right) => left.set_number - right.set_number || left.id.localeCompare(right.id),
+  );
+  const updates: Array<{ id: string; setNumber: number }> = [];
+  for (let index = 0; index < ordered.length; index += 1) {
+    const setNumber = index + 1;
+    if (ordered[index].set_number !== setNumber) {
+      updates.push({ id: ordered[index].id, setNumber });
+    }
+  }
+  return updates;
+}
+
 function parseOptionalNumber(
   value: string,
   invalid: (parsed: number) => boolean,

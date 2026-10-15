@@ -33,15 +33,13 @@ describe("workout activity weeks", () => {
     assert.match(compact[0]?.weekLabel ?? "", /-/);
   });
 
-  it("pads the heatmap to 26 weeks and marks only days inside the range", () => {
-    const weeks = buildActivityHeatmapWeeks([
+  it("shows the weeks in range and keeps only the latest 26 when the range is longer", () => {
+    const short = buildActivityHeatmapWeeks([
       point("2026-10-12", 3),
       point("2026-10-14", 5),
     ]);
-    assert.equal(weeks.length, 26);
-    assert.equal(weeks[0]?.[0]?.isInRange, false);
-    assert.equal(weeks[0]?.[0]?.sets, 0);
-    const visible = weeks.at(-1) ?? [];
+    assert.equal(short.length, 1);
+    const visible = short[0] ?? [];
     assert.equal(visible[0]?.date, "2026-10-12");
     assert.equal(visible[0]?.sets, 3);
     assert.equal(visible[1]?.date, "2026-10-13");
@@ -49,5 +47,17 @@ describe("workout activity weeks", () => {
     assert.equal(visible[1]?.isInRange, true);
     assert.equal(visible[2]?.sets, 5);
     assert.equal(visible[3]?.isInRange, false);
+
+    const long = buildActivityHeatmapWeeks(
+      Array.from({ length: 30 }, (_, index) => {
+        const date = new Date(2026, 0, 5);
+        date.setDate(date.getDate() + index * 7);
+        const key = `${date.getFullYear()}-${`${date.getMonth() + 1}`.padStart(2, "0")}-${`${date.getDate()}`.padStart(2, "0")}`;
+        return point(key, 1);
+      }),
+    );
+    assert.equal(long.length, 26);
+    assert.equal(long[0]?.[0]?.date, "2026-02-02");
+    assert.equal(long.at(-1)?.[0]?.date, "2026-07-27");
   });
 });
