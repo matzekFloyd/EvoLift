@@ -5,12 +5,12 @@ function formatDateToYyyyMmDd(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-/** Home past-workout range: four weeks back through today. */
+/** Home past-workout range: eight weeks back through today. */
 export function getDefaultHomeDateRange(today: Date): { from: string; to: string } {
-  const fourWeeksAgo = new Date(today);
-  fourWeeksAgo.setDate(today.getDate() - 28);
+  const eightWeeksAgo = new Date(today);
+  eightWeeksAgo.setDate(today.getDate() - 56);
   return {
-    from: formatDateToYyyyMmDd(fourWeeksAgo),
+    from: formatDateToYyyyMmDd(eightWeeksAgo),
     to: formatDateToYyyyMmDd(today),
   };
 }
