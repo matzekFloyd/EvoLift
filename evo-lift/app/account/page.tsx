@@ -11,6 +11,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import type { Database } from "@/lib/supabase/database.types";
@@ -28,11 +29,13 @@ import { SettingsSection, SettingsSectionBody } from "@/app/components/settings-
 import {
   accountEmailUpdateError,
   accountPasswordUpdateError,
+  CURRENT_PASSWORD_INCORRECT,
   exerciseDefaultsClearError,
   exerciseDefaultsSaveError,
   normalizeAccountEmail,
   parseMaxWarmupSets,
 } from "@/app/account/account-form";
+import { AccountDeleteSection } from "@/app/account/account-delete-section";
 import { AccountApiTokensSection } from "@/app/account/api-tokens-section";
 import { BodyweightLogPanel, type BodyweightLogRow } from "@/app/account/bodyweight-log-panel";
 import { SettingsSectionHeader } from "@/app/components/settings-section-header";
@@ -308,7 +311,7 @@ export default function AccountPage() {
 
     if (reauthError) {
       setPasswordMessageTone("error");
-      setPasswordMessage("Current password is incorrect.");
+      setPasswordMessage(CURRENT_PASSWORD_INCORRECT);
       setIsSavingPassword(false);
       return;
     }
@@ -728,6 +731,11 @@ export default function AccountPage() {
         <UserRound className="h-6 w-6 text-sky-700" />
         User information
       </h1>
+      <p className="text-sm">
+        <Link href="/privacy" className="font-medium text-sky-800 underline-offset-2 hover:underline">
+          Privacy policy
+        </Link>
+      </p>
       <SegmentedTabs
         value={activeSection}
         onChange={setActiveSection}
@@ -856,6 +864,7 @@ export default function AccountPage() {
         </SettingsSectionBody>
       </SettingsSection>
       {accessToken ? <AccountApiTokensSection accessToken={accessToken} /> : null}
+      {accessToken ? <AccountDeleteSection accessToken={accessToken} userEmail={userEmail} /> : null}
         </>
       ) : null}
       {activeSection === "profile" ? (

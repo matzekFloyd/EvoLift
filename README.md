@@ -26,6 +26,7 @@ It focuses on fast session creation, compact in-session logging, and practical d
 - **Charting:** Recharts
 - **Linting:** ESLint + `eslint-config-next`
 - **Tests:** Vitest
+- **Android:** Capacitor shell that opens the production site
 
 ## Repository Structure
 
@@ -33,6 +34,7 @@ This repository is organized as a root project with two main folders:
 
 - `evo-lift/` - Next.js web application
 - `supabase/` - Supabase local project config, migrations, and seed SQL
+- `android/` - Capacitor Android shell that opens the site
 
 Useful app paths:
 
@@ -196,6 +198,52 @@ npm run build
 ```
 
 `npm run test:integration` calls the workout API against local Supabase. Start it with `supabase start` from the repository root first. The URL must be `127.0.0.1` or `localhost`.
+
+## Android app
+
+The Android app is a Capacitor shell. It opens the existing site. Register, log in, and logging a set stay on those pages. The signed-in session stays in the WebView, so closing the app and opening it again keeps the user logged in.
+
+Back returns to the previous page opened in the app. On the home screen, Back leaves the app. While `/sessions/new` or a saved session is open, the shell holds the screen awake. Leaving that page, or sending the app to the background, lets the screen sleep on the system timeout again. The same pages in a browser still follow that timeout. A link whose host is not the configured site or its Supabase host opens in the system browser, and the app stays on the page that contained the link. The launcher name is EvoLift. The icon and splash use the EvoLift mark. The WebView is inset below the status bar and above the system gesture area, including a display cutout.
+
+By default the shell loads `https://evo-lift.vercel.app`. It may also navigate to that site's Supabase host (`tiivtvejwxzgzgkmojuj.supabase.co`). A page on any other host does not load inside the shell. The phone opens that link in the system browser instead. The site in a browser is unchanged.
+
+### Install a debug build
+
+Install [Android Studio](https://developer.android.com/studio) and an Android SDK, then start an emulator or connect a phone with USB debugging. The shell's minimum Android version is API 23. The Gradle build needs JDK 21. Android Studio's bundled JDK can be newer than that. If the build reports `Unsupported class file major version`, install Temurin 21 and set `JAVA_HOME` to that JDK before the install command.
+
+From the repository root:
+
+```bash
+npm install
+npm run android
+```
+
+`npm run android` syncs the shell and installs a debug build. With no debug setting, that build opens production EvoLift.
+
+### Point a debug build at a local dev server
+
+The production URL stays the default. Set `CAPACITOR_SERVER_URL` for one install, then run the same command:
+
+```bash
+CAPACITOR_SERVER_URL=http://10.0.2.2:3000 npm run android
+```
+
+On PowerShell:
+
+```powershell
+$env:CAPACITOR_SERVER_URL = "http://10.0.2.2:3000"
+npm run android
+```
+
+`10.0.2.2` is the emulator's address for this computer. A phone on the same network needs this computer's LAN address instead, and `npm run dev` in `evo-lift/` must be reachable there.
+
+The shell already allows that host on any port, so local Supabase on the same host can load too. `127.0.0.1` from the phone or emulator is the device itself. For local login, set `NEXT_PUBLIC_SUPABASE_URL` in `evo-lift/.env.local` to the address the device can reach (for the emulator, `http://10.0.2.2:54321`) and restart the dev server.
+
+To allow a different host, set `CAPACITOR_ALLOW_NAVIGATION` to a comma-separated host list. Or copy `shell/debug-server.example.json` to `shell/debug-server.json` (that copy is gitignored) and run `npm run android` with `CAPACITOR_SERVER_URL` unset. An environment URL wins over the file.
+
+HTTP cleartext is turned on only when the configured server URL is `http://`. Run `npm run android` again with the variable unset to install a debug build that opens production.
+
+`npm run android` rewrites `android/app/src/main/assets/capacitor.config.json`. That committed file must keep `https://evo-lift.vercel.app`. Sync again without a debug URL before committing.
 
 ## Supabase Workflow
 
