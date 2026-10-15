@@ -25,6 +25,10 @@ export function accountEmailUpdateError(email: string): string | null {
   return null;
 }
 
+export const ACCOUNT_EMAIL_UNAVAILABLE = "Could not verify current user email. Please log in again.";
+export const CURRENT_PASSWORD_REQUIRED = "Please enter your current password.";
+export const CURRENT_PASSWORD_INCORRECT = "Current password is incorrect.";
+
 export function accountPasswordUpdateError(input: {
   userEmail: string | null;
   currentPassword: string;
@@ -32,10 +36,10 @@ export function accountPasswordUpdateError(input: {
   confirmNewPassword: string;
 }): string | null {
   if (!input.userEmail) {
-    return "Could not verify current user email. Please log in again.";
+    return ACCOUNT_EMAIL_UNAVAILABLE;
   }
   if (!input.currentPassword) {
-    return "Please enter your current password.";
+    return CURRENT_PASSWORD_REQUIRED;
   }
   if (input.newPassword.length < 8) {
     return "New password must be at least 8 characters.";
@@ -45,6 +49,19 @@ export function accountPasswordUpdateError(input: {
   }
   if (input.newPassword !== input.confirmNewPassword) {
     return "New password and confirmation do not match.";
+  }
+  return null;
+}
+
+export function accountDeleteError(input: {
+  userEmail: string | null;
+  currentPassword: string;
+}): string | null {
+  if (!input.userEmail) {
+    return ACCOUNT_EMAIL_UNAVAILABLE;
+  }
+  if (!input.currentPassword) {
+    return CURRENT_PASSWORD_REQUIRED;
   }
   return null;
 }
