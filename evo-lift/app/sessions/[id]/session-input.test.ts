@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 import {
+  compactSetNumbers,
   nextSetNumber,
   parseAddedSessionExercise,
   parseLoggedSetInput,
@@ -34,6 +35,33 @@ describe("session input", () => {
   it("numbers the next set after the highest existing set", () => {
     assert.equal(nextSetNumber([]), 1);
     assert.equal(nextSetNumber([1, 4, 2]), 5);
+  });
+
+  it("closes gaps so a deleted warmup does not leave set 1 and set 3", () => {
+    assert.deepEqual(
+      compactSetNumbers([
+        { id: "a", set_number: 1 },
+        { id: "c", set_number: 3 },
+      ]),
+      [{ id: "c", setNumber: 2 }],
+    );
+    assert.deepEqual(
+      compactSetNumbers([
+        { id: "c", set_number: 3 },
+        { id: "b", set_number: 2 },
+      ]),
+      [
+        { id: "b", setNumber: 1 },
+        { id: "c", setNumber: 2 },
+      ],
+    );
+    assert.deepEqual(
+      compactSetNumbers([
+        { id: "a", set_number: 1 },
+        { id: "b", set_number: 2 },
+      ]),
+      [],
+    );
   });
 
   it("rejects a non-positive target and keeps a blank target empty", () => {

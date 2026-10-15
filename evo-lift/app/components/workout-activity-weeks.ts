@@ -115,28 +115,8 @@ export function buildActivityHeatmapWeeks(data: ActivityDayPoint[]): HeatmapDay[
   }
 
   const fixedVisibleWeeks = 26;
-  const slicedWeeks =
-    weeks.length > fixedVisibleWeeks ? weeks.slice(weeks.length - fixedVisibleWeeks) : weeks;
-  const paddingWeeksNeeded = Math.max(0, fixedVisibleWeeks - slicedWeeks.length);
-  const paddedWeeks = [...slicedWeeks];
-  if (paddingWeeksNeeded > 0 && slicedWeeks.length > 0) {
-    const firstVisibleWeekStart = activityDateToLocalDate(slicedWeeks[0][0].date);
-    for (let i = paddingWeeksNeeded; i >= 1; i -= 1) {
-      const weekStart = new Date(firstVisibleWeekStart);
-      weekStart.setDate(weekStart.getDate() - i * 7);
-      const fillerWeek: HeatmapDay[] = [];
-      for (let day = 0; day < 7; day += 1) {
-        const current = new Date(weekStart);
-        current.setDate(weekStart.getDate() + day);
-        fillerWeek.push({
-          date: activityDateKey(current),
-          sets: 0,
-          workouts: 0,
-          isInRange: false,
-        });
-      }
-      paddedWeeks.unshift(fillerWeek);
-    }
+  if (weeks.length > fixedVisibleWeeks) {
+    return weeks.slice(weeks.length - fixedVisibleWeeks);
   }
-  return paddedWeeks;
+  return weeks;
 }

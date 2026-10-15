@@ -5,6 +5,7 @@ import { isFutureSessionDate } from "@/lib/session-date";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { suggestWarmups } from "@/lib/warmup-suggestion";
 import {
+  compactSetNumbers,
   nextSetNumber,
   parseAddedSessionExercise,
   parseLoggedSetInput,
@@ -314,7 +315,34 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
     }
 
     invalidateLoggedHistoryCaches();
-    setWorkoutSets((prev) => prev.filter((set) => set.id !== setId));
+    const renumberedById = new Map<string, WorkoutSetRow>();
+    if (deletedSet) {
+      const remaining = setsForSessionExercise(workoutSets, deletedSet.session_exercise_id).filter(
+        (set) => set.id !== setId,
+      );
+      for (const update of compactSetNumbers(remaining)) {
+        const { data, error: renumberError } = await supabaseBrowserClient
+          .from("workout_sets")
+          .update({ set_number: update.setNumber })
+          .eq("id", update.id)
+          .select("*")
+          .single();
+        if (renumberError || !data) {
+          showError(`Could not renumber sets: ${renumberError?.message ?? "Unknown error"}`);
+          setWorkoutSets((prev) =>
+            prev
+              .filter((set) => set.id !== setId)
+              .map((set) => renumberedById.get(set.id) ?? set),
+          );
+          setIsSavingSet(false);
+          return;
+        }
+        renumberedById.set(update.id, data);
+      }
+    }
+    setWorkoutSets((prev) =>
+      prev.filter((set) => set.id !== setId).map((set) => renumberedById.get(set.id) ?? set),
+    );
     if (deletedSet) {
       const sessionExerciseId = deletedSet.session_exercise_id;
       const setsBefore = setsForSessionExercise(workoutSets, sessionExerciseId);
