@@ -6,6 +6,7 @@ import {
   activityIntensityClass,
   activityIntensityLabel,
   activityIntensityPhrase,
+  buildActivityComparison,
   buildActivityComparisonSentence,
   type ActivityDay,
 } from "./workout-activity-summary";
@@ -56,10 +57,26 @@ describe("buildActivityComparisonSentence", () => {
       { date: ymd(lastMonday), workouts: 1, sets: 4 },
       { date: ymd(today), workouts: 1, sets: 7 },
     ];
-    assert.equal(
-      buildActivityComparisonSentence(days, ymd(today)),
-      "1 session and 7 sets this week, 3 more sets than last week.",
-    );
+    const comparison = buildActivityComparison(days, ymd(today));
+    assert.equal(comparison.sentence, "1 session and 7 sets this week, 3 more sets than last week.");
+    assert.equal(comparison.setTrend, "up");
+    assert.equal(buildActivityComparisonSentence(days, ymd(today)), comparison.sentence);
+  });
+
+  it("points down for fewer sets and marks an equal count as the same", () => {
+    const today = new Date();
+    const lastMonday = mondayOf(today);
+    lastMonday.setDate(lastMonday.getDate() - 7);
+    const fewer: ActivityDay[] = [
+      { date: ymd(lastMonday), workouts: 1, sets: 7 },
+      { date: ymd(today), workouts: 1, sets: 4 },
+    ];
+    assert.equal(buildActivityComparison(fewer, ymd(today)).setTrend, "down");
+    const same: ActivityDay[] = [
+      { date: ymd(lastMonday), workouts: 1, sets: 4 },
+      { date: ymd(today), workouts: 1, sets: 4 },
+    ];
+    assert.equal(buildActivityComparison(same, ymd(today)).setTrend, "same");
   });
 
   it("names last week when this week has no sessions yet", () => {
@@ -74,5 +91,6 @@ describe("buildActivityComparisonSentence", () => {
       buildActivityComparisonSentence(days, ymd(today)),
       "No sessions this week yet. Last week was 2 sessions and 6 sets.",
     );
+    assert.equal(buildActivityComparison(days, ymd(today)).setTrend, null);
   });
 });

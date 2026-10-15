@@ -1,6 +1,6 @@
 "use client";
 
-import { Trophy } from "lucide-react";
+import { ArrowDown, ArrowUp, Hash, Minus, Trophy } from "lucide-react";
 import {
   Bar,
   BarChart,
@@ -23,8 +23,9 @@ import {
   activityIntensityClass,
   activityIntensityLabel,
   activityIntensityPhrase,
-  buildActivityComparisonSentence,
+  buildActivityComparison,
   type ActivityIntensity,
+  type ActivitySetTrend,
 } from "@/lib/workout-activity-summary";
 
 type WorkoutActivityPoint = {
@@ -38,17 +39,55 @@ type WorkoutActivityHeatmapProps = {
   isCompactView?: boolean;
   highlightedDates?: string[] | null;
   onHighlightDatesChange?: (dates: string[] | null) => void;
+  /** Opens the workout session for a day that has at least one session. */
+  onDayClick?: (date: string) => void;
   /** Session dates (`YYYY-MM-DD`) that reached a goal, with the goal names for that day. */
   goalReachedByDate?: Record<string, string>;
 };
 
 const INTENSITY_LEGEND: ActivityIntensity[] = ["rest", "no-sets", "workout"];
 
+function ActivityRangeLine({ sentence }: { sentence: string }) {
+  return (
+    <p className="flex items-start gap-1.5 text-sm text-zinc-800">
+      <Hash className="mt-0.5 h-4 w-4 shrink-0 text-sky-700" aria-hidden />
+      <span>{sentence}</span>
+    </p>
+  );
+}
+
+function ActivityComparisonLine({
+  sentence,
+  setTrend,
+}: {
+  sentence: string;
+  setTrend: ActivitySetTrend | null;
+}) {
+  if (!sentence) {
+    return null;
+  }
+  return (
+    <p className="flex items-start gap-1.5 text-sm text-zinc-800">
+      {setTrend === "up" ? (
+        <ArrowUp className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" aria-hidden />
+      ) : null}
+      {setTrend === "down" ? (
+        <ArrowDown className="mt-0.5 h-4 w-4 shrink-0 text-amber-800" aria-hidden />
+      ) : null}
+      {setTrend === "same" ? (
+        <Minus className="mt-0.5 h-4 w-4 shrink-0 text-zinc-500" aria-hidden />
+      ) : null}
+      <span>{sentence}</span>
+    </p>
+  );
+}
+
 export function WorkoutActivityChart({
   data,
   isCompactView = false,
   highlightedDates = null,
   onHighlightDatesChange,
+  onDayClick,
   goalReachedByDate = {},
 }: WorkoutActivityHeatmapProps) {
   const sortedData = [...data].sort((a, b) => a.date.localeCompare(b.date));
@@ -87,7 +126,7 @@ export function WorkoutActivityChart({
   const today = new Date();
   const todayKey = activityDateKey(today);
   const currentWeekStart = currentWeekStartKey(today);
-  const comparisonSentence = buildActivityComparisonSentence(sortedData, todayKey);
+  const comparison = buildActivityComparison(sortedData, todayKey);
 
   if (isCompactView) {
     const compactData = buildCompactActivityWeeks(sortedData, today);
@@ -96,9 +135,11 @@ export function WorkoutActivityChart({
 
     return (
       <div>
-        <p className="text-sm text-zinc-800">{comparisonSentence}</p>
-        <div className="mb-2 mt-1 text-xs text-zinc-600">
-          {totalSets} sets across {totalWorkouts} workouts in the last 10 weeks
+        <ActivityRangeLine
+          sentence={`${totalSets} sets across ${totalWorkouts} workouts in the last 10 weeks`}
+        />
+        <div className="mb-2 mt-1">
+          <ActivityComparisonLine sentence={comparison.sentence} setTrend={comparison.setTrend} />
         </div>
         <div
           ref={compactChartRef}
@@ -170,26 +211,26 @@ export function WorkoutActivityChart({
   });
   return (
     <div>
-      <div className="mb-3 space-y-2">
-        <p className="text-sm text-zinc-800">{comparisonSentence}</p>
-        <div className="flex flex-col gap-2 text-xs text-zinc-600 sm:flex-row sm:items-start sm:justify-between">
-          <p className="max-w-prose">
-            {totalSets} sets across {totalWorkouts} workouts in this range.
-          </p>
-          <div className="flex shrink-0 flex-wrap gap-x-3 gap-y-1 text-[10px] text-zinc-500">
-            {INTENSITY_LEGEND.map((intensity) => (
+      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div className="space-y-2">
+          <ActivityRangeLine
+            sentence={`${totalSets} sets across ${totalWorkouts} workouts in the selected range.`}
+          />
+          <ActivityComparisonLine sentence={comparison.sentence} setTrend={comparison.setTrend} />
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-x-3 gap-y-1 text-[10px] text-zinc-500">
+          {INTENSITY_LEGEND.map((intensity) => (
+            <span
+              key={intensity}
+              className="inline-flex items-center gap-1"
+              title={activityIntensityPhrase(intensity)}
+            >
               <span
-                key={intensity}
-                className="inline-flex items-center gap-1"
-                title={activityIntensityPhrase(intensity)}
-              >
-                <span
-                  className={`h-3 w-3 rounded-sm border border-zinc-200 ${activityIntensityClass(intensity)}`}
-                />
-                {activityIntensityLabel(intensity)}
-              </span>
-            ))}
-          </div>
+                className={`h-3 w-3 rounded-sm border border-zinc-200 ${activityIntensityClass(intensity)}`}
+              />
+              {activityIntensityLabel(intensity)}
+            </span>
+          ))}
         </div>
       </div>
       <div className="grid grid-cols-[32px_minmax(0,1fr)] gap-2">
@@ -235,6 +276,9 @@ export function WorkoutActivityChart({
                 const intensity = day.isInRange ? activityIntensity(day.sets, day.workouts) : null;
                 const isToday = day.date === todayKey;
                 const goalLabel = day.isInRange ? goalReachedByDate[day.date] : undefined;
+                const canOpen = day.isInRange && day.workouts > 0;
+                const openHint =
+                  day.workouts > 1 ? " Choose a workout session." : " Open this workout session.";
                 const tooltip = `${new Intl.DateTimeFormat(undefined, {
                   weekday: "short",
                   year: "numeric",
@@ -246,12 +290,14 @@ export function WorkoutActivityChart({
                   intensity ? ` ${activityIntensityPhrase(intensity)}` : ""
                 }${goalLabel ? ` Goal reached: ${goalLabel}.` : ""}${
                   isCurrentWeek ? " This week." : ""
-                }${isToday ? " Today." : ""}`;
+                }${isToday ? " Today." : ""}${canOpen ? openHint : ""}`;
                 return (
                   <div
                     key={day.date}
                     title={tooltip}
                     aria-label={tooltip}
+                    role={canOpen ? "button" : undefined}
+                    tabIndex={canOpen ? 0 : undefined}
                     className={`flex cursor-pointer items-center justify-center overflow-hidden rounded-sm border transition hover:brightness-95 active:scale-95 ${
                       isToday
                         ? "border-zinc-900 ring-2 ring-zinc-900 ring-offset-1"
@@ -260,6 +306,19 @@ export function WorkoutActivityChart({
                           : "border-zinc-200"
                     } ${intensity ? activityIntensityClass(intensity) : "bg-zinc-100"}`}
                     style={{ width: "100%", aspectRatio: "1 / 1", height: "auto" }}
+                    onClick={() => {
+                      if (!canOpen) {
+                        return;
+                      }
+                      onDayClick?.(day.date);
+                    }}
+                    onKeyDown={(event) => {
+                      if (!canOpen || (event.key !== "Enter" && event.key !== " ")) {
+                        return;
+                      }
+                      event.preventDefault();
+                      onDayClick?.(day.date);
+                    }}
                     onMouseEnter={() => {
                       if (!day.isInRange) {
                         return;

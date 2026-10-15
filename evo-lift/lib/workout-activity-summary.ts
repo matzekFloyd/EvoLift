@@ -99,15 +99,23 @@ export function activityIntensityPhrase(intensity: ActivityIntensity): string {
   }
 }
 
+export type ActivitySetTrend = "up" | "down" | "same";
+
+export type ActivityComparison = {
+  sentence: string;
+  /** Set only when the sentence compares this week's sets with the previous week. */
+  setTrend: ActivitySetTrend | null;
+};
+
 /**
  * Compare the current week with the previous week when today is inside the data,
  * otherwise the latest week in range with the week before it.
  * The previous week is used only when its Monday is present, so a clipped range
  * does not compare a full week with a partial one.
  */
-export function buildActivityComparisonSentence(days: ActivityDay[], today: string): string {
+export function buildActivityComparison(days: ActivityDay[], today: string): ActivityComparison {
   if (days.length === 0) {
-    return "";
+    return { sentence: "", setTrend: null };
   }
   const sorted = [...days].sort((left, right) => left.date.localeCompare(right.date));
   const first = sorted[0].date;
@@ -129,22 +137,28 @@ export function buildActivityComparisonSentence(days: ActivityDay[], today: stri
   })();
 
   if (!previousComplete) {
-    return `${focusClause}.`;
+    return { sentence: `${focusClause}.`, setTrend: null };
   }
 
   if (focus.sessions === 0) {
     const previousCounts = `${countPhrase(previous.sessions, "session")} and ${countPhrase(previous.sets, "set")}`;
-    return todayInRange
+    const sentence = todayInRange
       ? `${focusClause}. Last week was ${previousCounts}.`
       : `${focusClause}. The week before was ${previousCounts}.`;
+    return { sentence, setTrend: null };
   }
 
   const setDelta = focus.sets - previous.sets;
+  const setTrend: ActivitySetTrend = setDelta > 0 ? "up" : setDelta < 0 ? "down" : "same";
   if (setDelta === 0) {
-    return `${focusClause}, the same number of sets as ${comparedWith}.`;
+    return { sentence: `${focusClause}, the same number of sets as ${comparedWith}.`, setTrend };
   }
   const amount = Math.abs(setDelta);
   const direction = setDelta > 0 ? "more" : "fewer";
   const noun = amount === 1 ? "set" : "sets";
-  return `${focusClause}, ${amount} ${direction} ${noun} than ${comparedWith}.`;
+  return { sentence: `${focusClause}, ${amount} ${direction} ${noun} than ${comparedWith}.`, setTrend };
+}
+
+export function buildActivityComparisonSentence(days: ActivityDay[], today: string): string {
+  return buildActivityComparison(days, today).sentence;
 }
