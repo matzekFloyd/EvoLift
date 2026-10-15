@@ -38,6 +38,7 @@ type SessionExerciseSetsProps = {
   onAddExercise: () => void;
   onShowExtraSets: () => void;
   onExpandFullAddSetRow: () => void;
+  oneValueLogging?: boolean;
 };
 
 export function SessionExerciseSets({
@@ -69,6 +70,7 @@ export function SessionExerciseSets({
   onAddExercise,
   onShowExtraSets,
   onExpandFullAddSetRow,
+  oneValueLogging = false,
 }: SessionExerciseSetsProps) {
   const hideCompactNewSetComposer =
     shouldUseSingleExerciseFlow && targetSetsMet && canManageSets && !compactShowExtraSetComposer;
@@ -201,7 +203,7 @@ export function SessionExerciseSets({
             </div>
           ),
         )}
-        {canManageSets ? (
+        {canManageSets && !oneValueLogging ? (
           hideCompactNewSetComposer ? (
             <div className="rounded-md border border-sky-200 bg-sky-50/70 p-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
               <p className="text-sm font-medium text-sky-950">All target working sets logged.</p>
@@ -500,7 +502,7 @@ export function SessionExerciseSets({
                   </tr>
                 ),
               )}
-              {canManageSets && hideFullViewAddSetRow ? (
+              {canManageSets && !oneValueLogging && hideFullViewAddSetRow ? (
                 <tr className="border-b bg-sky-50/50">
                   <td colSpan={5} className="px-2 py-2">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -522,7 +524,7 @@ export function SessionExerciseSets({
                   </td>
                 </tr>
               ) : null}
-              {canManageSets && !hideFullViewAddSetRow ? (
+              {canManageSets && !oneValueLogging && !hideFullViewAddSetRow ? (
                 <tr>
                   <td className="px-2 py-2">
                     <label className="inline-flex cursor-pointer items-center gap-2 text-zinc-800">

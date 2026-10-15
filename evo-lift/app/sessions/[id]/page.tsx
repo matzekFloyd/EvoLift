@@ -50,14 +50,36 @@ import {
 import {
   emptyAddExerciseDraft,
   emptySetDraft,
+  lastLoggedSet,
   maxExerciseNotesLength,
   maxSessionNotesLength,
+  setsForSessionExercise,
   type AddExerciseDraft,
   type MessageTone,
 } from "./session-detail-model";
 import { SessionExerciseBlock } from "./session-exercise-block";
 import { SESSION_DETAIL_EXERCISE_QUERY, sessionDetailHref } from "./session-detail-query";
-import type { SessionSetDraft as SetDraft } from "./session-set-draft";
+import { OneValueSetLogger } from "./one-value-set-logger";
+import {
+  ONE_VALUE_LOGGING_STORAGE_KEY,
+  advanceAfterSavedSet,
+  backToLoad,
+  freshLoadStep,
+  goToReps,
+  nextWorkingSetNumber,
+  oneValueLoggingEnabledFromStorage,
+  oneValuePrimaryAction,
+  oneValuePrimaryLabel,
+  parseOneValueLoad,
+  parseOneValueReps,
+  presenceForNextExercise,
+  stepLoadedWeight,
+  stepReps,
+  visibleOneValuePresence,
+  type OneValuePresence,
+  type OneValueStep,
+} from "./one-value-logging";
+import { resolveSuggestedAddDraft, type SessionSetDraft as SetDraft } from "./session-set-draft";
 
 type SessionNumberCountRow = {
   id: string;
@@ -128,6 +150,10 @@ export default function SessionDetailPage() {
   const [maxSuggestedWarmupSets, setMaxSuggestedWarmupSets] = useState<number | null>(null);
   /** Compact single-exercise flow: show full new-set composer after target working sets are met. */
   const [compactShowExtraSetComposer, setCompactShowExtraSetComposer] = useState(false);
+  const [oneValueLogging, setOneValueLogging] = useState(false);
+  const [oneValueLoggingHydrated, setOneValueLoggingHydrated] = useState(false);
+  const [oneValueByExercise, setOneValueByExercise] = useState<Record<string, OneValuePresence>>({});
+  const [oneValueError, setOneValueError] = useState<string | null>(null);
   const [pendingCompactSetFocusSessionExerciseId, setPendingCompactSetFocusSessionExerciseId] =
     useState<string | null>(null);
   /** Full (md+) table: session_exercise ids where the add-set row stays open past target. */
@@ -485,6 +511,24 @@ export default function SessionDetailPage() {
     }
     window.localStorage.setItem(getReadOnlyStorageKey(sessionId), isReadOnly ? "1" : "0");
   }, [hasHydratedReadOnly, isReadOnly, sessionId]);
+
+  useEffect(() => {
+    setOneValueLogging(
+      oneValueLoggingEnabledFromStorage(window.localStorage.getItem(ONE_VALUE_LOGGING_STORAGE_KEY)),
+    );
+    setOneValueLoggingHydrated(true);
+  }, []);
+
+  useEffect(() => {
+    if (!oneValueLoggingHydrated) {
+      return;
+    }
+    window.localStorage.setItem(ONE_VALUE_LOGGING_STORAGE_KEY, oneValueLogging ? "1" : "0");
+  }, [oneValueLogging, oneValueLoggingHydrated]);
+
+  useEffect(() => {
+    setOneValueError(null);
+  }, [activeExerciseIndex]);
 
   useEffect(() => {
     lastSessionExerciseIdsKeyRef.current = "";
@@ -851,7 +895,9 @@ export default function SessionDetailPage() {
     exerciseBadgeById.set(option.id, toExerciseBadge(option.slug));
     exerciseSlugById.set(option.id, option.slug);
   }
-  const visibleExercises = shouldUseSingleExerciseFlow
+  const oneValueActive = oneValueLogging && !isReadOnly;
+  const focusSingleExercise = shouldUseSingleExerciseFlow || oneValueActive;
+  const visibleExercises = focusSingleExercise
     ? sessionExercises
         .map((item, index) => ({ item, index }))
         .filter(({ index }) => index === activeExerciseIndex)
@@ -891,10 +937,158 @@ export default function SessionDetailPage() {
     canManageSets &&
     activeTargetSetsMet &&
     !compactShowExtraSetComposer;
-  const stickyNextLabel =
-    stickyHideAddSetButton && activeExerciseIndex < sessionExercises.length - 1
+  const stickyNextLabel = oneValueActive
+    ? "Next exercise"
+    : stickyHideAddSetButton && activeExerciseIndex < sessionExercises.length - 1
       ? "Next exercise"
       : "Next";
+
+  const activeOneValueSets = activeSessionExercise
+    ? setsForSessionExercise(workoutSets, activeSessionExercise.id)
+    : [];
+  const activeOneValuePrefill = activeSessionExercise
+    ? resolveSuggestedAddDraft(activeSessionExercise, activeOneValueSets, undefined)
+    : emptySetDraft;
+  const activeOneValuePresence =
+    oneValueActive && activeSessionExercise
+      ? visibleOneValuePresence(oneValueByExercise[activeSessionExercise.id], activeOneValuePrefill)
+      : null;
+  const activeLastSet = activeSessionExercise
+    ? lastLoggedSet(workoutSets, activeSessionExercise.id)
+    : null;
+
+  function writeActivePresence(next: OneValuePresence) {
+    if (!activeSessionExercise) {
+      return;
+    }
+    const sessionExerciseId = activeSessionExercise.id;
+    setOneValueByExercise((prev) => ({ ...prev, [sessionExerciseId]: next }));
+  }
+
+  function updateActiveEntry(mutate: (step: OneValueStep) => OneValueStep) {
+    if (!activeOneValuePresence || activeOneValuePresence.status !== "entry") {
+      return;
+    }
+    setOneValueError(null);
+    writeActivePresence({ status: "entry", step: mutate(activeOneValuePresence.step) });
+  }
+
+  function startOneValueSet() {
+    if (!activeSessionExercise) {
+      return;
+    }
+    const prefill = resolveSuggestedAddDraft(
+      activeSessionExercise,
+      setsForSessionExercise(workoutSets, activeSessionExercise.id),
+      undefined,
+    );
+    setOneValueError(null);
+    writeActivePresence({ status: "entry", step: freshLoadStep(prefill) });
+  }
+
+  async function saveOneValueSet(step: OneValueStep) {
+    if (!activeSessionExercise) {
+      return;
+    }
+    const load = parseOneValueLoad(step.weightKg);
+    if (!load.ok) {
+      setOneValueError(load.message);
+      return;
+    }
+    const reps = parseOneValueReps(step.reps);
+    if (!reps.ok) {
+      setOneValueError(reps.message);
+      return;
+    }
+    const sessionExercise = activeSessionExercise;
+    const saved = await handleAddSet(sessionExercise.id, {
+      reps: String(reps.reps),
+      weightKg: load.weightKg == null ? "" : String(load.weightKg),
+      isWarmup: step.isWarmup,
+    });
+    if (!saved) {
+      return;
+    }
+    const merged = [
+      ...setsForSessionExercise(workoutSets, sessionExercise.id),
+      { is_warmup: step.isWarmup, reps: reps.reps, weight_kg: load.weightKg },
+    ];
+    const advance = advanceAfterSavedSet({
+      workingSetCount: merged.filter((set) => !set.is_warmup).length,
+      targetWorkingSets: sessionExercise.target_sets,
+    });
+    setOneValueError(null);
+    if (advance === "next-load") {
+      const prefill = resolveSuggestedAddDraft(sessionExercise, merged, undefined);
+      setOneValueByExercise((prev) => ({
+        ...prev,
+        [sessionExercise.id]: { status: "entry", step: freshLoadStep(prefill) },
+      }));
+      return;
+    }
+    setOneValueByExercise((prev) => ({
+      ...prev,
+      [sessionExercise.id]: { status: "paused", reason: advance },
+    }));
+  }
+
+  function onOneValuePrimary() {
+    if (!activeOneValuePresence) {
+      return;
+    }
+    const action = oneValuePrimaryAction(activeOneValuePresence);
+    if (action === "add-set" || action === "add-another") {
+      startOneValueSet();
+      return;
+    }
+    if (activeOneValuePresence.status !== "entry") {
+      return;
+    }
+    if (action === "next") {
+      const result = goToReps(activeOneValuePresence.step);
+      if (!result.ok) {
+        setOneValueError(result.message);
+        return;
+      }
+      setOneValueError(null);
+      writeActivePresence({ status: "entry", step: result.step });
+      return;
+    }
+    void saveOneValueSet(activeOneValuePresence.step);
+  }
+
+  function onOneValueBack() {
+    if (!activeOneValuePresence || activeOneValuePresence.status !== "entry") {
+      return;
+    }
+    setOneValueError(null);
+    if (activeOneValuePresence.step.screen === "reps") {
+      writeActivePresence({
+        status: "entry",
+        step: backToLoad(activeOneValuePresence.step),
+      });
+      return;
+    }
+    writeActivePresence({ status: "left" });
+  }
+
+  function openNextExerciseOneValue() {
+    const nextIndex = Math.min(sessionExercises.length - 1, activeExerciseIndex + 1);
+    const nextExercise = sessionExercises[nextIndex];
+    if (!nextExercise || nextIndex === activeExerciseIndex) {
+      return;
+    }
+    const prefill = resolveSuggestedAddDraft(
+      nextExercise,
+      setsForSessionExercise(workoutSets, nextExercise.id),
+      undefined,
+    );
+    setOneValueByExercise((prev) => ({
+      ...prev,
+      [nextExercise.id]: presenceForNextExercise(prev[nextExercise.id], prefill),
+    }));
+    setActiveExerciseIndex(nextIndex);
+  }
 
   return (
     <PageShell
@@ -1033,6 +1227,16 @@ export default function SessionDetailPage() {
           ) : null}
         </div>
       </div>
+      {!isReadOnly ? (
+        <label className="inline-flex items-center gap-2 text-sm text-zinc-800">
+          <input
+            type="checkbox"
+            checked={oneValueLogging}
+            onChange={(event) => setOneValueLogging(event.target.checked)}
+          />
+          One value at a time
+        </label>
+      ) : null}
       <section className="text-sm">
         {isReadOnly && session.notes?.trim() ? (
           <p className={panelInsetClass("p-3")}>
@@ -1232,6 +1436,56 @@ export default function SessionDetailPage() {
                     return next;
                   })
                 }
+                oneValueLogging={oneValueActive}
+                oneValueLogger={
+                  oneValueActive &&
+                  activeOneValuePresence &&
+                  activeSessionExercise &&
+                  sessionExercise.id === activeSessionExercise.id ? (
+                    <OneValueSetLogger
+                      exerciseId={sessionExercise.id}
+                      exerciseName={
+                        exerciseLabels.get(sessionExercise.exercise_id) ?? sessionExercise.exercise_id
+                      }
+                      presence={activeOneValuePresence}
+                      workingSetNumber={nextWorkingSetNumber(activeWorkingSetCount)}
+                      targetWorkingSets={
+                        activeTargetSetsGoal != null && activeTargetSetsGoal > 0
+                          ? activeTargetSetsGoal
+                          : null
+                      }
+                      lastSet={activeLastSet}
+                      fieldError={oneValueError}
+                      isSaving={isSavingSet}
+                      showPrimaryInPanel={!isCompactView}
+                      hasNextExercise={activeExerciseIndex < sessionExercises.length - 1}
+                      showExerciseNav={!isCompactView}
+                      isPreviousDisabled={activeExerciseIndex === 0}
+                      onWeightChange={(value) =>
+                        updateActiveEntry((step) => ({ ...step, weightKg: value }))
+                      }
+                      onRepsChange={(value) => updateActiveEntry((step) => ({ ...step, reps: value }))}
+                      onWarmupChange={(value) =>
+                        updateActiveEntry((step) => ({ ...step, isWarmup: value }))
+                      }
+                      onStepWeight={(delta) =>
+                        updateActiveEntry((step) => ({
+                          ...step,
+                          weightKg: stepLoadedWeight(step.weightKg, delta),
+                        }))
+                      }
+                      onStepReps={(delta) =>
+                        updateActiveEntry((step) => ({ ...step, reps: stepReps(step.reps, delta) }))
+                      }
+                      onPrimary={onOneValuePrimary}
+                      onBack={onOneValueBack}
+                      onNextExercise={openNextExerciseOneValue}
+                      onPreviousExercise={() =>
+                        setActiveExerciseIndex((prev) => Math.max(0, prev - 1))
+                      }
+                    />
+                  ) : null
+                }
               />
             ))}
           </div>
@@ -1421,7 +1675,20 @@ export default function SessionDetailPage() {
                 <ListChecks className="h-3.5 w-3.5 shrink-0 text-sky-700" aria-hidden />
                 <span className="truncate">Set targets</span>
               </button>
-              {canManageSets && !stickyHideAddSetButton ? (
+              {oneValueActive && activeOneValuePresence ? (
+                <button
+                  type="button"
+                  onClick={onOneValuePrimary}
+                  disabled={isSavingSet}
+                  className="inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-2 text-xs font-medium text-white shadow-[0_4px_12px_rgba(0,0,0,0.14)] hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60 sm:px-2.5 sm:text-sm"
+                >
+                  <span className="text-center leading-tight">
+                    {isSavingSet && oneValuePrimaryAction(activeOneValuePresence) === "save"
+                      ? "Saving..."
+                      : oneValuePrimaryLabel(oneValuePrimaryAction(activeOneValuePresence))}
+                  </span>
+                </button>
+              ) : canManageSets && !stickyHideAddSetButton ? (
                 <button
                   type="button"
                   onClick={() => handleAddSet(activeSessionExercise.id)}
@@ -1436,9 +1703,13 @@ export default function SessionDetailPage() {
           }
           progressLabel={`${activeExerciseIndex + 1}/${sessionExercises.length}`}
           onPrevious={() => setActiveExerciseIndex((prev) => Math.max(0, prev - 1))}
-          onNext={() =>
-            setActiveExerciseIndex((prev) => Math.min(sessionExercises.length - 1, prev + 1))
-          }
+          onNext={() => {
+            if (oneValueActive) {
+              openNextExerciseOneValue();
+              return;
+            }
+            setActiveExerciseIndex((prev) => Math.min(sessionExercises.length - 1, prev + 1));
+          }}
           isPreviousDisabled={activeExerciseIndex === 0}
           isNextDisabled={activeExerciseIndex === sessionExercises.length - 1}
           nextLabel={stickyNextLabel}
