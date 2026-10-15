@@ -46,6 +46,8 @@ type WorkoutActivityHeatmapProps = {
 };
 
 const INTENSITY_LEGEND: ActivityIntensity[] = ["rest", "no-sets", "workout"];
+/** Day rows stay this tall. Columns still fill the card, so a short range does not grow into large squares. */
+const HEATMAP_ROW_PX = 32;
 
 function ActivityRangeLine({ sentence }: { sentence: string }) {
   return (
@@ -202,6 +204,12 @@ export function WorkoutActivityChart({
   }
 
   const visibleWeeks = buildActivityHeatmapWeeks(sortedData);
+  const heatmapTrackStyle = {
+    gridTemplateColumns: `repeat(${visibleWeeks.length}, minmax(0, 1fr))`,
+  };
+  const heatmapRowStyle = {
+    gridTemplateRows: `repeat(7, ${HEATMAP_ROW_PX}px)`,
+  };
   const weekdayLabels = ["Mon", "", "Wed", "", "Fri", "", "Sun"];
   const monthLabels = visibleWeeks.map((week, index) => {
     const date = activityDateToLocalDate(week[0].date);
@@ -237,7 +245,7 @@ export function WorkoutActivityChart({
         <div />
         <div
           className="grid gap-1.5 px-[1px] text-[10px] text-zinc-500"
-          style={{ gridTemplateColumns: `repeat(${visibleWeeks.length}, minmax(0, 1fr))` }}
+          style={heatmapTrackStyle}
         >
           {visibleWeeks.map((week, index) => {
             const isCurrentWeek = week[0].date === currentWeekStart;
@@ -251,25 +259,23 @@ export function WorkoutActivityChart({
             );
           })}
         </div>
-        <div className="grid grid-rows-7 gap-1.5 text-[10px] leading-3 text-zinc-500">
+        <div className="grid gap-1.5 text-[10px] leading-3 text-zinc-500" style={heatmapRowStyle}>
           {weekdayLabels.map((label, index) => (
             <div key={`weekday-${index}`} className="flex items-center">
               {label}
             </div>
           ))}
         </div>
-        <div
-          className="grid gap-1.5"
-          style={{ gridTemplateColumns: `repeat(${visibleWeeks.length}, minmax(0, 1fr))` }}
-        >
+        <div className="grid gap-1.5" style={heatmapTrackStyle}>
           {visibleWeeks.map((week, weekIndex) => {
             const isCurrentWeek = week[0].date === currentWeekStart;
             return (
             <div
               key={`week-${weekIndex}`}
-              className={`grid grid-rows-7 gap-1.5 ${
+              className={`grid gap-1.5 ${
                 isCurrentWeek ? "rounded-sm outline outline-2 outline-sky-600 outline-offset-1" : ""
               }`}
+              style={heatmapRowStyle}
             >
               {week.map((day) => {
                 const parsedDate = activityDateToLocalDate(day.date);
@@ -298,14 +304,13 @@ export function WorkoutActivityChart({
                     aria-label={tooltip}
                     role={canOpen ? "button" : undefined}
                     tabIndex={canOpen ? 0 : undefined}
-                    className={`flex cursor-pointer items-center justify-center overflow-hidden rounded-sm border transition hover:brightness-95 active:scale-95 ${
+                    className={`flex h-full w-full cursor-pointer items-center justify-center overflow-hidden rounded-sm border transition hover:brightness-95 active:scale-95 ${
                       isToday
                         ? "border-zinc-900 ring-2 ring-zinc-900 ring-offset-1"
                         : highlightedDateSet.has(day.date) && day.isInRange
                           ? "border-sky-700 ring-1 ring-sky-600/40"
                           : "border-zinc-200"
                     } ${intensity ? activityIntensityClass(intensity) : "bg-zinc-100"}`}
-                    style={{ width: "100%", aspectRatio: "1 / 1", height: "auto" }}
                     onClick={() => {
                       if (!canOpen) {
                         return;
@@ -329,7 +334,7 @@ export function WorkoutActivityChart({
                   >
                     {goalLabel ? (
                       <Trophy
-                        className="pointer-events-none h-[62%] w-[62%] fill-yellow-400 text-amber-500"
+                        className="pointer-events-none h-5 w-5 fill-yellow-400 text-amber-500"
                         strokeWidth={1.75}
                         aria-hidden
                       />
