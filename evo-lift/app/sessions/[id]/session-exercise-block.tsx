@@ -1,0 +1,307 @@
+"use client";
+
+import { Check, ChevronDown, ChevronUp, History, X } from "lucide-react";
+import type { Dispatch, SetStateAction } from "react";
+import Link from "next/link";
+import { panelInsetClass } from "@/app/components/panel-inset";
+import { TargetWeightSuggestion } from "@/app/components/target-weight-suggestion";
+import { WarmupSuggestion } from "@/app/components/warmup-suggestion";
+import { PLANNED_SESSION_SETS_MESSAGE } from "./session-input";
+import { lastLoggedSet, resolvedAddDraft, setsForSessionExercise } from "./session-detail-model";
+import { SessionExerciseSets } from "./session-set-form";
+import type { SessionSetDraft } from "./session-set-draft";
+import type { SessionExerciseRow, WorkoutSetRow } from "./session-detail-actions";
+
+type SessionExerciseBlockProps = {
+  sessionExercise: SessionExerciseRow;
+  index: number;
+  exerciseCount: number;
+  workoutSets: WorkoutSetRow[];
+  addDrafts: Record<string, Partial<SessionSetDraft>>;
+  exerciseLabel: string;
+  exerciseBadge: string | undefined;
+  exerciseSlug: string | undefined;
+  sessionId: string | null;
+  isReadOnly: boolean;
+  shouldUseSingleExerciseFlow: boolean;
+  isCompactView: boolean;
+  canManageSets: boolean;
+  isPlannedSession: boolean;
+  isSavingSet: boolean;
+  compactShowExtraSetComposer: boolean;
+  fullAddSetRowExpanded: boolean;
+  targetsOpenInline: boolean;
+  targetsSets: string;
+  targetsReps: string;
+  targetsWeightKg: string;
+  isSavingTargets: boolean;
+  editingSetId: string | null;
+  editDraft: SessionSetDraft;
+  onEditDraftChange: Dispatch<SetStateAction<SessionSetDraft>>;
+  onUpdateAddDraft: (sessionExerciseId: string, key: keyof SessionSetDraft, value: string | boolean) => void;
+  onToggleTargets: () => void;
+  onCancelTargets: () => void;
+  onSaveTargets: () => void;
+  onTargetsSetsChange: (value: string) => void;
+  onTargetsRepsChange: (value: string) => void;
+  onTargetsWeightChange: (value: string) => void;
+  onAddWarmups: (sessionExerciseId: string) => void;
+  onAddSet: (sessionExerciseId: string) => void;
+  onStartEdit: (set: WorkoutSetRow) => void;
+  onSaveEdit: (setId: string) => void;
+  onCancelEdit: () => void;
+  onDeleteSet: (setId: string) => void;
+  onNextExercise: () => void;
+  onAddExercise: () => void;
+  onShowExtraSets: () => void;
+  onExpandFullAddSetRow: () => void;
+};
+
+export function SessionExerciseBlock({
+  sessionExercise,
+  index,
+  exerciseCount,
+  workoutSets,
+  addDrafts,
+  exerciseLabel,
+  exerciseBadge,
+  exerciseSlug,
+  sessionId,
+  isReadOnly,
+  shouldUseSingleExerciseFlow,
+  isCompactView,
+  canManageSets,
+  isPlannedSession,
+  isSavingSet,
+  compactShowExtraSetComposer,
+  fullAddSetRowExpanded,
+  targetsOpenInline,
+  targetsSets,
+  targetsReps,
+  targetsWeightKg,
+  isSavingTargets,
+  editingSetId,
+  editDraft,
+  onEditDraftChange,
+  onUpdateAddDraft,
+  onToggleTargets,
+  onCancelTargets,
+  onSaveTargets,
+  onTargetsSetsChange,
+  onTargetsRepsChange,
+  onTargetsWeightChange,
+  onAddWarmups,
+  onAddSet,
+  onStartEdit,
+  onSaveEdit,
+  onCancelEdit,
+  onDeleteSet,
+  onNextExercise,
+  onAddExercise,
+  onShowExtraSets,
+  onExpandFullAddSetRow,
+}: SessionExerciseBlockProps) {
+  const sets = setsForSessionExercise(workoutSets, sessionExercise.id);
+  const addDraft = resolvedAddDraft([sessionExercise], workoutSets, addDrafts, sessionExercise.id);
+  const lastSet = lastLoggedSet(workoutSets, sessionExercise.id);
+  const targetParts = [
+    sessionExercise.target_sets ? `${sessionExercise.target_sets} working sets` : null,
+    sessionExercise.target_weight_kg != null ? `${sessionExercise.target_weight_kg} kg` : null,
+    sessionExercise.target_reps ? `${sessionExercise.target_reps} reps` : null,
+  ].filter(Boolean) as string[];
+  const workingSetCount = sets.filter((set) => !set.is_warmup).length;
+  const targetSetsGoal = sessionExercise.target_sets;
+  const targetSetsMet =
+    targetSetsGoal != null && targetSetsGoal > 0 && workingSetCount >= targetSetsGoal;
+  const exercisePanelClass = shouldUseSingleExerciseFlow
+    ? "min-h-[calc(100vh-24rem)] p-1 text-sm"
+    : targetSetsMet
+      ? "rounded-md border border-sky-200/90 bg-sky-50/40 p-5 text-sm"
+      : panelInsetClass("p-5 text-sm");
+
+  return (
+    <section id={`exercise-${sessionExercise.id}`} className={exercisePanelClass}>
+      <div className="flex w-full items-start justify-between gap-3 text-left">
+        {exerciseSlug ? (
+          <Link
+            href={`/exercises/${exerciseSlug}`}
+            className="group inline-flex min-w-0 items-center gap-2 truncate rounded-sm text-lg font-medium text-zinc-900 hover:text-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60"
+          >
+            {exerciseBadge ? (
+              <span className="inline-flex h-6 min-w-8 shrink-0 items-center justify-center rounded border border-zinc-300 bg-zinc-50 px-1 text-[10px] font-semibold tracking-wide text-zinc-700 transition-colors group-hover:border-sky-300 group-hover:text-sky-800">
+                {exerciseBadge}
+              </span>
+            ) : null}
+            <span className="truncate underline-offset-2 hover:underline">{exerciseLabel}</span>
+          </Link>
+        ) : (
+          <span className="inline-flex min-w-0 items-center gap-2 truncate text-lg font-medium text-zinc-900">
+            {exerciseBadge ? (
+              <span className="inline-flex h-6 min-w-8 shrink-0 items-center justify-center rounded border border-zinc-300 bg-zinc-50 px-1 text-[10px] font-semibold tracking-wide text-zinc-700">
+                {exerciseBadge}
+              </span>
+            ) : null}
+            <span className="truncate">{exerciseLabel}</span>
+          </span>
+        )}
+        <span className="shrink-0 text-xs text-zinc-500">
+          {index + 1}/{exerciseCount}
+        </span>
+      </div>
+      <div className="mt-2 flex items-start justify-between gap-2">
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+          <span className="text-sm font-medium text-zinc-600">Targets:</span>
+          {targetParts.length > 0 ? (
+            targetParts.map((part) => (
+              <span
+                key={`${sessionExercise.id}-${part}`}
+                className="inline-flex items-center rounded-full border border-zinc-300 bg-white px-2 py-0.5 text-xs text-zinc-700"
+              >
+                {part}
+              </span>
+            ))
+          ) : (
+            <span className="text-xs text-zinc-500">none set</span>
+          )}
+        </div>
+        <div className="flex shrink-0 items-center gap-2">
+          {exerciseSlug ? (
+            <Link
+              href={`/exercises/${exerciseSlug}`}
+              className="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
+            >
+              <History className="h-3.5 w-3.5 text-sky-700" />
+              Open history
+            </Link>
+          ) : null}
+          {!isReadOnly && !shouldUseSingleExerciseFlow ? (
+            <button
+              type="button"
+              onClick={onToggleTargets}
+              title="Edit planned working-set targets (warmups do not count)."
+              className="inline-flex h-9 w-24 items-center justify-center rounded-md border border-zinc-300 bg-zinc-50 px-2 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
+            >
+              {targetsOpenInline ? (
+                <ChevronUp className="mr-1 h-3.5 w-3.5" />
+              ) : (
+                <ChevronDown className="mr-1 h-3.5 w-3.5" />
+              )}
+              Set targets
+            </button>
+          ) : null}
+        </div>
+      </div>
+      {!shouldUseSingleExerciseFlow && targetsOpenInline ? (
+        <div className="mt-3 rounded-md border border-zinc-200 bg-white p-3">
+          <p className="mb-3 text-xs text-zinc-600">
+            Values apply to working sets only; warmups do not count.
+          </p>
+          <div className="grid grid-cols-3 gap-3">
+            <label className="block text-sm font-medium">
+              Target working sets
+              <input
+                type="number"
+                min={1}
+                value={targetsSets}
+                onChange={(event) => onTargetsSetsChange(event.target.value)}
+                className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                placeholder="e.g. 3"
+              />
+            </label>
+            <label className="block text-sm font-medium">
+              Target weight (kg)
+              <input
+                type="number"
+                min={0}
+                step="0.25"
+                value={targetsWeightKg}
+                onChange={(event) => onTargetsWeightChange(event.target.value)}
+                className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                placeholder="e.g. 60"
+              />
+            </label>
+            <label className="block text-sm font-medium">
+              Target reps (working sets)
+              <input
+                type="number"
+                min={1}
+                value={targetsReps}
+                onChange={(event) => onTargetsRepsChange(event.target.value)}
+                className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                placeholder="e.g. 8"
+              />
+            </label>
+          </div>
+          <TargetWeightSuggestion
+            exerciseId={sessionExercise.exercise_id}
+            plannedReps={targetsReps}
+            currentWeightKg={targetsWeightKg}
+            excludeSessionId={sessionId}
+            onApply={onTargetsWeightChange}
+          />
+          <div className="mt-3 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={onCancelTargets}
+              className="inline-flex h-9 w-24 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
+            >
+              <X className="h-3 w-3 text-zinc-500" />
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={onSaveTargets}
+              disabled={isSavingTargets}
+              className="inline-flex h-9 w-24 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-2 text-xs text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60"
+            >
+              <Check className="h-3 w-3 text-white" />
+              {isSavingTargets ? "Saving..." : "Save"}
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {!isReadOnly ? (
+        <WarmupSuggestion
+          targetWeightKg={sessionExercise.target_weight_kg}
+          baseWeightKg={sessionExercise.base_weight_kg}
+          hasSets={sets.length > 0}
+          addDisabled={isPlannedSession || isSavingSet}
+          addDisabledTitle={isPlannedSession ? PLANNED_SESSION_SETS_MESSAGE : undefined}
+          onAdd={() => onAddWarmups(sessionExercise.id)}
+        />
+      ) : null}
+
+      <SessionExerciseSets
+        sessionExerciseId={sessionExercise.id}
+        baseWeightKg={sessionExercise.base_weight_kg}
+        sets={sets}
+        addDraft={addDraft}
+        lastSet={lastSet}
+        exerciseIndex={index}
+        exerciseCount={exerciseCount}
+        isCompactView={isCompactView}
+        canManageSets={canManageSets}
+        isPlannedSession={isPlannedSession}
+        isSavingSet={isSavingSet}
+        shouldUseSingleExerciseFlow={shouldUseSingleExerciseFlow}
+        targetSetsMet={targetSetsMet}
+        compactShowExtraSetComposer={compactShowExtraSetComposer}
+        fullAddSetRowExpanded={fullAddSetRowExpanded}
+        editingSetId={editingSetId}
+        editDraft={editDraft}
+        onEditDraftChange={onEditDraftChange}
+        onUpdateAddDraft={(key, value) => onUpdateAddDraft(sessionExercise.id, key, value)}
+        onAddSet={() => onAddSet(sessionExercise.id)}
+        onStartEdit={onStartEdit}
+        onSaveEdit={onSaveEdit}
+        onCancelEdit={onCancelEdit}
+        onDeleteSet={onDeleteSet}
+        onNextExercise={onNextExercise}
+        onAddExercise={onAddExercise}
+        onShowExtraSets={onShowExtraSets}
+        onExpandFullAddSetRow={onExpandFullAddSetRow}
+      />
+    </section>
+  );
+}
