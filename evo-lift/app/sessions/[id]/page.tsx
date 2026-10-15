@@ -4,28 +4,20 @@ import {
   ArrowLeft,
   CalendarDays,
   Check,
-  CheckCircle2,
   ChevronDown,
-  ChevronRight,
   ChevronUp,
   ListChecks,
   Lock,
   LockOpen,
-  History,
   Pencil,
   Plus,
   Trash2,
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
-import type { Database } from "@/lib/supabase/database.types";
-import { ActionButton } from "@/app/components/action-button";
 import { CompactStickyBar } from "@/app/components/compact-sticky-bar";
-import { CompactRowActions } from "@/app/components/compact-row-actions";
-import { SetKindIndicator } from "@/app/components/set-kind-indicator";
 import { DateInput } from "@/app/components/date-input";
 import { ExerciseSearchSelect } from "@/app/components/exercise-search-select";
 import { NotesTextareaField } from "@/app/components/notes-textarea-field";
@@ -35,7 +27,6 @@ import { panelInsetClass } from "@/app/components/panel-inset";
 import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
 import { TargetWeightSuggestion } from "@/app/components/target-weight-suggestion";
-import { WarmupSuggestion } from "@/app/components/warmup-suggestion";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { formatPlanSessionSource } from "@/lib/plan-cycle";
 import { workoutSessionPageTitle } from "@/lib/page-title";
@@ -45,60 +36,28 @@ import {
   getExerciseMetadataCacheStatus,
   loadExerciseMetadata,
 } from "@/lib/exercise-metadata-cache";
-import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
 import { createPageLoadPerfTracker } from "@/lib/page-load-perf";
 import { isFutureSessionDate } from "@/lib/session-date";
-import { suggestWarmups } from "@/lib/warmup-suggestion";
+import {
+  createSessionDetailActions,
+  type SessionExerciseRow,
+  type SessionRow,
+  type WorkoutSetRow,
+} from "./session-detail-actions";
+import {
+  emptyAddExerciseDraft,
+  emptySetDraft,
+  maxExerciseNotesLength,
+  maxSessionNotesLength,
+  type AddExerciseDraft,
+  type MessageTone,
+} from "./session-detail-model";
+import { SessionExerciseBlock } from "./session-exercise-block";
 import { SESSION_DETAIL_EXERCISE_QUERY, sessionDetailHref } from "./session-detail-query";
-import {
-  nextSetNumber,
-  parseAddedSessionExercise,
-  parseLoggedSetInput,
-  parseSessionTargets,
-  PLANNED_SESSION_SETS_MESSAGE,
-  TARGETS_EXERCISE_MISSING,
-} from "./session-input";
-import {
-  parseYyyyMmDdDateOnly,
-  resolveSuggestedAddDraft,
-  SESSION_DATE_HAS_SETS,
-  sessionPerformedOnError,
-  type SessionSetDraft as SetDraft,
-} from "./session-set-draft";
+import type { SessionSetDraft as SetDraft } from "./session-set-draft";
 
-type SessionRow = Database["public"]["Tables"]["workout_sessions"]["Row"];
-type SessionExerciseRow = Database["public"]["Tables"]["workout_session_exercises"]["Row"];
-type WorkoutSetRow = Database["public"]["Tables"]["workout_sets"]["Row"];
 type SessionNumberCountRow = {
   id: string;
-};
-
-type AddExerciseDraft = {
-  exerciseId: string;
-  baseWeightKg: string;
-  targetSets: string;
-  targetReps: string;
-  targetWeightKg: string;
-  notes: string;
-};
-
-type MessageTone = "error" | "warning" | "success";
-
-const maxSessionNotesLength = 500;
-
-const emptyDraft: SetDraft = {
-  reps: "",
-  weightKg: "",
-  isWarmup: false,
-};
-
-const emptyAddExerciseDraft: AddExerciseDraft = {
-  exerciseId: "",
-  baseWeightKg: "",
-  targetSets: "",
-  targetReps: "",
-  targetWeightKg: "",
-  notes: "",
 };
 
 /** Query param: `workout_session_exercises.id` for deep-link + reload restore. */
@@ -130,7 +89,7 @@ export default function SessionDetailPage() {
   const [exerciseLabels, setExerciseLabels] = useState<Map<string, string>>(new Map());
   const [addDrafts, setAddDrafts] = useState<Record<string, Partial<SetDraft>>>({});
   const [editingSetId, setEditingSetId] = useState<string | null>(null);
-  const [editDraft, setEditDraft] = useState<SetDraft>(emptyDraft);
+  const [editDraft, setEditDraft] = useState<SetDraft>(emptySetDraft);
   const [isSavingSet, setIsSavingSet] = useState(false);
   const [isDeletingSession, setIsDeletingSession] = useState(false);
   const [isDeleteSessionConfirmOpen, setIsDeleteSessionConfirmOpen] = useState(false);
@@ -165,7 +124,6 @@ export default function SessionDetailPage() {
   const [fullViewExpandAddSetRowIds, setFullViewExpandAddSetRowIds] = useState<Set<string>>(
     () => new Set(),
   );
-  const maxExerciseNotesLength = 500;
   const [performedOnDraft, setPerformedOnDraft] = useState("");
   const [notesDraft, setNotesDraft] = useState("");
   const [sessionDetailsDateError, setSessionDetailsDateError] = useState<string | null>(null);
@@ -213,14 +171,6 @@ export default function SessionDetailPage() {
   const clearMessage = useCallback(() => {
     setMessage(null);
   }, []);
-
-  function getExerciseLabelForSessionExerciseId(sessionExerciseId: string): string {
-    const sessionExercise = sessionExercises.find((item) => item.id === sessionExerciseId);
-    if (!sessionExercise) {
-      return "exercise";
-    }
-    return exerciseLabels.get(sessionExercise.exercise_id) ?? sessionExercise.exercise_id;
-  }
 
   function getReadOnlyStorageKey(currentSessionId: string) {
     return `evolift:session-readonly:${currentSessionId}`;
@@ -453,7 +403,7 @@ export default function SessionDetailPage() {
   useEffect(() => {
     if (isReadOnly) {
       setEditingSetId(null);
-      setEditDraft(emptyDraft);
+      setEditDraft(emptySetDraft);
       setIsEditingSessionDetails(false);
     }
   }, [isReadOnly]);
@@ -675,23 +625,6 @@ export default function SessionDetailPage() {
     sessionId,
   ]);
 
-  function getSetsForExercise(sessionExerciseId: string) {
-    return workoutSets
-      .filter((set) => set.session_exercise_id === sessionExerciseId)
-      .sort((a, b) => a.set_number - b.set_number);
-  }
-
-  function scrollExerciseToTop(sessionExerciseId: string) {
-    const element = document.getElementById(`exercise-${sessionExerciseId}`);
-    if (!element) {
-      return;
-    }
-    const headerOffset = 72;
-    const absoluteTop = window.scrollY + element.getBoundingClientRect().top;
-    const targetTop = Math.max(0, absoluteTop - headerOffset);
-    window.scrollTo({ top: targetTop, behavior: "smooth" });
-  }
-
   function updateAddDraft(
     sessionExerciseId: string,
     key: keyof SetDraft,
@@ -706,480 +639,75 @@ export default function SessionDetailPage() {
     }));
   }
 
-  function getLastSet(sessionExerciseId: string): WorkoutSetRow | null {
-    const sets = getSetsForExercise(sessionExerciseId);
-    if (sets.length === 0) {
-      return null;
-    }
-    return sets[sets.length - 1] ?? null;
-  }
-
-  function getResolvedAddDraft(sessionExerciseId: string): SetDraft {
-    const sessionExercise = sessionExercises.find((e) => e.id === sessionExerciseId);
-    return resolveSuggestedAddDraft(
-      sessionExercise,
-      getSetsForExercise(sessionExerciseId),
-      addDrafts[sessionExerciseId],
-    );
-  }
-
-  async function handleAddSet(sessionExerciseId: string) {
-    if (session && isFutureSessionDate(session.performed_on)) {
-      showWarning(PLANNED_SESSION_SETS_MESSAGE);
-      return;
-    }
-    const draft = getResolvedAddDraft(sessionExerciseId);
-    const logged = parseLoggedSetInput(draft.reps, draft.weightKg);
-    if (!logged.ok) {
-      showError(logged.message);
-      return;
-    }
-
-    const existingSets = getSetsForExercise(sessionExerciseId);
-    const setNumber = nextSetNumber(existingSets.map((set) => set.set_number));
-
-    setIsSavingSet(true);
-
-    const { data, error } = await supabaseBrowserClient
-      .from("workout_sets")
-      .insert({
-        session_exercise_id: sessionExerciseId,
-        set_number: setNumber,
-        reps: logged.reps,
-        weight_kg: logged.weightKg,
-        is_warmup: draft.isWarmup,
-      })
-      .select("*")
-      .single();
-
-    if (error || !data) {
-      showError(`Could not add set: ${error?.message ?? "Unknown error"}`);
-      setIsSavingSet(false);
-      return;
-    }
-
-    invalidateLoggedHistoryCaches();
-    setWorkoutSets((prev) => [...prev, data]);
-    const sessionExercise = sessionExercises.find((e) => e.id === sessionExerciseId);
-    const mergedForExercise = [...getSetsForExercise(sessionExerciseId), data].sort(
-      (a, b) => a.set_number - b.set_number,
-    );
-    const nextWorkingSetCount = mergedForExercise.filter((set) => !set.is_warmup).length;
-    const nextTargetSetsGoal = sessionExercise?.target_sets ?? null;
-    const nextTargetSetsMet =
-      nextTargetSetsGoal != null &&
-      nextTargetSetsGoal > 0 &&
-      nextWorkingSetCount >= nextTargetSetsGoal;
-    if (isCompactView && nextTargetSetsMet) {
-      setCompactShowExtraSetComposer(true);
-    }
-    const nextSuggested = resolveSuggestedAddDraft(sessionExercise, mergedForExercise, undefined);
-    setAddDrafts((prev) => ({
-      ...prev,
-      [sessionExerciseId]: nextSuggested,
-    }));
-    const exerciseLabel = getExerciseLabelForSessionExerciseId(sessionExerciseId);
-    showSuccess(`Set ${data.set_number} added for ${exerciseLabel}.`);
-    if (isCompactView) {
-      setCompactShowExtraSetComposer(true);
-      setPendingCompactSetFocusSessionExerciseId(sessionExerciseId);
-    }
-    setIsSavingSet(false);
-  }
-
-  async function handleAddWarmups(sessionExerciseId: string) {
-    if (session && isFutureSessionDate(session.performed_on)) {
-      showWarning(PLANNED_SESSION_SETS_MESSAGE);
-      return;
-    }
-
-    const existingSets = getSetsForExercise(sessionExerciseId);
-    if (existingSets.length > 0) {
-      return;
-    }
-
-    const sessionExercise = sessionExercises.find((item) => item.id === sessionExerciseId);
-    const suggestion = suggestWarmups({
-      targetWeightKg: sessionExercise?.target_weight_kg ?? null,
-      baseWeightKg: sessionExercise?.base_weight_kg ?? null,
-    });
-    if (suggestion.status !== "steps" || suggestion.steps.length === 0) {
-      return;
-    }
-
-    setIsSavingSet(true);
-    const rows = suggestion.steps.map((step, index) => ({
-      session_exercise_id: sessionExerciseId,
-      set_number: index + 1,
-      reps: step.reps,
-      weight_kg: step.loadedKg,
-      is_warmup: true,
-    }));
-
-    const { data, error } = await supabaseBrowserClient
-      .from("workout_sets")
-      .insert(rows)
-      .select("*");
-
-    if (error || !data || data.length === 0) {
-      showError(`Could not add warmups: ${error?.message ?? "Unknown error"}`);
-      setIsSavingSet(false);
-      return;
-    }
-
-    invalidateLoggedHistoryCaches();
-    setWorkoutSets((prev) => [...prev, ...data]);
-    const exerciseLabel = getExerciseLabelForSessionExerciseId(sessionExerciseId);
-    showSuccess(`Warmups added for ${exerciseLabel}.`);
-    setIsSavingSet(false);
-  }
-
-  function startEdit(set: WorkoutSetRow) {
-    setEditingSetId(set.id);
-    setEditDraft({
-      reps: String(set.reps),
-      weightKg: set.weight_kg == null ? "" : String(set.weight_kg),
-      isWarmup: set.is_warmup,
-    });
-  }
-
-  async function saveEdit(setId: string) {
-    const logged = parseLoggedSetInput(editDraft.reps, editDraft.weightKg);
-    if (!logged.ok) {
-      showError(logged.message);
-      return;
-    }
-
-    setIsSavingSet(true);
-
-    const { data, error } = await supabaseBrowserClient
-      .from("workout_sets")
-      .update({
-        reps: logged.reps,
-        weight_kg: logged.weightKg,
-        is_warmup: editDraft.isWarmup,
-      })
-      .eq("id", setId)
-      .select("*")
-      .single();
-
-    if (error || !data) {
-      showError(`Could not update set: ${error?.message ?? "Unknown error"}`);
-      setIsSavingSet(false);
-      return;
-    }
-
-    invalidateLoggedHistoryCaches();
-    const previousSet = workoutSets.find((item) => item.id === setId);
-    const exerciseLabel = previousSet
-      ? getExerciseLabelForSessionExerciseId(previousSet.session_exercise_id)
-      : "exercise";
-    setWorkoutSets((prev) => prev.map((item) => (item.id === setId ? data : item)));
-    setEditingSetId(null);
-    setEditDraft(emptyDraft);
-    showSuccess(`Set ${data.set_number} updated for ${exerciseLabel}.`);
-    setIsSavingSet(false);
-  }
-
-  async function deleteSet(setId: string) {
-    setIsSavingSet(true);
-
-    const deletedSet = workoutSets.find((set) => set.id === setId);
-    const { error } = await supabaseBrowserClient.from("workout_sets").delete().eq("id", setId);
-    if (error) {
-      showError(`Could not delete set: ${error.message}`);
-      setIsSavingSet(false);
-      return;
-    }
-
-    invalidateLoggedHistoryCaches();
-    setWorkoutSets((prev) => prev.filter((set) => set.id !== setId));
-    if (deletedSet) {
-      const sessionExerciseId = deletedSet.session_exercise_id;
-      const setsBefore = workoutSets
-        .filter((s) => s.session_exercise_id === sessionExerciseId)
-        .sort((a, b) => a.set_number - b.set_number);
-      const setsAfter = setsBefore.filter((s) => s.id !== setId);
-      const sessionExercise = sessionExercises.find((e) => e.id === sessionExerciseId);
-      const autoBefore = resolveSuggestedAddDraft(sessionExercise, setsBefore, undefined);
-      const autoAfter = resolveSuggestedAddDraft(sessionExercise, setsAfter, undefined);
-      const addDefaultsChanged =
-        autoBefore.reps !== autoAfter.reps ||
-        autoBefore.weightKg !== autoAfter.weightKg ||
-        autoBefore.isWarmup !== autoAfter.isWarmup;
-
-      if (addDefaultsChanged) {
-        setAddDrafts((prev) => {
-          const next = { ...prev };
-          delete next[sessionExerciseId];
-          return next;
-        });
-      }
-
-      const exerciseLabel = getExerciseLabelForSessionExerciseId(sessionExerciseId);
-      showSuccess(`Set ${deletedSet.set_number} deleted from ${exerciseLabel}.`);
-    } else {
-      showSuccess("Set deleted.");
-    }
-    setIsSavingSet(false);
-  }
-
-  async function deleteSession() {
-    if (!sessionId) {
-      return;
-    }
-    setIsDeleteSessionConfirmOpen(false);
-    setIsDeletingSession(true);
-    clearMessage();
-
-    const sessionExerciseIds = sessionExercises.map((item) => item.id);
-    if (sessionExerciseIds.length > 0) {
-      const { error: setsDeleteError } = await supabaseBrowserClient
-        .from("workout_sets")
-        .delete()
-        .in("session_exercise_id", sessionExerciseIds);
-      if (setsDeleteError) {
-        showError(`Could not delete workout sets: ${setsDeleteError.message}`);
-        setIsDeletingSession(false);
-        return;
-      }
-
-      const { error: sessionExercisesDeleteError } = await supabaseBrowserClient
-        .from("workout_session_exercises")
-        .delete()
-        .eq("session_id", sessionId);
-      if (sessionExercisesDeleteError) {
-        showError(`Could not delete session exercises: ${sessionExercisesDeleteError.message}`);
-        setIsDeletingSession(false);
-        return;
-      }
-    }
-
-    const { error: sessionDeleteError } = await supabaseBrowserClient
-      .from("workout_sessions")
-      .delete()
-      .eq("id", sessionId);
-    if (sessionDeleteError) {
-      showError(`Could not delete workout session: ${sessionDeleteError.message}`);
-      setIsDeletingSession(false);
-      return;
-    }
-
-    invalidateLoggedHistoryCaches();
-    router.replace("/");
-  }
-
-  async function addExerciseToSession() {
-    if (!sessionId) {
-      return;
-    }
-    const added = parseAddedSessionExercise({
-      exerciseId: addExerciseDraft.exerciseId,
-      alreadyInSession: sessionExercises.some((row) => row.exercise_id === addExerciseDraft.exerciseId),
-      targetSets: addExerciseDraft.targetSets,
-      targetReps: addExerciseDraft.targetReps,
-      targetWeightKg: addExerciseDraft.targetWeightKg,
-      baseWeightKg: addExerciseDraft.baseWeightKg,
-    });
-    if (!added.ok) {
-      if (added.tone === "warning") {
-        showWarning(added.message);
-      } else {
-        showError(added.message);
-      }
-      return;
-    }
-
-    const nextPosition =
-      sessionExercises.length > 0
-        ? Math.max(...sessionExercises.map((row) => row.position)) + 1
-        : 1;
-
-    setIsAddingExercise(true);
-
-    const { data, error } = await supabaseBrowserClient
-      .from("workout_session_exercises")
-      .insert({
-        session_id: sessionId,
-        exercise_id: addExerciseDraft.exerciseId,
-        position: nextPosition,
-        base_weight_kg: added.baseWeightKg,
-        target_sets: added.targetSets,
-        target_reps: added.targetReps,
-        target_weight_kg: added.targetWeightKg,
-        notes: addExerciseDraft.notes.trim() ? addExerciseDraft.notes.trim() : null,
-      })
-      .select("*")
-      .single();
-
-    if (error || !data) {
-      showError(`Could not add exercise: ${error?.message ?? "Unknown error"}`);
-      setIsAddingExercise(false);
-      return;
-    }
-
-    invalidateLoggedHistoryCaches();
-    setSessionExercises((prev) => [...prev, data].sort((a, b) => a.position - b.position));
-    if (isCompactView) {
+  const {
+    handleAddSet,
+    handleAddWarmups,
+    startEdit,
+    cancelEdit,
+    saveEdit,
+    deleteSet,
+    deleteSession,
+    addExerciseToSession,
+    startTargetsEdit,
+    cancelTargetsEdit,
+    saveTargetsForExercise,
+    beginEditingSessionDetails,
+    cancelEditingSessionDetails,
+    saveSessionDetails,
+    // Writes the ref only after a compact add succeeds. The helper does not read it while building actions.
+    // eslint-disable-next-line react-hooks/refs
+  } = createSessionDetailActions({
+    session,
+    sessionId,
+    sessionExercises,
+    workoutSets,
+    addDrafts,
+    editDraft,
+    addExerciseDraft,
+    targetsSets,
+    targetsReps,
+    targetsWeightKg,
+    targetsSessionExerciseId,
+    performedOnDraft,
+    notesDraft,
+    isCompactView: isSmallPhone,
+    exerciseLabels,
+    showError,
+    showWarning,
+    showSuccess,
+    clearMessage,
+    router,
+    setIsSavingSet,
+    setWorkoutSets,
+    setAddDrafts,
+    setCompactShowExtraSetComposer,
+    setPendingCompactSetFocusSessionExerciseId,
+    setEditingSetId,
+    setEditDraft,
+    setIsDeleteSessionConfirmOpen,
+    setIsDeletingSession,
+    setSessionExercises,
+    setActiveExerciseIndex,
+    setIsAddExerciseSheetOpen,
+    setAddExerciseDraft,
+    setIsAddingExercise,
+    markSkipNextExerciseMessageClear: () => {
       skipNextClearMessageOnExerciseIdChangeRef.current = true;
-      setActiveExerciseIndex(sessionExercises.length);
-      setIsAddExerciseSheetOpen(false);
-    }
-    showSuccess("Exercise added to session.");
-    setAddExerciseDraft(emptyAddExerciseDraft);
-    setIsAddingExercise(false);
-  }
-
-  function startTargetsEdit(sessionExercise: SessionExerciseRow, mode: "inline" | "sheet") {
-    setTargetsSessionExerciseId(sessionExercise.id);
-    setTargetsSets(sessionExercise.target_sets == null ? "" : String(sessionExercise.target_sets));
-    setTargetsReps(sessionExercise.target_reps == null ? "" : String(sessionExercise.target_reps));
-    setTargetsWeightKg(
-      sessionExercise.target_weight_kg == null ? "" : String(sessionExercise.target_weight_kg),
-    );
-    setIsTargetsSheetOpen(mode === "sheet");
-  }
-
-  function cancelTargetsEdit() {
-    setIsTargetsSheetOpen(false);
-    setTargetsSessionExerciseId(null);
-  }
-
-  async function saveTargetsForExercise() {
-    if (!targetsSessionExerciseId) {
-      showError(TARGETS_EXERCISE_MISSING);
-      return;
-    }
-
-    const targets = parseSessionTargets({
-      targetSets: targetsSets,
-      targetReps: targetsReps,
-      targetWeightKg: targetsWeightKg,
-    });
-    if (!targets.ok) {
-      showError(targets.message);
-      return;
-    }
-
-    setIsSavingTargets(true);
-
-    const { data, error } = await supabaseBrowserClient
-      .from("workout_session_exercises")
-      .update({
-        target_sets: targets.targetSets,
-        target_reps: targets.targetReps,
-        target_weight_kg: targets.targetWeightKg,
-      })
-      .eq("id", targetsSessionExerciseId)
-      .select("*")
-      .single();
-
-    if (error || !data) {
-      showError(`Could not update targets: ${error?.message ?? "Unknown error"}`);
-      setIsSavingTargets(false);
-      return;
-    }
-
-    invalidateLoggedHistoryCaches();
-    setSessionExercises((prev) =>
-      prev.map((item) => (item.id === targetsSessionExerciseId ? data : item)),
-    );
-    setIsSavingTargets(false);
-    setIsTargetsSheetOpen(false);
-    setTargetsSessionExerciseId(null);
-    const updatedExerciseLabel =
-      targetsSessionExerciseId != null
-        ? getExerciseLabelForSessionExerciseId(targetsSessionExerciseId)
-        : "exercise";
-    showSuccess(`Targets updated for ${updatedExerciseLabel}.`);
-  }
-
-  function beginEditingSessionDetails() {
-    if (!session) {
-      return;
-    }
-    setPerformedOnDraft(session.performed_on);
-    setNotesDraft(session.notes ?? "");
-    setSessionDetailsDateError(null);
-    setSessionDetailsNotesError(null);
-    setIsEditingSessionDetails(true);
-  }
-
-  function cancelEditingSessionDetails() {
-    if (!session) {
-      setIsEditingSessionDetails(false);
-      return;
-    }
-    setPerformedOnDraft(session.performed_on);
-    setNotesDraft(session.notes ?? "");
-    setSessionDetailsDateError(null);
-    setSessionDetailsNotesError(null);
-    setIsEditingSessionDetails(false);
-  }
-
-  async function saveSessionDetails() {
-    if (!sessionId || !session) {
-      return;
-    }
-
-    setSessionDetailsDateError(null);
-    setSessionDetailsNotesError(null);
-
-    const parsedDate = parseYyyyMmDdDateOnly(performedOnDraft);
-    if (!parsedDate) {
-      setSessionDetailsDateError(sessionPerformedOnError(performedOnDraft));
-      return;
-    }
-
-    if (workoutSets.length > 0 && isFutureSessionDate(parsedDate)) {
-      setSessionDetailsDateError(SESSION_DATE_HAS_SETS);
-      return;
-    }
-
-    if (notesDraft.length > maxSessionNotesLength) {
-      setSessionDetailsNotesError(
-        `Session notes cannot be longer than ${maxSessionNotesLength} characters.`,
-      );
-      return;
-    }
-
-    const notesTrimmed = notesDraft.trim();
-    const notesPayload = notesTrimmed.length > 0 ? notesTrimmed : null;
-
-    setIsSavingSessionDetails(true);
-    clearMessage();
-
-    const { data, error } = await supabaseBrowserClient
-      .from("workout_sessions")
-      .update({
-        performed_on: parsedDate,
-        notes: notesPayload,
-      })
-      .eq("id", sessionId)
-      .select(
-        "id, user_id, performed_on, notes, created_at, updated_at, source_template_id, plan_id, plan_day_id",
-      )
-      .single();
-
-    if (error || !data) {
-      const msg = error?.message ?? "Unknown error";
-      if (/row level security|rls|permission denied|violates row-level/i.test(msg)) {
-        showError("You can only update your own workout sessions.");
-      } else {
-        showError(`Could not update session: ${msg}`);
-      }
-      setIsSavingSessionDetails(false);
-      return;
-    }
-
-    invalidateLoggedHistoryCaches();
-    setSession(data);
-    setPerformedOnDraft(data.performed_on);
-    setNotesDraft(data.notes ?? "");
-    setIsEditingSessionDetails(false);
-    showSuccess("Session date and notes saved.");
-    setIsSavingSessionDetails(false);
-  }
+    },
+    setTargetsSessionExerciseId,
+    setTargetsSets,
+    setTargetsReps,
+    setTargetsWeightKg,
+    setIsTargetsSheetOpen,
+    setIsSavingTargets,
+    setPerformedOnDraft,
+    setNotesDraft,
+    setSessionDetailsDateError,
+    setSessionDetailsNotesError,
+    setIsEditingSessionDetails,
+    setIsSavingSessionDetails,
+    setSession,
+  });
 
   function goBack() {
     clearMessage();
@@ -1560,751 +1088,83 @@ export default function SessionDetailPage() {
           </section>
         ) : (
           <div className="mt-4 space-y-3">
-            {visibleExercises.map(({ item: sessionExercise, index }) => {
-          const sets = getSetsForExercise(sessionExercise.id);
-          const addDraft = getResolvedAddDraft(sessionExercise.id);
-          const lastSet = getLastSet(sessionExercise.id);
-          const exerciseLabel =
-            exerciseLabels.get(sessionExercise.exercise_id) ?? sessionExercise.exercise_id;
-          const exerciseBadge = exerciseBadgeById.get(sessionExercise.exercise_id);
-          const exerciseSlug = exerciseSlugById.get(sessionExercise.exercise_id);
-          const targetParts = [
-            sessionExercise.target_sets ? `${sessionExercise.target_sets} working sets` : null,
-            sessionExercise.target_weight_kg != null ? `${sessionExercise.target_weight_kg} kg` : null,
-            sessionExercise.target_reps ? `${sessionExercise.target_reps} reps` : null,
-          ].filter(Boolean) as string[];
-
-          const workingSetCount = sets.filter((set) => !set.is_warmup).length;
-          const targetSetsGoal = sessionExercise.target_sets;
-          const targetSetsMet =
-            targetSetsGoal != null &&
-            targetSetsGoal > 0 &&
-            workingSetCount >= targetSetsGoal;
-          const hideCompactNewSetComposer =
-            shouldUseSingleExerciseFlow &&
-            targetSetsMet &&
-            canManageSets &&
-            !compactShowExtraSetComposer;
-          const hideFullViewAddSetRow =
-            targetSetsMet &&
-            canManageSets &&
-            !fullViewExpandAddSetRowIds.has(sessionExercise.id);
-          /** Mobile compact: soft sky emphasis on the add-set card while still working toward target sets. */
-          const compactNewSetPanelHighlight = isCompactView && !targetSetsMet;
-
-          const exercisePanelClass = shouldUseSingleExerciseFlow
-            ? "min-h-[calc(100vh-24rem)] p-1 text-sm"
-            : targetSetsMet
-              ? "rounded-md border border-sky-200/90 bg-sky-50/40 p-5 text-sm"
-              : panelInsetClass("p-5 text-sm");
-
-          return (
-            <section
-              key={sessionExercise.id}
-              id={`exercise-${sessionExercise.id}`}
-              className={exercisePanelClass}
-            >
-              <div className="flex w-full items-start justify-between gap-3 text-left">
-                {exerciseSlug ? (
-                  <Link
-                    href={`/exercises/${exerciseSlug}`}
-                    className="group inline-flex min-w-0 items-center gap-2 truncate rounded-sm text-lg font-medium text-zinc-900 hover:text-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60"
-                  >
-                    {exerciseBadge ? (
-                      <span className="inline-flex h-6 min-w-8 shrink-0 items-center justify-center rounded border border-zinc-300 bg-zinc-50 px-1 text-[10px] font-semibold tracking-wide text-zinc-700 transition-colors group-hover:border-sky-300 group-hover:text-sky-800">
-                        {exerciseBadge}
-                      </span>
-                    ) : null}
-                    <span className="truncate underline-offset-2 hover:underline">{exerciseLabel}</span>
-                  </Link>
-                ) : (
-                  <span className="inline-flex min-w-0 items-center gap-2 truncate text-lg font-medium text-zinc-900">
-                    {exerciseBadge ? (
-                      <span className="inline-flex h-6 min-w-8 shrink-0 items-center justify-center rounded border border-zinc-300 bg-zinc-50 px-1 text-[10px] font-semibold tracking-wide text-zinc-700">
-                        {exerciseBadge}
-                      </span>
-                    ) : null}
-                    <span className="truncate">{exerciseLabel}</span>
-                  </span>
-                )}
-                <span className="shrink-0 text-xs text-zinc-500">
-                  {index + 1}/{sessionExercises.length}
-                </span>
-              </div>
-              <div className="mt-2 flex items-start justify-between gap-2">
-                <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-                  <span className="text-sm font-medium text-zinc-600">Targets:</span>
-                  {targetParts.length > 0 ? (
-                    targetParts.map((part) => (
-                      <span
-                        key={`${sessionExercise.id}-${part}`}
-                        className="inline-flex items-center rounded-full border border-zinc-300 bg-white px-2 py-0.5 text-xs text-zinc-700"
-                      >
-                        {part}
-                      </span>
-                    ))
-                  ) : (
-                    <span className="text-xs text-zinc-500">none set</span>
-                  )}
-                </div>
-                <div className="flex shrink-0 items-center gap-2">
-                  {exerciseSlug ? (
-                    <Link
-                      href={`/exercises/${exerciseSlug}`}
-                      className="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
-                    >
-                      <History className="h-3.5 w-3.5 text-sky-700" />
-                      Open history
-                    </Link>
-                  ) : null}
-                  {!isReadOnly && !shouldUseSingleExerciseFlow ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const isOpenForThisExercise =
-                          targetsSessionExerciseId === sessionExercise.id && !isTargetsSheetOpen;
-                        if (isOpenForThisExercise) {
-                          cancelTargetsEdit();
-                          return;
-                        }
-                        startTargetsEdit(sessionExercise, "inline");
-                      }}
-                      title="Edit planned working-set targets (warmups do not count)."
-                      className="inline-flex h-9 w-24 items-center justify-center rounded-md border border-zinc-300 bg-zinc-50 px-2 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
-                    >
-                      {targetsSessionExerciseId === sessionExercise.id && !isTargetsSheetOpen ? (
-                        <ChevronUp className="mr-1 h-3.5 w-3.5" />
-                      ) : (
-                        <ChevronDown className="mr-1 h-3.5 w-3.5" />
-                      )}
-                      Set targets
-                    </button>
-                  ) : null}
-                </div>
-              </div>
-              {!shouldUseSingleExerciseFlow && targetsSessionExerciseId === sessionExercise.id ? (
-                <div className="mt-3 rounded-md border border-zinc-200 bg-white p-3">
-                  <p className="mb-3 text-xs text-zinc-600">
-                    Values apply to working sets only; warmups do not count.
-                  </p>
-                  <div className="grid grid-cols-3 gap-3">
-                    <label className="block text-sm font-medium">
-                      Target working sets
-                      <input
-                        type="number"
-                        min={1}
-                        value={targetsSets}
-                        onChange={(event) => setTargetsSets(event.target.value)}
-                        className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
-                        placeholder="e.g. 3"
-                      />
-                    </label>
-                    <label className="block text-sm font-medium">
-                      Target weight (kg)
-                      <input
-                        type="number"
-                        min={0}
-                        step="0.25"
-                        value={targetsWeightKg}
-                        onChange={(event) => setTargetsWeightKg(event.target.value)}
-                        className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
-                        placeholder="e.g. 60"
-                      />
-                    </label>
-                    <label className="block text-sm font-medium">
-                      Target reps (working sets)
-                      <input
-                        type="number"
-                        min={1}
-                        value={targetsReps}
-                        onChange={(event) => setTargetsReps(event.target.value)}
-                        className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
-                        placeholder="e.g. 8"
-                      />
-                    </label>
-                  </div>
-                  {targetsExerciseId ? (
-                    <TargetWeightSuggestion
-                      exerciseId={targetsExerciseId}
-                      plannedReps={targetsReps}
-                      currentWeightKg={targetsWeightKg}
-                      excludeSessionId={sessionId ?? null}
-                      onApply={setTargetsWeightKg}
-                    />
-                  ) : null}
-                  <div className="mt-3 flex justify-end gap-2">
-                    <button
-                      type="button"
-                      onClick={cancelTargetsEdit}
-                      className="inline-flex h-9 w-24 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
-                    >
-                      <X className="h-3 w-3 text-zinc-500" />
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => saveTargetsForExercise()}
-                      disabled={isSavingTargets}
-                      className="inline-flex h-9 w-24 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-2 text-xs text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60"
-                    >
-                      <Check className="h-3 w-3 text-white" />
-                      {isSavingTargets ? "Saving..." : "Save"}
-                    </button>
-                  </div>
-                </div>
-              ) : null}
-
-              {!isReadOnly ? (
-                <WarmupSuggestion
-                  targetWeightKg={sessionExercise.target_weight_kg}
-                  baseWeightKg={sessionExercise.base_weight_kg}
-                  hasSets={sets.length > 0}
-                  addDisabled={isPlannedSession || isSavingSet}
-                  addDisabledTitle={
-                    isPlannedSession
-                      ? "Planned workouts cannot have sets yet. Log sets on or after the session date."
-                      : undefined
+            {visibleExercises.map(({ item: sessionExercise, index }) => (
+              <SessionExerciseBlock
+                key={sessionExercise.id}
+                sessionExercise={sessionExercise}
+                index={index}
+                exerciseCount={sessionExercises.length}
+                workoutSets={workoutSets}
+                addDrafts={addDrafts}
+                exerciseLabel={
+                  exerciseLabels.get(sessionExercise.exercise_id) ?? sessionExercise.exercise_id
+                }
+                exerciseBadge={exerciseBadgeById.get(sessionExercise.exercise_id)}
+                exerciseSlug={exerciseSlugById.get(sessionExercise.exercise_id)}
+                sessionId={sessionId ?? null}
+                isReadOnly={isReadOnly}
+                shouldUseSingleExerciseFlow={shouldUseSingleExerciseFlow}
+                isCompactView={isCompactView}
+                canManageSets={canManageSets}
+                isPlannedSession={isPlannedSession}
+                isSavingSet={isSavingSet}
+                compactShowExtraSetComposer={compactShowExtraSetComposer}
+                fullAddSetRowExpanded={fullViewExpandAddSetRowIds.has(sessionExercise.id)}
+                targetsOpenInline={
+                  targetsSessionExerciseId === sessionExercise.id && !isTargetsSheetOpen
+                }
+                targetsSets={targetsSets}
+                targetsReps={targetsReps}
+                targetsWeightKg={targetsWeightKg}
+                isSavingTargets={isSavingTargets}
+                editingSetId={editingSetId}
+                editDraft={editDraft}
+                onEditDraftChange={setEditDraft}
+                onUpdateAddDraft={updateAddDraft}
+                onToggleTargets={() => {
+                  const isOpenForThisExercise =
+                    targetsSessionExerciseId === sessionExercise.id && !isTargetsSheetOpen;
+                  if (isOpenForThisExercise) {
+                    cancelTargetsEdit();
+                    return;
                   }
-                  onAdd={() => handleAddWarmups(sessionExercise.id)}
-                />
-              ) : null}
-
-              <div className="mt-3 space-y-3 md:hidden">
-                {sets.map((set) =>
-                  editingSetId === set.id ? (
-                    <div key={set.id} className={panelInsetClass("p-3")}>
-                      <p className="text-xs font-medium text-zinc-600">Set {set.set_number}</p>
-                      <div className="mt-2 grid grid-cols-2 gap-2">
-                        <label className="text-xs font-medium text-zinc-600">
-                          Loaded (kg)
-                          <input
-                            type="number"
-                            min={0}
-                            step="0.25"
-                            value={editDraft.weightKg}
-                            onChange={(event) =>
-                              setEditDraft((prev) => ({ ...prev, weightKg: event.target.value }))
-                            }
-                            className="mt-1 w-full rounded-md border bg-white px-2 py-1"
-                          />
-                        </label>
-                        <label className="text-xs font-medium text-zinc-600">
-                          Reps
-                          <input
-                            type="number"
-                            min={1}
-                            value={editDraft.reps}
-                            onChange={(event) =>
-                              setEditDraft((prev) => ({ ...prev, reps: event.target.value }))
-                            }
-                            className="mt-1 w-full rounded-md border bg-white px-2 py-1"
-                          />
-                        </label>
-                      </div>
-                      <label className="mt-2 inline-flex items-center gap-2 text-xs text-zinc-700">
-                        <input
-                          type="checkbox"
-                          checked={editDraft.isWarmup}
-                          onChange={(event) =>
-                            setEditDraft((prev) => ({ ...prev, isWarmup: event.target.checked }))
-                          }
-                        />
-                        Warmup?
-                      </label>
-                      <div className="mt-3 flex justify-end gap-2">
-                        <CompactRowActions
-                          isEditing
-                          onEdit={() => {}}
-                          onSave={() => saveEdit(set.id)}
-                          onCancel={() => {
-                            setEditingSetId(null);
-                            setEditDraft(emptyDraft);
-                          }}
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <div key={set.id} className={panelInsetClass("p-3")}>
-                      {isCompactView ? (
-                        <>
-                          <div className="flex items-center justify-between gap-2">
-                            <div className="min-w-0 text-sm text-zinc-700">
-                              <span className="inline-flex flex-wrap items-center gap-x-1.5 gap-y-1">
-                                <span className="inline-flex flex-wrap items-center gap-1.5">
-                                  <SetKindIndicator isWarmup={set.is_warmup} density="compact" />
-                                  <span className="font-medium text-zinc-900">Set {set.set_number}</span>
-                                </span>
-                                <span className="text-zinc-500">·</span>
-                                <span>
-                                  {set.weight_kg ?? "-"} kg, {set.reps} reps
-                                </span>
-                              </span>
-                            </div>
-                            {canManageSets ? (
-                              <div className="flex shrink-0 items-center">
-                                <CompactRowActions
-                                  isEditing={false}
-                                  onEdit={() => startEdit(set)}
-                                  onSave={() => {}}
-                                  onCancel={() => {}}
-                                  onSecondary={() => deleteSet(set.id)}
-                                  secondaryLabel="Delete"
-                                />
-                              </div>
-                            ) : null}
-                          </div>
-                        </>
-                      ) : (
-                        <>
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="inline-flex flex-wrap items-center gap-2 text-sm font-medium">
-                              <SetKindIndicator isWarmup={set.is_warmup} density="default" />
-                              <span>Set {set.set_number}</span>
-                            </p>
-                          </div>
-                          <p className="mt-1 text-sm">
-                            <span className="font-medium">Loaded:</span> {set.weight_kg ?? "-"} kg
-                          </p>
-                          <p className="text-sm">
-                            <span className="font-medium">Reps:</span> {set.reps}
-                          </p>
-                          <p className="text-xs text-zinc-600">
-                            Total: {((set.weight_kg ?? 0) + (sessionExercise.base_weight_kg ?? 0)).toFixed(1)} kg
-                          </p>
-                          {canManageSets ? (
-                            <div className="mt-3 flex justify-end gap-2">
-                              <button
-                                type="button"
-                                onClick={() => deleteSet(set.id)}
-                                disabled={isSavingSet}
-                                className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
-                              >
-                                <Trash2 className="h-3 w-3 text-red-600" />
-                                Delete
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => startEdit(set)}
-                                disabled={isSavingSet}
-                                className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
-                              >
-                                <Pencil className="h-3 w-3 text-sky-700" />
-                                Edit
-                              </button>
-                            </div>
-                          ) : null}
-                        </>
-                      )}
-                    </div>
-                  ),
-                )}
-                {canManageSets ? (
-                  hideCompactNewSetComposer ? (
-                    <div className="rounded-md border border-sky-200 bg-sky-50/70 p-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
-                      <p className="text-sm font-medium text-sky-950">All target working sets logged.</p>
-                      {index < sessionExercises.length - 1 ? (
-                        <ActionButton
-                          type="button"
-                          variant="primary"
-                          fullWidth
-                          className="mt-2"
-                          onClick={() =>
-                            setActiveExerciseIndex((prev) =>
-                              Math.min(sessionExercises.length - 1, prev + 1),
-                            )
-                          }
-                        >
-                          <ChevronRight className="h-4 w-4 shrink-0" aria-hidden />
-                          Next exercise
-                        </ActionButton>
-                      ) : (
-                        <>
-                          <p className="mt-2 text-xs text-zinc-600">
-                            Last exercise in this session. Add another exercise when you are ready, or finish
-                            logging.
-                          </p>
-                          <ActionButton
-                            type="button"
-                            variant="primary"
-                            fullWidth
-                            className="mt-2"
-                            onClick={() => setIsAddExerciseSheetOpen(true)}
-                          >
-                            <Plus className="h-4 w-4 shrink-0" aria-hidden />
-                            Add exercise
-                          </ActionButton>
-                        </>
-                      )}
-                      <ActionButton
-                        type="button"
-                        variant="secondary"
-                        size="sm"
-                        fullWidth
-                        className="mt-2"
-                        title="Show the add-set form to log more sets."
-                        onClick={() => setCompactShowExtraSetComposer(true)}
-                      >
-                        <Plus className="h-4 w-4 shrink-0" aria-hidden />
-                        Add more sets
-                      </ActionButton>
-                    </div>
-                  ) : (
-                    <div
-                      id={`compact-new-set-panel-${sessionExercise.id}`}
-                      className={
-                        compactNewSetPanelHighlight
-                          ? "rounded-md border border-sky-200 bg-sky-50/55 p-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
-                          : panelInsetClass("p-3")
-                      }
-                    >
-                      <p
-                        className={
-                          compactNewSetPanelHighlight
-                            ? "inline-flex items-center gap-1 text-sm font-medium text-sky-950"
-                            : "inline-flex items-center gap-1 text-sm text-zinc-700"
-                        }
-                      >
-                        <Plus className="h-3 w-3 text-sky-700" aria-hidden />
-                        New set
-                      </p>
-                      {lastSet ? (
-                        <p className="mt-2 text-[11px] text-zinc-500">
-                          <span className="inline-flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                            <SetKindIndicator isWarmup={lastSet.is_warmup} density="compact" />
-                            <span>
-                              Last set: {lastSet.weight_kg ?? 0} kg × {lastSet.reps} reps
-                            </span>
-                          </span>
-                        </p>
-                      ) : null}
-                      <div className="mt-2 grid grid-cols-2 gap-2">
-                        <label className="text-sm font-medium text-zinc-700">
-                          Loaded (kg)
-                          <input
-                            type="number"
-                            min={0}
-                            step="0.25"
-                            value={addDraft.weightKg}
-                            onChange={(event) =>
-                              updateAddDraft(sessionExercise.id, "weightKg", event.target.value)
-                            }
-                            className="mt-1 w-full rounded-md border bg-white px-2 py-1"
-                            placeholder="Weight"
-                          />
-                          <div className="mt-1 flex gap-1">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                updateAddDraft(
-                                  sessionExercise.id,
-                                  "weightKg",
-                                  String(Math.max(0, Number((Number(addDraft.weightKg || "0") - 2.5).toFixed(1)))),
-                                )
-                              }
-                              className="rounded border px-2 py-0.5 text-xs"
-                            >
-                              -2.5
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                updateAddDraft(
-                                  sessionExercise.id,
-                                  "weightKg",
-                                  String(Number((Number(addDraft.weightKg || "0") + 2.5).toFixed(1))),
-                                )
-                              }
-                              className="rounded border px-2 py-0.5 text-xs"
-                            >
-                              +2.5
-                            </button>
-                          </div>
-                        </label>
-                        <label className="text-sm font-medium text-zinc-700">
-                          Reps
-                          <input
-                            type="number"
-                            min={1}
-                            value={addDraft.reps}
-                            onChange={(event) =>
-                              updateAddDraft(sessionExercise.id, "reps", event.target.value)
-                            }
-                            className="mt-1 w-full rounded-md border bg-white px-2 py-1"
-                            placeholder="Reps"
-                          />
-                          <div className="mt-1 flex gap-1">
-                            <button
-                              type="button"
-                              onClick={() =>
-                                updateAddDraft(
-                                  sessionExercise.id,
-                                  "reps",
-                                  String(Math.max(1, Number(addDraft.reps || "1") - 1)),
-                                )
-                              }
-                              className="rounded border px-2 py-0.5 text-xs"
-                            >
-                              -1
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                updateAddDraft(
-                                  sessionExercise.id,
-                                  "reps",
-                                  String(Math.max(1, Number(addDraft.reps || "0") + 1)),
-                                )
-                              }
-                              className="rounded border px-2 py-0.5 text-xs"
-                            >
-                              +1
-                            </button>
-                          </div>
-                        </label>
-                      </div>
-                      <label className="mt-2 inline-flex items-center gap-2 text-sm text-zinc-700">
-                        <input
-                          type="checkbox"
-                          checked={addDraft.isWarmup}
-                          onChange={(event) =>
-                            updateAddDraft(sessionExercise.id, "isWarmup", event.target.checked)
-                          }
-                        />
-                        Warmup?
-                      </label>
-                      <div className="mt-3 flex justify-end">
-                        <button
-                          type="button"
-                          onClick={() => handleAddSet(sessionExercise.id)}
-                          disabled={isSavingSet || isPlannedSession}
-                          className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-sm"
-                        >
-                          <Plus className="h-3.5 w-3.5 text-sky-700" />
-                          Add set
-                        </button>
-                      </div>
-                    </div>
-                  )
-                ) : null}
-              </div>
-
-              {!isPlannedSession ? (
-                <div className="mt-3 hidden overflow-x-auto rounded-md border border-zinc-200 bg-white md:block">
-                <table className="w-full min-w-[640px] text-left text-sm">
-                  <thead>
-                    <tr className="border-b bg-zinc-50">
-                      <th className="px-2 py-2">Type</th>
-                      <th className="px-2 py-2">Set</th>
-                      <th className="px-2 py-2">Loaded (kg)</th>
-                      <th className="px-2 py-2">Reps</th>
-                      {canManageSets ? <th className="px-2 py-2 text-right">Actions</th> : null}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {sets.map((set) =>
-                      editingSetId === set.id ? (
-                        <tr key={set.id} className="border-b bg-white">
-                          <td className="px-2 py-2">
-                            <label className="inline-flex cursor-pointer items-center gap-2 text-zinc-800">
-                              <input
-                                type="checkbox"
-                                checked={editDraft.isWarmup}
-                                onChange={(event) =>
-                                  setEditDraft((prev) => ({ ...prev, isWarmup: event.target.checked }))
-                                }
-                                className="rounded border-zinc-300 text-sky-700 focus:ring-sky-600"
-                              />
-                              <span className="text-xs">Warmup?</span>
-                            </label>
-                          </td>
-                          <td className="px-2 py-2">{set.set_number}</td>
-                          <td className="px-2 py-2">
-                            <input
-                              type="number"
-                              min={0}
-                              step="0.25"
-                              value={editDraft.weightKg}
-                              onChange={(event) =>
-                                setEditDraft((prev) => ({ ...prev, weightKg: event.target.value }))
-                              }
-                              className="w-24 rounded-md border bg-white px-2 py-1"
-                            />
-                          </td>
-                          <td className="px-2 py-2">
-                            <input
-                              type="number"
-                              min={1}
-                              value={editDraft.reps}
-                              onChange={(event) =>
-                                setEditDraft((prev) => ({ ...prev, reps: event.target.value }))
-                              }
-                              className="w-20 rounded-md border bg-white px-2 py-1"
-                            />
-                          </td>
-                          {canManageSets ? (
-                            <td className="px-2 py-2">
-                              <div className="flex justify-end gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => saveEdit(set.id)}
-                                  disabled={isSavingSet}
-                                  className="inline-flex w-24 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
-                                >
-                                  <Check className="h-3 w-3 text-emerald-600" />
-                                  Save
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setEditingSetId(null);
-                                    setEditDraft(emptyDraft);
-                                  }}
-                                  disabled={isSavingSet}
-                                  className="inline-flex w-24 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
-                                >
-                                  <X className="h-3 w-3 text-zinc-500" />
-                                  Cancel
-                                </button>
-                              </div>
-                            </td>
-                          ) : null}
-                        </tr>
-                      ) : (
-                        <tr key={set.id} className="border-b odd:bg-white even:bg-zinc-50/60 hover:bg-zinc-100/60">
-                          <td className="px-2 py-2">
-                            <SetKindIndicator isWarmup={set.is_warmup} density="compact" />
-                          </td>
-                          <td className="px-2 py-2">{set.set_number}</td>
-                          <td className="px-2 py-2">
-                            <div>{set.weight_kg ?? "-"}</div>
-                            <div className="text-xs text-zinc-500">
-                              Total: {((set.weight_kg ?? 0) + (sessionExercise.base_weight_kg ?? 0)).toFixed(1)} kg
-                            </div>
-                          </td>
-                          <td className="px-2 py-2">{set.reps}</td>
-                          {canManageSets ? (
-                            <td className="px-2 py-2">
-                              <div className="flex justify-end gap-2">
-                                <button
-                                  type="button"
-                                  onClick={() => deleteSet(set.id)}
-                                  disabled={isSavingSet}
-                                  className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
-                                >
-                                  <Trash2 className="h-3 w-3 text-red-600" />
-                                  Delete
-                                </button>
-                                <button
-                                  type="button"
-                                  onClick={() => startEdit(set)}
-                                  disabled={isSavingSet}
-                                  className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
-                                >
-                                  <Pencil className="h-3 w-3 text-sky-700" />
-                                  Edit
-                                </button>
-                              </div>
-                            </td>
-                          ) : null}
-                        </tr>
-                      ),
-                    )}
-                    {canManageSets && hideFullViewAddSetRow ? (
-                      <tr className="border-b bg-sky-50/50">
-                        <td colSpan={5} className="px-2 py-2">
-                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                            <span className="inline-flex items-center gap-1.5 text-sm font-medium text-sky-950">
-                              <CheckCircle2 className="h-4 w-4 shrink-0 text-sky-700" aria-hidden />
-                              All target working sets logged.
-                            </span>
-                            <ActionButton
-                              type="button"
-                              variant="secondary"
-                              size="sm"
-                              title="Show the add-set row to log more sets."
-                              onClick={() =>
-                                setFullViewExpandAddSetRowIds((prev) => {
-                                  const next = new Set(prev);
-                                  next.add(sessionExercise.id);
-                                  return next;
-                                })
-                              }
-                            >
-                              <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                              Add more sets
-                            </ActionButton>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : null}
-                    {canManageSets && !hideFullViewAddSetRow ? (
-                      <tr>
-                        <td className="px-2 py-2">
-                          <label className="inline-flex cursor-pointer items-center gap-2 text-zinc-800">
-                            <input
-                              type="checkbox"
-                              checked={addDraft.isWarmup}
-                              onChange={(event) =>
-                                updateAddDraft(sessionExercise.id, "isWarmup", event.target.checked)
-                              }
-                              className="rounded border-zinc-300 text-sky-700 focus:ring-sky-600"
-                            />
-                            <span className="text-xs">Warmup?</span>
-                          </label>
-                        </td>
-                        <td className="px-2 py-2">
-                          <span className="inline-flex items-center gap-1 text-xs text-zinc-600">
-                            <Plus className="h-3 w-3 text-sky-700" />
-                            New
-                          </span>
-                        </td>
-                        <td className="px-2 py-2">
-                          <input
-                            type="number"
-                            min={0}
-                            step="0.25"
-                            value={addDraft.weightKg}
-                            onChange={(event) =>
-                              updateAddDraft(sessionExercise.id, "weightKg", event.target.value)
-                            }
-                            className="w-24 rounded-md border bg-white px-2 py-1"
-                            placeholder="Weight"
-                          />
-                        </td>
-                        <td className="px-2 py-2">
-                          <input
-                            type="number"
-                            min={1}
-                            value={addDraft.reps}
-                            onChange={(event) =>
-                              updateAddDraft(sessionExercise.id, "reps", event.target.value)
-                            }
-                            className="w-20 rounded-md border bg-white px-2 py-1"
-                            placeholder="Reps"
-                          />
-                        </td>
-                        <td className="px-2 py-2">
-                          <div className="flex items-center justify-end gap-2">
-                            <button
-                              type="button"
-                              onClick={() => handleAddSet(sessionExercise.id)}
-                              disabled={isSavingSet || isPlannedSession}
-                              className="inline-flex w-24 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-2 py-1 text-xs text-white hover:border-sky-600 hover:bg-sky-600"
-                            >
-                              <Plus className="h-3.5 w-3.5 text-white" />
-                              Add set
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ) : null}
-                  </tbody>
-                </table>
-                </div>
-              ) : null}
-            </section>
-          );
-            })}
+                  startTargetsEdit(sessionExercise, "inline");
+                }}
+                onCancelTargets={cancelTargetsEdit}
+                onSaveTargets={() => {
+                  void saveTargetsForExercise();
+                }}
+                onTargetsSetsChange={setTargetsSets}
+                onTargetsRepsChange={setTargetsReps}
+                onTargetsWeightChange={setTargetsWeightKg}
+                onAddWarmups={(sessionExerciseId) => {
+                  void handleAddWarmups(sessionExerciseId);
+                }}
+                onAddSet={(sessionExerciseId) => {
+                  void handleAddSet(sessionExerciseId);
+                }}
+                onStartEdit={startEdit}
+                onSaveEdit={(setId) => {
+                  void saveEdit(setId);
+                }}
+                onCancelEdit={cancelEdit}
+                onDeleteSet={(setId) => {
+                  void deleteSet(setId);
+                }}
+                onNextExercise={() =>
+                  setActiveExerciseIndex((prev) => Math.min(sessionExercises.length - 1, prev + 1))
+                }
+                onAddExercise={() => setIsAddExerciseSheetOpen(true)}
+                onShowExtraSets={() => setCompactShowExtraSetComposer(true)}
+                onExpandFullAddSetRow={() =>
+                  setFullViewExpandAddSetRowIds((prev) => {
+                    const next = new Set(prev);
+                    next.add(sessionExercise.id);
+                    return next;
+                  })
+                }
+              />
+            ))}
           </div>
         )}
 
