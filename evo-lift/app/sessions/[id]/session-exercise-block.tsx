@@ -6,6 +6,8 @@ import Link from "next/link";
 import { panelInsetClass } from "@/app/components/panel-inset";
 import { TargetWeightSuggestion } from "@/app/components/target-weight-suggestion";
 import { WarmupSuggestion } from "@/app/components/warmup-suggestion";
+import { targetSuggestionsEnabled } from "@/lib/target-weight-suggestion";
+import { warmupSuggestionsEnabled } from "@/lib/warmup-suggestion";
 import { PLANNED_SESSION_SETS_MESSAGE } from "./session-input";
 import { lastLoggedSet, resolvedAddDraft, setsForSessionExercise } from "./session-detail-model";
 import { SessionExerciseSets } from "./session-set-form";
@@ -46,6 +48,12 @@ type SessionExerciseBlockProps = {
   onTargetsRepsChange: (value: string) => void;
   onTargetsWeightChange: (value: string) => void;
   onAddWarmups: (sessionExerciseId: string) => void;
+  /** Account preference for this exercise. Missing stays on. */
+  suggestTarget?: boolean;
+  /** Account preference for this exercise. Missing stays on. */
+  suggestWarmups?: boolean;
+  /** Account cap. Null keeps the full ladder. */
+  maxWarmupSets?: number | null;
   onAddSet: (sessionExerciseId: string) => void;
   onStartEdit: (set: WorkoutSetRow) => void;
   onSaveEdit: (setId: string) => void;
@@ -91,6 +99,9 @@ export function SessionExerciseBlock({
   onTargetsRepsChange,
   onTargetsWeightChange,
   onAddWarmups,
+  suggestTarget = true,
+  suggestWarmups = true,
+  maxWarmupSets = null,
   onAddSet,
   onStartEdit,
   onSaveEdit,
@@ -237,6 +248,7 @@ export function SessionExerciseBlock({
             plannedReps={targetsReps}
             currentWeightKg={targetsWeightKg}
             excludeSessionId={sessionId}
+            enabled={targetSuggestionsEnabled(suggestTarget)}
             onApply={onTargetsWeightChange}
           />
           <div className="mt-3 flex justify-end gap-2">
@@ -266,6 +278,8 @@ export function SessionExerciseBlock({
           targetWeightKg={sessionExercise.target_weight_kg}
           baseWeightKg={sessionExercise.base_weight_kg}
           hasSets={sets.length > 0}
+          enabled={warmupSuggestionsEnabled(suggestWarmups)}
+          maxSteps={maxWarmupSets}
           addDisabled={isPlannedSession || isSavingSet}
           addDisabledTitle={isPlannedSession ? PLANNED_SESSION_SETS_MESSAGE : undefined}
           onAdd={() => onAddWarmups(sessionExercise.id)}

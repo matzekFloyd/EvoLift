@@ -126,6 +126,11 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
       "A set you log before the working sets. Warmup sets are extra. They do not count toward target sets, target reps, volume, or goals. The log labels it Warmup.",
   },
   {
+    term: "Warmup ladder",
+    definition:
+      "Suggested warmup sets that step up in Loaded (kg) toward the target weight. A heavier target gets more steps, and a maximum keeps the heaviest of them.",
+  },
+  {
     term: "Working set",
     definition:
       "A set that counts toward targets, volume, and goals. The log labels it Working.",

@@ -49,6 +49,30 @@ export function accountPasswordUpdateError(input: {
   return null;
 }
 
+export const MAX_WARMUP_SETS_INVALID = "Please enter a valid maximum number of warmup sets.";
+
+/** Empty keeps the full ladder. A whole number of 1 or more is a cap. */
+export function maxWarmupSetsSaveError(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+  const parsed = Number(trimmed);
+  if (!Number.isInteger(parsed) || parsed < 1) {
+    return MAX_WARMUP_SETS_INVALID;
+  }
+  return null;
+}
+
+/** Null when the field is empty. Call only after maxWarmupSetsSaveError returns null. */
+export function parseMaxWarmupSets(value: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return null;
+  }
+  return Number(trimmed);
+}
+
 export function exerciseDefaultsSaveError(input: {
   userId: string | null;
   exerciseId: string;
@@ -56,6 +80,7 @@ export function exerciseDefaultsSaveError(input: {
   targetSets: string;
   targetReps: string;
   targetWeightKg: string;
+  maxWarmupSets: string;
 }): string | null {
   if (!input.userId) {
     return "Please log in again to save defaults.";
@@ -63,26 +88,30 @@ export function exerciseDefaultsSaveError(input: {
   if (!input.exerciseId) {
     return "Please select an exercise.";
   }
+  const maxWarmupSetsError = maxWarmupSetsSaveError(input.maxWarmupSets);
+  if (maxWarmupSetsError) {
+    return maxWarmupSetsError;
+  }
   return (
     invalidWhenPresent(
       input.baseWeightKg,
       (value) => value < 0,
-      "Please enter a valid default base weight.",
+      "Please enter a valid base weight.",
     ) ??
     invalidWhenPresent(
       input.targetSets,
       (value) => value <= 0,
-      "Please enter a valid default number of target working sets.",
+      "Please enter a valid number of target working sets.",
     ) ??
     invalidWhenPresent(
       input.targetReps,
       (value) => value <= 0,
-      "Please enter a valid default target reps value for working sets.",
+      "Please enter a valid target reps value for working sets.",
     ) ??
     invalidWhenPresent(
       input.targetWeightKg,
       (value) => value < 0,
-      "Please enter a valid default target weight (kg) for working sets.",
+      "Please enter a valid target weight (kg) for working sets.",
     )
   );
 }

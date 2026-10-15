@@ -25,6 +25,7 @@ import {
   type ExerciseDraftRow,
 } from "@/lib/workout-exercise-draft";
 import { toExerciseBadge } from "@/lib/exercise-badge";
+import { targetSuggestionsEnabled } from "@/lib/target-weight-suggestion";
 import { exerciseOptionsForPicker } from "@/lib/exercise-picker-options";
 
 export type WorkoutExerciseDraftListProps = {
@@ -193,6 +194,9 @@ export function WorkoutExerciseDraftList({
 
   function renderTargetWeightSuggestion(row: ExerciseDraftRow, index: number) {
     if (!showTargetWeightSuggestion || !row.exerciseId) {
+      return null;
+    }
+    if (!targetSuggestionsEnabled(exerciseDefaultsById.get(row.exerciseId)?.suggest_target)) {
       return null;
     }
     return (

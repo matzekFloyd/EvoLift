@@ -2,9 +2,11 @@ import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 import {
   WARMUP_TARGET_MISSING_MESSAGE,
+  capWarmupSteps,
   filterWarmupSteps,
   formatWarmupStep,
   suggestWarmups,
+  warmupSuggestionsEnabled,
   type WarmupStep,
 } from "./warmup-suggestion";
 
@@ -137,6 +139,35 @@ describe("suggestWarmups", () => {
       });
     }
     assert.equal(WARMUP_TARGET_MISSING_MESSAGE, "Set a target weight to suggest warmups.");
+  });
+
+  it("keeps the heaviest steps when a maximum is set", () => {
+    const full = stepsFor(100);
+    assert.equal(full.length, 4);
+    assert.deepEqual(capWarmupSteps(full, 2), [
+      { loadedKg: 70, reps: 3 },
+      { loadedKg: 85, reps: 2 },
+    ]);
+    assert.deepEqual(suggestWarmups({ targetWeightKg: 100, maxSteps: 2 }), {
+      status: "steps",
+      steps: [
+        { loadedKg: 70, reps: 3 },
+        { loadedKg: 85, reps: 2 },
+      ],
+    });
+    const uncapped = suggestWarmups({ targetWeightKg: 100, maxSteps: null });
+    assert.equal(uncapped.status, "steps");
+    if (uncapped.status === "steps") {
+      assert.deepEqual(uncapped.steps, full);
+    }
+    assert.deepEqual(capWarmupSteps(full, 4), full);
+  });
+
+  it("starts warmup suggestions on for compounds only", () => {
+    assert.equal(warmupSuggestionsEnabled(undefined, true), true);
+    assert.equal(warmupSuggestionsEnabled(null, false), false);
+    assert.equal(warmupSuggestionsEnabled(true, false), true);
+    assert.equal(warmupSuggestionsEnabled(false, true), false);
   });
 
   it("ignores base weight", () => {

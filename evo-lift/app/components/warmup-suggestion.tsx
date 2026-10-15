@@ -12,6 +12,10 @@ type WarmupSuggestionProps = {
   targetWeightKg: number | null;
   baseWeightKg?: number | null;
   hasSets: boolean;
+  /** Account preference. Off hides the suggestion. A missing value stays on. */
+  enabled?: boolean;
+  /** Account cap. Null keeps the full ladder. */
+  maxSteps?: number | null;
   addDisabled?: boolean;
   addDisabledTitle?: string;
   onAdd: () => void;
@@ -21,15 +25,17 @@ export function WarmupSuggestion({
   targetWeightKg,
   baseWeightKg = null,
   hasSets,
+  enabled = true,
+  maxSteps = null,
   addDisabled = false,
   addDisabledTitle,
   onAdd,
 }: WarmupSuggestionProps) {
-  if (hasSets) {
+  if (!enabled || hasSets) {
     return null;
   }
 
-  const suggestion = suggestWarmups({ targetWeightKg, baseWeightKg });
+  const suggestion = suggestWarmups({ targetWeightKg, baseWeightKg, maxSteps });
 
   if (suggestion.status === "message") {
     return <p className="mt-3 text-xs text-zinc-600">{suggestion.message}</p>;
