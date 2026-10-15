@@ -8,6 +8,7 @@ import { fileURLToPath } from "node:url";
 import {
   PRODUCTION_SITE_URL,
   PRODUCTION_SUPABASE_HOST,
+  backLeavesTheApp,
   createCapacitorConfig,
   mayLoadInShell,
   readDebugServerFile,
@@ -27,6 +28,7 @@ test("default shell opens production EvoLift and its Supabase host", () => {
   assert.equal(config.server.url, PRODUCTION_SITE_URL);
   assert.equal(config.server.url, "https://evo-lift.vercel.app");
   assert.equal(config.server.cleartext, undefined);
+  assert.equal(config.android.adjustMarginsForEdgeToEdge, "force");
   assert.deepEqual(config.server.allowNavigation, [PRODUCTION_SUPABASE_HOST]);
   assert.equal(
     mayLoadInShell(config.server.url, config.server.allowNavigation, "https://evo-lift.vercel.app/login"),
@@ -145,6 +147,7 @@ test("committed Android project opens production without cleartext", () => {
   assert.equal(committed.appName, expected.appName);
   assert.equal(committed.server.url, expected.server.url);
   assert.equal(committed.server.cleartext, undefined);
+  assert.equal(committed.android.adjustMarginsForEdgeToEdge, "force");
   assert.deepEqual(committed.server.allowNavigation, expected.server.allowNavigation);
   assert.match(manifest, /android\.permission\.INTERNET/);
   assert.doesNotMatch(manifest, /usesCleartextTraffic="true"/);
@@ -153,6 +156,17 @@ test("committed Android project opens production without cleartext", () => {
     readFileSync(path.join(repoRoot, "android", "app", "src", "main", "assets", "capacitor.plugins.json"), "utf8"),
   );
   assert.deepEqual(plugins, []);
+});
+
+test("Android Back leaves home and returns from a session", () => {
+  assert.equal(backLeavesTheApp("https://evo-lift.vercel.app/", true), true);
+  assert.equal(backLeavesTheApp("https://evo-lift.vercel.app", false), true);
+  assert.equal(backLeavesTheApp("http://10.0.2.2:3000/", true), true);
+  assert.equal(
+    backLeavesTheApp("https://evo-lift.vercel.app/sessions/session-1", true),
+    false,
+  );
+  assert.equal(backLeavesTheApp("https://evo-lift.vercel.app/sessions/session-1", false), true);
 });
 
 test("rejects a debug file server URL that is not a string", () => {

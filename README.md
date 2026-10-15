@@ -203,6 +203,8 @@ npm run build
 
 The Android app is a Capacitor shell. It opens the existing site. Register, log in, and logging a set stay on those pages. The signed-in session stays in the WebView, so closing the app and opening it again keeps the user logged in.
 
+Back returns to the previous page opened in the app. On the home screen, Back leaves the app. A link whose host is not the configured site or its Supabase host opens in the system browser, and the app stays on the page that contained the link. The launcher name is EvoLift. The icon and splash use the EvoLift mark. The WebView is inset below the status bar and above the system gesture area, including a display cutout.
+
 By default the shell loads `https://evo-lift.vercel.app`. It may also navigate to that site's Supabase host (`tiivtvejwxzgzgkmojuj.supabase.co`). A page on any other host does not load inside the shell. The phone opens that link in the system browser instead. The site in a browser is unchanged.
 
 ### Install a debug build

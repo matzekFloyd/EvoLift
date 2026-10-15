@@ -144,7 +144,7 @@ export function HeaderActions() {
   }
 
   return (
-    <header className="bg-gradient-to-l from-sky-200 via-sky-100 to-sky-50">
+    <header className="bg-gradient-to-l from-sky-200 via-sky-100 to-sky-50 pt-[env(safe-area-inset-top,0px)]">
       <nav className="mx-auto flex w-full max-w-5xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
         <Link
           className="group inline-flex items-center gap-2 rounded-md px-1.5 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 focus-visible:ring-offset-2 focus-visible:ring-offset-sky-100"

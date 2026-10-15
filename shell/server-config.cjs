@@ -61,8 +61,41 @@ function createCapacitorConfig({ env = {}, debugServer = null } = {}) {
     appId: "app.evolift",
     appName: "EvoLift",
     webDir: "www",
+    android: {
+      // Android 15 draws the WebView under the status bar and gesture area.
+      // Force Capacitor to inset the WebView by those system bars and the cutout.
+      adjustMarginsForEdgeToEdge: "force",
+    },
     server,
   };
+}
+
+/**
+ * True when Android Back should leave the app.
+ * Home always leaves. Any other page leaves only when the WebView has no previous page.
+ * Mirrors MainActivity.
+ */
+/**
+ * Home always leaves the app. Any other page goes back when page history exists.
+ * MainActivity treats WebView history and the in-page Navigation API as that history.
+ */
+function backLeavesTheApp(url, canGoBack) {
+  if (isShellHome(url)) {
+    return true;
+  }
+  return !canGoBack;
+}
+
+function isShellHome(url) {
+  if (typeof url !== "string" || url.trim() === "") {
+    return true;
+  }
+  try {
+    const path = new URL(url).pathname;
+    return path === "" || path === "/";
+  } catch {
+    return true;
+  }
 }
 
 function readDebugServerFile(filePath = DEBUG_SERVER_FILE) {
@@ -201,4 +234,5 @@ module.exports = {
   createCapacitorConfig,
   readDebugServerFile,
   mayLoadInShell,
+  backLeavesTheApp,
 };

@@ -2,6 +2,9 @@
 	"appId": "app.evolift",
 	"appName": "EvoLift",
 	"webDir": "www",
+	"android": {
+		"adjustMarginsForEdgeToEdge": "force"
+	},
 	"server": {
 		"url": "https://evo-lift.vercel.app",
 		"allowNavigation": [
