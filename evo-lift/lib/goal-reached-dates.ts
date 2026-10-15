@@ -72,7 +72,46 @@ export function reachedGoalLabelsBySessionDate(
   );
 }
 
-/** Dates in `YYYY-MM-DD` form, with the goal names reached that day. */
+async function loadExerciseNames(client: Client, exerciseIds: string[]): Promise<Map<string, string>> {
+  const names = new Map<string, string>();
+  if (exerciseIds.length === 0) {
+    return names;
+  }
+  const { data: exerciseRows, error: exerciseError } = await fetchInChunks(exerciseIds, (chunk, from, to) =>
+    client
+      .from("exercises")
+      .select("id, slug")
+      .in("id", chunk)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  if (!exerciseError) {
+    for (const row of exerciseRows) {
+      names.set(row.id, row.slug);
+    }
+  }
+  const { data: translationRows, error: translationError } = await fetchInChunks(
+    exerciseIds,
+    (chunk, from, to) =>
+      client
+        .from("exercise_translations")
+        .select("exercise_id, name")
+        .eq("lang_code", "en")
+        .in("exercise_id", chunk)
+        .order("exercise_id", { ascending: true })
+        .range(from, to),
+  );
+  if (!translationError) {
+    for (const row of translationRows) {
+      if (row.name) {
+        names.set(row.exercise_id, row.name);
+      }
+    }
+  }
+  return names;
+}
+
+/** Dates in `YYYY-MM-DD` form, with each reached goal named by its exercise. */
 export async function loadGoalReachedSessionDates(client: Client): Promise<Record<string, string>> {
   const { data, error } = await client
     .from("strength_milestones")
@@ -83,21 +122,25 @@ export async function loadGoalReachedSessionDates(client: Client): Promise<Recor
   }
 
   const goals: ReachedGoal[] = [];
+  const exerciseIds = [...new Set(data.flatMap((row) => (row.achieved_at ? [row.exercise_id] : [])))];
+  const exerciseNameById = await loadExerciseNames(client, exerciseIds);
   for (const row of data) {
     if (!row.achieved_at) {
       continue;
     }
+    const target = formatMilestoneTarget({
+      exerciseId: row.exercise_id,
+      milestoneType: row.milestone_type as MilestoneType,
+      targetWeightKg: row.target_weight_kg == null ? null : Number(row.target_weight_kg),
+      bodyweightMultiple:
+        row.bodyweight_multiple == null ? null : Number(row.bodyweight_multiple),
+      minReps: row.min_reps,
+    });
+    const exerciseName = exerciseNameById.get(row.exercise_id);
     goals.push({
       exerciseId: row.exercise_id,
       achievedAt: row.achieved_at,
-      label: formatMilestoneTarget({
-        exerciseId: row.exercise_id,
-        milestoneType: row.milestone_type as MilestoneType,
-        targetWeightKg: row.target_weight_kg == null ? null : Number(row.target_weight_kg),
-        bodyweightMultiple:
-          row.bodyweight_multiple == null ? null : Number(row.bodyweight_multiple),
-        minReps: row.min_reps,
-      }),
+      label: exerciseName ? `${exerciseName} (${target})` : target,
     });
   }
   if (goals.length === 0) {

@@ -12,7 +12,10 @@ import { SectionHeading } from "@/app/components/section-heading";
 import { ActivePlanPanel } from "@/app/components/active-plan-panel";
 import { NewSessionDraftCallout } from "@/app/components/new-session-draft-callout";
 import { SessionsTable, type SessionsTableRow } from "@/app/components/sessions-table";
+import { ActivityDaySessionDialog } from "@/app/components/activity-day-session-dialog";
 import { WorkoutActivityChart } from "@/app/components/workout-activity-chart";
+import { activityDayOpen, activityDaySessionIds } from "@/app/home-activity-day";
+import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { loadGoalReachedSessionDates } from "@/lib/goal-reached-dates";
 import {
   loadHomeSessionSummaries,
@@ -52,6 +55,7 @@ export default function Home() {
   const [dateTo, setDateTo] = useState(defaultDateRange.to);
   const [openingSessionId, setOpeningSessionId] = useState<string | null>(null);
   const [highlightedActivityDates, setHighlightedActivityDates] = useState<string[] | null>(null);
+  const [dayChoiceIds, setDayChoiceIds] = useState<string[] | null>(null);
   const [exerciseBadgesBySessionId, setExerciseBadgesBySessionId] = useState<
     Map<string, SessionExerciseBadge[]>
   >(new Map());
@@ -257,6 +261,47 @@ export default function Home() {
     [exerciseBadgesBySessionId, filteredSessions],
   );
 
+  function openSession(sessionId: string) {
+    if (openingSessionId) {
+      return;
+    }
+    setDayChoiceIds(null);
+    setOpeningSessionId(sessionId);
+    router.push(`/sessions/${sessionId}`);
+  }
+
+  function openActivityDay(date: string) {
+    const sessionIds = activityDaySessionIds(
+      filteredSessions.map((session) => ({
+        id: session.id,
+        performedOn: session.performed_on,
+        createdAt: session.created_at,
+      })),
+      date,
+    );
+    const target = activityDayOpen(sessionIds);
+    if (target.kind === "session") {
+      openSession(target.sessionId);
+      return;
+    }
+    if (target.kind === "choose") {
+      setDayChoiceIds(target.sessionIds);
+    }
+  }
+
+  const dayChoiceSessions = useMemo(() => {
+    if (!dayChoiceIds) {
+      return [];
+    }
+    const rowById = new Map(completedTableRows.map((row) => [row.id, row]));
+    return dayChoiceIds.flatMap((id) => {
+      const row = rowById.get(id);
+      return row
+        ? [{ id: row.id, notes: row.notes, badges: row.badges, performedOn: row.performedOn }]
+        : [];
+    });
+  }, [completedTableRows, dayChoiceIds]);
+
   const plannedTableRows: SessionsTableRow[] = useMemo(
     () =>
       plannedSessions.map((session) => ({
@@ -307,13 +352,7 @@ export default function Home() {
               compactMode={isSmallPhone}
               openingRowId={openingSessionId}
               highlightedPerformedOnDates={highlightedActivityDates}
-              onOpenRow={(rowId) => {
-                if (openingSessionId) {
-                  return;
-                }
-                setOpeningSessionId(rowId);
-                router.push(`/sessions/${rowId}`);
-              }}
+              onOpenRow={openSession}
             />
           </PanelInset>
         )}
@@ -370,6 +409,7 @@ export default function Home() {
               highlightedDates={highlightedActivityDates}
               onHighlightDatesChange={setHighlightedActivityDates}
               goalReachedByDate={goalReachedByDate}
+              onDayClick={openActivityDay}
             />
             <PanelInset className="p-3">
               <SessionsTable
@@ -381,18 +421,20 @@ export default function Home() {
                 openingRowId={openingSessionId}
                 highlightedPerformedOnDates={highlightedActivityDates}
                 goalReachedByDate={goalReachedByDate}
-                onOpenRow={(rowId) => {
-                  if (openingSessionId) {
-                    return;
-                  }
-                  setOpeningSessionId(rowId);
-                  router.push(`/sessions/${rowId}`);
-                }}
+                onOpenRow={openSession}
               />
             </PanelInset>
           </div>
         )}
       </section>
+      {dayChoiceSessions.length > 1 ? (
+        <ActivityDaySessionDialog
+          dateLabel={formatDateOnlyForLocale(dayChoiceSessions[0].performedOn)}
+          sessions={dayChoiceSessions}
+          onOpen={openSession}
+          onClose={() => setDayChoiceIds(null)}
+        />
+      ) : null}
     </PageShell>
   );
 }
