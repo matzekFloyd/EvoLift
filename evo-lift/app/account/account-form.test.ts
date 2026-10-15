@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 import {
+  accountDeleteError,
   accountEmailUpdateError,
   accountPasswordUpdateError,
   exerciseDefaultsClearError,
@@ -61,6 +62,21 @@ describe("account form", () => {
       "New password and confirmation do not match.",
     );
     assert.equal(accountPasswordUpdateError(passwordInput), null);
+  });
+
+  it("requires the current password before deleting the account", () => {
+    assert.equal(
+      accountDeleteError({ userEmail: null, currentPassword: "oldpass1" }),
+      "Could not verify current user email. Please log in again.",
+    );
+    assert.equal(
+      accountDeleteError({ userEmail: "ada@example.com", currentPassword: "" }),
+      "Please enter your current password.",
+    );
+    assert.equal(
+      accountDeleteError({ userEmail: "ada@example.com", currentPassword: "oldpass1" }),
+      null,
+    );
   });
 
   it("allows blank exercise defaults and rejects a bad target", () => {
