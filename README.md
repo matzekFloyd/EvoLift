@@ -207,7 +207,7 @@ By default the shell loads `https://evo-lift.vercel.app`. It may also navigate t
 
 ### Install a debug build
 
-Install [Android Studio](https://developer.android.com/studio) and an Android SDK, then start an emulator or connect a phone with USB debugging. The shell's minimum Android version is API 23. The Gradle build needs JDK 17 or newer. Android Studio includes that JDK. If `java -version` is older, set `JAVA_HOME` to Android Studio's `jbr` folder before the install command.
+Install [Android Studio](https://developer.android.com/studio) and an Android SDK, then start an emulator or connect a phone with USB debugging. The shell's minimum Android version is API 23. The Gradle build needs JDK 21. Android Studio's bundled JDK can be newer than that. If the build reports `Unsupported class file major version`, install Temurin 21 and set `JAVA_HOME` to that JDK before the install command.
 
 From the repository root:
 
