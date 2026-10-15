@@ -1,0 +1,21 @@
+{
+  "name": "evolift-android",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Android shell that opens the EvoLift site.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "android": "cap run android",
+    "android:sync": "cap sync android",
+    "test": "node --test shell/server-config.test.mjs"
+  },
+  "dependencies": {
+    "@capacitor/android": "7.6.9",
+    "@capacitor/core": "7.6.9"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "7.6.9"
+  }
+}

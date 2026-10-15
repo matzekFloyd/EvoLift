@@ -1,0 +1,11 @@
+{
+	"appId": "app.evolift",
+	"appName": "EvoLift",
+	"webDir": "www",
+	"server": {
+		"url": "https://evo-lift.vercel.app",
+		"allowNavigation": [
+			"tiivtvejwxzgzgkmojuj.supabase.co"
+		]
+	}
+}
