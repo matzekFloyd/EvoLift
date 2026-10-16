@@ -421,6 +421,7 @@ export async function updateSessionExercise(
     targetWeightKg?: number | null;
     baseWeightKg?: number | null;
     notes?: string | null;
+    notDone?: boolean;
   },
 ): Promise<WorkoutSessionDetail> {
   await requireOwnedSessionExercise(client, userId, sessionId, sessionExerciseId);
@@ -441,6 +442,9 @@ export async function updateSessionExercise(
   }
   if (input.notes !== undefined) {
     updatePayload.notes = input.notes;
+  }
+  if (input.notDone !== undefined) {
+    updatePayload.not_done = input.notDone;
   }
 
   if (Object.keys(updatePayload).length === 0) {

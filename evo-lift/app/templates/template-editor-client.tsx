@@ -283,7 +283,7 @@ export function TemplateEditorClient(props: Props) {
           <FileStack className="h-6 w-6 text-sky-700" />
           {title}
         </h1>
-        <ActionButton type="button" onClick={goBack} variant="secondary" size="md">
+        <ActionButton type="button" onClick={goBack} variant="secondary" size="md" className="max-md:hidden">
           <ArrowLeft className="h-4 w-4 text-sky-700" />
           Back
         </ActionButton>

@@ -223,7 +223,7 @@ export function PlanEditorClient(props: Props) {
         </h1>
         <Link
           href="/plans"
-          className="inline-flex h-10 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
+          className="inline-flex h-10 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100 max-md:hidden"
         >
           <ArrowLeft className="h-4 w-4 text-sky-700" />
           Back

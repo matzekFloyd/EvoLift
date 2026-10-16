@@ -28,7 +28,7 @@ export function SetKindIndicator({
     if (isWarmup) {
       return (
         <span className={`inline-flex shrink-0 items-center ${className}`} title="Warmup set">
-          <Flame className={`shrink-0 text-zinc-600 ${iconClass}`} aria-hidden />
+          <Flame className={`shrink-0 fill-orange-500 text-orange-600 ${iconClass}`} aria-hidden />
           <span className="sr-only">Warmup set</span>
         </span>
       );
@@ -42,16 +42,16 @@ export function SetKindIndicator({
   }
 
   const box = compact
-    ? "inline-flex max-w-full items-center gap-0.5 rounded border px-1 py-px text-[10px] font-semibold leading-none"
-    : "inline-flex max-w-full items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-medium";
+    ? "inline-flex max-w-full items-center gap-0.5 rounded border px-1 py-[3px] text-[10px] font-semibold leading-none"
+    : "inline-flex max-w-full items-center gap-1 rounded-md border px-1.5 py-1 text-xs font-medium";
 
   if (isWarmup) {
     return (
       <span
-        className={`${box} border-zinc-200 bg-zinc-100 text-zinc-800 ${className}`}
+        className={`${box} border-zinc-200 bg-white text-zinc-800 ${className}`}
         title="Warmup set"
       >
-        <Flame className={`shrink-0 text-zinc-600 ${iconClass}`} aria-hidden />
+        <Flame className={`shrink-0 fill-orange-500 text-orange-600 ${iconClass}`} aria-hidden />
         <span>Warmup</span>
       </span>
     );

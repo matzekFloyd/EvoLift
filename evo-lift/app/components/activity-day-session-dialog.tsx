@@ -3,12 +3,13 @@
 import { useEffect } from "react";
 import { ActionButton } from "@/app/components/action-button";
 import { ExerciseBadgeChip } from "@/app/components/exercise-badge-chip";
+import { homeExerciseBadgeTone } from "@/app/home-sessions";
 import { SectionHeading } from "@/app/components/section-heading";
 
 type ActivityDaySessionChoice = {
   id: string;
   notes: string;
-  badges: Array<{ slug: string; hasLoggedSet: boolean }>;
+  badges: Array<{ slug: string; hasLoggedSet: boolean; skipped?: boolean }>;
 };
 
 type ActivityDaySessionDialogProps = {
@@ -68,7 +69,10 @@ export function ActivityDaySessionDialog({
                       <ExerciseBadgeChip
                         key={badge.slug}
                         slug={badge.slug}
-                        variant={badge.hasLoggedSet ? "sessionLogged" : "default"}
+                        variant={homeExerciseBadgeTone({
+                          hasLoggedSet: badge.hasLoggedSet,
+                          skipped: badge.skipped === true,
+                        })}
                       />
                     ))
                   )}

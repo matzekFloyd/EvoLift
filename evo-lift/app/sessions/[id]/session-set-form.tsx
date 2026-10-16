@@ -1,13 +1,81 @@
 "use client";
 
 import { Check, CheckCircle2, ChevronRight, Pencil, Plus, Trash2, X } from "lucide-react";
-import type { Dispatch, SetStateAction } from "react";
+import { type Dispatch, type SetStateAction, useLayoutEffect, useRef, useState } from "react";
 import { ActionButton } from "@/app/components/action-button";
 import { CompactRowActions } from "@/app/components/compact-row-actions";
 import { panelInsetClass } from "@/app/components/panel-inset";
+import { setsToShowForSkippedExercise } from "./session-exercise-status";
 import { SetKindIndicator } from "@/app/components/set-kind-indicator";
-import type { SessionSetDraft } from "./session-set-draft";
+import { shouldShowSetSummarySeparator } from "./compact-set-summary";
+import { canEditSetAsWarmup, showWarmupSetToggle, type SessionSetDraft } from "./session-set-draft";
 import type { WorkoutSetRow } from "./session-detail-actions";
+
+function CompactLoggedSetSummary({
+  isWarmup,
+  setNumber,
+  weightKg,
+  reps,
+}: {
+  isWarmup: boolean;
+  setNumber: number;
+  weightKg: number | null;
+  reps: number;
+}) {
+  const containerRef = useRef<HTMLSpanElement>(null);
+  const lineRef = useRef<HTMLSpanElement>(null);
+  const setRef = useRef<HTMLSpanElement>(null);
+  const loadRef = useRef<HTMLSpanElement>(null);
+  const separatorRef = useRef<HTMLSpanElement>(null);
+  const [showSeparator, setShowSeparator] = useState(true);
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    const line = lineRef.current;
+    const setEl = setRef.current;
+    const loadEl = loadRef.current;
+    const separatorEl = separatorRef.current;
+    if (!container || !line || !setEl || !loadEl || !separatorEl) {
+      return;
+    }
+
+    const measure = () => {
+      const gap = Number.parseFloat(getComputedStyle(line).columnGap) || 0;
+      setShowSeparator(
+        shouldShowSetSummarySeparator({
+          containerWidth: container.clientWidth,
+          setWidth: setEl.getBoundingClientRect().width,
+          loadWidth: loadEl.getBoundingClientRect().width,
+          separatorWidth: separatorEl.getBoundingClientRect().width,
+          gap,
+        }),
+      );
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [isWarmup, reps, setNumber, weightKg]);
+
+  return (
+    <span ref={containerRef} className="relative block min-w-0">
+      <span ref={separatorRef} aria-hidden className="pointer-events-none absolute w-max opacity-0">
+        ·
+      </span>
+      <span ref={lineRef} className="inline-flex max-w-full flex-wrap items-center gap-x-1.5 gap-y-1">
+        <span ref={setRef} className="inline-flex items-center gap-1.5">
+          <SetKindIndicator isWarmup={isWarmup} density="compact" />
+          <span className="font-medium text-zinc-900">Set {setNumber}</span>
+        </span>
+        {showSeparator ? <span className="text-zinc-500">·</span> : null}
+        <span ref={loadRef}>
+          {weightKg ?? "-"} kg, {reps} reps
+        </span>
+      </span>
+    </span>
+  );
+}
 
 type SessionExerciseSetsProps = {
   sessionExerciseId: string;
@@ -23,6 +91,7 @@ type SessionExerciseSetsProps = {
   isSavingSet: boolean;
   shouldUseSingleExerciseFlow: boolean;
   targetSetsMet: boolean;
+  notDone?: boolean;
   compactShowExtraSetComposer: boolean;
   fullAddSetRowExpanded: boolean;
   editingSetId: string | null;
@@ -54,6 +123,7 @@ export function SessionExerciseSets({
   isSavingSet,
   shouldUseSingleExerciseFlow,
   targetSetsMet,
+  notDone = false,
   compactShowExtraSetComposer,
   fullAddSetRowExpanded,
   editingSetId,
@@ -70,18 +140,38 @@ export function SessionExerciseSets({
   onShowExtraSets,
   onExpandFullAddSetRow,
 }: SessionExerciseSetsProps) {
+  const visibleSets = setsToShowForSkippedExercise(sets, notDone);
+  const showWarmupToggle = showWarmupSetToggle(lastSet?.is_warmup ?? null);
   const hideCompactNewSetComposer =
     shouldUseSingleExerciseFlow && targetSetsMet && canManageSets && !compactShowExtraSetComposer;
   const hideFullViewAddSetRow = targetSetsMet && canManageSets && !fullAddSetRowExpanded;
-  const compactNewSetPanelHighlight = isCompactView && !targetSetsMet;
 
   return (
     <>
       <div className="mt-3 space-y-3 md:hidden">
-        {sets.map((set) =>
+        {visibleSets.map((set, setIndex) =>
           editingSetId === set.id ? (
-            <div key={set.id} className={panelInsetClass("p-3")}>
-              <p className="text-xs font-medium text-zinc-600">Set {set.set_number}</p>
+            <div
+              key={set.id}
+              data-compact-set-row=""
+              data-compact-last-set={setIndex === visibleSets.length - 1 ? "" : undefined}
+              className={panelInsetClass("p-3")}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <p className="shrink-0 text-sm font-medium text-zinc-900">Set {set.set_number}</p>
+                {canEditSetAsWarmup(visibleSets, set.id) ? (
+                  <label className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs text-zinc-700">
+                    <input
+                      type="checkbox"
+                      checked={editDraft.isWarmup}
+                      onChange={(event) =>
+                        onEditDraftChange((prev) => ({ ...prev, isWarmup: event.target.checked }))
+                      }
+                    />
+                    Warmup?
+                  </label>
+                ) : null}
+              </div>
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <label className="text-xs font-medium text-zinc-600">
                   Loaded (kg)
@@ -109,16 +199,6 @@ export function SessionExerciseSets({
                   />
                 </label>
               </div>
-              <label className="mt-2 inline-flex items-center gap-2 text-xs text-zinc-700">
-                <input
-                  type="checkbox"
-                  checked={editDraft.isWarmup}
-                  onChange={(event) =>
-                    onEditDraftChange((prev) => ({ ...prev, isWarmup: event.target.checked }))
-                  }
-                />
-                Warmup?
-              </label>
               <div className="mt-3 flex justify-end gap-2">
                 <CompactRowActions
                   isEditing
@@ -129,20 +209,21 @@ export function SessionExerciseSets({
               </div>
             </div>
           ) : (
-            <div key={set.id} className={panelInsetClass("p-3")}>
+            <div
+              key={set.id}
+              data-compact-set-row=""
+              data-compact-last-set={setIndex === visibleSets.length - 1 ? "" : undefined}
+              className={panelInsetClass("p-3")}
+            >
               {isCompactView ? (
                 <div className="flex items-center justify-between gap-2">
-                  <div className="min-w-0 text-sm text-zinc-700">
-                    <span className="inline-flex flex-wrap items-center gap-x-1.5 gap-y-1">
-                      <span className="inline-flex flex-wrap items-center gap-1.5">
-                        <SetKindIndicator isWarmup={set.is_warmup} density="compact" />
-                        <span className="font-medium text-zinc-900">Set {set.set_number}</span>
-                      </span>
-                      <span className="text-zinc-500">·</span>
-                      <span>
-                        {set.weight_kg ?? "-"} kg, {set.reps} reps
-                      </span>
-                    </span>
+                  <div className="min-w-0 flex-1 text-sm text-zinc-700">
+                    <CompactLoggedSetSummary
+                      isWarmup={set.is_warmup}
+                      setNumber={set.set_number}
+                      weightKg={set.weight_kg}
+                      reps={set.reps}
+                    />
                   </div>
                   {canManageSets ? (
                     <div className="flex shrink-0 items-center">
@@ -180,7 +261,7 @@ export function SessionExerciseSets({
                         type="button"
                         onClick={() => onDeleteSet(set.id)}
                         disabled={isSavingSet}
-                        className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
+                        className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-50"
                       >
                         <Trash2 className="h-3 w-3 text-red-600" />
                         Delete
@@ -189,7 +270,7 @@ export function SessionExerciseSets({
                         type="button"
                         onClick={() => onStartEdit(set)}
                         disabled={isSavingSet}
-                        className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
+                        className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-50"
                       >
                         <Pencil className="h-3 w-3 text-sky-700" />
                         Edit
@@ -203,7 +284,10 @@ export function SessionExerciseSets({
         )}
         {canManageSets ? (
           hideCompactNewSetComposer ? (
-            <div className="rounded-md border border-sky-200 bg-sky-50/70 p-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+            <div
+              data-compact-next-action=""
+              className="rounded-md border border-sky-200 bg-sky-50/70 p-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+            >
               <p className="text-sm font-medium text-sky-950">All target working sets logged.</p>
               {exerciseIndex < exerciseCount - 1 ? (
                 <ActionButton
@@ -250,32 +334,27 @@ export function SessionExerciseSets({
           ) : (
             <div
               id={`compact-new-set-panel-${sessionExerciseId}`}
-              className={
-                compactNewSetPanelHighlight
-                  ? "rounded-md border border-sky-200 bg-sky-50/55 p-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
-                  : panelInsetClass("p-3")
-              }
+              data-compact-next-action=""
+              className="rounded-md border border-sky-300 bg-sky-50 p-3"
             >
-              <p
-                className={
-                  compactNewSetPanelHighlight
-                    ? "inline-flex items-center gap-1 text-sm font-medium text-sky-950"
-                    : "inline-flex items-center gap-1 text-sm text-zinc-700"
-                }
-              >
-                <Plus className="h-3 w-3 text-sky-700" aria-hidden />
-                New set
-              </p>
-              {lastSet ? (
-                <p className="mt-2 text-[11px] text-zinc-500">
-                  <span className="inline-flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                    <SetKindIndicator isWarmup={lastSet.is_warmup} density="compact" />
-                    <span>
-                      Last set: {lastSet.weight_kg ?? 0} kg × {lastSet.reps} reps
-                    </span>
-                  </span>
+              <div className="flex items-center justify-between gap-2">
+                <p className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-sky-950">
+                  <Plus className="h-3 w-3 text-sky-700" aria-hidden />
+                  New set
                 </p>
-              ) : null}
+                {showWarmupToggle ? (
+                  <label className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs text-zinc-700">
+                    <input
+                      type="checkbox"
+                      checked={addDraft.isWarmup}
+                      onChange={(event) => onUpdateAddDraft("isWarmup", event.target.checked)}
+                    />
+                    Warmup?
+                  </label>
+                ) : (
+                  <SetKindIndicator isWarmup={false} density="compact" />
+                )}
+              </div>
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <label className="text-sm font-medium text-zinc-700">
                   Loaded (kg)
@@ -299,7 +378,7 @@ export function SessionExerciseSets({
                           ),
                         )
                       }
-                      className="rounded border px-2 py-0.5 text-xs"
+                      className="rounded border border-zinc-300 bg-white px-2 py-0.5 text-xs text-zinc-800"
                     >
                       -2.5
                     </button>
@@ -311,7 +390,7 @@ export function SessionExerciseSets({
                           String(Number((Number(addDraft.weightKg || "0") + 2.5).toFixed(1))),
                         )
                       }
-                      className="rounded border px-2 py-0.5 text-xs"
+                      className="rounded border border-zinc-300 bg-white px-2 py-0.5 text-xs text-zinc-800"
                     >
                       +2.5
                     </button>
@@ -336,7 +415,7 @@ export function SessionExerciseSets({
                           String(Math.max(1, Number(addDraft.reps || "1") - 1)),
                         )
                       }
-                      className="rounded border px-2 py-0.5 text-xs"
+                      className="rounded border border-zinc-300 bg-white px-2 py-0.5 text-xs text-zinc-800"
                     >
                       -1
                     </button>
@@ -348,27 +427,19 @@ export function SessionExerciseSets({
                           String(Math.max(1, Number(addDraft.reps || "0") + 1)),
                         )
                       }
-                      className="rounded border px-2 py-0.5 text-xs"
+                      className="rounded border border-zinc-300 bg-white px-2 py-0.5 text-xs text-zinc-800"
                     >
                       +1
                     </button>
                   </div>
                 </label>
               </div>
-              <label className="mt-2 inline-flex items-center gap-2 text-sm text-zinc-700">
-                <input
-                  type="checkbox"
-                  checked={addDraft.isWarmup}
-                  onChange={(event) => onUpdateAddDraft("isWarmup", event.target.checked)}
-                />
-                Warmup?
-              </label>
               <div className="mt-3 flex justify-end">
                 <button
                   type="button"
                   onClick={onAddSet}
                   disabled={isSavingSet || isPlannedSession}
-                  className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-sm"
+                  className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-800"
                 >
                   <Plus className="h-3.5 w-3.5 text-sky-700" />
                   Add set
@@ -392,21 +463,23 @@ export function SessionExerciseSets({
               </tr>
             </thead>
             <tbody>
-              {sets.map((set) =>
+              {visibleSets.map((set) =>
                 editingSetId === set.id ? (
                   <tr key={set.id} className="border-b bg-white">
                     <td className="px-2 py-2">
-                      <label className="inline-flex cursor-pointer items-center gap-2 text-zinc-800">
-                        <input
-                          type="checkbox"
-                          checked={editDraft.isWarmup}
-                          onChange={(event) =>
-                            onEditDraftChange((prev) => ({ ...prev, isWarmup: event.target.checked }))
-                          }
-                          className="rounded border-zinc-300 text-sky-700 focus:ring-sky-600"
-                        />
-                        <span className="text-xs">Warmup?</span>
-                      </label>
+                      {canEditSetAsWarmup(visibleSets, set.id) ? (
+                        <label className="inline-flex cursor-pointer items-center gap-2 text-zinc-800">
+                          <input
+                            type="checkbox"
+                            checked={editDraft.isWarmup}
+                            onChange={(event) =>
+                              onEditDraftChange((prev) => ({ ...prev, isWarmup: event.target.checked }))
+                            }
+                            className="rounded border-zinc-300 text-sky-700 focus:ring-sky-600"
+                          />
+                          <span className="text-xs">Warmup?</span>
+                        </label>
+                      ) : null}
                     </td>
                     <td className="px-2 py-2">{set.set_number}</td>
                     <td className="px-2 py-2">
@@ -525,15 +598,17 @@ export function SessionExerciseSets({
               {canManageSets && !hideFullViewAddSetRow ? (
                 <tr>
                   <td className="px-2 py-2">
-                    <label className="inline-flex cursor-pointer items-center gap-2 text-zinc-800">
-                      <input
-                        type="checkbox"
-                        checked={addDraft.isWarmup}
-                        onChange={(event) => onUpdateAddDraft("isWarmup", event.target.checked)}
-                        className="rounded border-zinc-300 text-sky-700 focus:ring-sky-600"
-                      />
-                      <span className="text-xs">Warmup?</span>
-                    </label>
+                    {showWarmupToggle ? (
+                      <label className="inline-flex cursor-pointer items-center gap-2 text-zinc-800">
+                        <input
+                          type="checkbox"
+                          checked={addDraft.isWarmup}
+                          onChange={(event) => onUpdateAddDraft("isWarmup", event.target.checked)}
+                          className="rounded border-zinc-300 text-sky-700 focus:ring-sky-600"
+                        />
+                        <span className="text-xs">Warmup?</span>
+                      </label>
+                    ) : null}
                   </td>
                   <td className="px-2 py-2">
                     <span className="inline-flex items-center gap-1 text-xs text-zinc-600">

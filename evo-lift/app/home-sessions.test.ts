@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
-import { homeExerciseBadges, homeSetCount } from "./home-sessions";
+import { homeExerciseBadgeTone, homeExerciseBadges, homeSetCount } from "./home-sessions";
 
 describe("home sessions", () => {
   it("uses zero when the set count is missing", () => {
@@ -16,12 +16,20 @@ describe("home sessions", () => {
         { slug: "back-squat", has_logged_set: true },
         { slug: "", has_logged_set: true },
         { slug: "bench-press", has_logged_set: false },
+        { slug: "deadlift", has_logged_set: true, not_done: true },
       ]),
       [
-        { slug: "back-squat", hasLoggedSet: true },
-        { slug: "bench-press", hasLoggedSet: false },
+        { slug: "back-squat", hasLoggedSet: true, skipped: false },
+        { slug: "bench-press", hasLoggedSet: false, skipped: false },
+        { slug: "deadlift", hasLoggedSet: true, skipped: true },
       ],
     );
     assert.deepEqual(homeExerciseBadges(null), []);
+  });
+
+  it("uses the alert tone for a skipped exercise, even when sets were logged", () => {
+    assert.equal(homeExerciseBadgeTone({ hasLoggedSet: true, skipped: true }), "skipped");
+    assert.equal(homeExerciseBadgeTone({ hasLoggedSet: true, skipped: false }), "sessionLogged");
+    assert.equal(homeExerciseBadgeTone({ hasLoggedSet: false, skipped: false }), "default");
   });
 });

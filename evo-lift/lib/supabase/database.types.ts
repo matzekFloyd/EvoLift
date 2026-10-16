@@ -278,6 +278,7 @@ export type Database = {
           target_reps: number | null;
           target_weight_kg: number | null;
           notes: string | null;
+          not_done: boolean;
           created_at: string;
         };
         Insert: {
@@ -290,6 +291,7 @@ export type Database = {
           target_reps?: number | null;
           target_weight_kg?: number | null;
           notes?: string | null;
+          not_done?: boolean;
           created_at?: string;
         };
         Update: {
@@ -302,6 +304,7 @@ export type Database = {
           target_reps?: number | null;
           target_weight_kg?: number | null;
           notes?: string | null;
+          not_done?: boolean;
           created_at?: string;
         };
         Relationships: [];
@@ -612,6 +615,7 @@ export type Database = {
           exercise_badges: Array<{
             slug: string;
             has_logged_set: boolean;
+            not_done: boolean;
           }>;
         };
         Relationships: [];

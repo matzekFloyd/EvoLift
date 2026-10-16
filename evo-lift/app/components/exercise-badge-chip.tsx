@@ -4,8 +4,8 @@ type ExerciseBadgeChipProps = {
   slug: string;
   /** Extra classes (merged after variant). */
   className?: string;
-  /** `sessionLogged` matches session list badges when the user logged that exercise. */
-  variant?: "default" | "sessionLogged";
+  /** `sessionLogged` matches session list badges when the user logged that exercise. `skipped` is the alert colour. */
+  variant?: "default" | "sessionLogged" | "skipped";
   title?: string;
   "aria-label"?: string;
 };
@@ -13,6 +13,7 @@ type ExerciseBadgeChipProps = {
 const variantClass: Record<NonNullable<ExerciseBadgeChipProps["variant"]>, string> = {
   default: "border-zinc-300 bg-zinc-50 text-zinc-700",
   sessionLogged: "border-sky-300 bg-sky-100 text-sky-900",
+  skipped: "border-amber-300 bg-amber-100 text-amber-950",
 };
 
 /** Fixed-width badge so labels line up in lists and selects. */

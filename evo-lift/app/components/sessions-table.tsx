@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { ActionButton } from "@/app/components/action-button";
 import { AppTable } from "@/app/components/app-table";
 import { ExerciseBadgeChip } from "@/app/components/exercise-badge-chip";
+import { homeExerciseBadgeTone } from "@/app/home-sessions";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 
 type SortDirection = "asc" | "desc";
@@ -12,6 +13,7 @@ type SortDirection = "asc" | "desc";
 export type SessionsTableBadge = {
   slug: string;
   hasLoggedSet: boolean;
+  skipped: boolean;
 };
 
 export type SessionsTableRow = {
@@ -182,9 +184,9 @@ export function SessionsTable({
                           <ExerciseBadgeChip
                             key={`${row.id}-${item.slug}-${index}`}
                             slug={item.slug}
-                            variant={item.hasLoggedSet ? "sessionLogged" : "default"}
-                            title={item.slug}
-                            aria-label={item.slug}
+                            variant={homeExerciseBadgeTone(item)}
+                            title={item.skipped ? `${item.slug}, skipped` : item.slug}
+                            aria-label={item.skipped ? `${item.slug}, skipped` : item.slug}
                           />
                         ))}
                         {row.badges.length === 0 ? <span className="text-zinc-500">-</span> : null}

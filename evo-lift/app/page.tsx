@@ -41,6 +41,7 @@ type WorkoutSessionRow = {
 type SessionExerciseBadge = {
   slug: string;
   hasLoggedSet: boolean;
+  skipped: boolean;
 };
 
 export default function Home() {

@@ -28,7 +28,7 @@ export function CompactRowActions({
   cancelLabel = "Cancel",
 }: CompactRowActionsProps) {
   const buttonClass =
-    "inline-flex h-8 w-[72px] sm:w-20 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100";
+    "inline-flex h-8 w-[72px] sm:w-20 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-50";
 
   if (isEditing) {
     return (

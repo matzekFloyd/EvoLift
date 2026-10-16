@@ -1,7 +1,23 @@
+export type HomeExerciseBadgeTone = "default" | "sessionLogged" | "skipped";
+
 export type HomeExerciseBadge = {
   slug: string;
   hasLoggedSet: boolean;
+  skipped: boolean;
 };
+
+export function homeExerciseBadgeTone(badge: {
+  hasLoggedSet: boolean;
+  skipped: boolean;
+}): HomeExerciseBadgeTone {
+  if (badge.skipped) {
+    return "skipped";
+  }
+  if (badge.hasLoggedSet) {
+    return "sessionLogged";
+  }
+  return "default";
+}
 
 export function homeSetCount(value: unknown): number {
   const setCount = Number(value);
@@ -9,7 +25,7 @@ export function homeSetCount(value: unknown): number {
 }
 
 export function homeExerciseBadges(
-  value: Array<{ slug?: unknown; has_logged_set?: unknown }> | null,
+  value: Array<{ slug?: unknown; has_logged_set?: unknown; not_done?: unknown }> | null,
 ): HomeExerciseBadge[] {
   const badges = Array.isArray(value) ? value : [];
   return badges
@@ -17,5 +33,6 @@ export function homeExerciseBadges(
     .map((badge) => ({
       slug: badge.slug as string,
       hasLoggedSet: badge.has_logged_set === true,
+      skipped: badge.not_done === true,
     }));
 }

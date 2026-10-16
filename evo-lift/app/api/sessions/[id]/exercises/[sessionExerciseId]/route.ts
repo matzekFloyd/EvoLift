@@ -3,6 +3,7 @@ import {
   ApiHttpError,
   handleApi,
   jsonData,
+  parseOptionalBoolean,
   parseOptionalNonNegativeNumber,
   parseOptionalNotes,
   parseOptionalPositiveInt,
@@ -31,12 +32,14 @@ export async function PATCH(
     );
     const baseWeightKg = parseOptionalNonNegativeNumber(body.base_weight_kg, "base_weight_kg");
     const notes = parseOptionalNotes(body.notes, "notes");
+    const notDone = parseOptionalBoolean(body.not_done, "not_done");
     if (
       targetSets === undefined &&
       targetReps === undefined &&
       targetWeightKg === undefined &&
       baseWeightKg === undefined &&
-      notes === undefined
+      notes === undefined &&
+      notDone === undefined
     ) {
       throw new ApiHttpError(400, "Provide at least one field to update.");
     }
@@ -51,6 +54,7 @@ export async function PATCH(
         targetWeightKg,
         baseWeightKg,
         notes,
+        notDone,
       },
     );
     return jsonData(session);

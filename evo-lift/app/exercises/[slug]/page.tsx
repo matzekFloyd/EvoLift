@@ -681,13 +681,15 @@ export default function ExerciseDetailPage() {
               <span className="truncate">{exerciseLabel || slug}</span>
             </h1>
           </div>
-          <Link
-            href="/exercises"
-            className="inline-flex h-9 items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 text-sm text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
-          >
-            <ArrowLeft className="h-3.5 w-3.5 text-sky-700" />
-            Back to exercises
-          </Link>
+          {isCompactView ? null : (
+            <Link
+              href="/exercises"
+              className="inline-flex h-9 items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 text-sm text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
+            >
+              <ArrowLeft className="h-3.5 w-3.5 text-sky-700" />
+              Back to exercises
+            </Link>
+          )}
         </div>
       </section>
 
