@@ -126,6 +126,7 @@ export function buildOpenApiSpec(baseUrl: string) {
             target_reps: { type: "integer", nullable: true },
             target_weight_kg: { type: "number", nullable: true },
             notes: { type: "string", nullable: true },
+            not_done: { type: "boolean" },
             created_at: { type: "string" },
             sets: {
               type: "array",
@@ -396,7 +397,7 @@ export function buildOpenApiSpec(baseUrl: string) {
       },
       "/api/sessions/{id}/exercises/{sessionExerciseId}": {
         patch: {
-          summary: "Update session exercise targets",
+          summary: "Update a session exercise",
           parameters: [
             { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } },
             {
@@ -418,6 +419,7 @@ export function buildOpenApiSpec(baseUrl: string) {
                     target_weight_kg: { type: "number", minimum: 0, nullable: true },
                     base_weight_kg: { type: "number", minimum: 0, nullable: true },
                     notes: { type: "string", maxLength: 500, nullable: true },
+                    not_done: { type: "boolean" },
                   },
                 },
               },

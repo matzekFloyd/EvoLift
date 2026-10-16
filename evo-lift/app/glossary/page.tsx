@@ -97,6 +97,11 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
     definition: "One logged line for an exercise: the weight and the reps.",
   },
   {
+    term: "Skipped",
+    definition:
+      "A mark on an exercise in a session when you did not do it, such as when you ran out of time. Targets, sets, and history stay on screen under a cover until you clear the mark.",
+  },
+  {
     term: "Suggested target",
     definition:
       "A Loaded (kg) offered for Target weight (kg), from recent working sets for that exercise. The field changes only when you apply it.",

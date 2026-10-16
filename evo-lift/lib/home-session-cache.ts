@@ -12,6 +12,7 @@ export type HomeSessionSummaryRow = {
   exercise_badges: Array<{
     slug: string;
     has_logged_set: boolean;
+    not_done?: boolean;
   }> | null;
 };
 

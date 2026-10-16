@@ -5,6 +5,7 @@ import { type Dispatch, type SetStateAction, useLayoutEffect, useRef, useState }
 import { ActionButton } from "@/app/components/action-button";
 import { CompactRowActions } from "@/app/components/compact-row-actions";
 import { panelInsetClass } from "@/app/components/panel-inset";
+import { setsToShowForSkippedExercise } from "./session-exercise-status";
 import { SetKindIndicator } from "@/app/components/set-kind-indicator";
 import { shouldShowSetSummarySeparator } from "./compact-set-summary";
 import type { SessionSetDraft } from "./session-set-draft";
@@ -90,6 +91,7 @@ type SessionExerciseSetsProps = {
   isSavingSet: boolean;
   shouldUseSingleExerciseFlow: boolean;
   targetSetsMet: boolean;
+  notDone?: boolean;
   compactShowExtraSetComposer: boolean;
   fullAddSetRowExpanded: boolean;
   editingSetId: string | null;
@@ -121,6 +123,7 @@ export function SessionExerciseSets({
   isSavingSet,
   shouldUseSingleExerciseFlow,
   targetSetsMet,
+  notDone = false,
   compactShowExtraSetComposer,
   fullAddSetRowExpanded,
   editingSetId,
@@ -137,6 +140,7 @@ export function SessionExerciseSets({
   onShowExtraSets,
   onExpandFullAddSetRow,
 }: SessionExerciseSetsProps) {
+  const visibleSets = setsToShowForSkippedExercise(sets, notDone);
   const hideCompactNewSetComposer =
     shouldUseSingleExerciseFlow && targetSetsMet && canManageSets && !compactShowExtraSetComposer;
   const hideFullViewAddSetRow = targetSetsMet && canManageSets && !fullAddSetRowExpanded;
@@ -145,7 +149,7 @@ export function SessionExerciseSets({
   return (
     <>
       <div className="mt-3 space-y-3 md:hidden">
-        {sets.map((set) =>
+        {visibleSets.map((set) =>
           editingSetId === set.id ? (
             <div key={set.id} className={panelInsetClass("p-3")}>
               <p className="text-xs font-medium text-zinc-600">Set {set.set_number}</p>
@@ -455,7 +459,7 @@ export function SessionExerciseSets({
               </tr>
             </thead>
             <tbody>
-              {sets.map((set) =>
+              {visibleSets.map((set) =>
                 editingSetId === set.id ? (
                   <tr key={set.id} className="border-b bg-white">
                     <td className="px-2 py-2">

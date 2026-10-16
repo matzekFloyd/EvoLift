@@ -6,6 +6,7 @@ import {
   Check,
   ChevronDown,
   ChevronUp,
+  CircleOff,
   ListChecks,
   Lock,
   LockOpen,
@@ -16,8 +17,14 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
+import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { CompactStickyBar } from "@/app/components/compact-sticky-bar";
+import {
+  SKIPPED_EXERCISE_BUTTON_TITLE,
+  skippedExerciseButtonClass,
+  skippedExerciseLabel,
+} from "./session-exercise-status";
 import { DateInput } from "@/app/components/date-input";
 import { ExerciseSearchSelect } from "@/app/components/exercise-search-select";
 import { NotesTextareaField } from "@/app/components/notes-textarea-field";
@@ -110,6 +117,7 @@ export default function SessionDetailPage() {
   const [targetsWeightKg, setTargetsWeightKg] = useState("");
   const [targetsSessionExerciseId, setTargetsSessionExerciseId] = useState<string | null>(null);
   const [isSavingTargets, setIsSavingTargets] = useState(false);
+  const [savingNotDoneId, setSavingNotDoneId] = useState<string | null>(null);
   const [isSmallPhone, setIsSmallPhone] = useState(false);
   const [activeExerciseIndex, setActiveExerciseIndex] = useState(0);
   const activeExerciseIndexChangeSourceRef = useRef<"user" | "url">("user");
@@ -307,7 +315,7 @@ export default function SessionDetailPage() {
           supabaseBrowserClient
             .from("workout_session_exercises")
             .select(
-              "id, session_id, exercise_id, position, base_weight_kg, target_sets, target_reps, target_weight_kg, notes, created_at",
+              "id, session_id, exercise_id, position, base_weight_kg, target_sets, target_reps, target_weight_kg, notes, not_done, created_at",
             )
             .eq("session_id", sessionId)
             .order("position", { ascending: true }),
@@ -687,6 +695,32 @@ export default function SessionDetailPage() {
     sessionId,
   ]);
 
+  async function toggleExerciseNotDone(sessionExercise: SessionExerciseRow) {
+    if (savingNotDoneId === sessionExercise.id) {
+      return;
+    }
+    const next = !sessionExercise.not_done;
+    setSavingNotDoneId(sessionExercise.id);
+    setSessionExercises((prev) =>
+      prev.map((item) => (item.id === sessionExercise.id ? { ...item, not_done: next } : item)),
+    );
+    const { error } = await supabaseBrowserClient
+      .from("workout_session_exercises")
+      .update({ not_done: next })
+      .eq("id", sessionExercise.id);
+    if (error) {
+      setSessionExercises((prev) =>
+        prev.map((item) =>
+          item.id === sessionExercise.id ? { ...item, not_done: !next } : item,
+        ),
+      );
+      showError(`Could not update this exercise: ${error.message}`);
+    } else {
+      invalidateLoggedHistoryCaches();
+    }
+    setSavingNotDoneId(null);
+  }
+
   function updateAddDraft(
     sessionExerciseId: string,
     key: keyof SetDraft,
@@ -1011,6 +1045,16 @@ export default function SessionDetailPage() {
             )}
             {isReadOnly ? "Unlock" : "Lock"}
           </button>
+          {isCompactView && !isReadOnly ? (
+            <button
+              type="button"
+              onClick={() => setIsAddExerciseSheetOpen(true)}
+              className="inline-flex h-10 w-full items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-sm text-zinc-800 hover:border-sky-400 hover:bg-zinc-100 hover:text-zinc-900"
+            >
+              <Plus className="h-4 w-4 text-sky-700" />
+              Add exercise
+            </button>
+          ) : null}
           {!isCompactView ? (
             <button
               type="button"
@@ -1217,6 +1261,10 @@ export default function SessionDetailPage() {
                 onTargetsSetsChange={setTargetsSets}
                 onTargetsRepsChange={setTargetsReps}
                 onTargetsWeightChange={setTargetsWeightKg}
+                isSavingNotDone={savingNotDoneId === sessionExercise.id}
+                onToggleNotDone={() => {
+                  void toggleExerciseNotDone(sessionExercise);
+                }}
                 onAddWarmups={(sessionExerciseId) => {
                   void handleAddWarmups(sessionExerciseId);
                 }}
@@ -1422,22 +1470,32 @@ export default function SessionDetailPage() {
             <>
               <button
                 type="button"
-                onClick={() => setIsAddExerciseSheetOpen(true)}
-                className="inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 text-xs font-medium text-zinc-800 shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:border-sky-300 hover:bg-zinc-100 sm:px-2.5 sm:text-sm"
+                aria-pressed={activeSessionExercise.not_done}
+                disabled={savingNotDoneId === activeSessionExercise.id}
+                onClick={() => {
+                  void toggleExerciseNotDone(activeSessionExercise);
+                }}
+                title={SKIPPED_EXERCISE_BUTTON_TITLE}
+                className={`inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-1 rounded-md border px-2 text-xs font-medium shadow-[0_2px_8px_rgba(0,0,0,0.08)] disabled:opacity-60 sm:px-2.5 sm:text-sm ${skippedExerciseButtonClass(activeSessionExercise.not_done)}`}
               >
-                <Plus className="h-3.5 w-3.5 shrink-0 text-sky-700" aria-hidden />
-                <span className="truncate">Add exercise</span>
+                <CircleOff className="h-3.5 w-3.5 shrink-0 text-amber-600" aria-hidden />
+                <span className="truncate">{skippedExerciseLabel(activeSessionExercise.not_done)}</span>
               </button>
               <button
                 type="button"
                 onClick={() => startTargetsEdit(activeSessionExercise, "sheet")}
-                title="Edit planned working-set targets (warmups do not count)."
-                className="inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 text-xs font-medium text-zinc-800 shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:border-sky-300 hover:bg-zinc-100 sm:px-2.5 sm:text-sm"
+                disabled={activeSessionExercise.not_done}
+                title={
+                  activeSessionExercise.not_done
+                    ? "Clear Skipped to edit targets."
+                    : "Edit planned working-set targets (warmups do not count)."
+                }
+                className="inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 text-xs font-medium text-zinc-800 shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:border-sky-300 hover:bg-zinc-100 disabled:opacity-60 sm:px-2.5 sm:text-sm"
               >
                 <ListChecks className="h-3.5 w-3.5 shrink-0 text-sky-700" aria-hidden />
                 <span className="truncate">Set targets</span>
               </button>
-              {canManageSets && !stickyHideAddSetButton ? (
+              {canManageSets && !stickyHideAddSetButton && !activeSessionExercise.not_done ? (
                 <button
                   type="button"
                   onClick={() => handleAddSet(activeSessionExercise.id)}
