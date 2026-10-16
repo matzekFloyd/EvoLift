@@ -4,7 +4,9 @@ import {
   SESSION_DATE_HAS_SETS,
   SESSION_DATE_INVALID,
   SESSION_DATE_REQUIRED,
+  canEditSetAsWarmup,
   findLastWorkingSet,
+  showWarmupSetToggle,
   parseYyyyMmDdDateOnly,
   resolveSuggestedAddDraft,
   sessionPerformedOnError,
@@ -42,6 +44,37 @@ describe("sessionPerformedOnError", () => {
       SESSION_DATE_HAS_SETS,
       "This session already has logged sets. Choose today or an earlier date.",
     );
+  });
+});
+
+describe("showWarmupSetToggle", () => {
+  it("shows the warmup toggle when there is no set yet or the previous set is a warmup", () => {
+    assert.equal(showWarmupSetToggle(null), true);
+    assert.equal(showWarmupSetToggle(true), true);
+  });
+
+  it("hides the warmup toggle once the previous set is a working set", () => {
+    assert.equal(showWarmupSetToggle(false), false);
+  });
+});
+
+describe("canEditSetAsWarmup", () => {
+  const sets = [
+    { id: "a", set_number: 1, is_warmup: true },
+    { id: "b", set_number: 2, is_warmup: true },
+    { id: "c", set_number: 3, is_warmup: false },
+    { id: "d", set_number: 4, is_warmup: false },
+  ];
+
+  it("allows a warmup on the first set and on a set that follows a warmup", () => {
+    assert.equal(canEditSetAsWarmup(sets, "a"), true);
+    assert.equal(canEditSetAsWarmup(sets, "b"), true);
+    assert.equal(canEditSetAsWarmup(sets, "c"), true);
+  });
+
+  it("blocks a warmup once the set before it is a working set", () => {
+    assert.equal(canEditSetAsWarmup(sets, "d"), false);
+    assert.equal(canEditSetAsWarmup(sets, "missing"), false);
   });
 });
 

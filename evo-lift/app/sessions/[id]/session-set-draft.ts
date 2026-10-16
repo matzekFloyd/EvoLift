@@ -52,6 +52,28 @@ export function sessionPerformedOnError(value: string): string | null {
   return null;
 }
 
+/**
+ * Warmup is only offered for the first set, or for a set that follows another warmup.
+ * After a working set, the next set is a working set.
+ */
+export function showWarmupSetToggle(previousSetIsWarmup: boolean | null): boolean {
+  return previousSetIsWarmup !== false;
+}
+
+/** Edit can mark a set as a warmup only when it is first, or the set before it is a warmup. */
+export function canEditSetAsWarmup<T extends { id: string; set_number: number; is_warmup: boolean }>(
+  sets: readonly T[],
+  setId: string,
+): boolean {
+  const ordered = [...sets].sort((a, b) => a.set_number - b.set_number);
+  const index = ordered.findIndex((set) => set.id === setId);
+  if (index < 0) {
+    return false;
+  }
+  const previous = index > 0 ? ordered[index - 1] : null;
+  return showWarmupSetToggle(previous ? previous.is_warmup : null);
+}
+
 /** Most recent working (non-warmup) set in `set_number` order. */
 export function findLastWorkingSet<T extends { is_warmup: boolean }>(setsSorted: T[]): T | null {
   for (let i = setsSorted.length - 1; i >= 0; i -= 1) {

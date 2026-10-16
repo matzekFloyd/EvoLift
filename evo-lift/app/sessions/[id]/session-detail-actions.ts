@@ -26,6 +26,8 @@ import {
   parseYyyyMmDdDateOnly,
   SESSION_DATE_HAS_SETS,
   sessionPerformedOnError,
+  canEditSetAsWarmup,
+  showWarmupSetToggle,
   type SessionSetDraft,
 } from "./session-set-draft";
 
@@ -164,6 +166,8 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
 
     const existingSets = setsForSessionExercise(workoutSets, sessionExerciseId);
     const setNumber = nextSetNumber(existingSets.map((set) => set.set_number));
+    const previousSet = existingSets[existingSets.length - 1] ?? null;
+    const isWarmup = showWarmupSetToggle(previousSet?.is_warmup ?? null) && draft.isWarmup;
 
     setIsSavingSet(true);
 
@@ -174,7 +178,7 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
         set_number: setNumber,
         reps: logged.reps,
         weight_kg: logged.weightKg,
-        is_warmup: draft.isWarmup,
+        is_warmup: isWarmup,
       })
       .select("*")
       .single();
@@ -284,6 +288,12 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
       return;
     }
 
+    const edited = workoutSets.find((set) => set.id === setId);
+    const exerciseSets = edited
+      ? setsForSessionExercise(workoutSets, edited.session_exercise_id)
+      : [];
+    const isWarmup = canEditSetAsWarmup(exerciseSets, setId) && editDraft.isWarmup;
+
     setIsSavingSet(true);
 
     const { data, error } = await supabaseBrowserClient
@@ -291,7 +301,7 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
       .update({
         reps: logged.reps,
         weight_kg: logged.weightKg,
-        is_warmup: editDraft.isWarmup,
+        is_warmup: isWarmup,
       })
       .eq("id", setId)
       .select("*")

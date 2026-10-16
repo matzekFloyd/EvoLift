@@ -927,13 +927,12 @@ export default function SessionDetailPage() {
     activeTargetSetsGoal != null &&
     activeTargetSetsGoal > 0 &&
     activeWorkingSetCount >= activeTargetSetsGoal;
-  const stickyHideAddSetButton =
+  const stickyNextLabel =
     shouldUseSingleExerciseFlow &&
     canManageSets &&
     activeTargetSetsMet &&
-    !compactShowExtraSetComposer;
-  const stickyNextLabel =
-    stickyHideAddSetButton && activeExerciseIndex < sessionExercises.length - 1
+    !compactShowExtraSetComposer &&
+    activeExerciseIndex < sessionExercises.length - 1
       ? "Next exercise"
       : "Next";
 
@@ -1503,17 +1502,6 @@ export default function SessionDetailPage() {
                 <ListChecks className="h-3.5 w-3.5 shrink-0 text-sky-700" aria-hidden />
                 <span className="truncate">Set targets</span>
               </button>
-              {canManageSets && !stickyHideAddSetButton && !activeSessionExercise.not_done ? (
-                <button
-                  type="button"
-                  onClick={() => handleAddSet(activeSessionExercise.id)}
-                  disabled={isSavingSet || isPlannedSession}
-                  className="inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-2 text-xs font-medium text-white shadow-[0_4px_12px_rgba(0,0,0,0.14)] hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60 sm:px-2.5 sm:text-sm"
-                >
-                  <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                  <span className="truncate">{isSavingSet ? "Adding..." : "Add set"}</span>
-                </button>
-              ) : null}
             </>
           }
           progressLabel={`${activeExerciseIndex + 1}/${sessionExercises.length}`}

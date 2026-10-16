@@ -8,7 +8,7 @@ import { panelInsetClass } from "@/app/components/panel-inset";
 import { setsToShowForSkippedExercise } from "./session-exercise-status";
 import { SetKindIndicator } from "@/app/components/set-kind-indicator";
 import { shouldShowSetSummarySeparator } from "./compact-set-summary";
-import type { SessionSetDraft } from "./session-set-draft";
+import { canEditSetAsWarmup, showWarmupSetToggle, type SessionSetDraft } from "./session-set-draft";
 import type { WorkoutSetRow } from "./session-detail-actions";
 
 function CompactLoggedSetSummary({
@@ -141,6 +141,7 @@ export function SessionExerciseSets({
   onExpandFullAddSetRow,
 }: SessionExerciseSetsProps) {
   const visibleSets = setsToShowForSkippedExercise(sets, notDone);
+  const showWarmupToggle = showWarmupSetToggle(lastSet?.is_warmup ?? null);
   const hideCompactNewSetComposer =
     shouldUseSingleExerciseFlow && targetSetsMet && canManageSets && !compactShowExtraSetComposer;
   const hideFullViewAddSetRow = targetSetsMet && canManageSets && !fullAddSetRowExpanded;
@@ -156,7 +157,21 @@ export function SessionExerciseSets({
               data-compact-last-set={setIndex === visibleSets.length - 1 ? "" : undefined}
               className={panelInsetClass("p-3")}
             >
-              <p className="text-xs font-medium text-zinc-600">Set {set.set_number}</p>
+              <div className="flex items-center justify-between gap-2">
+                <p className="shrink-0 text-sm font-medium text-zinc-900">Set {set.set_number}</p>
+                {canEditSetAsWarmup(visibleSets, set.id) ? (
+                  <label className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs text-zinc-700">
+                    <input
+                      type="checkbox"
+                      checked={editDraft.isWarmup}
+                      onChange={(event) =>
+                        onEditDraftChange((prev) => ({ ...prev, isWarmup: event.target.checked }))
+                      }
+                    />
+                    Warmup?
+                  </label>
+                ) : null}
+              </div>
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <label className="text-xs font-medium text-zinc-600">
                   Loaded (kg)
@@ -184,16 +199,6 @@ export function SessionExerciseSets({
                   />
                 </label>
               </div>
-              <label className="mt-2 inline-flex items-center gap-2 text-xs text-zinc-700">
-                <input
-                  type="checkbox"
-                  checked={editDraft.isWarmup}
-                  onChange={(event) =>
-                    onEditDraftChange((prev) => ({ ...prev, isWarmup: event.target.checked }))
-                  }
-                />
-                Warmup?
-              </label>
               <div className="mt-3 flex justify-end gap-2">
                 <CompactRowActions
                   isEditing
@@ -332,20 +337,24 @@ export function SessionExerciseSets({
               data-compact-next-action=""
               className="rounded-md border border-sky-300 bg-sky-50 p-3"
             >
-              <p className="inline-flex items-center gap-1 text-sm font-medium text-sky-950">
-                <Plus className="h-3 w-3 text-sky-700" aria-hidden />
-                New set
-              </p>
-              {lastSet ? (
-                <p className="mt-2 text-[11px] text-zinc-700">
-                  <span className="inline-flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
-                    <SetKindIndicator isWarmup={lastSet.is_warmup} density="compact" />
-                    <span>
-                      Last set: {lastSet.weight_kg ?? 0} kg × {lastSet.reps} reps
-                    </span>
-                  </span>
+              <div className="flex items-center justify-between gap-2">
+                <p className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-sky-950">
+                  <Plus className="h-3 w-3 text-sky-700" aria-hidden />
+                  New set
                 </p>
-              ) : null}
+                {showWarmupToggle ? (
+                  <label className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs text-zinc-700">
+                    <input
+                      type="checkbox"
+                      checked={addDraft.isWarmup}
+                      onChange={(event) => onUpdateAddDraft("isWarmup", event.target.checked)}
+                    />
+                    Warmup?
+                  </label>
+                ) : (
+                  <SetKindIndicator isWarmup={false} density="compact" />
+                )}
+              </div>
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <label className="text-sm font-medium text-zinc-700">
                   Loaded (kg)
@@ -425,14 +434,6 @@ export function SessionExerciseSets({
                   </div>
                 </label>
               </div>
-              <label className="mt-2 inline-flex items-center gap-2 text-sm text-zinc-700">
-                <input
-                  type="checkbox"
-                  checked={addDraft.isWarmup}
-                  onChange={(event) => onUpdateAddDraft("isWarmup", event.target.checked)}
-                />
-                Warmup?
-              </label>
               <div className="mt-3 flex justify-end">
                 <button
                   type="button"
@@ -466,17 +467,19 @@ export function SessionExerciseSets({
                 editingSetId === set.id ? (
                   <tr key={set.id} className="border-b bg-white">
                     <td className="px-2 py-2">
-                      <label className="inline-flex cursor-pointer items-center gap-2 text-zinc-800">
-                        <input
-                          type="checkbox"
-                          checked={editDraft.isWarmup}
-                          onChange={(event) =>
-                            onEditDraftChange((prev) => ({ ...prev, isWarmup: event.target.checked }))
-                          }
-                          className="rounded border-zinc-300 text-sky-700 focus:ring-sky-600"
-                        />
-                        <span className="text-xs">Warmup?</span>
-                      </label>
+                      {canEditSetAsWarmup(visibleSets, set.id) ? (
+                        <label className="inline-flex cursor-pointer items-center gap-2 text-zinc-800">
+                          <input
+                            type="checkbox"
+                            checked={editDraft.isWarmup}
+                            onChange={(event) =>
+                              onEditDraftChange((prev) => ({ ...prev, isWarmup: event.target.checked }))
+                            }
+                            className="rounded border-zinc-300 text-sky-700 focus:ring-sky-600"
+                          />
+                          <span className="text-xs">Warmup?</span>
+                        </label>
+                      ) : null}
                     </td>
                     <td className="px-2 py-2">{set.set_number}</td>
                     <td className="px-2 py-2">
@@ -595,15 +598,17 @@ export function SessionExerciseSets({
               {canManageSets && !hideFullViewAddSetRow ? (
                 <tr>
                   <td className="px-2 py-2">
-                    <label className="inline-flex cursor-pointer items-center gap-2 text-zinc-800">
-                      <input
-                        type="checkbox"
-                        checked={addDraft.isWarmup}
-                        onChange={(event) => onUpdateAddDraft("isWarmup", event.target.checked)}
-                        className="rounded border-zinc-300 text-sky-700 focus:ring-sky-600"
-                      />
-                      <span className="text-xs">Warmup?</span>
-                    </label>
+                    {showWarmupToggle ? (
+                      <label className="inline-flex cursor-pointer items-center gap-2 text-zinc-800">
+                        <input
+                          type="checkbox"
+                          checked={addDraft.isWarmup}
+                          onChange={(event) => onUpdateAddDraft("isWarmup", event.target.checked)}
+                          className="rounded border-zinc-300 text-sky-700 focus:ring-sky-600"
+                        />
+                        <span className="text-xs">Warmup?</span>
+                      </label>
+                    ) : null}
                   </td>
                   <td className="px-2 py-2">
                     <span className="inline-flex items-center gap-1 text-xs text-zinc-600">
