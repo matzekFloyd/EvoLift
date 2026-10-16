@@ -31,9 +31,8 @@ import {
   historyRowSurfaceClass,
   historyRowTitle,
   historyValueClass,
-  loggedLoadKg,
   normalizeLoadedForComparison,
-  setTotalKgForStats,
+  summarizeExerciseHistory,
 } from "./exercise-history-display";
 import {
   compareExerciseSetHistoryForPerformedOn,
@@ -547,34 +546,14 @@ export default function ExerciseDetailPage() {
     [filteredHistoryRows],
   );
 
-  /** Per workout session: how many rows (sets) for this exercise, warmups included—matches “Logged sets” grain. */
-  const sessionSetStats = useMemo(() => {
-    const bySession = new Map<string, number>();
-    for (const row of filteredHistoryRows) {
-      bySession.set(row.sessionId, (bySession.get(row.sessionId) ?? 0) + 1);
-    }
-    const counts = [...bySession.values()];
-    if (counts.length === 0) {
-      return { avgSetsPerSession: null as number | null, maxSetsInSession: null as number | null };
-    }
-    return {
-      avgSetsPerSession: counts.reduce((s, n) => s + n, 0) / counts.length,
-      maxSetsInSession: Math.max(...counts),
-    };
-  }, [filteredHistoryRows]);
-
-  const avgSetsText = useMemo(
-    () =>
-      sessionSetStats.avgSetsPerSession == null
-        ? "—"
-        : sessionSetStats.avgSetsPerSession.toFixed(1),
-    [sessionSetStats.avgSetsPerSession],
+  const historyStats = useMemo(
+    () => summarizeExerciseHistory(filteredHistoryRows),
+    [filteredHistoryRows],
   );
-  const maxSetsText = useMemo(
-    () =>
-      sessionSetStats.maxSetsInSession == null ? "—" : String(sessionSetStats.maxSetsInSession),
-    [sessionSetStats.maxSetsInSession],
-  );
+  const avgSetsText =
+    historyStats.avgSetsPerSession == null ? "—" : historyStats.avgSetsPerSession.toFixed(1);
+  const maxSetsText =
+    historyStats.maxSetsInSession == null ? "—" : String(historyStats.maxSetsInSession);
 
   const sessionWeightChartPoints = useMemo(
     () => buildExerciseSessionWeightChartPoints(filteredHistoryRows),
@@ -586,45 +565,10 @@ export default function ExerciseDetailPage() {
     [filteredHistoryRows],
   );
 
-  const loadStats = useMemo(() => {
-    const loads = workingRows.map(loggedLoadKg).filter((v): v is number => v !== null);
-    if (loads.length === 0) {
-      return { maxLoaded: null as number | null, avgLoaded: null as number | null };
-    }
-    return {
-      maxLoaded: Math.max(...loads),
-      avgLoaded: loads.reduce((s, v) => s + v, 0) / loads.length,
-    };
-  }, [workingRows]);
-
-  /** Avg / max over individual working sets’ Total (kg), not session roll-ups or volume (kg × reps). */
-  const totalKgStats = useMemo(() => {
-    const perSet = workingRows.map(setTotalKgForStats).filter((v): v is number => v !== null);
-    if (perSet.length === 0) {
-      return { maxTotalKg: null as number | null, avgTotalKg: null as number | null };
-    }
-    return {
-      maxTotalKg: Math.max(...perSet),
-      avgTotalKg: perSet.reduce((s, v) => s + v, 0) / perSet.length,
-    };
-  }, [workingRows]);
-
-  const maxLoadedText = useMemo(
-    () => formatKgValue(loadStats.maxLoaded, 1),
-    [loadStats.maxLoaded],
-  );
-  const maxTotalText = useMemo(
-    () => formatKgValue(totalKgStats.maxTotalKg, 1),
-    [totalKgStats.maxTotalKg],
-  );
-  const averageLoadedText = useMemo(
-    () => formatKgValue(loadStats.avgLoaded, 1),
-    [loadStats.avgLoaded],
-  );
-  const averageTotalText = useMemo(
-    () => formatKgValue(totalKgStats.avgTotalKg, 1),
-    [totalKgStats.avgTotalKg],
-  );
+  const maxLoadedText = formatKgValue(historyStats.bestLoadedKg, 1);
+  const maxTotalText = formatKgValue(historyStats.bestTotalKg, 1);
+  const averageLoadedText = formatKgValue(historyStats.avgLoadedKg, 1);
+  const averageTotalText = formatKgValue(historyStats.avgTotalKg, 1);
 
   /** Default date + session + set order (newest first, highest set first); same as Session date ↓ on wide layout. */
   const compactHistoryRows = useMemo(

@@ -28,6 +28,7 @@ type SetRow = {
 export async function loadMilestoneWorkingSets(
   client: Client,
   exerciseIds: string[],
+  userId?: string,
 ): Promise<MilestoneWorkingSet[]> {
   const uniqueIds = [...new Set(exerciseIds.filter(Boolean))];
   if (uniqueIds.length === 0) {
@@ -71,14 +72,17 @@ export async function loadMilestoneWorkingSets(
   const sessionIds = [...new Set(exercises.map((row) => row.session_id).filter(Boolean))];
   const performedOnBySessionId = new Map<string, string>();
   if (sessionIds.length > 0) {
-    const { data: sessionRows, error: sessionsError } = await fetchInChunks(sessionIds, (chunk, from, to) =>
-      client
+    const { data: sessionRows, error: sessionsError } = await fetchInChunks(sessionIds, (chunk, from, to) => {
+      let sessionQuery = client
         .from("workout_sessions")
         .select("id, performed_on")
         .in("id", chunk)
-        .order("id", { ascending: true })
-        .range(from, to),
-    );
+        .order("id", { ascending: true });
+      if (userId) {
+        sessionQuery = sessionQuery.eq("user_id", userId);
+      }
+      return sessionQuery.range(from, to);
+    });
     if (sessionsError) {
       throw new Error("Could not load workout sets.");
     }
