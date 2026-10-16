@@ -20,6 +20,7 @@ import { useParams, usePathname, useRouter, useSearchParams } from "next/navigat
 import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { CompactStickyBar } from "@/app/components/compact-sticky-bar";
+import { compactLogScrollDelta } from "./compact-log-scroll";
 import {
   SKIPPED_EXERCISE_BUTTON_TITLE,
   skippedExerciseButtonClass,
@@ -817,41 +818,47 @@ export default function SessionDetailPage() {
   }
 
   useEffect(() => {
-    if (!isSmallPhone || !pendingCompactSetFocusSessionExerciseId) {
+    const exerciseRow = sessionExercises[activeExerciseIndex];
+    if (!isSmallPhone || isReadOnly || !exerciseRow) {
       return;
     }
-    let attempts = 0;
-    let timer: number | null = null;
-    const targetId = pendingCompactSetFocusSessionExerciseId;
+    const exerciseId = exerciseRow.id;
+    let frame = 0;
 
-    const tryFocus = () => {
-      attempts += 1;
-      const panel = document.getElementById(`compact-new-set-panel-${targetId}`);
-      if (panel instanceof HTMLElement) {
-        panel.scrollIntoView({ behavior: "smooth", block: "center" });
-        const firstInput = panel.querySelector<HTMLInputElement>('input[type="number"]');
-        firstInput?.focus();
-        setPendingCompactSetFocusSessionExerciseId(null);
+    const scrollToNextAction = () => {
+      const exercise = document.getElementById(`exercise-${exerciseId}`);
+      const action = exercise?.querySelector("[data-compact-next-action]");
+      if (!(action instanceof HTMLElement)) {
         return;
       }
-      if (attempts < 8) {
-        timer = window.setTimeout(tryFocus, 80);
+      const sticky = document.getElementById("compact-sticky-bar");
+      const lastRow = exercise?.querySelector("[data-compact-last-set]");
+      const actionRect = action.getBoundingClientRect();
+      const lastRect = lastRow instanceof HTMLElement ? lastRow.getBoundingClientRect() : null;
+      const delta = compactLogScrollDelta({
+        viewportHeight: window.innerHeight,
+        stickyHeight: sticky?.getBoundingClientRect().height ?? 0,
+        topInset: 0,
+        actionTop: actionRect.top,
+        actionBottom: actionRect.bottom,
+        lastRowTop: lastRect?.top ?? null,
+      });
+      if (Math.abs(delta) < 4) {
         return;
       }
-      setPendingCompactSetFocusSessionExerciseId(null);
+      window.scrollBy({ top: delta, behavior: "smooth" });
     };
 
-    timer = window.setTimeout(tryFocus, 60);
-    return () => {
-      if (timer != null) {
-        window.clearTimeout(timer);
-      }
-    };
+    frame = window.requestAnimationFrame(() => {
+      frame = window.requestAnimationFrame(scrollToNextAction);
+    });
+    return () => window.cancelAnimationFrame(frame);
   }, [
-    isSmallPhone,
-    pendingCompactSetFocusSessionExerciseId,
-    compactShowExtraSetComposer,
     activeExerciseIndex,
+    compactShowExtraSetComposer,
+    isReadOnly,
+    isSmallPhone,
+    sessionExercises,
     workoutSets.length,
   ]);
 
@@ -934,7 +941,8 @@ export default function SessionDetailPage() {
     <PageShell
       className={
         isCompactView
-          ? "max-md:!pb-[calc(11rem+env(safe-area-inset-bottom,0px))]"
+          ? // Sticky bar height plus the same 0.75rem gap used between set rows.
+            "max-md:!pb-[calc(7.5rem+1px+max(0.75rem,env(safe-area-inset-bottom,0px)))]"
           : undefined
       }
     >

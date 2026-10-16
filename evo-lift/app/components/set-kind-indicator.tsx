@@ -42,8 +42,8 @@ export function SetKindIndicator({
   }
 
   const box = compact
-    ? "inline-flex max-w-full items-center gap-0.5 rounded border px-1 py-px text-[10px] font-semibold leading-none"
-    : "inline-flex max-w-full items-center gap-1 rounded-md border px-1.5 py-0.5 text-xs font-medium";
+    ? "inline-flex max-w-full items-center gap-0.5 rounded border px-1 py-[3px] text-[10px] font-semibold leading-none"
+    : "inline-flex max-w-full items-center gap-1 rounded-md border px-1.5 py-1 text-xs font-medium";
 
   if (isWarmup) {
     return (

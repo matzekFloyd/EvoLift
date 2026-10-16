@@ -144,14 +144,18 @@ export function SessionExerciseSets({
   const hideCompactNewSetComposer =
     shouldUseSingleExerciseFlow && targetSetsMet && canManageSets && !compactShowExtraSetComposer;
   const hideFullViewAddSetRow = targetSetsMet && canManageSets && !fullAddSetRowExpanded;
-  const compactNewSetPanelHighlight = isCompactView && !targetSetsMet;
 
   return (
     <>
       <div className="mt-3 space-y-3 md:hidden">
-        {visibleSets.map((set) =>
+        {visibleSets.map((set, setIndex) =>
           editingSetId === set.id ? (
-            <div key={set.id} className={panelInsetClass("p-3")}>
+            <div
+              key={set.id}
+              data-compact-set-row=""
+              data-compact-last-set={setIndex === visibleSets.length - 1 ? "" : undefined}
+              className={panelInsetClass("p-3")}
+            >
               <p className="text-xs font-medium text-zinc-600">Set {set.set_number}</p>
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <label className="text-xs font-medium text-zinc-600">
@@ -200,7 +204,12 @@ export function SessionExerciseSets({
               </div>
             </div>
           ) : (
-            <div key={set.id} className={panelInsetClass("p-3")}>
+            <div
+              key={set.id}
+              data-compact-set-row=""
+              data-compact-last-set={setIndex === visibleSets.length - 1 ? "" : undefined}
+              className={panelInsetClass("p-3")}
+            >
               {isCompactView ? (
                 <div className="flex items-center justify-between gap-2">
                   <div className="min-w-0 flex-1 text-sm text-zinc-700">
@@ -270,7 +279,10 @@ export function SessionExerciseSets({
         )}
         {canManageSets ? (
           hideCompactNewSetComposer ? (
-            <div className="rounded-md border border-sky-200 bg-sky-50/70 p-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]">
+            <div
+              data-compact-next-action=""
+              className="rounded-md border border-sky-200 bg-sky-50/70 p-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
+            >
               <p className="text-sm font-medium text-sky-950">All target working sets logged.</p>
               {exerciseIndex < exerciseCount - 1 ? (
                 <ActionButton
@@ -317,24 +329,15 @@ export function SessionExerciseSets({
           ) : (
             <div
               id={`compact-new-set-panel-${sessionExerciseId}`}
-              className={
-                compactNewSetPanelHighlight
-                  ? "rounded-md border border-sky-200 bg-sky-50/55 p-3.5 shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
-                  : panelInsetClass("p-3")
-              }
+              data-compact-next-action=""
+              className="rounded-md border border-sky-300 bg-sky-50 p-3"
             >
-              <p
-                className={
-                  compactNewSetPanelHighlight
-                    ? "inline-flex items-center gap-1 text-sm font-medium text-sky-950"
-                    : "inline-flex items-center gap-1 text-sm text-zinc-700"
-                }
-              >
+              <p className="inline-flex items-center gap-1 text-sm font-medium text-sky-950">
                 <Plus className="h-3 w-3 text-sky-700" aria-hidden />
                 New set
               </p>
               {lastSet ? (
-                <p className="mt-2 text-[11px] text-zinc-500">
+                <p className="mt-2 text-[11px] text-zinc-700">
                   <span className="inline-flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
                     <SetKindIndicator isWarmup={lastSet.is_warmup} density="compact" />
                     <span>
@@ -366,7 +369,7 @@ export function SessionExerciseSets({
                           ),
                         )
                       }
-                      className="rounded border px-2 py-0.5 text-xs"
+                      className="rounded border border-zinc-300 bg-white px-2 py-0.5 text-xs text-zinc-800"
                     >
                       -2.5
                     </button>
@@ -378,7 +381,7 @@ export function SessionExerciseSets({
                           String(Number((Number(addDraft.weightKg || "0") + 2.5).toFixed(1))),
                         )
                       }
-                      className="rounded border px-2 py-0.5 text-xs"
+                      className="rounded border border-zinc-300 bg-white px-2 py-0.5 text-xs text-zinc-800"
                     >
                       +2.5
                     </button>
@@ -403,7 +406,7 @@ export function SessionExerciseSets({
                           String(Math.max(1, Number(addDraft.reps || "1") - 1)),
                         )
                       }
-                      className="rounded border px-2 py-0.5 text-xs"
+                      className="rounded border border-zinc-300 bg-white px-2 py-0.5 text-xs text-zinc-800"
                     >
                       -1
                     </button>
@@ -415,7 +418,7 @@ export function SessionExerciseSets({
                           String(Math.max(1, Number(addDraft.reps || "0") + 1)),
                         )
                       }
-                      className="rounded border px-2 py-0.5 text-xs"
+                      className="rounded border border-zinc-300 bg-white px-2 py-0.5 text-xs text-zinc-800"
                     >
                       +1
                     </button>
@@ -435,7 +438,7 @@ export function SessionExerciseSets({
                   type="button"
                   onClick={onAddSet}
                   disabled={isSavingSet || isPlannedSession}
-                  className="inline-flex items-center gap-1 rounded-md border px-2 py-1 text-sm"
+                  className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-800"
                 >
                   <Plus className="h-3.5 w-3.5 text-sky-700" />
                   Add set

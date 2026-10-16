@@ -144,7 +144,7 @@ export function SessionExerciseBlock({
     notDone: sessionExercise.not_done,
   });
   const exercisePanelClass = shouldUseSingleExerciseFlow
-    ? "min-h-[calc(100vh-24rem)] p-1 text-sm"
+    ? "px-1 pt-1 text-sm"
     : isReadOnly
       ? `rounded-md border bg-white p-4 text-sm sm:p-5 ${
           targetSetsMet ? "border-sky-300" : "border-zinc-200"
