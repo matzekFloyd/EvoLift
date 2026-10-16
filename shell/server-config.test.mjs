@@ -65,6 +65,25 @@ test("pages outside the site and its Supabase host stay out of the shell", () =>
   }
 });
 
+test("a release build ignores the debug server and loads production", () => {
+  const config = createCapacitorConfig({
+    env: {
+      CAPACITOR_RELEASE: " 1 ",
+      CAPACITOR_SERVER_URL: "http://10.0.2.2:3000",
+      CAPACITOR_ALLOW_NAVIGATION: "example.com",
+    },
+    debugServer: {
+      serverUrl: "http://192.168.1.20:3000",
+      allowNavigation: ["192.168.1.8"],
+    },
+  });
+
+  assert.equal(config.server.url, PRODUCTION_SITE_URL);
+  assert.equal(config.server.url, "https://evo-lift.vercel.app");
+  assert.equal(config.server.cleartext, undefined);
+  assert.deepEqual(config.server.allowNavigation, [PRODUCTION_SUPABASE_HOST]);
+});
+
 test("debug server URL overrides the loaded site and leaves the production default in place", () => {
   const config = createCapacitorConfig({
     env: { CAPACITOR_SERVER_URL: " http://10.0.2.2:3000/ " },

@@ -201,7 +201,7 @@ npm run build
 
 ## Android app
 
-The Android app is a Capacitor shell. It opens the existing site. Register, log in, and logging a set stay on those pages. The signed-in session stays in the WebView, so closing the app and opening it again keeps the user logged in.
+The Android app is a Capacitor shell. It opens the existing site. Register, log in, and logging a set stay on those pages. The signed-in session stays in the WebView, so closing the app and opening it again keeps the user logged in. Product versions follow [VERSIONING.md](VERSIONING.md). The site footer shows the same version.
 
 Back returns to the previous page opened in the app. On the home screen, Back leaves the app. While `/sessions/new` or a saved session is open, the shell holds the screen awake. Leaving that page, or sending the app to the background, lets the screen sleep on the system timeout again. The same pages in a browser still follow that timeout. A link whose host is not the configured site or its Supabase host opens in the system browser, and the app stays on the page that contained the link. The launcher name is EvoLift. The icon and splash use the EvoLift mark. The WebView is inset below the status bar and above the system gesture area, including a display cutout.
 
@@ -244,6 +244,30 @@ To allow a different host, set `CAPACITOR_ALLOW_NAVIGATION` to a comma-separated
 HTTP cleartext is turned on only when the configured server URL is `http://`. Run `npm run android` again with the variable unset to install a debug build that opens production.
 
 `npm run android` rewrites `android/app/src/main/assets/capacitor.config.json`. That committed file must keep `https://evo-lift.vercel.app`. Sync again without a debug URL before committing.
+
+### Ship a signed bundle to Play internal testing
+
+Release builds are signed with an upload key that stays on this machine. Play App Signing holds the app signing key. The upload keystore and `android/keystore.properties` are gitignored.
+
+Create the upload key once, with the same JDK 21 used for Gradle builds. From the repository root:
+
+```bash
+keytool -genkeypair -v -keystore android/upload-keystore.jks -storetype PKCS12 -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+```
+
+Copy `android/keystore.properties.example` to `android/keystore.properties`. Set `storeFile` to `upload-keystore.jks`, `keyAlias` to `upload`, and both passwords. Keep the passwords in a password manager.
+
+Bump the product version when this upload should replace an earlier one ([VERSIONING.md](VERSIONING.md)), then build:
+
+```bash
+npm run android:bundle
+```
+
+That command ignores a debug server URL and writes `android/app/build/outputs/bundle/release/app-release.aab`. The bundle loads `https://evo-lift.vercel.app`.
+
+In Play Console, use the app with package name `app.evolift`. Create the app first if it is not there yet. Enroll in Play App Signing and let Google manage the app signing key. The keystore above is only the upload key. Upload the `.aab` under **Test and release → Testing → Internal testing**. Add tester emails and install from the opt-in link. A tester should be able to log in and log a set.
+
+The next upload needs a higher product version than the build already on that track. The public production track, store listing assets, the content rating, and the Data safety form are separate. `npm run android` still installs a debug build and does not need the upload key.
 
 ## Supabase Workflow
 

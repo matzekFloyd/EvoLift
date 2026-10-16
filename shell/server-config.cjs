@@ -19,6 +19,11 @@ const DEBUG_SERVER_FILE = path.join(__dirname, "debug-server.json");
  * Allow-list entries are exact hosts, compared without case sensitivity.
  */
 function createCapacitorConfig({ env = {}, debugServer = null } = {}) {
+  if (stringValue(env.CAPACITOR_RELEASE) === "1") {
+    env = {};
+    debugServer = null;
+  }
+
   const envUrl = stringValue(env.CAPACITOR_SERVER_URL);
   if (
     debugServer &&
