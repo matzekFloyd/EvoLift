@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, ChevronDown, ChevronUp, History, X } from "lucide-react";
-import type { Dispatch, SetStateAction } from "react";
+import { type Dispatch, type SetStateAction, useState } from "react";
 import Link from "next/link";
 import { panelInsetClass } from "@/app/components/panel-inset";
 import { TargetWeightSuggestion } from "@/app/components/target-weight-suggestion";
@@ -10,6 +10,7 @@ import { targetSuggestionsEnabled } from "@/lib/target-weight-suggestion";
 import { warmupSuggestionsEnabled } from "@/lib/warmup-suggestion";
 import { PLANNED_SESSION_SETS_MESSAGE } from "./session-input";
 import { lastLoggedSet, resolvedAddDraft, setsForSessionExercise } from "./session-detail-model";
+import { SessionExerciseHistoryDialog } from "./session-exercise-history-dialog";
 import { SessionExerciseSets } from "./session-set-form";
 import type { SessionSetDraft } from "./session-set-draft";
 import type { SessionExerciseRow, WorkoutSetRow } from "./session-detail-actions";
@@ -112,6 +113,7 @@ export function SessionExerciseBlock({
   onShowExtraSets,
   onExpandFullAddSetRow,
 }: SessionExerciseBlockProps) {
+  const [historyOpen, setHistoryOpen] = useState(false);
   const sets = setsForSessionExercise(workoutSets, sessionExercise.id);
   const addDraft = resolvedAddDraft([sessionExercise], workoutSets, addDrafts, sessionExercise.id);
   const lastSet = lastLoggedSet(workoutSets, sessionExercise.id);
@@ -126,9 +128,13 @@ export function SessionExerciseBlock({
     targetSetsGoal != null && targetSetsGoal > 0 && workingSetCount >= targetSetsGoal;
   const exercisePanelClass = shouldUseSingleExerciseFlow
     ? "min-h-[calc(100vh-24rem)] p-1 text-sm"
-    : targetSetsMet
-      ? "rounded-md border border-sky-200/90 bg-sky-50/40 p-5 text-sm"
-      : panelInsetClass("p-5 text-sm");
+    : isReadOnly
+      ? `rounded-md border bg-white p-4 text-sm sm:p-5 ${
+          targetSetsMet ? "border-sky-300" : "border-zinc-200"
+        }`
+      : targetSetsMet
+        ? "rounded-md border border-sky-200/90 bg-sky-50/40 p-5 text-sm"
+        : panelInsetClass("p-5 text-sm");
 
   return (
     <section id={`exercise-${sessionExercise.id}`} className={exercisePanelClass}>
@@ -159,31 +165,32 @@ export function SessionExerciseBlock({
           {index + 1}/{exerciseCount}
         </span>
       </div>
-      <div className="mt-2 flex items-start justify-between gap-2">
+      <div className="mt-2 flex items-center justify-between gap-2">
         <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
-          <span className="text-sm font-medium text-zinc-600">Targets:</span>
+          <span className="inline-flex h-9 items-center text-sm font-medium text-zinc-600">Targets:</span>
           {targetParts.length > 0 ? (
             targetParts.map((part) => (
-              <span
-                key={`${sessionExercise.id}-${part}`}
-                className="inline-flex items-center rounded-full border border-zinc-300 bg-white px-2 py-0.5 text-xs text-zinc-700"
-              >
-                {part}
+              <span key={`${sessionExercise.id}-${part}`} className="inline-flex h-9 items-center">
+                <span className="inline-flex items-center rounded-full border border-zinc-300 bg-zinc-100 px-2 py-0.5 text-xs text-zinc-700">
+                  {part}
+                </span>
               </span>
             ))
           ) : (
-            <span className="text-xs text-zinc-500">none set</span>
+            <span className="inline-flex h-9 items-center text-xs text-zinc-500">none set</span>
           )}
         </div>
-        <div className="flex shrink-0 items-center gap-2">
-          {exerciseSlug ? (
-            <Link
-              href={`/exercises/${exerciseSlug}`}
+        <div className="flex shrink-0 items-center gap-2 self-start">
+          {exerciseSlug && !isReadOnly ? (
+            <button
+              type="button"
+              onClick={() => setHistoryOpen(true)}
+              aria-haspopup="dialog"
               className="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
             >
               <History className="h-3.5 w-3.5 text-sky-700" />
               Open history
-            </Link>
+            </button>
           ) : null}
           {!isReadOnly && !shouldUseSingleExerciseFlow ? (
             <button
@@ -283,6 +290,16 @@ export function SessionExerciseBlock({
           addDisabled={isPlannedSession || isSavingSet}
           addDisabledTitle={isPlannedSession ? PLANNED_SESSION_SETS_MESSAGE : undefined}
           onAdd={() => onAddWarmups(sessionExercise.id)}
+        />
+      ) : null}
+
+      {historyOpen && exerciseSlug ? (
+        <SessionExerciseHistoryDialog
+          exerciseId={sessionExercise.exercise_id}
+          exerciseLabel={exerciseLabel}
+          exerciseSlug={exerciseSlug}
+          currentSessionId={sessionId}
+          onClose={() => setHistoryOpen(false)}
         />
       ) : null}
 

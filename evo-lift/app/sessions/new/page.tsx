@@ -482,10 +482,12 @@ function NewSessionPageContent() {
           <CalendarPlus className="h-6 w-6 text-sky-700" />
           New workout session
         </h1>
-        <ActionButton type="button" onClick={goBack} variant="secondary" size="md">
-          <ArrowLeft className="h-4 w-4 text-sky-700" />
-          Back
-        </ActionButton>
+        {isCompactView ? null : (
+          <ActionButton type="button" onClick={goBack} variant="secondary" size="md">
+            <ArrowLeft className="h-4 w-4 text-sky-700" />
+            Back
+          </ActionButton>
+        )}
       </div>
       {draftGate === "blocked" && blockedDraft ? (
         <div

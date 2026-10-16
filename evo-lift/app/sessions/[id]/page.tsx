@@ -909,33 +909,23 @@ export default function SessionDetailPage() {
       />
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         {isCompactView ? (
-          <div className="flex w-full items-start justify-between gap-2">
-            <div className="min-w-0">
-              <h1 className="truncate text-lg font-semibold tracking-tight">
-                Workout session #{sessionNumber ?? "-"}
-              </h1>
-              <p className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-zinc-500">
-                <span>{formattedPerformedOn}</span>
-                {isPlannedSession ? (
-                  <span className="rounded-full border border-zinc-300 bg-zinc-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-700">
-                    Planned
-                  </span>
-                ) : null}
-                {createdFromLabel ? (
-                  <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-800">
-                    Created from: {createdFromLabel}
-                  </span>
-                ) : null}
-              </p>
-            </div>
-            <button
-              type="button"
-              onClick={goBack}
-              className="inline-flex shrink-0 items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-sm text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
-            >
-              <ArrowLeft className="h-4 w-4 text-sky-700" />
-              Back
-            </button>
+          <div className="min-w-0">
+            <h1 className="truncate text-lg font-semibold tracking-tight">
+              Workout session #{sessionNumber ?? "-"}
+            </h1>
+            <p className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-zinc-500">
+              <span>{formattedPerformedOn}</span>
+              {isPlannedSession ? (
+                <span className="rounded-full border border-zinc-300 bg-zinc-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-700">
+                  Planned
+                </span>
+              ) : null}
+              {createdFromLabel ? (
+                <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-800">
+                  Created from: {createdFromLabel}
+                </span>
+              ) : null}
+            </p>
           </div>
         ) : (
           <div>
@@ -1035,12 +1025,38 @@ export default function SessionDetailPage() {
       </div>
       <section className="text-sm">
         {isReadOnly && session.notes?.trim() ? (
-          <p className={panelInsetClass("p-3")}>
+          <p className={panelInsetClass(isCompactView ? "line-clamp-2 px-3 py-2" : "p-3")}>
             <span className="font-medium">Notes:</span> {session.notes}
           </p>
         ) : null}
-        {!isReadOnly ? (
-          <div className={panelInsetClass("mt-3 space-y-3 p-4")}>
+        {!isReadOnly && isCompactView && !isEditingSessionDetails ? (
+          <div className={panelInsetClass("mt-2 flex items-center gap-2 px-3 py-2")}>
+            <p className="min-w-0 flex-1 truncate text-sm text-zinc-800" title={session.notes?.trim() || undefined}>
+              <span className="font-medium text-zinc-700">Notes</span>
+              <span className="text-zinc-400"> · </span>
+              {session.notes?.trim() ? (
+                session.notes.trim()
+              ) : (
+                <span className="text-zinc-500">None</span>
+              )}
+            </p>
+            <button
+              type="button"
+              onClick={beginEditingSessionDetails}
+              disabled={isSavingSessionDetails || isDeletingSession}
+              className="inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-50 disabled:opacity-60"
+            >
+              <Pencil className="h-3 w-3 text-sky-700" aria-hidden />
+              Edit
+            </button>
+          </div>
+        ) : null}
+        {!isReadOnly && (!isCompactView || isEditingSessionDetails) ? (
+          <div
+            className={panelInsetClass(
+              isCompactView ? "mt-2 space-y-2 p-3" : "mt-3 space-y-3 p-4",
+            )}
+          >
             {!isEditingSessionDetails ? (
               <>
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -1053,7 +1069,7 @@ export default function SessionDetailPage() {
                       type="button"
                       onClick={beginEditingSessionDetails}
                       disabled={isSavingSessionDetails || isDeletingSession}
-                      className="inline-flex h-8 w-[72px] items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100 disabled:opacity-60 sm:w-20"
+                      className="inline-flex h-8 w-[72px] items-center justify-center gap-1 rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-50 disabled:opacity-60 sm:w-20"
                     >
                       <Pencil className="h-3 w-3 text-sky-700" aria-hidden />
                       Edit
@@ -1130,7 +1146,7 @@ export default function SessionDetailPage() {
                     }}
                     placeholder="Optional notes for this workout"
                     maxLength={maxSessionNotesLength}
-                    heightClassName="h-28"
+                    heightClassName={isCompactView ? "h-16" : "h-28"}
                   />
                   {sessionDetailsNotesError ? (
                     <p className="mt-1 text-sm text-red-600" role="alert">

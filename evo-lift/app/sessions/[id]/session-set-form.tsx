@@ -1,13 +1,80 @@
 "use client";
 
 import { Check, CheckCircle2, ChevronRight, Pencil, Plus, Trash2, X } from "lucide-react";
-import type { Dispatch, SetStateAction } from "react";
+import { type Dispatch, type SetStateAction, useLayoutEffect, useRef, useState } from "react";
 import { ActionButton } from "@/app/components/action-button";
 import { CompactRowActions } from "@/app/components/compact-row-actions";
 import { panelInsetClass } from "@/app/components/panel-inset";
 import { SetKindIndicator } from "@/app/components/set-kind-indicator";
+import { shouldShowSetSummarySeparator } from "./compact-set-summary";
 import type { SessionSetDraft } from "./session-set-draft";
 import type { WorkoutSetRow } from "./session-detail-actions";
+
+function CompactLoggedSetSummary({
+  isWarmup,
+  setNumber,
+  weightKg,
+  reps,
+}: {
+  isWarmup: boolean;
+  setNumber: number;
+  weightKg: number | null;
+  reps: number;
+}) {
+  const containerRef = useRef<HTMLSpanElement>(null);
+  const lineRef = useRef<HTMLSpanElement>(null);
+  const setRef = useRef<HTMLSpanElement>(null);
+  const loadRef = useRef<HTMLSpanElement>(null);
+  const separatorRef = useRef<HTMLSpanElement>(null);
+  const [showSeparator, setShowSeparator] = useState(true);
+
+  useLayoutEffect(() => {
+    const container = containerRef.current;
+    const line = lineRef.current;
+    const setEl = setRef.current;
+    const loadEl = loadRef.current;
+    const separatorEl = separatorRef.current;
+    if (!container || !line || !setEl || !loadEl || !separatorEl) {
+      return;
+    }
+
+    const measure = () => {
+      const gap = Number.parseFloat(getComputedStyle(line).columnGap) || 0;
+      setShowSeparator(
+        shouldShowSetSummarySeparator({
+          containerWidth: container.clientWidth,
+          setWidth: setEl.getBoundingClientRect().width,
+          loadWidth: loadEl.getBoundingClientRect().width,
+          separatorWidth: separatorEl.getBoundingClientRect().width,
+          gap,
+        }),
+      );
+    };
+
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [isWarmup, reps, setNumber, weightKg]);
+
+  return (
+    <span ref={containerRef} className="relative block min-w-0">
+      <span ref={separatorRef} aria-hidden className="pointer-events-none absolute w-max opacity-0">
+        ·
+      </span>
+      <span ref={lineRef} className="inline-flex max-w-full flex-wrap items-center gap-x-1.5 gap-y-1">
+        <span ref={setRef} className="inline-flex items-center gap-1.5">
+          <SetKindIndicator isWarmup={isWarmup} density="compact" />
+          <span className="font-medium text-zinc-900">Set {setNumber}</span>
+        </span>
+        {showSeparator ? <span className="text-zinc-500">·</span> : null}
+        <span ref={loadRef}>
+          {weightKg ?? "-"} kg, {reps} reps
+        </span>
+      </span>
+    </span>
+  );
+}
 
 type SessionExerciseSetsProps = {
   sessionExerciseId: string;
@@ -132,17 +199,13 @@ export function SessionExerciseSets({
             <div key={set.id} className={panelInsetClass("p-3")}>
               {isCompactView ? (
                 <div className="flex items-center justify-between gap-2">
-                  <div className="min-w-0 text-sm text-zinc-700">
-                    <span className="inline-flex flex-wrap items-center gap-x-1.5 gap-y-1">
-                      <span className="inline-flex flex-wrap items-center gap-1.5">
-                        <SetKindIndicator isWarmup={set.is_warmup} density="compact" />
-                        <span className="font-medium text-zinc-900">Set {set.set_number}</span>
-                      </span>
-                      <span className="text-zinc-500">·</span>
-                      <span>
-                        {set.weight_kg ?? "-"} kg, {set.reps} reps
-                      </span>
-                    </span>
+                  <div className="min-w-0 flex-1 text-sm text-zinc-700">
+                    <CompactLoggedSetSummary
+                      isWarmup={set.is_warmup}
+                      setNumber={set.set_number}
+                      weightKg={set.weight_kg}
+                      reps={set.reps}
+                    />
                   </div>
                   {canManageSets ? (
                     <div className="flex shrink-0 items-center">
@@ -180,7 +243,7 @@ export function SessionExerciseSets({
                         type="button"
                         onClick={() => onDeleteSet(set.id)}
                         disabled={isSavingSet}
-                        className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
+                        className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-50"
                       >
                         <Trash2 className="h-3 w-3 text-red-600" />
                         Delete
@@ -189,7 +252,7 @@ export function SessionExerciseSets({
                         type="button"
                         onClick={() => onStartEdit(set)}
                         disabled={isSavingSet}
-                        className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
+                        className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-50"
                       >
                         <Pencil className="h-3 w-3 text-sky-700" />
                         Edit
