@@ -150,20 +150,16 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
     return exerciseLabelForSessionExercise(sessionExercises, exerciseLabels, sessionExerciseId);
   }
 
-  async function handleAddSet(
-    sessionExerciseId: string,
-    draftOverride?: SessionSetDraft,
-  ): Promise<boolean> {
+  async function handleAddSet(sessionExerciseId: string) {
     if (session && isFutureSessionDate(session.performed_on)) {
       showWarning(PLANNED_SESSION_SETS_MESSAGE);
-      return false;
+      return;
     }
-    const draft =
-      draftOverride ?? resolvedAddDraft(sessionExercises, workoutSets, addDrafts, sessionExerciseId);
+    const draft = resolvedAddDraft(sessionExercises, workoutSets, addDrafts, sessionExerciseId);
     const logged = parseLoggedSetInput(draft.reps, draft.weightKg);
     if (!logged.ok) {
       showError(logged.message);
-      return false;
+      return;
     }
 
     const existingSets = setsForSessionExercise(workoutSets, sessionExerciseId);
@@ -186,7 +182,7 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
     if (error || !data) {
       showError(`Could not add set: ${error?.message ?? "Unknown error"}`);
       setIsSavingSet(false);
-      return false;
+      return;
     }
 
     invalidateLoggedHistoryCaches();
@@ -218,7 +214,6 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
       setPendingCompactSetFocusSessionExerciseId(sessionExerciseId);
     }
     setIsSavingSet(false);
-    return true;
   }
 
   async function handleAddWarmups(sessionExerciseId: string) {

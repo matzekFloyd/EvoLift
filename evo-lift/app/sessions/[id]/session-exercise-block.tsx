@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, ChevronDown, ChevronUp, History, X } from "lucide-react";
-import type { Dispatch, ReactNode, SetStateAction } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import Link from "next/link";
 import { panelInsetClass } from "@/app/components/panel-inset";
 import { TargetWeightSuggestion } from "@/app/components/target-weight-suggestion";
@@ -63,8 +63,6 @@ type SessionExerciseBlockProps = {
   onAddExercise: () => void;
   onShowExtraSets: () => void;
   onExpandFullAddSetRow: () => void;
-  oneValueLogging?: boolean;
-  oneValueLogger?: ReactNode;
 };
 
 export function SessionExerciseBlock({
@@ -113,8 +111,6 @@ export function SessionExerciseBlock({
   onAddExercise,
   onShowExtraSets,
   onExpandFullAddSetRow,
-  oneValueLogging = false,
-  oneValueLogger = null,
 }: SessionExerciseBlockProps) {
   const sets = setsForSessionExercise(workoutSets, sessionExercise.id);
   const addDraft = resolvedAddDraft([sessionExercise], workoutSets, addDrafts, sessionExercise.id);
@@ -277,8 +273,6 @@ export function SessionExerciseBlock({
         </div>
       ) : null}
 
-      {oneValueLogger}
-
       {!isReadOnly ? (
         <WarmupSuggestion
           targetWeightKg={sessionExercise.target_weight_kg}
@@ -321,7 +315,6 @@ export function SessionExerciseBlock({
         onAddExercise={onAddExercise}
         onShowExtraSets={onShowExtraSets}
         onExpandFullAddSetRow={onExpandFullAddSetRow}
-        oneValueLogging={oneValueLogging}
       />
     </section>
   );
