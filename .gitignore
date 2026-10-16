@@ -1,2 +1,7 @@
 node_modules/
 shell/debug-server.json
+
+# Play upload key and passwords. See VERSIONING.md.
+*.jks
+*.keystore
+android/keystore.properties

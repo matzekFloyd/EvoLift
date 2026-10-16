@@ -1,5 +1,51 @@
 apply plugin: 'com.android.application'
 
+def appVersionFile = rootProject.file("../evo-lift/app-version.json")
+if (!appVersionFile.exists()) {
+    throw new GradleException("Missing evo-lift/app-version.json. See VERSIONING.md.")
+}
+def appVersionName = new groovy.json.JsonSlurper().parse(appVersionFile).version?.toString()
+// Keep this pattern and the version code formula in sync with evo-lift/lib/app-version.ts.
+def versionMatch = (appVersionName ?: "") =~ /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/
+if (!versionMatch.matches()) {
+    throw new GradleException("App version must be MAJOR.MINOR.PATCH, as in 1.0.0. Received \"${appVersionName}\". See VERSIONING.md.")
+}
+def major = versionMatch.group(1).toInteger()
+def minor = versionMatch.group(2).toInteger()
+def patch = versionMatch.group(3).toInteger()
+if (minor > 999 || patch > 999) {
+    throw new GradleException("Minor and patch must be 0–999 so the Play version code stays ordered. Received \"${appVersionName}\". See VERSIONING.md.")
+}
+def appVersionCode = major * 1000000 + minor * 1000 + patch
+if (appVersionCode < 1 || appVersionCode > 2100000000) {
+    throw new GradleException("Play version code must be from 1 through 2100000000. ${appVersionName} is ${appVersionCode}. See VERSIONING.md.")
+}
+
+def keystorePropertiesFile = rootProject.file("keystore.properties")
+def keystoreProperties = new Properties()
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
+}
+
+// Keep these sentences in sync with shell/bundle-release.mjs.
+def releaseKeystoreProblem = {
+    if (!keystorePropertiesFile.exists()) {
+        return "Release builds need android/keystore.properties. Copy android/keystore.properties.example, create an upload keystore, and fill in the passwords. See README.md."
+    }
+    for (def key : ["storeFile", "storePassword", "keyAlias", "keyPassword"]) {
+        if (!keystoreProperties.getProperty(key)?.trim()) {
+            return "android/keystore.properties is missing ${key}. See android/keystore.properties.example."
+        }
+    }
+    def relative = keystoreProperties.getProperty("storeFile").trim()
+    if (!rootProject.file(relative).isFile()) {
+        return "Upload keystore not found at android/${relative}. See README.md."
+    }
+    return null
+}
+
+def releaseKeystoreReady = releaseKeystoreProblem() == null
+
 android {
     namespace "app.evolift"
     compileSdk rootProject.ext.compileSdkVersion
@@ -7,8 +53,8 @@ android {
         applicationId "app.evolift"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "1.0"
+        versionCode appVersionCode
+        versionName appVersionName
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -16,10 +62,23 @@ android {
             ignoreAssetsPattern '!.svn:!.git:!.ds_store:!*.scc:.*:!CVS:!thumbs.db:!picasa.ini:!*~'
         }
     }
+    signingConfigs {
+        release {
+            if (releaseKeystoreReady) {
+                storeFile rootProject.file(keystoreProperties.getProperty("storeFile").trim())
+                storePassword keystoreProperties.getProperty("storePassword").trim()
+                keyAlias keystoreProperties.getProperty("keyAlias").trim()
+                keyPassword keystoreProperties.getProperty("keyPassword").trim()
+            }
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            if (releaseKeystoreReady) {
+                signingConfig signingConfigs.release
+            }
         }
     }
 }
@@ -51,4 +110,17 @@ try {
     }
 } catch(Exception e) {
     logger.info("google-services.json not found, google-services plugin not applied. Push Notifications won't work")
+}
+
+gradle.taskGraph.whenReady { graph ->
+    def signingRelease = graph.allTasks.any { task ->
+        task.name == "bundleRelease" || task.name == "assembleRelease"
+    }
+    if (!signingRelease) {
+        return
+    }
+    def problem = releaseKeystoreProblem()
+    if (problem) {
+        throw new GradleException(problem)
+    }
 }

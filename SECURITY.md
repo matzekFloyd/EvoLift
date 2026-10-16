@@ -1,5 +1,9 @@
 # Security Policy
 
+## Secrets
+
+Do not commit the Play upload keystore (`*.jks`, `*.keystore`) or `android/keystore.properties`. Those files hold the upload key and its passwords. Play App Signing keeps the app signing key with Google.
+
 ## Supported Versions
 
 EvoLift is in active development. Security fixes are applied to the latest code on the default branch.

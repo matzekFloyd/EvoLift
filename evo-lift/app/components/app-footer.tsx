@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { shouldHideFooter } from "@/app/components/footer-visibility";
+import { APP_VERSION_LABEL } from "@/lib/app-version";
 
 export function AppFooter() {
   const pathname = usePathname();
@@ -32,7 +33,7 @@ export function AppFooter() {
             Privacy policy
           </Link>
         </div>
-        <p>© {year} Mathias Mayrhofer · EvoLift v6.0</p>
+        <p>© {year} Mathias Mayrhofer · EvoLift {APP_VERSION_LABEL}</p>
       </div>
     </footer>
   );
