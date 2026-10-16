@@ -11,7 +11,6 @@ import {
   UserRound,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import type { Database } from "@/lib/supabase/database.types";
@@ -731,11 +730,6 @@ export default function AccountPage() {
         <UserRound className="h-6 w-6 text-sky-700" />
         User information
       </h1>
-      <p className="text-sm">
-        <Link href="/privacy" className="font-medium text-sky-800 underline-offset-2 hover:underline">
-          Privacy policy
-        </Link>
-      </p>
       <SegmentedTabs
         value={activeSection}
         onChange={setActiveSection}
