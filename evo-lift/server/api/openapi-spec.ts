@@ -1,3 +1,5 @@
+import { resourceApiPaths } from "@/server/api/openapi-resources";
+
 const errorResponse = {
   "400": { description: "Invalid request" },
   "401": { description: "Missing/invalid bearer token" },
@@ -10,6 +12,18 @@ function tagForPath(path: string): string | undefined {
   }
   if (path.startsWith("/api/templates")) {
     return "Templates";
+  }
+  if (path.startsWith("/api/plans")) {
+    return "Plans";
+  }
+  if (path.startsWith("/api/goals")) {
+    return "Goals";
+  }
+  if (path.startsWith("/api/account")) {
+    return "Account";
+  }
+  if (path.startsWith("/api/insights") || path.startsWith("/api/activity") || path.endsWith("/history")) {
+    return "Insights";
   }
   if (path.startsWith("/api/exercises")) {
     return "Exercises";
@@ -66,7 +80,7 @@ export function buildOpenApiSpec(baseUrl: string) {
       title: "Evo Lift API",
       version: "1.1.0",
       description:
-        "Authenticated HTTP API for the same workout actions as the app UI.\n\nUse a session JWT or a personal API token from Account (Bearer evo_…).\n\nCreate a session with exercises, or from a template. Then add sets on each session exercise. Planned sessions (future performed_on) cannot have sets yet.",
+        "Authenticated HTTP API for the same actions as the app UI.\n\nUse a session JWT or a personal API token from Account (Bearer evo_…).\n\nCreate a session with exercises, from a template, or from a plan day. Then add sets on each session exercise. Planned sessions (future performed_on) cannot have sets yet. Plans, goals, account settings, Insights, and exercise history use the same rules as the app.",
     },
     servers: [{ url: baseUrl }],
     components: {
@@ -223,6 +237,22 @@ export function buildOpenApiSpec(baseUrl: string) {
       {
         name: "Exercises",
         description: "Exercise catalog with translations.",
+      },
+      {
+        name: "Plans",
+        description: "Workout plans, the active plan, and starting a session from a plan day.",
+      },
+      {
+        name: "Goals",
+        description: "Strength goals for an exercise.",
+      },
+      {
+        name: "Account",
+        description: "Email, password, profile, bodyweight, exercise defaults, hidden exercises, and API tokens.",
+      },
+      {
+        name: "Insights",
+        description: "Insights, Home activity, and exercise history.",
       },
     ],
     paths: withOperationTags({
@@ -696,6 +726,7 @@ export function buildOpenApiSpec(baseUrl: string) {
           },
         },
       },
+      ...resourceApiPaths,
     }),
   };
 }

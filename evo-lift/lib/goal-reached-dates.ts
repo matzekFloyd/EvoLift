@@ -112,11 +112,18 @@ async function loadExerciseNames(client: Client, exerciseIds: string[]): Promise
 }
 
 /** Dates in `YYYY-MM-DD` form, with each reached goal named by its exercise. */
-export async function loadGoalReachedSessionDates(client: Client): Promise<Record<string, string>> {
-  const { data, error } = await client
+export async function loadGoalReachedSessionDates(
+  client: Client,
+  userId?: string,
+): Promise<Record<string, string>> {
+  let milestoneQuery = client
     .from("strength_milestones")
     .select("exercise_id, milestone_type, target_weight_kg, bodyweight_multiple, min_reps, achieved_at")
     .not("achieved_at", "is", null);
+  if (userId) {
+    milestoneQuery = milestoneQuery.eq("user_id", userId);
+  }
+  const { data, error } = await milestoneQuery;
   if (error || !data || data.length === 0) {
     return {};
   }
@@ -176,14 +183,17 @@ export async function loadGoalReachedSessionDates(client: Client): Promise<Recor
   }
 
   const sessionIds = [...new Set(sessionExerciseRows.map((row) => row.session_id))];
-  const { data: sessionRows, error: sessionsError } = await fetchInChunks(sessionIds, (chunk, from, to) =>
-    client
+  const { data: sessionRows, error: sessionsError } = await fetchInChunks(sessionIds, (chunk, from, to) => {
+    let sessionQuery = client
       .from("workout_sessions")
       .select("id, performed_on")
       .in("id", chunk)
-      .order("id", { ascending: true })
-      .range(from, to),
-  );
+      .order("id", { ascending: true });
+    if (userId) {
+      sessionQuery = sessionQuery.eq("user_id", userId);
+    }
+    return sessionQuery.range(from, to);
+  });
   if (sessionsError) {
     return reachedGoalLabelsBySessionDate(goals, []);
   }

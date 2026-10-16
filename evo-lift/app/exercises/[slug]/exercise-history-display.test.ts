@@ -9,6 +9,7 @@ import {
   loggedLoadKg,
   normalizeLoadedForComparison,
   setTotalKgForStats,
+  summarizeExerciseHistory,
 } from "./exercise-history-display";
 
 const defaults = { from: "2025-10-14", to: "2026-10-14" };
@@ -34,6 +35,22 @@ describe("exercise history display", () => {
     assert.equal(setTotalKgForStats({ weightKg: 60, totalKg: 80 }), 80);
     assert.equal(formatKgValue(null, 1), "—");
     assert.equal(formatKgValue(80, 1), "80.0 kg");
+  });
+
+  it("counts warmups as logged sets and leaves them out of load totals", () => {
+    const stats = summarizeExerciseHistory([
+      { sessionId: "a", isWarmup: true, weightKg: 40, totalKg: 60 },
+      { sessionId: "a", isWarmup: false, weightKg: 100, totalKg: 120 },
+      { sessionId: "a", isWarmup: false, weightKg: 80, totalKg: 100 },
+      { sessionId: "b", isWarmup: false, weightKg: null, totalKg: 0 },
+    ]);
+    assert.equal(stats.setCount, 4);
+    assert.equal(stats.avgSetsPerSession, 2);
+    assert.equal(stats.maxSetsInSession, 3);
+    assert.equal(stats.avgLoadedKg, 90);
+    assert.equal(stats.bestLoadedKg, 100);
+    assert.equal(stats.avgTotalKg, 110);
+    assert.equal(stats.bestTotalKg, 120);
   });
 
   it("describes a best set, a reached goal, and a plain set", () => {
