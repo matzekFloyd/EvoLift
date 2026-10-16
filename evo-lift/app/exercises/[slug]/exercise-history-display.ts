@@ -41,6 +41,46 @@ export function setTotalKgForStats(row: { weightKg: number | null; totalKg: numb
   return row.totalKg;
 }
 
+export type ExerciseHistoryStatInput = {
+  sessionId: string;
+  isWarmup: boolean;
+  weightKg: number | null;
+  totalKg: number;
+};
+
+export type ExerciseHistoryStats = {
+  setCount: number;
+  avgSetsPerSession: number | null;
+  maxSetsInSession: number | null;
+  avgLoadedKg: number | null;
+  bestLoadedKg: number | null;
+  avgTotalKg: number | null;
+  bestTotalKg: number | null;
+};
+
+/** Same summary numbers as the exercise page. Warmups count as logged sets and are left out of load totals. */
+export function summarizeExerciseHistory(
+  rows: readonly ExerciseHistoryStatInput[],
+): ExerciseHistoryStats {
+  const bySession = new Map<string, number>();
+  for (const row of rows) {
+    bySession.set(row.sessionId, (bySession.get(row.sessionId) ?? 0) + 1);
+  }
+  const counts = [...bySession.values()];
+  const workingRows = rows.filter((row) => !row.isWarmup);
+  const loads = workingRows.map(loggedLoadKg).filter((value): value is number => value !== null);
+  const totals = workingRows.map(setTotalKgForStats).filter((value): value is number => value !== null);
+  return {
+    setCount: rows.length,
+    avgSetsPerSession: counts.length === 0 ? null : counts.reduce((sum, count) => sum + count, 0) / counts.length,
+    maxSetsInSession: counts.length === 0 ? null : Math.max(...counts),
+    avgLoadedKg: loads.length === 0 ? null : loads.reduce((sum, value) => sum + value, 0) / loads.length,
+    bestLoadedKg: loads.length === 0 ? null : Math.max(...loads),
+    avgTotalKg: totals.length === 0 ? null : totals.reduce((sum, value) => sum + value, 0) / totals.length,
+    bestTotalKg: totals.length === 0 ? null : Math.max(...totals),
+  };
+}
+
 export function formatKgValue(value: number | null, fractionDigits: number): string {
   return value == null ? "—" : `${value.toFixed(fractionDigits)} kg`;
 }

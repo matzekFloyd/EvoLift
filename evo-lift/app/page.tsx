@@ -104,7 +104,10 @@ export default function Home() {
         setSessionsError(null);
       }
 
-      const goalDatesPromise = loadGoalReachedSessionDates(supabaseBrowserClient).catch(() => ({}));
+      const goalDatesPromise = loadGoalReachedSessionDates(
+        supabaseBrowserClient,
+        session.user.id,
+      ).catch(() => ({}));
       const cached = peekHomeSessionSummaries(session.user.id);
       if (cached) {
         applyHomeSummaries(cached.rows);
