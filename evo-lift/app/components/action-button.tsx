@@ -1,6 +1,7 @@
 "use client";
 
 import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { usePanelInsetSurface } from "@/app/components/panel-inset";
 
 type ActionButtonVariant = "primary" | "secondary" | "danger";
 type ActionButtonSize = "sm" | "md";
@@ -10,6 +11,11 @@ type ActionButtonProps = {
   variant?: ActionButtonVariant;
   size?: ActionButtonSize;
   fullWidth?: boolean;
+  /**
+   * White fill for secondary buttons on muted inset surfaces.
+   * Defaults to on inside `PanelInset`; set `false` to opt out, `true` to force.
+   */
+  raised?: boolean;
   iconColor?: ActionButtonIconColor;
   className?: string;
   children: ReactNode;
@@ -23,6 +29,9 @@ const variantClassByType: Record<ActionButtonVariant, string> = {
   danger:
     "border-red-300 bg-red-50 text-red-700 hover:border-red-400 hover:bg-red-100 disabled:opacity-60",
 };
+
+const raisedSecondaryClass =
+  "border-zinc-300 bg-white text-zinc-800 hover:border-sky-300 hover:bg-zinc-50 disabled:opacity-60";
 
 const sizeClassByType: Record<ActionButtonSize, string> = {
   sm: "h-9 px-3 text-xs",
@@ -47,24 +56,30 @@ export function ActionButton({
   variant = "secondary",
   size = "md",
   fullWidth = false,
+  raised,
   iconColor = "auto",
   className = "",
   type = "button",
   children,
   ...rest
 }: ActionButtonProps) {
+  const onPanelInset = usePanelInsetSurface();
   const resolvedIconColor = iconColor === "auto" ? autoIconColorByVariant[variant] : iconColor;
   const widthClass = fullWidth ? "w-full" : "w-fit";
+  const useRaised =
+    variant === "secondary" && (raised === true || (raised !== false && onPanelInset));
+  const variantClass = useRaised ? raisedSecondaryClass : variantClassByType[variant];
 
   return (
     <button
       type={type}
       className={[
-        "inline-flex items-center justify-center gap-1 rounded-md border font-medium",
-        variantClassByType[variant],
+        "inline-flex items-center justify-center gap-1 rounded-md border font-medium leading-none",
+        variantClass,
         sizeClassByType[size],
         widthClass,
         iconClassByType[resolvedIconColor],
+        "[&_svg]:shrink-0 [&_svg]:self-center",
         className,
       ].join(" ")}
       {...rest}

@@ -1,9 +1,10 @@
 "use client";
 
-import { Copy, ListOrdered, Pencil, Plus, Trash2 } from "lucide-react";
+import { CircleCheck, CircleOff, Copy, ListOrdered, Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { AppDialog } from "@/app/components/app-dialog";
 import { PageAddAction } from "@/app/components/page-add-action";
 import { PageShell } from "@/app/components/page-shell";
 import { PanelInset } from "@/app/components/panel-inset";
@@ -173,7 +174,7 @@ export default function PlansPage() {
           <ListOrdered className="h-6 w-6 text-sky-700" />
           Plans
         </h1>
-        <PageAddAction href="/sessions/new" label="Add workout session" />
+        <PageAddAction href="/plans/new" label="Create plan" />
       </div>
 
       <section className="panel p-5">
@@ -194,125 +195,105 @@ export default function PlansPage() {
         {loadError ? (
           <p className="mt-4 text-sm text-red-600">{loadError}</p>
         ) : plans.length === 0 ? (
-          <div className="mt-4 text-center text-sm text-zinc-600">
-            <p>No plans yet.</p>
-            <Link
-              href="/plans/new"
-              className="mt-4 inline-flex h-10 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-3 py-2 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600 [&_svg]:text-white"
-            >
-              <Plus className="h-4 w-4 text-white" />
-              Create plan
-            </Link>
-          </div>
+          <p className="mt-4 text-center text-sm text-zinc-600">No plans yet.</p>
         ) : (
-          <>
-            <PanelInset className="mt-4 overflow-x-auto p-0">
-              <table className="min-w-full divide-y divide-zinc-200 text-sm">
-                <thead>
-                  <tr className="text-left text-xs font-medium uppercase tracking-wide text-zinc-600">
-                    <th className="px-4 py-3">Name</th>
-                    <th className="px-4 py-3">Days</th>
-                    <th className="px-4 py-3">Active</th>
-                    <th className="px-4 py-3 text-right">Actions</th>
+          <PanelInset className="mt-4 overflow-x-auto p-0">
+            <table className="min-w-full divide-y divide-zinc-200 text-sm">
+              <thead>
+                <tr className="text-left text-xs font-medium uppercase tracking-wide text-zinc-600">
+                  <th className="px-4 py-3">Name</th>
+                  <th className="px-4 py-3">Days</th>
+                  <th className="px-4 py-3">Active</th>
+                  <th className="px-4 py-3">
+                    <span className="sr-only">Actions</span>
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-zinc-100">
+                {plans.map((row) => (
+                  <tr key={row.id} className="bg-white">
+                    <td className="px-4 py-3 font-medium text-zinc-900">{row.name}</td>
+                    <td className="px-4 py-3 text-zinc-600">{row.dayCount}</td>
+                    <td className="px-4 py-3 text-zinc-600">
+                      {row.isActive ? (
+                        <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-sky-800">
+                          Active
+                        </span>
+                      ) : null}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <button
+                          type="button"
+                          disabled={pendingPlanId === row.id}
+                          onClick={() => void changeActive(row.id, !row.isActive)}
+                          className="inline-flex h-8 w-[8.5rem] items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 text-xs font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100 disabled:opacity-60"
+                        >
+                          {row.isActive ? (
+                            <CircleOff className="h-3.5 w-3.5 shrink-0 text-sky-700" aria-hidden />
+                          ) : (
+                            <CircleCheck className="h-3.5 w-3.5 shrink-0 text-sky-700" aria-hidden />
+                          )}
+                          {row.isActive ? "Deactivate" : "Set active"}
+                        </button>
+                        <button
+                          type="button"
+                          disabled={pendingPlanId === row.id}
+                          onClick={() => void duplicate(row.id)}
+                          className="inline-flex h-8 w-[8.5rem] items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 text-xs font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100 disabled:opacity-60"
+                        >
+                          <Copy className="h-3.5 w-3.5 shrink-0 text-sky-700" aria-hidden />
+                          Duplicate
+                        </button>
+                        <Link
+                          href={`/plans/${row.id}/edit`}
+                          className="inline-flex h-8 w-[8.5rem] items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 text-xs font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
+                        >
+                          <Pencil className="h-3.5 w-3.5 shrink-0 text-sky-700" aria-hidden />
+                          Edit
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => setDeleteTargetId(row.id)}
+                          className="inline-flex h-8 w-[8.5rem] items-center justify-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 text-xs font-medium text-red-800 hover:border-red-300"
+                        >
+                          <Trash2 className="h-3.5 w-3.5 shrink-0 text-red-600" aria-hidden />
+                          Delete
+                        </button>
+                      </div>
+                    </td>
                   </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-100">
-                  {plans.map((row) => (
-                    <tr key={row.id} className="bg-white">
-                      <td className="px-4 py-3 font-medium text-zinc-900">{row.name}</td>
-                      <td className="px-4 py-3 text-zinc-600">{row.dayCount}</td>
-                      <td className="px-4 py-3 text-zinc-600">
-                        {row.isActive ? (
-                          <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-sky-800">
-                            Active
-                          </span>
-                        ) : null}
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex flex-wrap justify-end gap-2">
-                          <button
-                            type="button"
-                            disabled={pendingPlanId === row.id}
-                            onClick={() => void changeActive(row.id, !row.isActive)}
-                            className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100 disabled:opacity-60"
-                          >
-                            {row.isActive ? "Clear active" : "Set active"}
-                          </button>
-                          <button
-                            type="button"
-                            disabled={pendingPlanId === row.id}
-                            onClick={() => void duplicate(row.id)}
-                            className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100 disabled:opacity-60"
-                          >
-                            <Copy className="h-3.5 w-3.5 text-sky-700" />
-                            Duplicate
-                          </button>
-                          <Link
-                            href={`/plans/${row.id}/edit`}
-                            className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
-                          >
-                            <Pencil className="h-3.5 w-3.5 text-sky-700" />
-                            Edit
-                          </Link>
-                          <button
-                            type="button"
-                            onClick={() => setDeleteTargetId(row.id)}
-                            className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-800 hover:border-red-300"
-                          >
-                            <Trash2 className="h-3.5 w-3.5 text-red-600" />
-                            Delete
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </PanelInset>
-            <div className="mt-4 flex justify-end">
-              <Link
-                href="/plans/new"
-                className="inline-flex h-10 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-3 py-2 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600 [&_svg]:text-white"
-              >
-                <Plus className="h-4 w-4 text-white" />
-                Create plan
-              </Link>
-            </div>
-          </>
+                ))}
+              </tbody>
+            </table>
+          </PanelInset>
         )}
       </section>
 
       {deleteTargetId ? (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-3 sm:items-center"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="delete-plan-title"
-        >
-          <div className="w-full max-w-sm rounded-lg border border-zinc-200 bg-white p-4 shadow-lg">
-            <SectionHeading id="delete-plan-title">Delete plan?</SectionHeading>
-            <p className="mt-1 text-sm text-zinc-600">
-              This removes the plan only. Existing workout sessions stay unchanged.
-            </p>
-            <div className="mt-4 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setDeleteTargetId(null)}
-                className="rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={isDeleting}
-                onClick={() => void confirmDelete()}
-                className="rounded-md border border-red-600 bg-red-600 px-3 py-2 text-sm font-medium text-white hover:border-red-700 hover:bg-red-700 disabled:opacity-60"
-              >
-                {isDeleting ? "Deleting…" : "Delete"}
-              </button>
-            </div>
+        <AppDialog titleId="delete-plan-title" panelClassName="max-w-sm">
+          <SectionHeading id="delete-plan-title">Delete plan?</SectionHeading>
+          <p className="mt-1 text-sm text-zinc-600">
+            This removes the plan only. Existing workout sessions stay unchanged.
+          </p>
+          <div className="mt-4 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setDeleteTargetId(null)}
+              className="rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={isDeleting}
+              onClick={() => void confirmDelete()}
+              className="rounded-md border border-red-600 bg-red-600 px-3 py-2 text-sm font-medium text-white hover:border-red-700 hover:bg-red-700 disabled:opacity-60"
+            >
+              {isDeleting ? "Deleting…" : "Delete"}
+            </button>
           </div>
-        </div>
+        </AppDialog>
       ) : null}
     </PageShell>
   );

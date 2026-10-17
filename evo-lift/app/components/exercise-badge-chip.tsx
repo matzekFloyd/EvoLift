@@ -1,3 +1,6 @@
+"use client";
+
+import { usePanelInsetSurface } from "@/app/components/panel-inset";
 import { toExerciseBadge } from "@/lib/exercise-badge";
 
 type ExerciseBadgeChipProps = {
@@ -16,6 +19,8 @@ const variantClass: Record<NonNullable<ExerciseBadgeChipProps["variant"]>, strin
   skipped: "border-amber-300 bg-amber-100 text-amber-950",
 };
 
+const raisedDefaultClass = "border-zinc-300 bg-white text-zinc-700";
+
 /** Fixed-width badge so labels line up in lists and selects. */
 export function ExerciseBadgeChip({
   slug,
@@ -24,13 +29,17 @@ export function ExerciseBadgeChip({
   title,
   "aria-label": ariaLabel,
 }: ExerciseBadgeChipProps) {
+  const onPanelInset = usePanelInsetSurface();
+  const surfaceClass =
+    variant === "default" && onPanelInset ? raisedDefaultClass : variantClass[variant];
+
   return (
     <span
       title={title}
       aria-label={ariaLabel}
       className={[
         "inline-flex h-6 w-11 shrink-0 items-center justify-center rounded border px-0.5 text-[10px] font-semibold tracking-wide",
-        variantClass[variant],
+        surfaceClass,
         className,
       ]
         .filter(Boolean)

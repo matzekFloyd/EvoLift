@@ -1,16 +1,66 @@
-import type { ComponentProps } from "react";
+"use client";
+
+import {
+  createContext,
+  createElement,
+  useContext,
+  type ComponentPropsWithoutRef,
+  type ElementType,
+  type ReactNode,
+} from "react";
+
+export type PanelInsetTone = "muted" | "accent";
 
 /** Grey group inside a white panel. Same border, radius, and fill on every page. */
 export const panelInsetClassName = "rounded-md border border-zinc-200 bg-zinc-50/80";
 
-export function panelInsetClass(className?: string) {
-  return [panelInsetClassName, className].filter(Boolean).join(" ");
+/** Soft primary tint for highlighted / “next” rows inside a white panel. */
+export const panelInsetAccentClassName = "rounded-md border border-sky-300 bg-sky-50";
+
+const toneClassByType: Record<PanelInsetTone, string> = {
+  muted: panelInsetClassName,
+  accent: panelInsetAccentClassName,
+};
+
+export function panelInsetClass(className?: string, tone: PanelInsetTone = "muted") {
+  return [toneClassByType[tone], className].filter(Boolean).join(" ");
 }
 
-type PanelInsetProps = ComponentProps<"div">;
+const PanelInsetSurfaceContext = createContext(false);
 
-export function PanelInset({ className, ...props }: PanelInsetProps) {
+/** True when rendering inside `PanelInset` (secondary ActionButtons raise automatically). */
+export function usePanelInsetSurface(): boolean {
+  return useContext(PanelInsetSurfaceContext);
+}
+
+type PanelInsetOwnProps<T extends ElementType> = {
+  as?: T;
+  tone?: PanelInsetTone;
+  className?: string;
+  children?: ReactNode;
+};
+
+type PanelInsetProps<T extends ElementType = "div"> = PanelInsetOwnProps<T> &
+  Omit<ComponentPropsWithoutRef<T>, keyof PanelInsetOwnProps<T>>;
+
+export function PanelInset<T extends ElementType = "div">({
+  as,
+  tone = "muted",
+  className,
+  children,
+  ...rest
+}: PanelInsetProps<T>) {
+  const Tag = as ?? "div";
   return (
-    <div className={panelInsetClass(className)} {...props} />
+    <PanelInsetSurfaceContext.Provider value={true}>
+      {createElement(
+        Tag,
+        {
+          className: panelInsetClass(className, tone),
+          ...rest,
+        },
+        children,
+      )}
+    </PanelInsetSurfaceContext.Provider>
   );
 }

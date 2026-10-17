@@ -24,6 +24,16 @@ alwaysApply: false
 
 - **Header branding**: light sky gradient `bg-gradient-to-l from-sky-200 via-sky-100 to-sky-50` (darker on the right), no bottom border (per brand doc).
 
+## Dialogs
+
+- Use shared **`AppDialog`** for modal overlays. Always centered (`items-center`), including on compact widths — do not use bottom-sheet `items-end` / `sm:items-center` for confirmations or forms.
+
+## Nested surfaces
+
+- Groups inside a white `.panel` use **`PanelInset`** (or `panelInsetClass`) — muted fill by default, `tone="accent"` for next/highlight.
+- Do not hand-roll `border-zinc-200 bg-zinc-50` on nested cards/rows.
+- Secondary **`ActionButton`** and default **`ExerciseBadgeChip`** inside `PanelInset` raise to white automatically (`raised={false}` on the button to opt out).
+
 ## Buttons and icons
 
 - Prefer **`ActionButton`** with `variant`: `primary` (sky fill), `secondary` (zinc outline/soft), `danger` (soft red).

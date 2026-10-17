@@ -1,3 +1,4 @@
+import { PanelInset } from "@/app/components/panel-inset";
 import { SectionHeading } from "@/app/components/section-heading";
 import type { GoalSummaryBar } from "@/app/goals/goal-summary";
 
@@ -13,7 +14,7 @@ export function GoalSummaryChart({ bars }: GoalSummaryChartProps) {
   return (
     <div className="mt-5">
       <SectionHeading id="goal-summary-heading">Progress</SectionHeading>
-      <ul className="mt-3 space-y-3 rounded-md border border-zinc-200 bg-white p-4" aria-labelledby="goal-summary-heading">
+      <PanelInset as="ul" className="mt-3 space-y-3 p-4" aria-labelledby="goal-summary-heading">
         {bars.map((bar) => {
           const percent = bar.percent ?? 0;
           const statusLabel =
@@ -56,7 +57,7 @@ export function GoalSummaryChart({ bars }: GoalSummaryChartProps) {
             </li>
           );
         })}
-      </ul>
+      </PanelInset>
     </div>
   );
 }
