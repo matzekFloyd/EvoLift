@@ -1,11 +1,13 @@
 "use client";
 
-import { ListOrdered, Play } from "lucide-react";
+import { ChevronRight, ListOrdered, Play } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
+import { AppDialog } from "@/app/components/app-dialog";
 import { DateInput } from "@/app/components/date-input";
+import { PanelInset } from "@/app/components/panel-inset";
 import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
@@ -185,8 +187,8 @@ export function ActivePlanPanel() {
         </p>
       ) : (
         <div className="space-y-3">
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-            <div>
+          <div className="flex items-center justify-between gap-2">
+            <div className="min-w-0">
               <Link
                 href={`/plans/${plan.id}/edit`}
                 className="text-sm font-medium text-zinc-900 underline-offset-2 hover:text-sky-800 hover:underline"
@@ -194,7 +196,9 @@ export function ActivePlanPanel() {
                 {plan.name}
               </Link>
               {nextDay ? (
-                <p className="mt-0.5 text-xs text-zinc-600">Next: {nextDay.name}</p>
+                <p className="mt-0.5 text-xs text-zinc-600">
+                  Next: <span className="font-medium text-zinc-800">{nextDay.name}</span>
+                </p>
               ) : (
                 <p className="mt-0.5 text-xs text-zinc-600">Add a day before starting a session.</p>
               )}
@@ -203,6 +207,7 @@ export function ActivePlanPanel() {
               type="button"
               variant="primary"
               size="md"
+              className="shrink-0"
               disabled={!nextDay || nextDay.exerciseCount === 0}
               title={
                 !nextDay
@@ -217,8 +222,8 @@ export function ActivePlanPanel() {
                 }
               }}
             >
-              <Play className="h-4 w-4 text-white" />
-              Start next session
+              <ChevronRight className="h-4 w-4 text-white" aria-hidden />
+              Start session
             </ActionButton>
           </div>
           {nextDay && nextDay.exerciseCount === 0 ? (
@@ -232,11 +237,11 @@ export function ActivePlanPanel() {
                 const latest = latestByDay.get(day.id);
                 const isNext = day.id === nextDayId;
                 return (
-                  <li
+                  <PanelInset
+                    as="li"
                     key={day.id}
-                    className={`flex flex-col gap-2 rounded-md border px-3 py-2 sm:flex-row sm:items-center sm:justify-between ${
-                      isNext ? "border-sky-300 bg-sky-50" : "border-zinc-200 bg-white"
-                    }`}
+                    tone={isNext ? "accent" : "muted"}
+                    className="flex items-center justify-between gap-2 px-3 py-2"
                   >
                     <div className="min-w-0">
                       <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-zinc-900">
@@ -262,6 +267,7 @@ export function ActivePlanPanel() {
                       type="button"
                       variant="secondary"
                       size="sm"
+                      className="shrink-0"
                       disabled={day.exerciseCount === 0}
                       title={
                         day.exerciseCount === 0
@@ -270,10 +276,10 @@ export function ActivePlanPanel() {
                       }
                       onClick={() => openStart(day.id)}
                     >
-                      <Play className="h-3.5 w-3.5" />
+                      <Play className="h-3.5 w-3.5" aria-hidden />
                       Start
                     </ActionButton>
-                  </li>
+                  </PanelInset>
                 );
               })}
             </ul>
@@ -282,66 +288,59 @@ export function ActivePlanPanel() {
       )}
 
       {startDay && plan ? (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-3 sm:items-center"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="start-plan-day-title"
-        >
-          <div className="w-full max-w-md rounded-lg border border-zinc-200 bg-white p-4 shadow-lg">
-            <SectionHeading id="start-plan-day-title">
-              Start session from {startDay.name}
-            </SectionHeading>
-            <p className="mt-1 text-xs text-zinc-600">
-              Creates a workout session with this day&apos;s exercises and targets. You can still
-              change loads and reps before logging sets.
-            </p>
-            {message ? (
-              <StatusNotice
-                message={message}
-                tone="error"
-                onDismiss={() => setMessage(null)}
-                className="mt-3"
-              />
-            ) : null}
-            <label className="mt-4 block text-sm font-medium text-zinc-800">
-              Performed on
-              <DateInput
-                required
-                value={performedOn}
-                onChange={(event) => setPerformedOn(event.target.value)}
-                className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
-              />
-            </label>
-            <label className="mt-3 block text-sm font-medium text-zinc-800">
-              Session notes (optional)
-              <textarea
-                value={sessionNotes}
-                onChange={(event) => setSessionNotes(event.target.value)}
-                className="mt-1 h-20 w-full rounded-md border px-3 py-2 text-sm"
-                maxLength={500}
-                placeholder="Optional notes for this session"
-              />
-            </label>
-            <div className="mt-4 flex flex-wrap justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setStartDayId(null)}
-                className="rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                disabled={isStarting}
-                onClick={() => void confirmStart()}
-                className="rounded-md border border-sky-700 bg-sky-700 px-3 py-2 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60"
-              >
-                {isStarting ? "Starting…" : "Start session"}
-              </button>
-            </div>
+        <AppDialog titleId="start-plan-day-title">
+          <SectionHeading id="start-plan-day-title">
+            Start session from {startDay.name}
+          </SectionHeading>
+          <p className="mt-1 text-xs text-zinc-600">
+            Creates a workout session with this day&apos;s exercises and targets. You can still
+            change loads and reps before logging sets.
+          </p>
+          {message ? (
+            <StatusNotice
+              message={message}
+              tone="error"
+              onDismiss={() => setMessage(null)}
+              className="mt-3"
+            />
+          ) : null}
+          <label className="mt-4 block text-sm font-medium text-zinc-800">
+            Performed on
+            <DateInput
+              required
+              value={performedOn}
+              onChange={(event) => setPerformedOn(event.target.value)}
+              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+            />
+          </label>
+          <label className="mt-3 block text-sm font-medium text-zinc-800">
+            Session notes (optional)
+            <textarea
+              value={sessionNotes}
+              onChange={(event) => setSessionNotes(event.target.value)}
+              className="mt-1 h-20 w-full rounded-md border px-3 py-2 text-sm"
+              maxLength={500}
+              placeholder="Optional notes for this session"
+            />
+          </label>
+          <div className="mt-4 flex flex-wrap justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setStartDayId(null)}
+              className="rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={isStarting}
+              onClick={() => void confirmStart()}
+              className="rounded-md border border-sky-700 bg-sky-700 px-3 py-2 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60"
+            >
+              {isStarting ? "Starting…" : "Start session"}
+            </button>
           </div>
-        </div>
+        </AppDialog>
       ) : null}
     </section>
   );

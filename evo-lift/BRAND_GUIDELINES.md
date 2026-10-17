@@ -41,6 +41,19 @@ Examples:
 - Global header uses a branded light-blue gradient to reinforce navigation hierarchy
   (`bg-gradient-to-l from-sky-200 via-sky-100 to-sky-50`, darker on the right, with no bottom border).
 
+## User-named text
+
+User-given names (plan name, day name, template name, and similar labels the user typed) are working labels for scanning and tapping — not decorative titles.
+
+- Prefer `font-medium` for user-named text. Do not use italic/cursive, and do not bump to `font-semibold` only to mark “user-named.”
+- Standalone names use `text-zinc-900` (or link styling when the name navigates).
+- When a name sits next to system chrome in the same line, keep the chrome muted (`text-zinc-600`) and the name slightly stronger (`font-medium text-zinc-800`).
+
+Example:
+
+- Prefer: `Next: Press Bench` with `Next:` in `text-zinc-600` and `Press Bench` in `font-medium text-zinc-800`.
+- Avoid: italic names, or making the whole `Next: …` line as strong as the plan title.
+
 ## Color intent
 
 - Primary action: sky blue (`sky-*`) for forward/progressive actions.
@@ -62,9 +75,18 @@ Examples:
 ## Button conventions
 
 - Primary submit/save buttons use filled sky styling.
-- Secondary buttons use neutral outline styling.
+- Secondary buttons use neutral outline styling (`border-zinc-300`, soft `bg-zinc-50`).
 - Destructive actions remain outline/soft-red unless explicitly critical.
 - On mobile, prioritize thumb-friendly hit targets and concise labels.
+
+### Nested surfaces
+
+Avoid stacking the same fill on itself (e.g. white row on white card, or `zinc-50` button on `zinc-50` row).
+
+- Nested groups inside a white `.panel` **must** use shared `PanelInset` (or `panelInsetClass`) — do not hand-roll `border-zinc-200 bg-zinc-50` on list rows or cards.
+- Default tone is muted (`bg-zinc-50/80`). Use `tone="accent"` for highlighted / “next” rows (`bg-sky-50`).
+- Secondary `ActionButton`s inside `PanelInset` raise to white automatically. Pass `raised={false}` only to opt out; pass `raised` outside an inset to force white fill.
+- Default `ExerciseBadgeChip`s inside `PanelInset` raise to white automatically (same rule as secondary buttons).
 
 ## Feedback and messaging
 
@@ -75,6 +97,12 @@ Examples:
   - success
 - Messages should appear near the affected action block.
 - Prefer section-local messages over one global page message.
+
+## Dialogs and overlays
+
+- Modal dialogs use shared `AppDialog` and open **centered** in the viewport at every width (including compact).
+- Do not hand-roll `fixed inset-0` bottom-sheet overlays (`items-end` / `sm:items-center`) for confirmations or forms.
+- Keep dialog actions right-aligned in the panel footer (`Cancel` then primary/danger).
 
 ## Responsive behavior
 
@@ -94,6 +122,8 @@ Examples:
 
 - Is text short, clear, and action-first?
 - Are terms consistent with this document?
+- Are user-named labels weighted per **User-named text** (medium, not italic/semibold-only)?
+- Are nested groups using `PanelInset` / **Nested surfaces** (no hand-rolled muted fills)?
 - Are action colors and icons semantically correct?
 - Is compact/mobile behavior still usable with one hand?
 - Is success/error feedback shown near the triggering control?

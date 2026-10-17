@@ -2,6 +2,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { ActionButton } from "@/app/components/action-button";
 import { ExerciseBadgeChip } from "@/app/components/exercise-badge-chip";
+import { PanelInset } from "@/app/components/panel-inset";
 import { StatusBadge } from "@/app/components/status-badge";
 
 type GoalCardProps = {
@@ -39,7 +40,7 @@ export function GoalCard({
 }: GoalCardProps) {
   const roundedPercent = percent == null ? null : Math.round(percent);
   return (
-    <article className="rounded-md border border-zinc-200 bg-white p-4">
+    <PanelInset as="article" className="p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
@@ -117,6 +118,6 @@ export function GoalCard({
           Delete
         </ActionButton>
       </div>
-    </article>
+    </PanelInset>
   );
 }

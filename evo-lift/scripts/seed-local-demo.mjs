@@ -1,5 +1,5 @@
 /**
- * Creates the local demo user and workout history when they are missing.
+ * Creates the local demo user, workout history, and active plan when they are missing.
  * Runs from `npm run dev`. Refuses any Supabase URL that is not localhost.
  */
 import { randomUUID } from "node:crypto";
@@ -11,6 +11,7 @@ const DEMO_EMAIL = "demo@example.com";
 const DEMO_PASSWORD = "demo1234";
 const HISTORY_WEEKS = 16;
 const BARBELL_BASE_KG = 20;
+const PLAN_NAME = "3-Day Strength";
 
 const LIFTS = {
   squat: { slug: "back-squat", startKg: 80, stepKg: 2.5 },
@@ -21,10 +22,10 @@ const LIFTS = {
 };
 
 /** Monday, Wednesday, Friday. Offsets are days from the Monday of that week. */
-const TRAINING_DAYS = [
-  { dayOffset: 0, note: "Squat and bench", lifts: ["squat", "bench"] },
-  { dayOffset: 2, note: "Deadlift and row", lifts: ["deadlift", "row"] },
-  { dayOffset: 4, note: "Press and bench", lifts: ["press", "bench"] },
+const PLAN_DAYS = [
+  { name: "Squat Bench", dayOffset: 0, note: "Squat and bench", lifts: ["squat", "bench"] },
+  { name: "Deadlift Row", dayOffset: 2, note: "Deadlift and row", lifts: ["deadlift", "row"] },
+  { name: "Press Bench", dayOffset: 4, note: "Press and bench", lifts: ["press", "bench"] },
 ];
 
 function loadEnvFile(filePath) {
@@ -128,7 +129,7 @@ function setsFor(kind, topWeight, step) {
   return [...warmups, ...working];
 }
 
-function buildHistory(exerciseIdBySlug) {
+function buildHistory(exerciseIdBySlug, planId, planDayIdByNote) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const thisWeek = startOfWeekMonday(today);
@@ -143,7 +144,7 @@ function buildHistory(exerciseIdBySlug) {
       continue;
     }
     const weekStart = addDays(firstWeek, weekIndex * 7);
-    for (const day of TRAINING_DAYS) {
+    for (const day of PLAN_DAYS) {
       const performed = addDays(weekStart, day.dayOffset);
       if (performed > today) {
         continue;
@@ -154,6 +155,8 @@ function buildHistory(exerciseIdBySlug) {
         id: sessionId,
         performed_on: toYyyyMmDd(performed),
         notes: note,
+        plan_id: planId,
+        plan_day_id: planDayIdByNote.get(day.note),
       });
       day.lifts.forEach((liftKey, index) => {
         const lift = LIFTS[liftKey];
@@ -196,6 +199,113 @@ function buildHistory(exerciseIdBySlug) {
   return { sessions, sessionExercises, sets };
 }
 
+async function ensureActivePlan(supabase, userId, exerciseIdBySlug) {
+  const { data: existing, error: existingError } = await supabase
+    .from("workout_plans")
+    .select("id, is_active")
+    .eq("user_id", userId)
+    .eq("name", PLAN_NAME)
+    .maybeSingle();
+  if (existingError) {
+    throw new Error(`Could not read demo plan: ${existingError.message}`);
+  }
+
+  let planId = existing?.id ?? null;
+  if (!planId) {
+    planId = randomUUID();
+    const { error: planError } = await supabase.from("workout_plans").insert({
+      id: planId,
+      user_id: userId,
+      name: PLAN_NAME,
+      notes: "Local demo plan. Three full-body days.",
+      is_active: true,
+    });
+    if (planError) {
+      throw new Error(`Could not create demo plan: ${planError.message}`);
+    }
+
+    const days = PLAN_DAYS.map((day, index) => ({
+      id: randomUUID(),
+      plan_id: planId,
+      name: day.name,
+      position: index + 1,
+      note: day.note,
+      lifts: day.lifts,
+    }));
+    const { error: daysError } = await supabase.from("workout_plan_days").insert(
+      days.map(({ id, plan_id, name, position }) => ({ id, plan_id, name, position })),
+    );
+    if (daysError) {
+      throw new Error(`Could not create demo plan days: ${daysError.message}`);
+    }
+
+    const dayExercises = [];
+    for (const day of days) {
+      day.lifts.forEach((liftKey, index) => {
+        const lift = LIFTS[liftKey];
+        dayExercises.push({
+          plan_day_id: day.id,
+          exercise_id: exerciseIdBySlug.get(lift.slug),
+          position: index + 1,
+          target_sets: 4,
+          target_reps: 5,
+          target_weight_kg: lift.startKg,
+          base_weight_kg: BARBELL_BASE_KG,
+        });
+      });
+    }
+    const { error: dayExercisesError } = await supabase
+      .from("workout_plan_day_exercises")
+      .insert(dayExercises);
+    if (dayExercisesError) {
+      throw new Error(`Could not create demo plan exercises: ${dayExercisesError.message}`);
+    }
+  } else if (!existing.is_active) {
+    const { error: activateError } = await supabase
+      .from("workout_plans")
+      .update({ is_active: true })
+      .eq("id", planId);
+    if (activateError) {
+      throw new Error(`Could not activate demo plan: ${activateError.message}`);
+    }
+  }
+
+  const { data: days, error: daysReadError } = await supabase
+    .from("workout_plan_days")
+    .select("id, name, position")
+    .eq("plan_id", planId)
+    .order("position", { ascending: true });
+  if (daysReadError) {
+    throw new Error(`Could not read demo plan days: ${daysReadError.message}`);
+  }
+
+  const planDayIdByNote = new Map();
+  for (const day of PLAN_DAYS) {
+    const match = (days ?? []).find((row) => row.name === day.name);
+    if (match) {
+      planDayIdByNote.set(day.note, match.id);
+    }
+  }
+
+  for (const day of PLAN_DAYS) {
+    const planDayId = planDayIdByNote.get(day.note);
+    if (!planDayId) {
+      continue;
+    }
+    const notes = [day.note, `Deload. ${day.note}`];
+    const { error: linkError } = await supabase
+      .from("workout_sessions")
+      .update({ plan_id: planId, plan_day_id: planDayId })
+      .eq("user_id", userId)
+      .in("notes", notes)
+      .is("plan_id", null);
+    if (linkError) {
+      throw new Error(`Could not link demo sessions to plan: ${linkError.message}`);
+    }
+  }
+
+  return { planId, planDayIdByNote, created: !existing };
+}
 async function insertChunks(supabase, table, rows) {
   const size = 200;
   for (let index = 0; index < rows.length; index += size) {
@@ -307,18 +417,6 @@ async function seed() {
     }
   }
 
-  const { count, error: countError } = await supabase
-    .from("workout_sessions")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId);
-  if (countError) {
-    throw new Error(`Could not read demo sessions: ${countError.message}`);
-  }
-  if ((count ?? 0) > 0) {
-    console.log(`Local demo user already has workout data (${DEMO_EMAIL}).`);
-    return;
-  }
-
   const slugs = Object.values(LIFTS).map((lift) => lift.slug);
   const { data: exercises, error: exerciseError } = await supabase
     .from("exercises")
@@ -335,32 +433,52 @@ async function seed() {
     );
   }
 
-  const history = buildHistory(exerciseIdBySlug);
-  const sessions = history.sessions.map((session) => ({ ...session, user_id: userId }));
-  await insertChunks(supabase, "workout_sessions", sessions);
-  await insertChunks(supabase, "workout_session_exercises", history.sessionExercises);
-  await insertChunks(supabase, "workout_sets", history.sets);
+  const plan = await ensureActivePlan(supabase, userId, exerciseIdBySlug);
 
-  const defaults = slugs.map((slug) => ({
-    user_id: userId,
-    exercise_id: exerciseIdBySlug.get(slug),
-    default_base_weight_kg: BARBELL_BASE_KG,
-    default_target_sets: 4,
-    default_target_reps: 5,
-  }));
-  const { error: defaultsError } = await supabase
-    .from("user_exercise_defaults")
-    .upsert(defaults, { onConflict: "user_id,exercise_id", ignoreDuplicates: true });
-  if (defaultsError) {
-    throw new Error(`Could not save exercise defaults: ${defaultsError.message}`);
+  const { count, error: countError } = await supabase
+    .from("workout_sessions")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId);
+  if (countError) {
+    throw new Error(`Could not read demo sessions: ${countError.message}`);
+  }
+
+  let sessionCount = count ?? 0;
+  if (sessionCount === 0) {
+    const history = buildHistory(exerciseIdBySlug, plan.planId, plan.planDayIdByNote);
+    const sessions = history.sessions.map((session) => ({ ...session, user_id: userId }));
+    await insertChunks(supabase, "workout_sessions", sessions);
+    await insertChunks(supabase, "workout_session_exercises", history.sessionExercises);
+    await insertChunks(supabase, "workout_sets", history.sets);
+    sessionCount = sessions.length;
+
+    const defaults = slugs.map((slug) => ({
+      user_id: userId,
+      exercise_id: exerciseIdBySlug.get(slug),
+      default_base_weight_kg: BARBELL_BASE_KG,
+      default_target_sets: 4,
+      default_target_reps: 5,
+    }));
+    const { error: defaultsError } = await supabase
+      .from("user_exercise_defaults")
+      .upsert(defaults, { onConflict: "user_id,exercise_id", ignoreDuplicates: true });
+    if (defaultsError) {
+      throw new Error(`Could not save exercise defaults: ${defaultsError.message}`);
+    }
   }
 
   const createdLabel = created ? "Created" : "Using";
+  const planLabel = plan.created
+    ? `Seeded active plan "${PLAN_NAME}".`
+    : `Active plan "${PLAN_NAME}" ready.`;
+  if ((count ?? 0) > 0) {
+    console.log(`${createdLabel} local demo user ${DEMO_EMAIL} / ${DEMO_PASSWORD}. ${planLabel}`);
+    return;
+  }
   console.log(
-    `${createdLabel} local demo user ${DEMO_EMAIL} / ${DEMO_PASSWORD}. Seeded ${sessions.length} sessions.`,
+    `${createdLabel} local demo user ${DEMO_EMAIL} / ${DEMO_PASSWORD}. Seeded ${sessionCount} sessions. ${planLabel}`,
   );
 }
-
 try {
   await seed();
 } catch (error) {

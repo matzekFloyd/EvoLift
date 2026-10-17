@@ -333,7 +333,7 @@ export default function Home() {
           <ClipboardList className="h-6 w-6 text-sky-700" />
           Workout sessions
         </h1>
-        <PageAddAction href="/sessions/new" label="Add workout session" />
+        <PageAddAction href="/sessions/new" label="Create session" />
       </div>
       {userId ? <NewSessionDraftCallout userId={userId} /> : null}
       <ActivePlanPanel />

@@ -4,6 +4,7 @@ import { ChevronRight, Target } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
+import { AppDialog } from "@/app/components/app-dialog";
 import { PageAddAction } from "@/app/components/page-add-action";
 import { PageShell } from "@/app/components/page-shell";
 import { SectionHeading } from "@/app/components/section-heading";
@@ -344,7 +345,7 @@ export default function GoalsPage() {
           Goals
         </h1>
         <PageAddAction
-          label="Add goal"
+          label="Create goal"
           onClick={() => {
             setFormError(null);
             setDraft(emptyGoalDraft());
@@ -422,27 +423,20 @@ export default function GoalsPage() {
       ) : null}
 
       {deleteTarget ? (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-3 sm:items-center"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="delete-goal-title"
-        >
-          <div className="w-full max-w-sm rounded-lg border border-zinc-200 bg-white p-4 shadow-lg">
-            <SectionHeading id="delete-goal-title">Delete this goal?</SectionHeading>
-            <p className="mt-1 text-sm text-zinc-600">
-              This removes the goal for {deleteTarget.label}. Logged sets stay unchanged.
-            </p>
-            <div className="mt-4 flex justify-end gap-2">
-              <ActionButton type="button" variant="secondary" onClick={() => setDeleteTarget(null)} disabled={isDeleting}>
-                Cancel
-              </ActionButton>
-              <ActionButton type="button" variant="danger" onClick={() => void confirmDelete()} disabled={isDeleting}>
-                {isDeleting ? "Deleting…" : "Delete"}
-              </ActionButton>
-            </div>
+        <AppDialog titleId="delete-goal-title" panelClassName="max-w-sm">
+          <SectionHeading id="delete-goal-title">Delete this goal?</SectionHeading>
+          <p className="mt-1 text-sm text-zinc-600">
+            This removes the goal for {deleteTarget.label}. Logged sets stay unchanged.
+          </p>
+          <div className="mt-4 flex justify-end gap-2">
+            <ActionButton type="button" variant="secondary" onClick={() => setDeleteTarget(null)} disabled={isDeleting}>
+              Cancel
+            </ActionButton>
+            <ActionButton type="button" variant="danger" onClick={() => void confirmDelete()} disabled={isDeleting}>
+              {isDeleting ? "Deleting…" : "Delete"}
+            </ActionButton>
           </div>
-        </div>
+        </AppDialog>
       ) : null}
     </PageShell>
   );

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ActionButton } from "@/app/components/action-button";
+import { AppDialog } from "@/app/components/app-dialog";
 import { PageShell } from "@/app/components/page-shell";
 import { StatusNotice } from "@/app/components/status-notice";
 import { WorkoutExerciseDraftList } from "@/app/components/workout-exercise-draft-list";
@@ -387,43 +388,36 @@ export function PlanEditorClient(props: Props) {
       </form>
 
       {dayKeyPendingRemoval ? (
-        <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/40 p-3 sm:items-center"
-          role="dialog"
-          aria-modal="true"
-          aria-labelledby="remove-plan-day-title"
-        >
-          <div className="w-full max-w-sm rounded-lg border border-zinc-200 bg-white p-4 shadow-lg">
-            <h2 id="remove-plan-day-title" className="text-base font-semibold text-zinc-900">
-              Remove this day?
-            </h2>
-            <p className="mt-1 text-sm text-zinc-600">
-              The day leaves this plan when you save. Workout sessions you already started stay as
-              logged.
-            </p>
-            <div className="mt-4 flex justify-end gap-2">
-              <ActionButton
-                type="button"
-                variant="secondary"
-                size="md"
-                onClick={() => setDayKeyPendingRemoval(null)}
-              >
-                Cancel
-              </ActionButton>
-              <ActionButton
-                type="button"
-                variant="danger"
-                size="md"
-                onClick={() => {
-                  setDays((prev) => prev.filter((day) => day.key !== dayKeyPendingRemoval));
-                  setDayKeyPendingRemoval(null);
-                }}
-              >
-                Remove
-              </ActionButton>
-            </div>
+        <AppDialog titleId="remove-plan-day-title" panelClassName="max-w-sm">
+          <h2 id="remove-plan-day-title" className="text-base font-semibold text-zinc-900">
+            Remove this day?
+          </h2>
+          <p className="mt-1 text-sm text-zinc-600">
+            The day leaves this plan when you save. Workout sessions you already started stay as
+            logged.
+          </p>
+          <div className="mt-4 flex justify-end gap-2">
+            <ActionButton
+              type="button"
+              variant="secondary"
+              size="md"
+              onClick={() => setDayKeyPendingRemoval(null)}
+            >
+              Cancel
+            </ActionButton>
+            <ActionButton
+              type="button"
+              variant="danger"
+              size="md"
+              onClick={() => {
+                setDays((prev) => prev.filter((day) => day.key !== dayKeyPendingRemoval));
+                setDayKeyPendingRemoval(null);
+              }}
+            >
+              Remove
+            </ActionButton>
           </div>
-        </div>
+        </AppDialog>
       ) : null}
     </PageShell>
   );
