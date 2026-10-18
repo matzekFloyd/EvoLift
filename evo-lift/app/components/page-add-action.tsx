@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 
 const className =
-  "page-add-action inline-flex h-10 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-3 py-2 text-sm font-medium text-white [&_svg]:text-white";
+  "page-add-action inline-flex h-10 w-10 shrink-0 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 text-sm font-medium text-white sm:w-auto sm:px-3 sm:py-2 [&_svg]:text-white";
 
 type PageAddActionProps =
   | { label: string; href: string }

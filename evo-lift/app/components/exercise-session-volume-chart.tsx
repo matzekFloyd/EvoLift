@@ -5,13 +5,13 @@ import {
   CartesianGrid,
   Line,
   LineChart,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
   type TooltipContentProps,
 } from "recharts";
 import type { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
+import { ChartResponsiveContainer } from "@/app/components/chart-responsive-container";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { formatVolumeTick } from "@/app/components/exercise-session-volume-format";
 import {
@@ -83,7 +83,7 @@ export function ExerciseSessionVolumeChart({ points }: ExerciseSessionVolumeChar
         className="exercise-session-volume-chart relative h-52 w-full sm:h-64"
         style={{ WebkitTapHighlightColor: "transparent" }}
       >
-        <ResponsiveContainer width="100%" height="100%">
+        <ChartResponsiveContainer initialDimension={{ width: 320, height: 208 }}>
           <LineChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 4 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
             <XAxis
@@ -109,7 +109,7 @@ export function ExerciseSessionVolumeChart({ points }: ExerciseSessionVolumeChar
               isAnimationActive={false}
             />
           </LineChart>
-        </ResponsiveContainer>
+        </ChartResponsiveContainer>
       </div>
     </div>
   );

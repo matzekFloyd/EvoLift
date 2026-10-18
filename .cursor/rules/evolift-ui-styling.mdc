@@ -33,6 +33,7 @@ alwaysApply: false
 - Groups inside a white `.panel` use **`PanelInset`** (or `panelInsetClass`) — muted fill by default, `tone="accent"` for next/highlight.
 - Do not hand-roll `border-zinc-200 bg-zinc-50` on nested cards/rows.
 - Secondary **`ActionButton`** and default **`ExerciseBadgeChip`** inside `PanelInset` raise to white automatically (`raised={false}` on the button to opt out).
+- Data tables use shared **`AppTable`** (PanelInset shell). Row actions use **`TableRowActions`**: equal width, stacked below `sm`, horizontal from `sm` up — do not hand-roll per-table action layouts.
 
 ## Buttons and icons
 

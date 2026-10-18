@@ -12,9 +12,10 @@ import {
   Target,
   UserRound,
   X,
+  type LucideIcon,
 } from "lucide-react";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   AppHeaderNavCaption,
   AppHeaderNavLink,
@@ -26,6 +27,22 @@ import { prefetchHomeSessionSummaries } from "@/lib/home-session-cache";
 import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 
+type CompactNavItem = {
+  href: string;
+  label: string;
+  icon: LucideIcon;
+  isActive: boolean;
+};
+
+function compactNavTileClassName(isActive: boolean) {
+  return [
+    "flex min-h-[5.75rem] flex-col items-center justify-center gap-2 rounded-md border px-3 py-4 text-center text-sm font-medium",
+    isActive
+      ? "border-sky-700 bg-sky-700 text-white shadow-sm"
+      : "border-zinc-200 bg-white text-zinc-800 hover:border-sky-200 hover:bg-white",
+  ].join(" ");
+}
+
 export function HeaderActions() {
   const router = useRouter();
   const pathname = usePathname();
@@ -33,12 +50,48 @@ export function HeaderActions() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [isCompactMenuOpen, setIsCompactMenuOpen] = useState(false);
-  const [compactMenuPanelAnchor, setCompactMenuPanelAnchor] = useState<{
-    top: number;
-    right: number;
-  } | null>(null);
   const compactMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
   const compactMenuFirstItemRef = useRef<HTMLAnchorElement | null>(null);
+
+  const compactNavItems: CompactNavItem[] = [
+    { href: "/", label: "Home", icon: House, isActive: pathname === "/" },
+    {
+      href: "/exercises",
+      label: "Exercises",
+      icon: Dumbbell,
+      isActive: pathname.startsWith("/exercises"),
+    },
+    {
+      href: "/insights",
+      label: "Insights",
+      icon: BarChart3,
+      isActive: pathname.startsWith("/insights"),
+    },
+    {
+      href: "/goals",
+      label: "Goals",
+      icon: Target,
+      isActive: pathname.startsWith("/goals"),
+    },
+    {
+      href: "/plans",
+      label: "Plans",
+      icon: ListOrdered,
+      isActive: pathname.startsWith("/plans"),
+    },
+    {
+      href: "/templates",
+      label: "Templates",
+      icon: FileStack,
+      isActive: pathname.startsWith("/templates"),
+    },
+    {
+      href: "/account",
+      label: "Account",
+      icon: UserRound,
+      isActive: pathname === "/account",
+    },
+  ];
 
   useEffect(() => {
     let isMounted = true;
@@ -83,6 +136,10 @@ export function HeaderActions() {
     if (!isCompactMenuOpen) {
       return;
     }
+    const root = document.documentElement;
+    const previousOverflow = root.style.overflow;
+    // Lock scroll on html so scrollbar-gutter: stable keeps the same right inset.
+    root.style.overflow = "hidden";
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
@@ -94,33 +151,9 @@ export function HeaderActions() {
       compactMenuFirstItemRef.current?.focus();
     }, 0);
     return () => {
+      root.style.overflow = previousOverflow;
       window.removeEventListener("keydown", onKeyDown);
       window.clearTimeout(focusTimer);
-    };
-  }, [isCompactMenuOpen]);
-
-  useLayoutEffect(() => {
-    if (!isCompactMenuOpen) {
-      setCompactMenuPanelAnchor(null);
-      return;
-    }
-    function updateAnchor() {
-      const trigger = compactMenuTriggerRef.current;
-      if (!trigger) {
-        return;
-      }
-      const rect = trigger.getBoundingClientRect();
-      setCompactMenuPanelAnchor({
-        top: rect.bottom + 4,
-        right: window.innerWidth - rect.right,
-      });
-    }
-    updateAnchor();
-    window.addEventListener("resize", updateAnchor);
-    window.addEventListener("scroll", updateAnchor, true);
-    return () => {
-      window.removeEventListener("resize", updateAnchor);
-      window.removeEventListener("scroll", updateAnchor, true);
     };
   }, [isCompactMenuOpen]);
 
@@ -145,7 +178,11 @@ export function HeaderActions() {
 
   return (
     <header className="bg-gradient-to-l from-sky-200 via-sky-100 to-sky-50 pt-[env(safe-area-inset-top,0px)]">
-      <nav className="mx-auto flex w-full max-w-5xl items-center justify-between gap-2 px-4 py-3 sm:px-6">
+      <nav
+        className={`mx-auto flex w-full max-w-5xl items-center justify-between gap-2 px-4 py-3 sm:px-6 ${
+          isCompactMenuOpen ? "relative z-[90]" : ""
+        }`}
+      >
         <Link
           className="group inline-flex items-center gap-2 rounded-md px-1.5 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 focus-visible:ring-offset-2 focus-visible:ring-offset-sky-100"
           href="/"
@@ -208,11 +245,7 @@ export function HeaderActions() {
             ref={compactMenuTriggerRef}
             type="button"
             onClick={() => setIsCompactMenuOpen((prev) => !prev)}
-            className={`inline-flex h-10 w-10 items-center justify-center rounded-md text-zinc-700 hover:bg-sky-100/70 hover:text-sky-900 ${
-              isCompactMenuOpen
-                ? "relative z-[90] border border-zinc-200 bg-white shadow-md"
-                : ""
-            }`}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-md text-zinc-700 hover:bg-sky-100/70 hover:text-sky-900"
             aria-label={isCompactMenuOpen ? "Close navigation menu" : "Open navigation menu"}
             aria-expanded={isCompactMenuOpen}
             aria-controls="compact-header-menu"
@@ -226,118 +259,43 @@ export function HeaderActions() {
         </div>
       </nav>
       {isCompactMenuOpen ? (
-        <div className="md:hidden">
-          <button
-            type="button"
-            aria-label="Close navigation menu"
-            onClick={() => closeCompactMenu({ returnFocus: true })}
-            className="fixed inset-0 z-[70] bg-zinc-900/45"
-          />
-          <div
-            id="compact-header-menu"
-            role="dialog"
-            aria-label="Navigation menu"
-            style={
-              compactMenuPanelAnchor
-                ? {
-                    top: compactMenuPanelAnchor.top,
-                    right: compactMenuPanelAnchor.right,
-                  }
-                : undefined
-            }
-            className="fixed z-[80] w-max max-w-[calc(100vw-0.75rem)] rounded-md border border-zinc-200 bg-white p-1 shadow-lg"
-          >
-            <div className="space-y-1">
-              <Link
-                ref={compactMenuFirstItemRef}
-                href="/"
-                onClick={() => closeCompactMenu({ returnFocus: false })}
-                className={`flex items-center gap-2 rounded-md px-2 py-2 text-left text-sm ${
-                  pathname === "/" ? "bg-sky-50 text-sky-900" : "text-zinc-800 hover:bg-zinc-50"
-                }`}
-              >
-                <House className="h-4 w-4 shrink-0" aria-hidden />
-                Home
-              </Link>
-              <Link
-                href="/exercises"
-                onClick={() => closeCompactMenu({ returnFocus: false })}
-                className={`flex items-center gap-2 rounded-md px-2 py-2 text-left text-sm ${
-                  pathname.startsWith("/exercises")
-                    ? "bg-sky-50 text-sky-900"
-                    : "text-zinc-800 hover:bg-zinc-50"
-                }`}
-              >
-                <Dumbbell className="h-4 w-4 shrink-0" aria-hidden />
-                Exercises
-              </Link>
-              <Link
-                href="/insights"
-                onClick={() => closeCompactMenu({ returnFocus: false })}
-                className={`flex items-center gap-2 rounded-md px-2 py-2 text-left text-sm ${
-                  pathname.startsWith("/insights")
-                    ? "bg-sky-50 text-sky-900"
-                    : "text-zinc-800 hover:bg-zinc-50"
-                }`}
-              >
-                <BarChart3 className="h-4 w-4 shrink-0" aria-hidden />
-                Insights
-              </Link>
-              <Link
-                href="/goals"
-                onClick={() => closeCompactMenu({ returnFocus: false })}
-                className={`flex items-center gap-2 rounded-md px-2 py-2 text-left text-sm ${
-                  pathname.startsWith("/goals")
-                    ? "bg-sky-50 text-sky-900"
-                    : "text-zinc-800 hover:bg-zinc-50"
-                }`}
-              >
-                <Target className="h-4 w-4 shrink-0" aria-hidden />
-                Goals
-              </Link>
-              <Link
-                href="/plans"
-                onClick={() => closeCompactMenu({ returnFocus: false })}
-                className={`flex items-center gap-2 rounded-md px-2 py-2 text-left text-sm ${
-                  pathname.startsWith("/plans")
-                    ? "bg-sky-50 text-sky-900"
-                    : "text-zinc-800 hover:bg-zinc-50"
-                }`}
-              >
-                <ListOrdered className="h-4 w-4 shrink-0" aria-hidden />
-                Plans
-              </Link>
-              <Link
-                href="/templates"
-                onClick={() => closeCompactMenu({ returnFocus: false })}
-                className={`flex items-center gap-2 rounded-md px-2 py-2 text-left text-sm ${
-                  pathname.startsWith("/templates")
-                    ? "bg-sky-50 text-sky-900"
-                    : "text-zinc-800 hover:bg-zinc-50"
-                }`}
-              >
-                <FileStack className="h-4 w-4 shrink-0" aria-hidden />
-                Templates
-              </Link>
-              <Link
-                href="/account"
-                onClick={() => closeCompactMenu({ returnFocus: false })}
-                className={`flex items-center gap-2 rounded-md px-2 py-2 text-left text-sm ${
-                  pathname === "/account" ? "bg-sky-50 text-sky-900" : "text-zinc-800 hover:bg-zinc-50"
-                }`}
-              >
-                <UserRound className="h-4 w-4 shrink-0" aria-hidden />
-                Account
-              </Link>
+        <div
+          id="compact-header-menu"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Navigation menu"
+          className="fixed inset-0 z-[80] flex flex-col bg-gradient-to-b from-sky-100 via-sky-50 to-zinc-100 md:hidden"
+        >
+          <div className="flex min-h-0 flex-1 flex-col px-4 pt-[calc(4.5rem+env(safe-area-inset-top,0px))] pb-[max(1.25rem,env(safe-area-inset-bottom,0px))]">
+            <div className="grid grid-cols-2 gap-3">
+              {compactNavItems.map((item, index) => {
+                const Icon = item.icon;
+                return (
+                  <Link
+                    key={item.href}
+                    ref={index === 0 ? compactMenuFirstItemRef : undefined}
+                    href={item.href}
+                    onClick={() => closeCompactMenu({ returnFocus: false })}
+                    aria-current={item.isActive ? "page" : undefined}
+                    className={compactNavTileClassName(item.isActive)}
+                  >
+                    <Icon
+                      className={`h-6 w-6 shrink-0 ${item.isActive ? "text-white" : "text-sky-700"}`}
+                      aria-hidden
+                    />
+                    {item.label}
+                  </Link>
+                );
+              })}
               <button
                 type="button"
                 onClick={async () => {
                   closeCompactMenu({ returnFocus: false });
                   await handleAuthClick();
                 }}
-                className="flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm text-zinc-800 hover:bg-zinc-50"
+                className={compactNavTileClassName(false)}
               >
-                <LogOut className="h-4 w-4 shrink-0" aria-hidden />
+                <LogOut className="h-6 w-6 shrink-0 text-sky-700" aria-hidden />
                 Log out
               </button>
             </div>

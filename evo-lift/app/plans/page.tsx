@@ -4,12 +4,24 @@ import { CircleCheck, CircleOff, Copy, ListOrdered, Pencil, Trash2 } from "lucid
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ActionButton } from "@/app/components/action-button";
 import { AppDialog } from "@/app/components/app-dialog";
+import {
+  AppTable,
+  AppTableActionsHeader,
+  appTableHeadRowClassName,
+  appTableRowClassName,
+  appTableTdClassName,
+  appTableThClassName,
+} from "@/app/components/app-table";
 import { PageAddAction } from "@/app/components/page-add-action";
 import { PageShell } from "@/app/components/page-shell";
-import { PanelInset } from "@/app/components/panel-inset";
 import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
+import {
+  TableRowActions,
+  tableRowActionLinkClassName,
+} from "@/app/components/table-row-actions";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { deleteUserPlan, duplicateUserPlan, setUserPlanActive } from "@/server/actions/plans";
 
@@ -197,76 +209,81 @@ export default function PlansPage() {
         ) : plans.length === 0 ? (
           <p className="mt-4 text-center text-sm text-zinc-600">No plans yet.</p>
         ) : (
-          <PanelInset className="mt-4 overflow-x-auto p-0">
-            <table className="min-w-full divide-y divide-zinc-200 text-sm">
-              <thead>
-                <tr className="text-left text-xs font-medium uppercase tracking-wide text-zinc-600">
-                  <th className="px-4 py-3">Name</th>
-                  <th className="px-4 py-3">Days</th>
-                  <th className="px-4 py-3">Active</th>
-                  <th className="px-4 py-3">
-                    <span className="sr-only">Actions</span>
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {plans.map((row) => (
-                  <tr key={row.id} className="bg-white">
-                    <td className="px-4 py-3 font-medium text-zinc-900">{row.name}</td>
-                    <td className="px-4 py-3 text-zinc-600">{row.dayCount}</td>
-                    <td className="px-4 py-3 text-zinc-600">
+          <AppTable className="mt-4">
+            <thead>
+              <tr className={appTableHeadRowClassName}>
+                <th className={appTableThClassName}>Name</th>
+                <th className={appTableThClassName}>Days</th>
+                <th className={`${appTableThClassName} hidden sm:table-cell`}>Status</th>
+                <AppTableActionsHeader />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-100">
+              {plans.map((row) => (
+                <tr key={row.id} className={appTableRowClassName}>
+                  <td className={`${appTableTdClassName} font-medium text-zinc-900`}>
+                    <span className="inline-flex flex-wrap items-center gap-2">
+                      {row.name}
                       {row.isActive ? (
-                        <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-sky-800">
+                        <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-sky-800 sm:hidden">
                           Active
                         </span>
                       ) : null}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap justify-end gap-2">
-                        <button
-                          type="button"
-                          disabled={pendingPlanId === row.id}
-                          onClick={() => void changeActive(row.id, !row.isActive)}
-                          className="inline-flex h-8 w-[8.5rem] items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 text-xs font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100 disabled:opacity-60"
-                        >
-                          {row.isActive ? (
-                            <CircleOff className="h-3.5 w-3.5 shrink-0 text-sky-700" aria-hidden />
-                          ) : (
-                            <CircleCheck className="h-3.5 w-3.5 shrink-0 text-sky-700" aria-hidden />
-                          )}
-                          {row.isActive ? "Deactivate" : "Set active"}
-                        </button>
-                        <button
-                          type="button"
-                          disabled={pendingPlanId === row.id}
-                          onClick={() => void duplicate(row.id)}
-                          className="inline-flex h-8 w-[8.5rem] items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 text-xs font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100 disabled:opacity-60"
-                        >
-                          <Copy className="h-3.5 w-3.5 shrink-0 text-sky-700" aria-hidden />
-                          Duplicate
-                        </button>
-                        <Link
-                          href={`/plans/${row.id}/edit`}
-                          className="inline-flex h-8 w-[8.5rem] items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 text-xs font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
-                        >
-                          <Pencil className="h-3.5 w-3.5 shrink-0 text-sky-700" aria-hidden />
-                          Edit
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={() => setDeleteTargetId(row.id)}
-                          className="inline-flex h-8 w-[8.5rem] items-center justify-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 text-xs font-medium text-red-800 hover:border-red-300"
-                        >
-                          <Trash2 className="h-3.5 w-3.5 shrink-0 text-red-600" aria-hidden />
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </PanelInset>
+                    </span>
+                  </td>
+                  <td className={`${appTableTdClassName} text-zinc-600`}>{row.dayCount}</td>
+                  <td className={`${appTableTdClassName} hidden text-zinc-600 sm:table-cell`}>
+                    {row.isActive ? (
+                      <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-sky-800">
+                        Active
+                      </span>
+                    ) : null}
+                  </td>
+                  <td className={appTableTdClassName}>
+                    <TableRowActions>
+                      <ActionButton
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        disabled={pendingPlanId === row.id}
+                        onClick={() => void changeActive(row.id, !row.isActive)}
+                      >
+                        {row.isActive ? (
+                          <CircleOff className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        ) : (
+                          <CircleCheck className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        )}
+                        {row.isActive ? "Deactivate" : "Set active"}
+                      </ActionButton>
+                      <ActionButton
+                        type="button"
+                        size="sm"
+                        variant="secondary"
+                        disabled={pendingPlanId === row.id}
+                        onClick={() => void duplicate(row.id)}
+                      >
+                        <Copy className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        Duplicate
+                      </ActionButton>
+                      <Link href={`/plans/${row.id}/edit`} className={tableRowActionLinkClassName}>
+                        <Pencil className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        Edit
+                      </Link>
+                      <ActionButton
+                        type="button"
+                        size="sm"
+                        variant="danger"
+                        onClick={() => setDeleteTargetId(row.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        Delete
+                      </ActionButton>
+                    </TableRowActions>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </AppTable>
         )}
       </section>
 

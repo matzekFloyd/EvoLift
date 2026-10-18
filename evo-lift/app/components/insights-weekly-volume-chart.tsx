@@ -7,7 +7,6 @@ import {
   CartesianGrid,
   ComposedChart,
   Line,
-  ResponsiveContainer,
   Tooltip,
   type TooltipContentProps,
   XAxis,
@@ -17,6 +16,7 @@ import type {
   NameType,
   ValueType,
 } from "recharts/types/component/DefaultTooltipContent";
+import { ChartResponsiveContainer } from "@/app/components/chart-responsive-container";
 import { formatCompactNumber } from "@/app/components/insights-weekly-volume-format";
 
 type WeeklyVolumeChartPoint = {
@@ -153,7 +153,7 @@ export function InsightsWeeklyVolumeChart({ data, metric }: InsightsWeeklyVolume
       className="insights-weekly-chart relative h-56 w-full sm:h-72"
       style={{ WebkitTapHighlightColor: "transparent" }}
     >
-      <ResponsiveContainer width="100%" height="100%">
+      <ChartResponsiveContainer initialDimension={{ width: 320, height: 224 }}>
         <ComposedChart
           data={data}
           margin={{ top: 10, right: 8, left: 0, bottom: 0 }}
@@ -216,7 +216,7 @@ export function InsightsWeeklyVolumeChart({ data, metric }: InsightsWeeklyVolume
             connectNulls={false}
           />
         </ComposedChart>
-      </ResponsiveContainer>
+      </ChartResponsiveContainer>
       {isCompactView && selectedWeek ? (
         <div className="pointer-events-none absolute right-2 top-2 z-10 rounded-md border border-zinc-200 bg-white/95 px-2 py-1.5 text-sm shadow-sm">
           <p className="font-medium text-zinc-800">{`Week of ${formatWeekLabel(selectedWeek.weekStart)}`}</p>

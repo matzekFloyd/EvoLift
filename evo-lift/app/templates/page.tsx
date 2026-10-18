@@ -4,13 +4,25 @@ import { FileStack, Pencil, Play, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ActionButton } from "@/app/components/action-button";
 import { AppDialog } from "@/app/components/app-dialog";
+import {
+  AppTable,
+  AppTableActionsHeader,
+  appTableHeadRowClassName,
+  appTableRowClassName,
+  appTableTdClassName,
+  appTableThClassName,
+} from "@/app/components/app-table";
 import { PageAddAction } from "@/app/components/page-add-action";
 import { DateInput } from "@/app/components/date-input";
 import { PageShell } from "@/app/components/page-shell";
-import { PanelInset } from "@/app/components/panel-inset";
 import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
+import {
+  TableRowActions,
+  tableRowActionLinkClassName,
+} from "@/app/components/table-row-actions";
 import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
 import { getTodayYyyyMmDd } from "@/lib/session-date";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
@@ -193,52 +205,52 @@ export default function TemplatesPage() {
         ) : templates.length === 0 ? (
           <p className="mt-4 text-center text-sm text-zinc-600">No templates yet.</p>
         ) : (
-          <PanelInset className="mt-4 overflow-x-auto p-0">
-            <table className="min-w-full divide-y divide-zinc-200 text-sm">
-              <thead>
-                <tr className="text-left text-xs font-medium uppercase tracking-wide text-zinc-600">
-                  <th className="px-4 py-3">Name</th>
-                  <th className="px-4 py-3">Exercises</th>
-                  <th className="px-4 py-3 text-right">Actions</th>
+          <AppTable className="mt-4">
+            <thead>
+              <tr className={appTableHeadRowClassName}>
+                <th className={appTableThClassName}>Name</th>
+                <th className={appTableThClassName}>Exercises</th>
+                <AppTableActionsHeader />
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-zinc-100">
+              {templates.map((row) => (
+                <tr key={row.id} className={appTableRowClassName}>
+                  <td className={`${appTableTdClassName} font-medium text-zinc-900`}>{row.name}</td>
+                  <td className={`${appTableTdClassName} text-zinc-600`}>{row.exerciseCount}</td>
+                  <td className={appTableTdClassName}>
+                    <TableRowActions>
+                      <ActionButton
+                        type="button"
+                        size="sm"
+                        variant="primary"
+                        onClick={() => openUseDialog(row.id)}
+                      >
+                        <Play className="h-3.5 w-3.5" />
+                        Use
+                      </ActionButton>
+                      <Link
+                        href={`/templates/${row.id}/edit`}
+                        className={tableRowActionLinkClassName}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                        Edit
+                      </Link>
+                      <ActionButton
+                        type="button"
+                        size="sm"
+                        variant="danger"
+                        onClick={() => setDeleteTargetId(row.id)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                        Delete
+                      </ActionButton>
+                    </TableRowActions>
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-zinc-100">
-                {templates.map((row) => (
-                  <tr key={row.id} className="bg-white">
-                    <td className="px-4 py-3 font-medium text-zinc-900">{row.name}</td>
-                    <td className="px-4 py-3 text-zinc-600">{row.exerciseCount}</td>
-                    <td className="px-4 py-3">
-                      <div className="flex flex-wrap justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => openUseDialog(row.id)}
-                          className="inline-flex items-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-2 py-1 text-xs font-medium text-white hover:border-sky-600 hover:bg-sky-600"
-                        >
-                          <Play className="h-3.5 w-3.5 text-white" />
-                          Use
-                        </button>
-                        <Link
-                          href={`/templates/${row.id}/edit`}
-                          className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
-                        >
-                          <Pencil className="h-3.5 w-3.5 text-sky-700" />
-                          Edit
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={() => setDeleteTargetId(row.id)}
-                          className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 py-1 text-xs font-medium text-red-800 hover:border-red-300"
-                        >
-                          <Trash2 className="h-3.5 w-3.5 text-red-600" />
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </PanelInset>
+              ))}
+            </tbody>
+          </AppTable>
         )}
       </section>
 

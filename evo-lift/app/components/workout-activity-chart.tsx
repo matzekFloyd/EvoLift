@@ -6,11 +6,11 @@ import {
   BarChart,
   CartesianGrid,
   Cell,
-  ResponsiveContainer,
   XAxis,
   YAxis,
 } from "recharts";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { ChartResponsiveContainer } from "@/app/components/chart-responsive-container";
 import {
   activityDateKey,
   activityDateToLocalDate,
@@ -161,7 +161,7 @@ export function WorkoutActivityChart({
               {selectedWeek.weekLabel}: {selectedWeek.sets} set{selectedWeek.sets === 1 ? "" : "s"}
             </div>
           ) : null}
-          <ResponsiveContainer width="100%" height="100%">
+          <ChartResponsiveContainer initialDimension={{ width: 320, height: 144 }}>
             <BarChart data={compactData} margin={{ top: 4, right: 8, bottom: 0, left: -16 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
               <XAxis dataKey="weekLabel" tick={{ fill: "#52525b", fontSize: 10 }} minTickGap={10} />
@@ -197,7 +197,7 @@ export function WorkoutActivityChart({
                 ))}
               </Bar>
             </BarChart>
-          </ResponsiveContainer>
+          </ChartResponsiveContainer>
         </div>
       </div>
     );

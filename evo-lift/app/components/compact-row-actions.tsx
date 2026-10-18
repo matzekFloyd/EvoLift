@@ -1,6 +1,8 @@
 "use client";
 
 import { Check, Pencil, Trash2, X } from "lucide-react";
+import { ActionButton } from "@/app/components/action-button";
+import { TableRowActions } from "@/app/components/table-row-actions";
 
 type CompactRowActionsProps = {
   isEditing: boolean;
@@ -27,36 +29,33 @@ export function CompactRowActions({
   saveLabel = "Save",
   cancelLabel = "Cancel",
 }: CompactRowActionsProps) {
-  const buttonClass =
-    "inline-flex h-8 w-[72px] sm:w-20 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-50";
-
   if (isEditing) {
     return (
-      <div className="flex items-center gap-2">
-        <button type="button" onClick={onSave} className={buttonClass}>
-          <Check className="h-3 w-3 text-emerald-600" />
+      <TableRowActions>
+        <ActionButton type="button" size="sm" variant="secondary" onClick={onSave}>
+          <Check className="h-3 w-3" />
           {saveLabel}
-        </button>
-        <button type="button" onClick={onCancel} className={buttonClass}>
-          <X className="h-3 w-3 text-zinc-500" />
+        </ActionButton>
+        <ActionButton type="button" size="sm" variant="secondary" onClick={onCancel}>
+          <X className="h-3 w-3" />
           {cancelLabel}
-        </button>
-      </div>
+        </ActionButton>
+      </TableRowActions>
     );
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <TableRowActions>
       {showSecondary && onSecondary ? (
-        <button type="button" onClick={onSecondary} className={buttonClass}>
-          <Trash2 className="h-3 w-3 text-red-600" />
+        <ActionButton type="button" size="sm" variant="danger" onClick={onSecondary}>
+          <Trash2 className="h-3 w-3" />
           {secondaryLabel}
-        </button>
+        </ActionButton>
       ) : null}
-      <button type="button" onClick={onEdit} className={buttonClass}>
-        <Pencil className="h-3 w-3 text-sky-700" />
+      <ActionButton type="button" size="sm" variant="secondary" onClick={onEdit}>
+        <Pencil className="h-3 w-3" />
         {editLabel}
-      </button>
-    </div>
+      </ActionButton>
+    </TableRowActions>
   );
 }
