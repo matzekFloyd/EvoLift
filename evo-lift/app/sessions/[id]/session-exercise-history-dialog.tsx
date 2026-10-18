@@ -15,6 +15,7 @@ import {
   SHORT_EXERCISE_HISTORY_LOADING,
   SHORT_EXERCISE_HISTORY_MORE,
   buildShortExerciseHistory,
+  shortExerciseHistoryWorkingSetsInline,
   warmupSetsLabel,
   type ShortExerciseHistorySession,
 } from "./session-exercise-history";
@@ -78,10 +79,10 @@ export function SessionExerciseHistoryDialog({
       panelClassName="flex max-h-[85vh] max-w-md flex-col"
       onBackdropClick={onClose}
     >
-      <div className="flex items-start justify-between gap-3">
+      <div className="flex items-start justify-between gap-2 sm:gap-3">
         <div className="min-w-0">
           <SectionHeading id="session-exercise-history-title">Recent sets</SectionHeading>
-          <p className="mt-0.5 truncate text-sm text-zinc-600">{exerciseLabel}</p>
+          <p className="mt-0.5 truncate text-xs text-zinc-600 sm:text-sm">{exerciseLabel}</p>
         </div>
         <ActionButton type="button" variant="secondary" size="sm" onClick={onClose}>
           Close
@@ -89,42 +90,68 @@ export function SessionExerciseHistoryDialog({
       </div>
 
       {status === "loading" ? (
-        <p className="mt-3 text-sm text-zinc-600">{SHORT_EXERCISE_HISTORY_LOADING}</p>
+        <p className="mt-2 text-sm text-zinc-600 sm:mt-3">{SHORT_EXERCISE_HISTORY_LOADING}</p>
       ) : null}
       {status === "error" ? (
-        <StatusNotice message={SHORT_EXERCISE_HISTORY_LOAD_ERROR} tone="error" className="mt-3" />
+        <StatusNotice
+          message={SHORT_EXERCISE_HISTORY_LOAD_ERROR}
+          tone="error"
+          className="mt-2 sm:mt-3"
+        />
       ) : null}
       {status === "ready" && sessions.length === 0 ? (
-        <p className="mt-3 text-sm text-zinc-600">{SHORT_EXERCISE_HISTORY_EMPTY}</p>
+        <p className="mt-2 text-sm text-zinc-600 sm:mt-3">{SHORT_EXERCISE_HISTORY_EMPTY}</p>
       ) : null}
       {status === "ready" && sessions.length > 0 ? (
-        <ul className="mt-3 min-h-0 flex-1 space-y-2 overflow-y-auto">
-          {sessions.map((session) => (
-            <li key={session.sessionId} className="rounded-md border border-zinc-200 px-3 py-2">
-              <p className="text-sm font-medium tabular-nums text-zinc-900">
-                {formatDateOnlyForLocale(session.performedOn)}
-              </p>
-              {session.workingSets.length > 0 ? (
-                <ul className="mt-1 space-y-0.5">
-                  {session.workingSets.map((set) => (
-                    <li key={set.setNumber} className="text-sm text-zinc-700">
-                      Set {set.setNumber} · {set.line}
-                    </li>
-                  ))}
-                </ul>
-              ) : null}
-              {session.warmupCount > 0 ? (
-                <p className="mt-1 text-xs text-zinc-500">{warmupSetsLabel(session.warmupCount)}</p>
-              ) : null}
-            </li>
-          ))}
+        <ul className="mt-2 min-h-0 flex-1 space-y-1 overflow-y-auto sm:mt-3 sm:space-y-2">
+          {sessions.map((session) => {
+            const workingInline = shortExerciseHistoryWorkingSetsInline(session.workingSets);
+            return (
+              <li
+                key={session.sessionId}
+                className="rounded-md border border-zinc-200 px-2 py-1.5 sm:px-3 sm:py-2"
+              >
+                <div className="flex flex-wrap items-baseline justify-between gap-x-2 gap-y-0.5">
+                  <p className="text-xs font-medium tabular-nums text-zinc-900 sm:text-sm">
+                    {formatDateOnlyForLocale(session.performedOn)}
+                  </p>
+                  {session.warmupCount > 0 ? (
+                    <p className="text-[11px] text-zinc-500 sm:hidden">
+                      {warmupSetsLabel(session.warmupCount)}
+                    </p>
+                  ) : null}
+                </div>
+                {session.workingSets.length > 0 ? (
+                  <>
+                    <p className="mt-0.5 text-xs leading-snug text-zinc-700 sm:hidden">
+                      {workingInline}
+                    </p>
+                    <ul className="mt-1 hidden space-y-0.5 sm:block">
+                      {session.workingSets.map((set) => (
+                        <li key={set.setNumber} className="text-sm text-zinc-700">
+                          Set {set.setNumber} · {set.line}
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ) : null}
+                {session.warmupCount > 0 ? (
+                  <p className="mt-1 hidden text-xs text-zinc-500 sm:block">
+                    {warmupSetsLabel(session.warmupCount)}
+                  </p>
+                ) : null}
+              </li>
+            );
+          })}
         </ul>
       ) : null}
       {status === "ready" && hasMore ? (
-        <p className="mt-2 text-xs text-zinc-500">{SHORT_EXERCISE_HISTORY_MORE}</p>
+        <p className="mt-1.5 text-[11px] text-zinc-500 sm:mt-2 sm:text-xs">
+          {SHORT_EXERCISE_HISTORY_MORE}
+        </p>
       ) : null}
 
-      <div className="mt-4 flex justify-end">
+      <div className="mt-3 flex justify-end sm:mt-4">
         <Link
           href={`/exercises/${exerciseSlug}`}
           className="text-sm text-sky-800 underline-offset-2 hover:underline"
