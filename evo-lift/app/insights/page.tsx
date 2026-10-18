@@ -7,6 +7,7 @@ import { ActionButton } from "@/app/components/action-button";
 import { KpiBadge } from "@/app/components/kpi-badge";
 import { ExerciseProgressPanel } from "@/app/components/exercise-progress-panel";
 import { LiftComparisonPanel } from "@/app/components/lift-comparison-panel";
+import { PersonalBestsPanel } from "@/app/components/personal-bests-panel";
 import { InsightsWeeklyVolumeChart } from "@/app/components/insights-weekly-volume-chart";
 import { DateInput } from "@/app/components/date-input";
 import { PageShell } from "@/app/components/page-shell";
@@ -17,6 +18,7 @@ import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { buildExerciseProgressReport, type LifterProfile } from "@/lib/exercise-progress-insights";
 import { buildInsightsComparisonSentence } from "@/lib/insights-chart-summary";
 import { resolveLifterAge } from "@/lib/body-metrics";
+import { loadExerciseMetadata } from "@/lib/exercise-metadata-cache";
 import {
   applyInsightsRange,
   loadCachedInsightsHistory,
@@ -27,6 +29,7 @@ import {
   type WeeklyVolumePoint,
   type WorkoutActivityPoint,
 } from "@/lib/insights-data";
+import { buildPersonalBestRows } from "@/lib/personal-bests";
 import { getInsightsPresetRange } from "@/app/insights/insights-presets";
 import { getTodayYyyyMmDd } from "@/lib/session-date";
 
@@ -64,6 +67,10 @@ export default function InsightsPage() {
   const [basePoints, setBasePoints] = useState<WorkoutActivityPoint[]>([]);
   const [weeklyVolumeBase, setWeeklyVolumeBase] = useState<WeeklyVolumePoint[]>([]);
   const [exerciseSets, setExerciseSets] = useState<ExerciseWorkingSetSample[]>([]);
+  const [catalogExercises, setCatalogExercises] = useState<
+    Array<{ id: string; slug: string; label: string }>
+  >([]);
+  const [hideEmptyPersonalBests, setHideEmptyPersonalBests] = useState(true);
   const [lifterProfile, setLifterProfile] = useState<LifterProfile>(emptyLifterProfile);
   const isMountedRef = useRef(true);
   const loadRequestRef = useRef(0);
@@ -92,11 +99,12 @@ export default function InsightsPage() {
       }
 
       try {
-        const [history, profile] = await Promise.all([
+        const [history, profile, catalog] = await Promise.all([
           loadCachedInsightsHistory(supabaseBrowserClient, session.user.id, historyWindow, {
             fresh: mode === "refresh",
           }),
           loadUserStrengthProfile(supabaseBrowserClient, session.user.id),
+          loadExerciseMetadata(supabaseBrowserClient, { ttlMs: 5 * 60 * 1000 }),
         ]);
         const points = history.activity;
         const weekly = history.weekly;
@@ -111,6 +119,7 @@ export default function InsightsPage() {
         setBasePoints(points);
         setWeeklyVolumeBase(weekly);
         setExerciseSets(sets);
+        setCatalogExercises(catalog.map((row) => ({ id: row.id, slug: row.slug, label: row.label })));
         setLifterProfile({
           sex: profile.sex,
           bodyweightKg: profile.bodyweightKg,
@@ -268,6 +277,14 @@ export default function InsightsPage() {
     [dateFrom, dateTo, exerciseSets, lifterProfile],
   );
 
+  const personalBestRows = useMemo(
+    () =>
+      buildPersonalBestRows(catalogExercises, exerciseSets, {
+        hideEmpty: hideEmptyPersonalBests,
+      }),
+    [catalogExercises, exerciseSets, hideEmptyPersonalBests],
+  );
+
   const trendMetricKpi = useMemo(() => {
     if (trendMetric === "workingSets") {
       return {
@@ -403,6 +420,11 @@ export default function InsightsPage() {
             </div>
             <LiftComparisonPanel report={exerciseProgress} />
             <ExerciseProgressPanel report={exerciseProgress} />
+            <PersonalBestsPanel
+              rows={personalBestRows}
+              hideEmpty={hideEmptyPersonalBests}
+              onHideEmptyChange={setHideEmptyPersonalBests}
+            />
             <PanelInset className="p-4">
               <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                 <SectionHeading>

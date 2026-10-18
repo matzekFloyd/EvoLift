@@ -65,7 +65,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Insights",
     definition:
-      "Charts and notes for a date range: training volume, working sets, and Lift comparison.",
+      "Charts and notes for a date range: training volume, working sets, Lift comparison, and personal bests.",
   },
   {
     term: "Lift",
@@ -76,6 +76,11 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
     term: "Loaded (kg)",
     definition:
       "The external weight on a set, such as plates or a dumbbell. Base weight stays separate.",
+  },
+  {
+    term: "Personal best",
+    definition:
+      "On Insights, your strongest working sets in the selected date range. Best set is the highest Total (kg), then reps. Heaviest load is the highest Loaded (kg). Each mark shows the date it was first hit. Warmups do not count. Assisted Dip and Assisted Pull-Up list assistance, not strength load.",
   },
   {
     term: "Plan",

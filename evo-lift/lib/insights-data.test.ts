@@ -106,6 +106,7 @@ describe("insights history", () => {
         sessionId: "session-1",
         performedOn: "2026-10-12",
         reps: 5,
+        loadedKg: 60,
         totalKg: 80,
       },
     ]);
