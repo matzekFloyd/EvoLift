@@ -27,7 +27,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Compound",
     definition:
-      "A barbell exercise that moves more than one joint. Lift comparison places your compounds next to each other, and next to published standards. The coaching ratios cover Back Squat, Deadlift, Barbell Bench Press, Barbell Overhead Press, Barbell Bent Over Row, Barbell Romanian Deadlift, Close-Grip Bench Press, and Barbell Hip Thrust. Machine, dumbbell, and leg-press loads stay out of those ratios.",
+      "A barbell exercise that moves more than one joint. Lift comparison places your compounds next to each other, and next to published standards. The coaching ratios cover Barbell Back Squat, Barbell Deadlift, Barbell Bench Press, Barbell Overhead Press, Barbell Bent Over Row, Barbell Romanian Deadlift, Close-Grip Bench Press, and Barbell Hip Thrust. Machine, dumbbell, and leg-press loads stay out of those ratios.",
   },
   {
     term: "Day",
@@ -36,7 +36,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   },
   {
     term: "Exercise",
-    definition: "A movement inside a workout session, such as Back Squat.",
+    definition: "A movement inside a workout session, such as Barbell Back Squat.",
   },
   {
     term: "ExRx",
@@ -52,15 +52,15 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
           ExRx.net
         </a>
         . Lift comparison uses the ages 18–39 tables, separate for women and men, at your bodyweight.
-        They apply to Back Squat, Barbell Bench Press, Deadlift, and Barbell Overhead Press when sex,
-        date of birth, and bodyweight are saved.
+        They apply to Barbell Back Squat, Barbell Bench Press, Barbell Deadlift, and Barbell Overhead
+        Press when sex, date of birth, and bodyweight are saved.
       </>
     ),
   },
   {
     term: "Goal",
     definition:
-      "A strength target for one exercise. Progress uses working sets you have already logged. You can aim for a Total (kg) or a multiple of your bodyweight, with a minimum number of reps.",
+      "A strength target for one exercise. Progress uses working sets you have already logged. You can aim for a Total (kg) or a multiple of your bodyweight, with a minimum number of reps. New accounts start with bodyweight goals on Barbell Back Squat, Barbell Bench Press, Barbell Deadlift, and Barbell Overhead Press. You can edit or delete them. Progress on a bodyweight goal needs a bodyweight entry on Account.",
   },
   {
     term: "Insights",

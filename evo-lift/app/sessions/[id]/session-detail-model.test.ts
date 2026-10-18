@@ -55,8 +55,8 @@ describe("exerciseLabelForSessionExercise", () => {
 
   it("uses the catalog label", () => {
     assert.equal(
-      exerciseLabelForSessionExercise(exercises, new Map([["squat", "Back Squat"]]), "ex-1"),
-      "Back Squat",
+      exerciseLabelForSessionExercise(exercises, new Map([["squat", "Barbell Back Squat"]]), "ex-1"),
+      "Barbell Back Squat",
     );
   });
 

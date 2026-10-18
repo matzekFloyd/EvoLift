@@ -7,8 +7,8 @@ import {
 } from "./exercise-picker-options";
 
 const options: ExercisePickerOption[] = [
-  { id: "squat", label: "Back Squat", slug: "back-squat" },
-  { id: "deadlift", label: "Deadlift", slug: "deadlift" },
+  { id: "squat", label: "Barbell Back Squat", slug: "back-squat" },
+  { id: "deadlift", label: "Barbell Deadlift", slug: "deadlift" },
   { id: "row", label: "Barbell Bent Over Row", slug: "barbell-bent-over-row" },
 ];
 

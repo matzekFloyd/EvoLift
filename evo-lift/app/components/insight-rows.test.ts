@@ -14,7 +14,7 @@ function progressRow(read: ProgressRead, partial: Partial<ExerciseProgressRow> =
   return {
     exerciseId: "ex-1",
     slug: "back-squat",
-    label: "Back Squat",
+    label: "Barbell Back Squat",
     sessionCount: 4,
     latestE1rmKg: 100,
     bestE1rmKg: 100,
@@ -30,7 +30,7 @@ function note(partial: Partial<LiftBalanceNote> & Pick<LiftBalanceNote, "badge" 
   return {
     id: partial.badge,
     slugs: [],
-    title: "Back Squat",
+    title: "Barbell Back Squat",
     titleSlug: "back-squat",
     detail: "Compared with the other lift.",
     tableHref: null,

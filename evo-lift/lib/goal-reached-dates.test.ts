@@ -93,12 +93,12 @@ describe("loadGoalReachedSessionDates", () => {
         error: null,
       },
       exercise_translations: {
-        data: [{ exercise_id: "squat", name: "Back Squat" }],
+        data: [{ exercise_id: "squat", name: "Barbell Back Squat" }],
         error: null,
       },
     });
     assert.deepEqual(await loadGoalReachedSessionDates(client as never), {
-      "2026-10-13": "Back Squat (100 kg × 5 reps)",
+      "2026-10-13": "Barbell Back Squat (100 kg × 5 reps)",
     });
   });
 });

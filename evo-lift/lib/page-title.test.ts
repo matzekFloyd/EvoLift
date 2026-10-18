@@ -27,7 +27,8 @@ describe("workoutSessionPageTitle", () => {
 
 describe("exercisePageTitle", () => {
   it("prefers the exercise name", () => {
-    assert.equal(exercisePageTitle("Back Squat", "back-squat"), "Back Squat");
+    assert.equal(exercisePageTitle("Barbell Back Squat", "back-squat"), "Barbell Back Squat");
+    assert.equal(exercisePageTitle("Barbell Deadlift", "deadlift"), "Barbell Deadlift");
   });
 
   it("falls back to the slug", () => {
