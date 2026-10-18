@@ -2,7 +2,7 @@
 
 import { CircleCheck, CircleOff, Copy, ListOrdered, Pencil, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
 import { AppDialog } from "@/app/components/app-dialog";
@@ -22,6 +22,11 @@ import {
   TableRowActions,
   tableRowActionLinkClassName,
 } from "@/app/components/table-row-actions";
+import {
+  sortRowsByName,
+  toggleNamedListSortDirection,
+  type NamedListSortDirection,
+} from "@/lib/named-list-sort";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { deleteUserPlan, duplicateUserPlan, setUserPlanActive } from "@/server/actions/plans";
 
@@ -42,6 +47,12 @@ export default function PlansPage() {
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [pendingPlanId, setPendingPlanId] = useState<string | null>(null);
+  const [nameSortDirection, setNameSortDirection] = useState<NamedListSortDirection>("asc");
+
+  const sortedPlans = useMemo(
+    () => sortRowsByName(plans, nameSortDirection),
+    [nameSortDirection, plans],
+  );
 
   function showError(text: string) {
     setMessageTone("error");
@@ -209,19 +220,37 @@ export default function PlansPage() {
         ) : plans.length === 0 ? (
           <p className="mt-4 text-center text-sm text-zinc-600">No plans yet.</p>
         ) : (
-          <AppTable className="mt-4">
+          <AppTable className="mt-4" tableClassName="table-fixed w-full min-w-0">
+            <colgroup>
+              <col />
+              <col className="w-16" />
+              <col className="w-0 sm:w-24" />
+              <col className="w-[7.25rem] md:w-[36rem]" />
+            </colgroup>
             <thead>
               <tr className={appTableHeadRowClassName}>
-                <th className={appTableThClassName}>Name</th>
+                <th className={appTableThClassName}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setNameSortDirection((prev) => toggleNamedListSortDirection(prev))
+                    }
+                    className="inline-flex items-center gap-1"
+                  >
+                    Name <span>{nameSortDirection === "asc" ? "↑" : "↓"}</span>
+                  </button>
+                </th>
                 <th className={appTableThClassName}>Days</th>
                 <th className={`${appTableThClassName} hidden sm:table-cell`}>Status</th>
                 <AppTableActionsHeader />
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
-              {plans.map((row) => (
+              {sortedPlans.map((row) => (
                 <tr key={row.id} className={appTableRowClassName}>
-                  <td className={`${appTableTdClassName} font-medium text-zinc-900`}>
+                  <td
+                    className={`${appTableTdClassName} break-words whitespace-normal font-medium text-zinc-900`}
+                  >
                     <span className="inline-flex flex-wrap items-center gap-2">
                       {row.name}
                       {row.isActive ? (
@@ -240,7 +269,7 @@ export default function PlansPage() {
                     ) : null}
                   </td>
                   <td className={appTableTdClassName}>
-                    <TableRowActions>
+                    <TableRowActions stackUntil="md">
                       <ActionButton
                         type="button"
                         size="sm"
