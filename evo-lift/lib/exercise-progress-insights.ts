@@ -61,14 +61,18 @@ const DOWN_KG = 2.5;
 function steadyMonthlyGainKg(slug: string): number {
   if (
     slug === "back-squat" ||
+    slug === "front-squat" ||
     slug === "deadlift" ||
-    slug === "romanian-deadlift" ||
+    slug === "sumo-deadlift" ||
+    slug === "trap-bar-deadlift" ||
+    slug === "barbell-romanian-deadlift" ||
     slug === "barbell-hip-thrust"
   ) {
     return 1.5;
   }
   if (
     slug === "barbell-bench-press" ||
+    slug === "barbell-incline-press" ||
     slug === "close-grip-bench-press" ||
     slug === "barbell-bent-over-row"
   ) {
@@ -220,7 +224,7 @@ const BALANCE_PAIRS: BalancePair[] = [
   },
   {
     id: "rdl-deadlift",
-    numeratorSlug: "romanian-deadlift",
+    numeratorSlug: "barbell-romanian-deadlift",
     denominatorSlug: "deadlift",
     low: 0.65,
     high: 0.9,
@@ -258,13 +262,22 @@ const MOVEMENT_PATTERNS: Record<string, MovementPattern> = {
     id: "squat",
     name: "squat",
     exampleLabel: "Back Squat",
-    slugs: ["back-squat", "goblet-squat", "leg-press"],
+    slugs: ["back-squat", "front-squat", "goblet-squat", "hack-squat", "bulgarian-split-squat", "leg-press"],
   },
   hinge: {
     id: "hinge",
     name: "hinge",
     exampleLabel: "Deadlift",
-    slugs: ["deadlift", "romanian-deadlift", "barbell-hip-thrust"],
+    slugs: [
+      "deadlift",
+      "sumo-deadlift",
+      "trap-bar-deadlift",
+      "barbell-romanian-deadlift",
+      "dumbbell-romanian-deadlift",
+      "barbell-hip-thrust",
+      "cable-pull-through",
+      "back-extension",
+    ],
   },
   horizontalPress: {
     id: "horizontal-press",
@@ -272,17 +285,21 @@ const MOVEMENT_PATTERNS: Record<string, MovementPattern> = {
     exampleLabel: "Barbell Bench Press",
     slugs: [
       "barbell-bench-press",
+      "barbell-incline-press",
       "close-grip-bench-press",
+      "dumbbell-bench-press",
       "dumbbell-floor-press",
       "dumbbell-incline-press",
+      "machine-chest-press",
       "machine-incline-chest-press",
+      "push-up",
     ],
   },
   verticalPress: {
     id: "vertical-press",
     name: "vertical press",
-    exampleLabel: "Overhead Press",
-    slugs: ["overhead-press", "dumbbell-seated-shoulder-press"],
+    exampleLabel: "Barbell Overhead Press",
+    slugs: ["overhead-press", "dumbbell-overhead-press", "dumbbell-seated-shoulder-press", "arnold-press"],
   },
   horizontalPull: {
     id: "horizontal-pull",
@@ -300,7 +317,15 @@ const MOVEMENT_PATTERNS: Record<string, MovementPattern> = {
     id: "vertical-pull",
     name: "vertical pull",
     exampleLabel: "Lat Pulldown",
-    slugs: ["lat-pulldown", "neutral-grip-pulldown", "reverse-grip-lat-pulldown", "single-arm-pulldown"],
+    slugs: [
+      "lat-pulldown",
+      "neutral-grip-pulldown",
+      "reverse-grip-lat-pulldown",
+      "single-arm-pulldown",
+      "pull-up",
+      "chin-up",
+      "assisted-pull-up",
+    ],
   },
 };
 
@@ -415,13 +440,18 @@ const BODY_PARTS: BodyPart[] = [
     exampleLabel: "Barbell Bench Press",
     slugs: [
       "barbell-bench-press",
+      "barbell-incline-press",
       "close-grip-bench-press",
+      "dumbbell-bench-press",
       "dumbbell-floor-press",
       "dumbbell-incline-press",
+      "dumbbell-flye",
+      "machine-chest-press",
       "machine-incline-chest-press",
       "cable-flye",
       "pec-deck",
       "assisted-dip",
+      "push-up",
     ],
   },
   {
@@ -438,19 +468,29 @@ const BODY_PARTS: BodyPart[] = [
       "neutral-grip-pulldown",
       "reverse-grip-lat-pulldown",
       "single-arm-pulldown",
+      "pull-up",
+      "chin-up",
+      "assisted-pull-up",
       "deadlift",
-      "romanian-deadlift",
+      "sumo-deadlift",
+      "trap-bar-deadlift",
+      "barbell-romanian-deadlift",
+      "dumbbell-romanian-deadlift",
+      "back-extension",
     ],
   },
   {
     id: "shoulders",
     name: "Shoulders",
-    exampleLabel: "Overhead Press",
+    exampleLabel: "Barbell Overhead Press",
     slugs: [
       "overhead-press",
+      "dumbbell-overhead-press",
       "dumbbell-seated-shoulder-press",
+      "arnold-press",
       "dumbbell-lateral-raise",
       "cable-lateral-raise",
+      "machine-lateral-raise",
       "cable-reverse-flye",
       "bent-over-reverse-dumbbell-flye",
       "reverse-pec-deck",
@@ -464,9 +504,12 @@ const BODY_PARTS: BodyPart[] = [
     slugs: [
       "dumbbell-supinated-curl",
       "ez-bar-curl",
+      "barbell-curl",
+      "cable-curl",
       "hammer-curl",
       "single-arm-cable-curl",
       "cable-tricep-kickback",
+      "cable-tricep-pushdown",
       "dumbbell-skull-crusher",
       "single-arm-rope-tricep-extension",
       "close-grip-bench-press",
@@ -479,7 +522,10 @@ const BODY_PARTS: BodyPart[] = [
     exampleLabel: "Back Squat",
     slugs: [
       "back-squat",
+      "front-squat",
       "goblet-squat",
+      "hack-squat",
+      "bulgarian-split-squat",
       "dumbbell-walking-lunge",
       "leg-press",
       "leg-extension",
@@ -489,8 +535,13 @@ const BODY_PARTS: BodyPart[] = [
       "single-leg-lying-leg-curl",
       "barbell-hip-thrust",
       "dumbbell-single-leg-hip-thrust",
+      "glute-bridge",
+      "cable-pull-through",
       "deadlift",
-      "romanian-deadlift",
+      "sumo-deadlift",
+      "trap-bar-deadlift",
+      "barbell-romanian-deadlift",
+      "dumbbell-romanian-deadlift",
       "machine-seated-hip-abduction",
     ],
   },
@@ -498,13 +549,13 @@ const BODY_PARTS: BodyPart[] = [
     id: "core",
     name: "Core",
     exampleLabel: "Plank",
-    slugs: ["crunch", "bicycle-crunch", "hanging-leg-raise", "plank"],
+    slugs: ["crunch", "bicycle-crunch", "cable-crunch", "hanging-leg-raise", "plank", "pallof-press"],
   },
   {
     id: "calves",
     name: "Calves",
     exampleLabel: "Standing Calf Raise",
-    slugs: ["standing-calf-raise"],
+    slugs: ["standing-calf-raise", "seated-calf-raise"],
   },
 ];
 
@@ -570,7 +621,7 @@ function buildPublicComparison(
     return {
       publicNotes: [],
       comparisonHint:
-        "Add sex, date of birth, and bodyweight on Account to compare Back Squat, Barbell Bench Press, Deadlift, and Overhead Press with published standards.",
+        "Add sex, date of birth, and bodyweight on Account to compare Back Squat, Barbell Bench Press, Deadlift, and Barbell Overhead Press with published standards.",
     };
   }
 

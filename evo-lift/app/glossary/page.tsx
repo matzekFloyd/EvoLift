@@ -27,7 +27,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Compound",
     definition:
-      "A barbell exercise that moves more than one joint. Lift comparison places your compounds next to each other, and next to published standards. The coaching ratios cover Back Squat, Deadlift, Barbell Bench Press, Overhead Press, Barbell Bent Over Row, Romanian Deadlift, Close-Grip Bench Press, and Barbell Hip Thrust. Machine, dumbbell, and leg-press loads stay out of those ratios.",
+      "A barbell exercise that moves more than one joint. Lift comparison places your compounds next to each other, and next to published standards. The coaching ratios cover Back Squat, Deadlift, Barbell Bench Press, Barbell Overhead Press, Barbell Bent Over Row, Barbell Romanian Deadlift, Close-Grip Bench Press, and Barbell Hip Thrust. Machine, dumbbell, and leg-press loads stay out of those ratios.",
   },
   {
     term: "Day",
@@ -52,8 +52,8 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
           ExRx.net
         </a>
         . Lift comparison uses the ages 18–39 tables, separate for women and men, at your bodyweight.
-        They apply to Back Squat, Barbell Bench Press, Deadlift, and Overhead Press when sex, date of
-        birth, and bodyweight are saved.
+        They apply to Back Squat, Barbell Bench Press, Deadlift, and Barbell Overhead Press when sex,
+        date of birth, and bodyweight are saved.
       </>
     ),
   },

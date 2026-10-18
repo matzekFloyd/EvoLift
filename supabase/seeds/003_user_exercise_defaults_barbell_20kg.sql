@@ -7,10 +7,14 @@ with barbell_exercise_slugs(slug) as (
     ('barbell-bench-press'),
     ('barbell-bent-over-row'),
     ('barbell-hip-thrust'),
+    ('barbell-incline-press'),
+    ('barbell-romanian-deadlift'),
     ('close-grip-bench-press'),
     ('deadlift'),
+    ('front-squat'),
     ('overhead-press'),
-    ('romanian-deadlift')
+    ('sumo-deadlift'),
+    ('trap-bar-deadlift')
 )
 insert into public.user_exercise_defaults (
   user_id,
