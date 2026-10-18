@@ -19,6 +19,8 @@ If the change affects what a lifter sees or does (UI, logging, planning, account
 
 Bump only one step (for example `1.1.0` → `1.1.1`). Do not skip numbers. Do not put a `v` in the JSON file.
 
+Merging that version change to `master` creates the GitHub Release (`vMAJOR.MINOR.PATCH`) automatically. Do not create the tag or release by hand unless the workflow failed.
+
 ## When not to bump
 
 Skip the bump for changes that are not a product release: Cursor rules, docs-only edits, tests-only, tooling, or internal refactors with no lifter-facing change.
@@ -28,3 +30,4 @@ Skip the bump for changes that are not a product release: Cursor rules, docs-onl
 - Leave product work at the previous version.
 - Hand-edit Android version codes; Gradle reads `app-version.json`.
 - Treat `package.json` or OpenAPI versions as the product version.
+- Create two-part GitHub tags such as `v7.0`; those are from before this scheme.

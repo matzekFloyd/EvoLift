@@ -49,3 +49,9 @@ versionCode = MAJOR * 1000000 + MINOR * 1000 + PATCH
 `0.0.0` is not valid. The code must be from 1 through 2100000000, which is Play's limit.
 
 Do not upload the same product version twice. Bump the patch first, then build the bundle. A site deploy can move ahead of the last Play upload: the shell loads the live site, so the footer shows the deployed site version, while Play shows the version of the uploaded shell.
+
+## GitHub Releases
+
+When `evo-lift/app-version.json` changes on `master`, GitHub Actions creates a [GitHub Release](https://github.com/matzekFloyd/EvoLift/releases) tagged `vMAJOR.MINOR.PATCH` (same label as the site footer). The workflow generates notes from commits since the previous release. It does not upload a Play `.aab`; that stays a local `npm run android:bundle` step.
+
+Older tags such as `v5.0` are from before this scheme. Do not create those two-part tags again.

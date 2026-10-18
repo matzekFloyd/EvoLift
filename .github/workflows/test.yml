@@ -17,8 +17,8 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Test Android shell config
-        run: node --test shell/server-config.test.mjs
+      - name: Test Android shell and release helpers
+        run: npm test
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
