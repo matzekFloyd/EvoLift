@@ -7,6 +7,7 @@ import {
   SHORT_EXERCISE_HISTORY_SESSION_LIMIT,
   buildShortExerciseHistory,
   shortExerciseHistorySetLine,
+  shortExerciseHistoryWorkingSetsInline,
   warmupSetsLabel,
   type ShortExerciseHistoryInputSet,
 } from "./session-exercise-history";
@@ -29,6 +30,17 @@ describe("short exercise history lines", () => {
   it("writes loaded weight and reps the same way the session log does", () => {
     assert.equal(shortExerciseHistorySetLine(195, 5), "195 kg, 5 reps");
     assert.equal(shortExerciseHistorySetLine(null, 8), "- kg, 8 reps");
+  });
+
+  it("joins working sets into one compact inline line", () => {
+    assert.equal(
+      shortExerciseHistoryWorkingSetsInline([
+        { setNumber: 1, line: "100 kg, 5 reps" },
+        { setNumber: 3, line: "190 kg, 4 reps" },
+      ]),
+      "1: 100 kg, 5 reps · 3: 190 kg, 4 reps",
+    );
+    assert.equal(shortExerciseHistoryWorkingSetsInline([]), "");
   });
 
   it("uses a singular warmup label for one set", () => {
