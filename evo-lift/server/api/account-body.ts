@@ -176,6 +176,7 @@ export function parseExerciseDefaults(
     suggestWarmups,
     suggestTarget,
     maxWarmupSets: maxText.trim() === "" ? null : Number(maxText),
+    /** When omitted from the body, leave the stored per-exercise cap unchanged. */
     updateMaxWarmupSets: body.max_suggested_warmup_sets !== undefined,
   };
 }

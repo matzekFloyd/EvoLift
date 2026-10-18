@@ -290,22 +290,14 @@ export async function replaceHiddenExercises(
 }
 
 export async function getExerciseDefaults(client: Client, userId: string) {
-  const [{ data: metrics, error: metricsError }, { data: rows, error }] = await Promise.all([
-    client
-      .from("user_profile_metrics")
-      .select("max_suggested_warmup_sets")
-      .eq("user_id", userId)
-      .maybeSingle(),
-    client.from("user_exercise_defaults").select("*").eq("user_id", userId),
-  ]);
-  if (metricsError) {
-    throw new Error(`Could not load warmup suggestions: ${metricsError.message}`);
-  }
+  const { data: rows, error } = await client
+    .from("user_exercise_defaults")
+    .select("*")
+    .eq("user_id", userId);
   if (error) {
     throw new Error(`Could not load exercise defaults: ${error.message}`);
   }
   return {
-    max_suggested_warmup_sets: metrics?.max_suggested_warmup_sets ?? null,
     exercises: (rows ?? []).map((row) => ({
       exercise_id: row.exercise_id,
       default_base_weight_kg: row.default_base_weight_kg,
@@ -314,29 +306,9 @@ export async function getExerciseDefaults(client: Client, userId: string) {
       default_target_weight_kg: row.default_target_weight_kg,
       suggest_warmups: row.suggest_warmups,
       suggest_target: row.suggest_target,
+      max_suggested_warmup_sets: row.max_suggested_warmup_sets,
     })),
   };
-}
-
-async function saveMaxWarmupSets(client: Client, userId: string, maxWarmupSets: number | null) {
-  const payload = { max_suggested_warmup_sets: maxWarmupSets };
-  const { data: updatedRows, error } = await client
-    .from("user_profile_metrics")
-    .update(payload)
-    .eq("user_id", userId)
-    .select("user_id");
-  if (error) {
-    throw new Error(`Could not save warmup suggestions: ${error.message}`);
-  }
-  if (!updatedRows?.length) {
-    const { error: insertError } = await client.from("user_profile_metrics").insert({
-      user_id: userId,
-      ...payload,
-    });
-    if (insertError) {
-      throw new Error(`Could not save warmup suggestions: ${insertError.message}`);
-    }
-  }
 }
 
 export async function saveExerciseDefaults(
@@ -356,24 +328,22 @@ export async function saveExerciseDefaults(
   if (!exercise) {
     throw new ApiHttpError(400, "Please select an exercise.");
   }
+  const payload: Database["public"]["Tables"]["user_exercise_defaults"]["Insert"] = {
+    user_id: userId,
+    exercise_id: exerciseId,
+    default_base_weight_kg: input.baseWeightKg,
+    default_target_sets: input.targetSets,
+    default_target_reps: input.targetReps,
+    default_target_weight_kg: input.targetWeightKg,
+    suggest_warmups: input.suggestWarmups,
+    suggest_target: input.suggestTarget,
+  };
   if (input.updateMaxWarmupSets) {
-    await saveMaxWarmupSets(client, userId, input.maxWarmupSets);
+    payload.max_suggested_warmup_sets = input.maxWarmupSets;
   }
   const { data, error } = await client
     .from("user_exercise_defaults")
-    .upsert(
-      {
-        user_id: userId,
-        exercise_id: exerciseId,
-        default_base_weight_kg: input.baseWeightKg,
-        default_target_sets: input.targetSets,
-        default_target_reps: input.targetReps,
-        default_target_weight_kg: input.targetWeightKg,
-        suggest_warmups: input.suggestWarmups,
-        suggest_target: input.suggestTarget,
-      },
-      { onConflict: "user_id,exercise_id" },
-    )
+    .upsert(payload, { onConflict: "user_id,exercise_id" })
     .select("*")
     .single();
   if (error || !data) {
@@ -404,6 +374,7 @@ export async function clearExerciseDefaults(client: Client, userId: string, exer
       default_target_weight_kg: null,
       suggest_warmups: isCompoundExercise(exercise.slug),
       suggest_target: true,
+      max_suggested_warmup_sets: null,
     },
     { onConflict: "user_id,exercise_id" },
   );

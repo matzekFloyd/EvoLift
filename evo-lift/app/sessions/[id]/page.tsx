@@ -134,7 +134,9 @@ export default function SessionDetailPage() {
   const [targetSuggestionsDisabledExerciseIds, setTargetSuggestionsDisabledExerciseIds] = useState<
     Set<string>
   >(() => new Set());
-  const [maxSuggestedWarmupSets, setMaxSuggestedWarmupSets] = useState<number | null>(null);
+  const [maxWarmupSetsByExerciseId, setMaxWarmupSetsByExerciseId] = useState<Map<string, number | null>>(
+    () => new Map(),
+  );
   /** Compact single-exercise flow: show full new-set composer after target working sets are met. */
   const [compactShowExtraSetComposer, setCompactShowExtraSetComposer] = useState(false);
   const [pendingCompactSetFocusSessionExerciseId, setPendingCompactSetFocusSessionExerciseId] =
@@ -211,30 +213,25 @@ export default function SessionDetailPage() {
     }
     let cancelled = false;
     async function loadSuggestionSettings() {
-      const [{ data: metrics }, { data: defaults }] = await Promise.all([
-        supabaseBrowserClient
-          .from("user_profile_metrics")
-          .select("max_suggested_warmup_sets")
-          .eq("user_id", userId)
-          .maybeSingle(),
-        supabaseBrowserClient
-          .from("user_exercise_defaults")
-          .select("exercise_id, suggest_warmups, suggest_target")
-          .eq("user_id", userId),
-      ]);
+      const { data: defaults } = await supabaseBrowserClient
+        .from("user_exercise_defaults")
+        .select("exercise_id, suggest_warmups, suggest_target, max_suggested_warmup_sets")
+        .eq("user_id", userId);
       if (cancelled) {
         return;
       }
-      setMaxSuggestedWarmupSets(metrics?.max_suggested_warmup_sets ?? null);
       const warmupByExercise = new Map<string, boolean>();
+      const maxWarmupByExercise = new Map<string, number | null>();
       const targetDisabled = new Set<string>();
       for (const row of defaults ?? []) {
         warmupByExercise.set(row.exercise_id, row.suggest_warmups);
+        maxWarmupByExercise.set(row.exercise_id, row.max_suggested_warmup_sets);
         if (row.suggest_target === false) {
           targetDisabled.add(row.exercise_id);
         }
       }
       setSuggestWarmupsByExerciseId(warmupByExercise);
+      setMaxWarmupSetsByExerciseId(maxWarmupByExercise);
       setTargetSuggestionsDisabledExerciseIds(targetDisabled);
     }
     void loadSuggestionSettings();
@@ -805,7 +802,7 @@ export default function SessionDetailPage() {
     setIsSavingSessionDetails,
     setSession,
     warmupSuggestionsDisabledExerciseIds,
-    maxSuggestedWarmupSets,
+    maxWarmupSetsByExerciseId,
   });
 
   function goBack() {
@@ -1279,7 +1276,7 @@ export default function SessionDetailPage() {
                   !targetSuggestionsDisabledExerciseIds.has(sessionExercise.exercise_id)
                 }
                 suggestWarmups={!warmupSuggestionsDisabledExerciseIds.has(sessionExercise.exercise_id)}
-                maxWarmupSets={maxSuggestedWarmupSets}
+                maxWarmupSets={maxWarmupSetsByExerciseId.get(sessionExercise.exercise_id) ?? null}
                 onAddSet={(sessionExerciseId) => {
                   void handleAddSet(sessionExerciseId);
                 }}

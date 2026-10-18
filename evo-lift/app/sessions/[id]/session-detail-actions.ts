@@ -90,8 +90,8 @@ export type SessionDetailActionDeps = {
   setSession: Dispatch<SetStateAction<SessionRow | null>>;
   /** Exercise ids whose account preference turns warmup suggestions off. */
   warmupSuggestionsDisabledExerciseIds: ReadonlySet<string>;
-  /** Null keeps the full warmup ladder. */
-  maxSuggestedWarmupSets: number | null;
+  /** Per-exercise cap; missing or null keeps the full warmup ladder. */
+  maxWarmupSetsByExerciseId: ReadonlyMap<string, number | null>;
 };
 
 export function createSessionDetailActions(deps: SessionDetailActionDeps) {
@@ -145,7 +145,7 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
     setIsSavingSessionDetails,
     setSession,
     warmupSuggestionsDisabledExerciseIds,
-    maxSuggestedWarmupSets,
+    maxWarmupSetsByExerciseId,
   } = deps;
 
   function labelFor(sessionExerciseId: string) {
@@ -238,7 +238,9 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
     const suggestion = suggestWarmups({
       targetWeightKg: sessionExercise?.target_weight_kg ?? null,
       baseWeightKg: sessionExercise?.base_weight_kg ?? null,
-      maxSteps: maxSuggestedWarmupSets,
+      maxSteps: sessionExercise
+        ? (maxWarmupSetsByExerciseId.get(sessionExercise.exercise_id) ?? null)
+        : null,
     });
     if (suggestion.status !== "steps" || suggestion.steps.length === 0) {
       return;
