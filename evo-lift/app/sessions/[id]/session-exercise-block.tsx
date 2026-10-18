@@ -6,6 +6,7 @@ import Link from "next/link";
 import { panelInsetClass } from "@/app/components/panel-inset";
 import { TargetWeightSuggestion } from "@/app/components/target-weight-suggestion";
 import { WarmupSuggestion } from "@/app/components/warmup-suggestion";
+import { targetWeightFieldLabel } from "@/lib/assistance-exercise";
 import { targetSuggestionsEnabled } from "@/lib/target-weight-suggestion";
 import { warmupSuggestionsEnabled } from "@/lib/warmup-suggestion";
 import { PLANNED_SESSION_SETS_MESSAGE } from "./session-input";
@@ -279,7 +280,7 @@ export function SessionExerciseBlock({
               />
             </label>
             <label className="block text-sm font-medium">
-              Target weight (kg)
+              {targetWeightFieldLabel(exerciseSlug)}
               <input
                 type="number"
                 min={0}
@@ -357,6 +358,7 @@ export function SessionExerciseBlock({
 
       <SessionExerciseSets
         sessionExerciseId={sessionExercise.id}
+        exerciseSlug={exerciseSlug}
         baseWeightKg={sessionExercise.base_weight_kg}
         sets={sets}
         addDraft={addDraft}

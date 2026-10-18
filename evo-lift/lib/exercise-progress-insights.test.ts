@@ -85,34 +85,22 @@ describe("buildExerciseProgressReport", () => {
     assert.match(report.rows[0]?.detail ?? "", /1\.5 kg per month/);
   });
 
-  it("does not use assisted-dip assistance as a strength estimate", () => {
-    const report = buildExerciseProgressReport(
-      [
-        sample({
-          slug: "assisted-dip",
-          label: "Assisted Dip",
-          sessionId: "s1",
-          performedOn: "2026-01-01",
-        }),
-        sample({
-          slug: "assisted-dip",
-          label: "Assisted Dip",
-          sessionId: "s2",
-          performedOn: "2026-01-20",
-        }),
-        sample({
-          slug: "assisted-dip",
-          label: "Assisted Dip",
-          sessionId: "s3",
-          performedOn: "2026-02-10",
-        }),
-      ],
-      RANGE,
-      NO_PROFILE,
-    );
-    assert.equal(report.rows[0]?.read, "early");
-    assert.equal(report.rows[0]?.bestE1rmKg, null);
-    assert.match(report.rows[0]?.detail ?? "", /assistance, not the load/);
+  it("does not use assisted-dip or assisted-pull-up assistance as a strength estimate", () => {
+    for (const slug of ["assisted-dip", "assisted-pull-up"] as const) {
+      const label = slug === "assisted-dip" ? "Assisted Dip" : "Assisted Pull-Up";
+      const report = buildExerciseProgressReport(
+        [
+          sample({ slug, label, sessionId: "s1", performedOn: "2026-01-01" }),
+          sample({ slug, label, sessionId: "s2", performedOn: "2026-01-20" }),
+          sample({ slug, label, sessionId: "s3", performedOn: "2026-02-10" }),
+        ],
+        RANGE,
+        NO_PROFILE,
+      );
+      assert.equal(report.rows[0]?.read, "early");
+      assert.equal(report.rows[0]?.bestE1rmKg, null);
+      assert.match(report.rows[0]?.detail ?? "", /assistance, not the load/);
+    }
   });
 
   it("grades a published lift when sex, age, and bodyweight are present", () => {

@@ -24,6 +24,7 @@ import {
   type ExerciseDefaultsRow,
   type ExerciseDraftRow,
 } from "@/lib/workout-exercise-draft";
+import { isAssistanceExercise, targetWeightFieldLabel } from "@/lib/assistance-exercise";
 import { toExerciseBadge } from "@/lib/exercise-badge";
 import { targetSuggestionsEnabled } from "@/lib/target-weight-suggestion";
 import { exerciseOptionsForPicker } from "@/lib/exercise-picker-options";
@@ -71,6 +72,10 @@ export function WorkoutExerciseDraftList({
       setActiveExerciseIndex(Math.max(0, exerciseRows.length - 1));
     }
   }, [activeExerciseIndex, exerciseRows.length]);
+
+  const exerciseSlugById = new Map(
+    exerciseOptions.map((option) => [option.id, option.slug] as const),
+  );
 
   function addExerciseRow() {
     setExerciseRows((prev) => [...prev, createEmptyExerciseRow()]);
@@ -129,18 +134,22 @@ export function WorkoutExerciseDraftList({
         }
 
         const defaults = exerciseDefaultsById.get(selectedExerciseId);
+        const selectedSlug = exerciseSlugById.get(selectedExerciseId);
+        const assistance = isAssistanceExercise(selectedSlug);
         if (!defaults) {
           return {
             ...row,
             exerciseId: selectedExerciseId,
+            baseWeightKg: assistance ? "" : row.baseWeightKg,
           };
         }
 
         return {
           ...row,
           exerciseId: selectedExerciseId,
-          baseWeightKg:
-            row.baseWeightKg || defaults.default_base_weight_kg == null
+          baseWeightKg: assistance
+            ? ""
+            : row.baseWeightKg || defaults.default_base_weight_kg == null
               ? row.baseWeightKg
               : String(defaults.default_base_weight_kg),
           targetSets:
@@ -293,7 +302,10 @@ export function WorkoutExerciseDraftList({
           </button>
         </div>
       ) : null}
-      {visibleExerciseRows.map(({ row, index }) => (
+      {visibleExerciseRows.map(({ row, index }) => {
+        const rowSlug = row.exerciseId ? exerciseSlugById.get(row.exerciseId) : undefined;
+        const rowUsesAssistance = isAssistanceExercise(rowSlug);
+        return (
         <div
           key={row.rowId}
           data-exercise-row-id={`row-${index}`}
@@ -314,9 +326,13 @@ export function WorkoutExerciseDraftList({
                   const selectedBadge = selectedOption ? toExerciseBadge(selectedOption.slug) : null;
                   const baseTitle = selectedBadge ?? `Exercise ${index + 1}`;
                   const targetDetails = [
-                    row.baseWeightKg ? `base ${row.baseWeightKg} kg` : null,
+                    !rowUsesAssistance && row.baseWeightKg
+                      ? `base ${row.baseWeightKg} kg`
+                      : null,
                     row.targetSets ? `${row.targetSets} sets` : null,
-                    row.targetWeightKg ? `weight ${row.targetWeightKg} kg` : null,
+                    row.targetWeightKg
+                      ? `${rowUsesAssistance ? "assistance" : "weight"} ${row.targetWeightKg} kg`
+                      : null,
                     row.targetReps ? `${row.targetReps} reps` : null,
                   ]
                     .filter(Boolean)
@@ -350,9 +366,13 @@ export function WorkoutExerciseDraftList({
                         row.exerciseId)
                       : null;
                     const details = [
-                      row.baseWeightKg ? `base ${row.baseWeightKg} kg` : null,
+                      !rowUsesAssistance && row.baseWeightKg
+                        ? `base ${row.baseWeightKg} kg`
+                        : null,
                       row.targetSets ? `${row.targetSets} sets` : null,
-                      row.targetWeightKg ? `weight ${row.targetWeightKg} kg` : null,
+                      row.targetWeightKg
+                        ? `${rowUsesAssistance ? "assistance" : "weight"} ${row.targetWeightKg} kg`
+                        : null,
                       row.targetReps ? `${row.targetReps} reps` : null,
                     ]
                       .filter(Boolean)
@@ -400,7 +420,9 @@ export function WorkoutExerciseDraftList({
           {isCompactView ? (
             <>
               <div className="mt-5 grid grid-cols-12 items-start gap-2">
-                <label className="col-span-8 block text-xs font-medium">
+                <label
+                  className={`${rowUsesAssistance ? "col-span-12" : "col-span-8"} block text-xs font-medium`}
+                >
                   <span className="inline-flex items-center gap-1">
                     <ListChecks className="h-3 w-3 text-zinc-500" />
                     Exercise
@@ -421,38 +443,40 @@ export function WorkoutExerciseDraftList({
                     onChange={(exerciseId) => handleExerciseSelect(index, exerciseId)}
                   />
                 </label>
-                <label className="col-span-4 block text-xs font-medium">
-                  Base weight (kg)
-                  <input
-                    type="number"
-                    min={0}
-                    step="0.25"
-                    value={row.baseWeightKg}
-                    onChange={(event) =>
-                      updateExerciseRow(index, "baseWeightKg", event.target.value)
-                    }
-                    className="mt-1 w-full rounded-md border bg-white px-2 py-1.5 text-sm"
-                    placeholder="e.g. 20"
-                  />
-                  <div className="mt-1 flex flex-wrap gap-1">
-                    {[20, 15, 10, 0].map((value) => (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() =>
-                          updateExerciseRow(
-                            index,
-                            "baseWeightKg",
-                            value === 0 ? "" : String(value),
-                          )
-                        }
-                        className="rounded border bg-white px-2 py-0.5 text-[11px]"
-                      >
-                        +{value}
-                      </button>
-                    ))}
-                  </div>
-                </label>
+                {rowUsesAssistance ? null : (
+                  <label className="col-span-4 block text-xs font-medium">
+                    Base weight (kg)
+                    <input
+                      type="number"
+                      min={0}
+                      step="0.25"
+                      value={row.baseWeightKg}
+                      onChange={(event) =>
+                        updateExerciseRow(index, "baseWeightKg", event.target.value)
+                      }
+                      className="mt-1 w-full rounded-md border bg-white px-2 py-1.5 text-sm"
+                      placeholder="e.g. 20"
+                    />
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {[20, 15, 10, 0].map((value) => (
+                        <button
+                          key={value}
+                          type="button"
+                          onClick={() =>
+                            updateExerciseRow(
+                              index,
+                              "baseWeightKg",
+                              value === 0 ? "" : String(value),
+                            )
+                          }
+                          className="rounded border bg-white px-2 py-0.5 text-[11px]"
+                        >
+                          +{value}
+                        </button>
+                      ))}
+                    </div>
+                  </label>
+                )}
               </div>
               <div className="mt-5">
                 <div className="mb-2 flex items-center gap-1">
@@ -483,7 +507,9 @@ export function WorkoutExerciseDraftList({
                     />
                   </label>
                   <label className="col-span-1 block text-xs font-medium">
-                    Target weight (kg)
+                    {targetWeightFieldLabel(
+                      row.exerciseId ? exerciseSlugById.get(row.exerciseId) : undefined,
+                    )}
                     <input
                       type="number"
                       min={0}
@@ -593,7 +619,9 @@ export function WorkoutExerciseDraftList({
             <>
               <div className="mt-5">
                 <div className="grid grid-cols-12 items-start gap-2">
-                  <label className="col-span-8 block text-sm font-medium">
+                  <label
+                    className={`${rowUsesAssistance ? "col-span-12" : "col-span-8"} block text-sm font-medium`}
+                  >
                     <span className="inline-flex items-center gap-1">
                       <ListChecks className="h-3.5 w-3.5 text-zinc-500" />
                       Exercise
@@ -613,38 +641,40 @@ export function WorkoutExerciseDraftList({
                       onChange={(exerciseId) => handleExerciseSelect(index, exerciseId)}
                     />
                   </label>
-                  <label className="col-span-4 block text-sm font-medium">
-                    Base weight (kg)
-                    <input
-                      type="number"
-                      min={0}
-                      step="0.25"
-                      value={row.baseWeightKg}
-                      onChange={(event) =>
-                        updateExerciseRow(index, "baseWeightKg", event.target.value)
-                      }
-                      className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
-                      placeholder="e.g. 20"
-                    />
-                    <div className="mt-1 flex flex-wrap gap-1">
-                      {[20, 15, 10, 0].map((value) => (
-                        <button
-                          key={value}
-                          type="button"
-                          onClick={() =>
-                            updateExerciseRow(
-                              index,
-                              "baseWeightKg",
-                              value === 0 ? "" : String(value),
-                            )
-                          }
-                          className="rounded border bg-white px-2 py-0.5 text-xs"
-                        >
-                          +{value}
-                        </button>
-                      ))}
-                    </div>
-                  </label>
+                  {rowUsesAssistance ? null : (
+                    <label className="col-span-4 block text-sm font-medium">
+                      Base weight (kg)
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.25"
+                        value={row.baseWeightKg}
+                        onChange={(event) =>
+                          updateExerciseRow(index, "baseWeightKg", event.target.value)
+                        }
+                        className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                        placeholder="e.g. 20"
+                      />
+                      <div className="mt-1 flex flex-wrap gap-1">
+                        {[20, 15, 10, 0].map((value) => (
+                          <button
+                            key={value}
+                            type="button"
+                            onClick={() =>
+                              updateExerciseRow(
+                                index,
+                                "baseWeightKg",
+                                value === 0 ? "" : String(value),
+                              )
+                            }
+                            className="rounded border bg-white px-2 py-0.5 text-xs"
+                          >
+                            +{value}
+                          </button>
+                        ))}
+                      </div>
+                    </label>
+                  )}
                 </div>
               </div>
               <div className="mt-5">
@@ -676,7 +706,9 @@ export function WorkoutExerciseDraftList({
                     />
                   </label>
                   <label className="col-span-4 block text-sm font-medium">
-                    Target weight (kg)
+                    {targetWeightFieldLabel(
+                      row.exerciseId ? exerciseSlugById.get(row.exerciseId) : undefined,
+                    )}
                     <input
                       type="number"
                       min={0}
@@ -759,7 +791,8 @@ export function WorkoutExerciseDraftList({
             </>
           )}
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

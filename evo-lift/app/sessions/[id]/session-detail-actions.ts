@@ -1,5 +1,6 @@
 import type { Dispatch, SetStateAction } from "react";
 import type { Database } from "@/lib/supabase/database.types";
+import { isAssistanceExercise } from "@/lib/assistance-exercise";
 import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
 import { isFutureSessionDate } from "@/lib/session-date";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
@@ -55,6 +56,7 @@ export type SessionDetailActionDeps = {
   notesDraft: string;
   isCompactView: boolean;
   exerciseLabels: Map<string, string>;
+  exerciseSlugById: Map<string, string>;
   showError: (messageText: string) => void;
   showWarning: (messageText: string) => void;
   showSuccess: (messageText: string) => void;
@@ -111,6 +113,7 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
     notesDraft,
     isCompactView,
     exerciseLabels,
+    exerciseSlugById,
     showError,
     showWarning,
     showSuccess,
@@ -458,6 +461,9 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
       targetReps: addExerciseDraft.targetReps,
       targetWeightKg: addExerciseDraft.targetWeightKg,
       baseWeightKg: addExerciseDraft.baseWeightKg,
+      omitBaseWeight: isAssistanceExercise(
+        exerciseSlugById.get(addExerciseDraft.exerciseId),
+      ),
     });
     if (!added.ok) {
       if (added.tone === "warning") {

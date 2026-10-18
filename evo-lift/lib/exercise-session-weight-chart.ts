@@ -129,31 +129,36 @@ function comparedWithPrevious(delta: number): string {
 export function buildWeightChangeSentence(
   points: ExerciseSessionWeightChartPoint[],
   mode: "total" | "loaded" | "both",
+  options?: { assistance?: boolean },
 ): string {
   if (points.length === 0) {
     return "";
   }
+  const assistance = options?.assistance === true;
+  const loadUnit = assistance ? "assistance" : "loaded";
   const last = points[points.length - 1];
   if (points.length === 1) {
-    if (mode === "total") {
+    if (mode === "total" && !assistance) {
       return `Last session: ${formatKg(last.heaviestTotalKg)} total. Log another session to see the change.`;
     }
-    if (mode === "both") {
+    if (mode === "both" && !assistance) {
       return `Last session: ${formatKg(last.heaviestLoadedKg)} loaded and ${formatKg(last.heaviestTotalKg)} total. Log another session to see the change.`;
     }
-    return `Last session: ${formatKg(last.heaviestLoadedKg)} loaded. Log another session to see the change.`;
+    return `Last session: ${formatKg(last.heaviestLoadedKg)} ${loadUnit}. Log another session to see the change.`;
   }
 
   const previous = points[points.length - 2];
-  if (mode === "both") {
+  if (mode === "both" && !assistance) {
     const loadedDelta = last.heaviestLoadedKg - previous.heaviestLoadedKg;
     const totalDelta = last.heaviestTotalKg - previous.heaviestTotalKg;
     return `Last session: ${formatKg(last.heaviestLoadedKg)} loaded, ${comparedWithPrevious(loadedDelta)}, and ${formatKg(last.heaviestTotalKg)} total, ${comparedWithPrevious(totalDelta)}.`;
   }
 
-  const lastValue = mode === "total" ? last.heaviestTotalKg : last.heaviestLoadedKg;
-  const previousValue = mode === "total" ? previous.heaviestTotalKg : previous.heaviestLoadedKg;
-  const unit = mode === "total" ? "total" : "loaded";
+  const lastValue =
+    mode === "total" && !assistance ? last.heaviestTotalKg : last.heaviestLoadedKg;
+  const previousValue =
+    mode === "total" && !assistance ? previous.heaviestTotalKg : previous.heaviestLoadedKg;
+  const unit = mode === "total" && !assistance ? "total" : loadUnit;
   return `Last session: ${formatKg(lastValue)} ${unit}, ${comparedWithPrevious(lastValue - previousValue)}.`;
 }
 

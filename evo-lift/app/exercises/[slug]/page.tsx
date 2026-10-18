@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { ActionButton } from "@/app/components/action-button";
 import { AppTable } from "@/app/components/app-table";
+import { externalLoadFieldLabel, isAssistanceExercise } from "@/lib/assistance-exercise";
 import {
   HistoryPageNav,
   HistoryPageSizeToggle,
@@ -136,6 +137,9 @@ type ExerciseDetailPanelTab = "data" | "charts";
 const COMPACT_HISTORY_GRID =
   "grid grid-cols-[minmax(6.75rem,1fr)_minmax(2.75rem,3.5rem)_2.75rem_3.25rem_2.125rem] gap-x-1.5 @min-[22rem]:grid-cols-[minmax(6.75rem,1fr)_3.5rem_minmax(1.75rem,2.25rem)_2.75rem_3.25rem_2.125rem]";
 
+const COMPACT_HISTORY_GRID_ASSISTANCE =
+  "grid grid-cols-[minmax(6.75rem,1fr)_minmax(2.75rem,3.5rem)_2.75rem_2.125rem] gap-x-1.5 @min-[22rem]:grid-cols-[minmax(6.75rem,1fr)_3.5rem_minmax(1.75rem,2.25rem)_2.75rem_2.125rem]";
+
 const COMPACT_HISTORY_TYPE_CELL = "hidden @min-[22rem]:flex @min-[22rem]:justify-center @min-[22rem]:items-center";
 
 function GoalReachedMark({ label }: { label: string }) {
@@ -155,6 +159,8 @@ export default function ExerciseDetailPage() {
   const searchParams = useSearchParams();
   const params = useParams<{ slug: string }>();
   const slug = params?.slug;
+  const assistance = isAssistanceExercise(slug);
+  const loadColumnLabel = externalLoadFieldLabel(slug);
   const defaultDateRange = useMemo(() => getDefaultRollingYearDateRange(), []);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -410,7 +416,9 @@ export default function ExerciseDetailPage() {
               setNumber: setRow.set_number,
               reps: setRow.reps,
               weightKg: setRow.weight_kg,
-              totalKg: loadedKg + baseWeightKg,
+              totalKg: isAssistanceExercise(slug)
+                ? loadedKg
+                : loadedKg + baseWeightKg,
               isWarmup: setRow.is_warmup,
               goalLabel: goalLabels && goalLabels.length > 0 ? goalLabels.join(", ") : null,
             };
@@ -561,8 +569,9 @@ export default function ExerciseDetailPage() {
   );
 
   const sessionVolumeChartPoints = useMemo(
-    () => buildExerciseSessionVolumeChartPoints(filteredHistoryRows),
-    [filteredHistoryRows],
+    () =>
+      assistance ? [] : buildExerciseSessionVolumeChartPoints(filteredHistoryRows),
+    [assistance, filteredHistoryRows],
   );
 
   const maxLoadedText = formatKgValue(historyStats.bestLoadedKg, 1);
@@ -839,35 +848,47 @@ export default function ExerciseDetailPage() {
                   description="Most sets in one session within the current filters (respects date range and “Hide warmups”)."
                 />
                 <KpiBadge
-                  label="Avg loaded (kg)"
+                  label={assistance ? "Avg assistance (kg)" : "Avg loaded (kg)"}
                   value={averageLoadedText}
                   icon={<Weight className="h-4 w-4 text-sky-700" />}
                   className="col-span-3 min-w-0 @min-[28rem]:col-span-3 @min-[56rem]:col-span-1"
-                  description="Average loaded weight on working sets (no warmups). Only sets where you logged a weight."
+                  description={
+                    assistance
+                      ? "Average assistance on working sets (no warmups). Blank or 0 is unassisted bodyweight."
+                      : "Average loaded weight on working sets (no warmups). Only sets where you logged a weight."
+                  }
                 />
                 <KpiBadge
-                  label="Max loaded (kg)"
+                  label={assistance ? "Max assistance (kg)" : "Max loaded (kg)"}
                   value={maxLoadedText}
                   icon={<Weight className="h-4 w-4 text-emerald-700" />}
                   className="col-span-3 min-w-0 @min-[28rem]:col-span-3 @min-[56rem]:col-span-1"
-                  description="Heaviest single working set by loaded weight (no warmups). Only sets with logged weight."
+                  description={
+                    assistance
+                      ? "Highest assistance on a single working set (no warmups). Only sets with logged assistance."
+                      : "Heaviest single working set by loaded weight (no warmups). Only sets with logged weight."
+                  }
                   tone="success"
                 />
-                <KpiBadge
-                  label="Avg total (kg)"
-                  value={averageTotalText}
-                  icon={<TrendingUp className="h-4 w-4 text-sky-700" />}
-                  className="col-span-3 min-w-0 @min-[28rem]:col-span-3 @min-[56rem]:col-span-1"
-                  description="Mean of each working set’s Total (kg)—loaded plus base for that session—same column as in set history. No warmups; only sets with logged load."
-                />
-                <KpiBadge
-                  label="Max total (kg)"
-                  value={maxTotalText}
-                  icon={<TrendingUp className="h-4 w-4 text-emerald-700" />}
-                  className="col-span-3 min-w-0 @min-[28rem]:col-span-3 @min-[56rem]:col-span-1"
-                  description="Heaviest single working set by Total (kg) in set history (loaded plus base). No warmups; only sets with logged load."
-                  tone="success"
-                />
+                {assistance ? null : (
+                  <>
+                    <KpiBadge
+                      label="Avg total (kg)"
+                      value={averageTotalText}
+                      icon={<TrendingUp className="h-4 w-4 text-sky-700" />}
+                      className="col-span-3 min-w-0 @min-[28rem]:col-span-3 @min-[56rem]:col-span-1"
+                      description="Mean of each working set’s Total (kg)—loaded plus base for that session—same column as in set history. No warmups; only sets with logged load."
+                    />
+                    <KpiBadge
+                      label="Max total (kg)"
+                      value={maxTotalText}
+                      icon={<TrendingUp className="h-4 w-4 text-emerald-700" />}
+                      className="col-span-3 min-w-0 @min-[28rem]:col-span-3 @min-[56rem]:col-span-1"
+                      description="Heaviest single working set by Total (kg) in set history (loaded plus base). No warmups; only sets with logged load."
+                      tone="success"
+                    />
+                  </>
+                )}
               </div>
             </div>
             </section>
@@ -912,18 +933,20 @@ export default function ExerciseDetailPage() {
             ) : isCompactView ? (
               <div className="@container overflow-x-auto rounded-md border border-zinc-200 bg-white">
                 <div
-                  className={`${COMPACT_HISTORY_GRID} border-b bg-zinc-50 px-2 py-1.5 text-[10px] font-medium uppercase tracking-wide text-zinc-500`}
+                  className={`${assistance ? COMPACT_HISTORY_GRID_ASSISTANCE : COMPACT_HISTORY_GRID} border-b bg-zinc-50 px-2 py-1.5 text-[10px] font-medium uppercase tracking-wide text-zinc-500`}
                 >
                   <span>Date</span>
                   <span className={COMPACT_HISTORY_TYPE_CELL}>Type</span>
                   <span className="text-right">Set</span>
-                  <span className="text-right">Kg</span>
-                  <span
-                    className="text-right"
-                    title="Loaded weight plus optional base weight for this exercise on that session."
-                  >
-                    Total
-                  </span>
+                  <span className="text-right">{assistance ? "Assist" : "Kg"}</span>
+                  {assistance ? null : (
+                    <span
+                      className="text-right"
+                      title="Loaded weight plus optional base weight for this exercise on that session."
+                    >
+                      Total
+                    </span>
+                  )}
                   <span className="text-right">Reps</span>
                 </div>
                 {pagedCompactHistoryRows.map((row, index) => (
@@ -941,7 +964,9 @@ export default function ExerciseDetailPage() {
                       const isTopRepsRow = rowKey === topRepsRowKey;
                       const isGoalRow = Boolean(row.goalLabel);
                       return (
-                        <div className={`${COMPACT_HISTORY_GRID} items-center text-zinc-700`}>
+                        <div
+                          className={`${assistance ? COMPACT_HISTORY_GRID_ASSISTANCE : COMPACT_HISTORY_GRID} items-center text-zinc-700`}
+                        >
                           <div className="flex min-w-0 items-center gap-1">
                             <span className="truncate font-medium tabular-nums text-zinc-900">
                               {formatDateOnlyForLocale(row.performedOn)}
@@ -974,9 +999,11 @@ export default function ExerciseDetailPage() {
                           <span className={`text-right tabular-nums ${historyValueClass(isTopRepsRow, isGoalRow)}`}>
                             {row.weightKg ?? "—"}
                           </span>
-                          <span className={`text-right tabular-nums ${historyValueClass(isTopRepsRow, isGoalRow)}`}>
-                            {row.totalKg.toFixed(1)}
-                          </span>
+                          {assistance ? null : (
+                            <span className={`text-right tabular-nums ${historyValueClass(isTopRepsRow, isGoalRow)}`}>
+                              {row.totalKg.toFixed(1)}
+                            </span>
+                          )}
                           <span className={`text-right tabular-nums ${historyValueClass(isTopRepsRow, isGoalRow)}`}>
                             {row.reps}
                           </span>
@@ -1007,19 +1034,21 @@ export default function ExerciseDetailPage() {
                       </th>
                       <th className="px-2 py-2 font-medium">
                         <button type="button" onClick={() => handleSort("weightKg")} className="inline-flex items-center gap-1">
-                          Loaded (kg) {renderSortIndicator("weightKg")}
+                          {loadColumnLabel} {renderSortIndicator("weightKg")}
                         </button>
                       </th>
-                      <th className="px-2 py-2 font-medium">
-                        <button
-                          type="button"
-                          onClick={() => handleSort("totalKg")}
-                          className="inline-flex items-center gap-1"
-                          title="Loaded weight plus optional base weight for this exercise on that session."
-                        >
-                          Total (kg) {renderSortIndicator("totalKg")}
-                        </button>
-                      </th>
+                      {assistance ? null : (
+                        <th className="px-2 py-2 font-medium">
+                          <button
+                            type="button"
+                            onClick={() => handleSort("totalKg")}
+                            className="inline-flex items-center gap-1"
+                            title="Loaded weight plus optional base weight for this exercise on that session."
+                          >
+                            Total (kg) {renderSortIndicator("totalKg")}
+                          </button>
+                        </th>
+                      )}
                       <th className="px-2 py-2 font-medium">
                         <button type="button" onClick={() => handleSort("reps")} className="inline-flex items-center gap-1">
                           Reps {renderSortIndicator("reps")}
@@ -1056,9 +1085,11 @@ export default function ExerciseDetailPage() {
                         <td className={`px-2 py-2 ${historyValueClass(isTopRepsRow, isGoalRow)}`}>
                           {row.weightKg ?? "-"}
                         </td>
-                        <td className={`px-2 py-2 ${historyValueClass(isTopRepsRow, isGoalRow)}`}>
-                          {row.totalKg.toFixed(1)}
-                        </td>
+                        {assistance ? null : (
+                          <td className={`px-2 py-2 ${historyValueClass(isTopRepsRow, isGoalRow)}`}>
+                            {row.totalKg.toFixed(1)}
+                          </td>
+                        )}
                         <td className={`px-2 py-2 ${historyValueClass(isTopRepsRow, isGoalRow)}`}>
                           {row.reps}
                         </td>
@@ -1096,21 +1127,33 @@ export default function ExerciseDetailPage() {
                 </SectionHeading>
                 <InfoPopover label="How this chart works">
                   <div className="space-y-2">
-                    <p>
-                      Total (kg) matches set history: loaded plus that session’s base for this
-                      exercise. Each point uses the hardest working set that has a logged load (same
-                      idea as your max-total stat).
-                    </p>
-                    <p>
-                      The line starts on Loaded (kg). Switch to Total or Both to include the base.
-                      Warmups and sets with no logged weight are omitted. Tap or hover a point for
-                      loaded, total, and base together.
-                    </p>
+                    {assistance ? (
+                      <p>
+                        Each point uses the hardest working set by assistance in that session. The chart
+                        shows Assistance (kg). Blank or 0 is unassisted bodyweight. Warmups are omitted.
+                      </p>
+                    ) : (
+                      <>
+                        <p>
+                          Total (kg) matches set history: loaded plus that session’s base for this
+                          exercise. Each point uses the hardest working set that has a logged load (same
+                          idea as your max-total stat).
+                        </p>
+                        <p>
+                          The line starts on Loaded (kg). Switch to Total or Both to include the base.
+                          Warmups and sets with no logged weight are omitted. Tap or hover a point for
+                          loaded, total, and base together.
+                        </p>
+                      </>
+                    )}
                   </div>
                 </InfoPopover>
               </div>
               <div className="mt-3">
-                <ExerciseWeightProgressChart points={sessionWeightChartPoints} />
+                <ExerciseWeightProgressChart
+                  points={sessionWeightChartPoints}
+                  assistance={assistance}
+                />
               </div>
             </section>
 
@@ -1124,21 +1167,36 @@ export default function ExerciseDetailPage() {
                 </SectionHeading>
                 <InfoPopover label="How session volume works">
                   <div className="space-y-2">
-                    <p>
-                      Each point is one workout session. Volume is the sum of reps × Total (kg) on
-                      the bar for every <span className="font-medium">working set</span> with a
-                      logged load—same Total (kg) as set history (loaded plus base for that
-                      session).
-                    </p>
-                    <p>
-                      Warmup sets are excluded. Sets without a logged weight are not counted. Tap
-                      or hover a point for session totals.
-                    </p>
+                    {assistance ? (
+                      <p>
+                        Assistance is counterweight help, not load moved. Session volume is not
+                        calculated for Assisted Dip or Assisted Pull-Up.
+                      </p>
+                    ) : (
+                      <>
+                        <p>
+                          Each point is one workout session. Volume is the sum of reps × Total (kg) on
+                          the bar for every <span className="font-medium">working set</span> with a
+                          logged load—same Total (kg) as set history (loaded plus base for that
+                          session).
+                        </p>
+                        <p>
+                          Warmup sets are excluded. Sets without a logged weight are not counted. Tap
+                          or hover a point for session totals.
+                        </p>
+                      </>
+                    )}
                   </div>
                 </InfoPopover>
               </div>
               <div className="mt-3">
-                <ExerciseSessionVolumeChart points={sessionVolumeChartPoints} />
+                {assistance ? (
+                  <p className="text-sm text-zinc-600">
+                    Assistance is not counted as training volume, so there is nothing to plot.
+                  </p>
+                ) : (
+                  <ExerciseSessionVolumeChart points={sessionVolumeChartPoints} />
+                )}
               </div>
             </section>
             </div>

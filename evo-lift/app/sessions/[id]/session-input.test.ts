@@ -111,5 +111,23 @@ describe("session input", () => {
       }),
       { ok: false, tone: "error", message: "Please enter a valid base weight." },
     );
+    assert.deepEqual(
+      parseAddedSessionExercise({
+        exerciseId: "ex-1",
+        alreadyInSession: false,
+        targetSets: "3",
+        targetReps: "8",
+        targetWeightKg: "7",
+        baseWeightKg: "20",
+        omitBaseWeight: true,
+      }),
+      {
+        ok: true,
+        targetSets: 3,
+        targetReps: 8,
+        targetWeightKg: 7,
+        baseWeightKg: null,
+      },
+    );
   });
 });

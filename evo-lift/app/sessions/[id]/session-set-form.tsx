@@ -5,6 +5,11 @@ import { type Dispatch, type SetStateAction, useLayoutEffect, useRef, useState }
 import { ActionButton } from "@/app/components/action-button";
 import { CompactRowActions } from "@/app/components/compact-row-actions";
 import { panelInsetClass } from "@/app/components/panel-inset";
+import {
+  externalLoadFieldLabel,
+  externalLoadValuePrefix,
+  isAssistanceExercise,
+} from "@/lib/assistance-exercise";
 import { setsToShowForSkippedExercise } from "./session-exercise-status";
 import { SetKindIndicator } from "@/app/components/set-kind-indicator";
 import { shouldShowSetSummarySeparator } from "./compact-set-summary";
@@ -79,6 +84,7 @@ function CompactLoggedSetSummary({
 
 type SessionExerciseSetsProps = {
   sessionExerciseId: string;
+  exerciseSlug?: string | null;
   baseWeightKg: number | null;
   sets: WorkoutSetRow[];
   addDraft: SessionSetDraft;
@@ -111,6 +117,7 @@ type SessionExerciseSetsProps = {
 
 export function SessionExerciseSets({
   sessionExerciseId,
+  exerciseSlug = null,
   baseWeightKg,
   sets,
   addDraft,
@@ -142,6 +149,9 @@ export function SessionExerciseSets({
 }: SessionExerciseSetsProps) {
   const visibleSets = setsToShowForSkippedExercise(sets, notDone);
   const showWarmupToggle = showWarmupSetToggle(lastSet?.is_warmup ?? null);
+  const loadFieldLabel = externalLoadFieldLabel(exerciseSlug);
+  const loadValuePrefix = externalLoadValuePrefix(exerciseSlug);
+  const assistance = isAssistanceExercise(exerciseSlug);
   const hideCompactNewSetComposer =
     shouldUseSingleExerciseFlow && targetSetsMet && canManageSets && !compactShowExtraSetComposer;
   const hideFullViewAddSetRow = targetSetsMet && canManageSets && !fullAddSetRowExpanded;
@@ -174,7 +184,7 @@ export function SessionExerciseSets({
               </div>
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <label className="text-xs font-medium text-zinc-600">
-                  Loaded (kg)
+                  {loadFieldLabel}
                   <input
                     type="number"
                     min={0}
@@ -247,14 +257,22 @@ export function SessionExerciseSets({
                     </p>
                   </div>
                   <p className="mt-1 text-sm">
-                    <span className="font-medium">Loaded:</span> {set.weight_kg ?? "-"} kg
+                    <span className="font-medium">{loadValuePrefix}:</span> {set.weight_kg ?? "-"} kg
                   </p>
                   <p className="text-sm">
                     <span className="font-medium">Reps:</span> {set.reps}
                   </p>
-                  <p className="text-xs text-zinc-600">
-                    Total: {((set.weight_kg ?? 0) + (baseWeightKg ?? 0)).toFixed(1)} kg
-                  </p>
+                  {assistance ? (
+                    <p className="text-xs text-zinc-600">
+                      {set.weight_kg == null || Number(set.weight_kg) === 0
+                        ? "Unassisted bodyweight."
+                        : "Assistance, not added load."}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-zinc-600">
+                      Total: {((set.weight_kg ?? 0) + (baseWeightKg ?? 0)).toFixed(1)} kg
+                    </p>
+                  )}
                   {canManageSets ? (
                     <div className="mt-3 flex justify-end gap-2">
                       <button
@@ -357,7 +375,7 @@ export function SessionExerciseSets({
               </div>
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <label className="text-sm font-medium text-zinc-700">
-                  Loaded (kg)
+                  {loadFieldLabel}
                   <input
                     type="number"
                     min={0}
@@ -365,7 +383,7 @@ export function SessionExerciseSets({
                     value={addDraft.weightKg}
                     onChange={(event) => onUpdateAddDraft("weightKg", event.target.value)}
                     className="mt-1 w-full rounded-md border bg-white px-2 py-1"
-                    placeholder="Weight"
+                    placeholder={assistance ? "Assistance" : "Weight"}
                   />
                   <div className="mt-1 flex gap-1">
                     <button
@@ -457,7 +475,7 @@ export function SessionExerciseSets({
               <tr className="border-b bg-zinc-50">
                 <th className="px-2 py-2">Type</th>
                 <th className="px-2 py-2">Set</th>
-                <th className="px-2 py-2">Loaded (kg)</th>
+                <th className="px-2 py-2">{loadFieldLabel}</th>
                 <th className="px-2 py-2">Reps</th>
                 {canManageSets ? <th className="px-2 py-2 text-right">Actions</th> : null}
               </tr>
@@ -541,9 +559,17 @@ export function SessionExerciseSets({
                     <td className="px-2 py-2">{set.set_number}</td>
                     <td className="px-2 py-2">
                       <div>{set.weight_kg ?? "-"}</div>
-                      <div className="text-xs text-zinc-500">
-                        Total: {((set.weight_kg ?? 0) + (baseWeightKg ?? 0)).toFixed(1)} kg
-                      </div>
+                      {assistance ? (
+                        <div className="text-xs text-zinc-500">
+                          {set.weight_kg == null || Number(set.weight_kg) === 0
+                            ? "Unassisted bodyweight"
+                            : "Assistance"}
+                        </div>
+                      ) : (
+                        <div className="text-xs text-zinc-500">
+                          Total: {((set.weight_kg ?? 0) + (baseWeightKg ?? 0)).toFixed(1)} kg
+                        </div>
+                      )}
                     </td>
                     <td className="px-2 py-2">{set.reps}</td>
                     {canManageSets ? (
@@ -624,7 +650,7 @@ export function SessionExerciseSets({
                       value={addDraft.weightKg}
                       onChange={(event) => onUpdateAddDraft("weightKg", event.target.value)}
                       className="w-24 rounded-md border bg-white px-2 py-1"
-                      placeholder="Weight"
+                      placeholder={assistance ? "Assistance" : "Weight"}
                     />
                   </td>
                   <td className="px-2 py-2">

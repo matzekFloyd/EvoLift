@@ -1,3 +1,4 @@
+import { isAssistanceExercise } from "@/lib/assistance-exercise";
 import type { ProfileSex } from "@/lib/body-metrics";
 import { bodyweightOnOrBefore, type BodyweightLogEntry } from "@/lib/bodyweight-log";
 import type { ExerciseWorkingSetSample } from "@/lib/insights-data";
@@ -248,7 +249,6 @@ const BALANCE_PAIRS: BalancePair[] = [
   },
 ];
 
-const ASSISTED_DIP_SLUG = "assisted-dip";
 
 type MovementPattern = {
   id: string;
@@ -749,7 +749,7 @@ export function buildExerciseProgressReport(
     const expectedKg = monthly * (spanDays / 30.44);
     const sessionCount = peaks.length;
 
-    if (first.slug === ASSISTED_DIP_SLUG) {
+    if (isAssistanceExercise(first.slug)) {
       rows.push({
         exerciseId,
         slug: first.slug,
