@@ -98,6 +98,10 @@ describe("weight chart copy and axis", () => {
       buildWeightChangeSentence([previous, heavier], "loaded"),
       "Last session: 65.0 kg loaded, 5.0 kg more than the session before.",
     );
+    assert.equal(
+      buildWeightChangeSentence([point()], "loaded", { assistance: true }),
+      "Last session: 60.0 kg assistance. Log another session to see the change.",
+    );
   });
 
   it("pads the axis around the plotted weights", () => {

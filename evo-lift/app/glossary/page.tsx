@@ -15,9 +15,14 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
       "A one-rep max: the heaviest weight for a single rep. EvoLift estimates it from working sets of 12 reps or fewer, using Total (kg), which includes base weight. The estimate uses the Epley formula. It is not a tested max.",
   },
   {
+    term: "Assistance (kg)",
+    definition:
+      "On Assisted Dip and Assisted Pull-Up, the counterweight help you used. Enter it as a positive number (for example 7). Blank or 0 means unassisted bodyweight. It is not Loaded (kg), and it is not used for estimated 1RM or training volume.",
+  },
+  {
     term: "Base weight",
     definition:
-      "Optional weight for an exercise on a session, such as the bar. You set it once for that exercise. Total (kg) adds it to Loaded (kg).",
+      "Optional weight for an exercise on a session, such as the bar. You set it once for that exercise. Total (kg) adds it to Loaded (kg). It is not bodyweight. Assisted Dip and Assisted Pull-Up do not use base weight.",
   },
   {
     term: "Bodyweight log",
@@ -75,7 +80,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Loaded (kg)",
     definition:
-      "The external weight on a set, such as plates or a dumbbell. Base weight stays separate.",
+      "The external weight on a set, such as plates or a dumbbell. Base weight stays separate. On Assisted Dip and Assisted Pull-Up, use Assistance (kg) instead.",
   },
   {
     term: "Personal best",
@@ -109,7 +114,12 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Suggested target",
     definition:
-      "A Loaded (kg) offered for Target weight (kg), from recent working sets for that exercise. The field changes only when you apply it.",
+      "A Loaded (kg) or Assistance (kg) offered for the matching target field, from recent working sets for that exercise. The field changes only when you apply it.",
+  },
+  {
+    term: "Target assistance (kg)",
+    definition:
+      "On Assisted Dip and Assisted Pull-Up, the assistance you plan for working sets. Enter it as a positive number. Blank or 0 means unassisted bodyweight. Warmup sets do not use this target.",
   },
   {
     term: "Target reps",
@@ -124,7 +134,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Target weight (kg)",
     definition:
-      "The weight you plan for working sets. Warmup sets do not use this target.",
+      "The weight you plan for working sets. Warmup sets do not use this target. On Assisted Dip and Assisted Pull-Up, the field is Target assistance (kg).",
   },
   {
     term: "Template",

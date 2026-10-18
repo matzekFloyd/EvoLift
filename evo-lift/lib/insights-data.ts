@@ -1,3 +1,4 @@
+import { isAssistanceExercise } from "@/lib/assistance-exercise";
 import { latestBodyweightEntry, type BodyweightLogEntry } from "@/lib/bodyweight-log";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fetchAllPages, fetchInChunks } from "@/lib/supabase/chunked-query";
@@ -331,7 +332,10 @@ export async function loadInsightsHistory(
         continue;
       }
       setsBySessionId.set(sessionId, (setsBySessionId.get(sessionId) ?? 0) + 1);
-      if (setRow.weight_kg != null && setRow.reps > 0) {
+      const sessionExercise = exerciseBySessionExerciseId.get(setRow.session_exercise_id);
+      const slug = sessionExercise ? slugById.get(sessionExercise.exercise_id) : undefined;
+      const assistanceSet = isAssistanceExercise(slug);
+      if (setRow.weight_kg != null && setRow.reps > 0 && !assistanceSet) {
         loadedKgBySessionId.set(
           sessionId,
           (loadedKgBySessionId.get(sessionId) ?? 0) + setRow.reps * setRow.weight_kg,
@@ -346,7 +350,7 @@ export async function loadInsightsHistory(
         workingSets: 0,
         sessionIds: new Set<string>(),
       };
-      if (setRow.weight_kg != null) {
+      if (setRow.weight_kg != null && !assistanceSet) {
         entry.volumeKg += setRow.reps * setRow.weight_kg;
       }
       if (!setRow.is_warmup) {
@@ -358,12 +362,7 @@ export async function loadInsightsHistory(
       if (setRow.is_warmup || setRow.weight_kg == null || !inSelectedWindow(performedOn, window)) {
         continue;
       }
-      const sessionExercise = exerciseBySessionExerciseId.get(setRow.session_exercise_id);
-      if (!sessionExercise) {
-        continue;
-      }
-      const slug = slugById.get(sessionExercise.exercise_id);
-      if (!slug) {
+      if (!sessionExercise || !slug) {
         continue;
       }
       const loaded = Number(setRow.weight_kg);
@@ -371,7 +370,8 @@ export async function loadInsightsHistory(
       if (!Number.isFinite(loaded) || loaded < 0) {
         continue;
       }
-      const totalKg = loaded + (Number.isFinite(base) ? base : 0);
+      // Assistance is counterweight help; do not add base weight into a "total".
+      const totalKg = assistanceSet ? loaded : loaded + (Number.isFinite(base) ? base : 0);
       if (totalKg <= 0) {
         continue;
       }

@@ -1,8 +1,6 @@
+import { isAssistanceExercise } from "@/lib/assistance-exercise";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { formatKgAmount, formatRepCount } from "@/lib/milestone-progress";
-
-/** Logged weight is assistance, not strength load (same idea as Lift comparison). */
-const ASSISTANCE_EXERCISE_SLUGS = new Set(["assisted-dip", "assisted-pull-up"]);
 
 export type PersonalBestSetSample = {
   exerciseId: string;
@@ -40,13 +38,11 @@ export type PersonalBestRow = {
   heaviestLoad: PersonalBestMark | null;
 };
 
-export function isAssistanceExercise(slug: string): boolean {
-  return ASSISTANCE_EXERCISE_SLUGS.has(slug);
-}
+export { isAssistanceExercise };
 
 /**
  * Best set: highest Total (kg), then higher reps, then earlier performed-on date.
- * Heaviest load: highest Loaded (kg), then earlier performed-on date.
+ * Heaviest load: highest Loaded (kg) / assistance, then earlier performed-on date.
  */
 export function buildPersonalBestRows(
   catalog: readonly PersonalBestCatalogExercise[],

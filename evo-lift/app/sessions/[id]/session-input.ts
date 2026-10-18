@@ -106,6 +106,8 @@ export function parseAddedSessionExercise(input: {
   targetReps: string;
   targetWeightKg: string;
   baseWeightKg: string;
+  /** Assisted Dip / Assisted Pull-Up: no bar base; always store null. */
+  omitBaseWeight?: boolean;
 }):
   | { ok: false; tone: "error" | "warning"; message: string }
   | {
@@ -124,6 +126,15 @@ export function parseAddedSessionExercise(input: {
   const targets = parseSessionTargets(input);
   if (!targets.ok) {
     return { ok: false, tone: "error", message: targets.message };
+  }
+  if (input.omitBaseWeight) {
+    return {
+      ok: true,
+      targetSets: targets.targetSets,
+      targetReps: targets.targetReps,
+      targetWeightKg: targets.targetWeightKg,
+      baseWeightKg: null,
+    };
   }
   const baseWeight = parseOptionalNumber(
     input.baseWeightKg,

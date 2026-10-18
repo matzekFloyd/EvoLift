@@ -35,6 +35,7 @@ import { panelInsetClass } from "@/app/components/panel-inset";
 import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
 import { TargetWeightSuggestion } from "@/app/components/target-weight-suggestion";
+import { isAssistanceExercise, targetWeightFieldLabel } from "@/lib/assistance-exercise";
 import { targetSuggestionsEnabled } from "@/lib/target-weight-suggestion";
 import { isCompoundExercise } from "@/lib/compound-exercise";
 import { warmupSuggestionsEnabled } from "@/lib/warmup-suggestion";
@@ -174,6 +175,22 @@ export default function SessionDetailPage() {
       ),
     [exerciseOptions, hiddenExerciseIds, addExerciseDraft.exerciseId],
   );
+
+  const exerciseSlugById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const option of exerciseOptions) {
+      map.set(option.id, option.slug);
+    }
+    return map;
+  }, [exerciseOptions]);
+
+  const exerciseBadgeById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const option of exerciseOptions) {
+      map.set(option.id, toExerciseBadge(option.slug));
+    }
+    return map;
+  }, [exerciseOptions]);
 
   const sessionDetailsDirty = useMemo(() => {
     if (!session) {
@@ -766,6 +783,7 @@ export default function SessionDetailPage() {
     notesDraft,
     isCompactView: isSmallPhone,
     exerciseLabels,
+    exerciseSlugById,
     showError,
     showWarning,
     showSuccess,
@@ -883,12 +901,6 @@ export default function SessionDetailPage() {
 
   const isCompactView = isSmallPhone;
   const shouldUseSingleExerciseFlow = isCompactView && !isReadOnly;
-  const exerciseBadgeById = new Map<string, string>();
-  const exerciseSlugById = new Map<string, string>();
-  for (const option of exerciseOptions) {
-    exerciseBadgeById.set(option.id, toExerciseBadge(option.slug));
-    exerciseSlugById.set(option.id, option.slug);
-  }
   const visibleExercises = shouldUseSingleExerciseFlow
     ? sessionExercises
         .map((item, index) => ({ item, index }))
@@ -912,6 +924,13 @@ export default function SessionDetailPage() {
   })();
   const targetsExerciseId =
     sessionExercises.find((item) => item.id === targetsSessionExerciseId)?.exercise_id ?? "";
+  const targetsExerciseSlug = targetsExerciseId
+    ? exerciseSlugById.get(targetsExerciseId)
+    : undefined;
+  const addExerciseSlug = addExerciseDraft.exerciseId
+    ? exerciseSlugById.get(addExerciseDraft.exerciseId)
+    : undefined;
+  const addExerciseUsesAssistance = isAssistanceExercise(addExerciseSlug);
 
   const activeWorkingSetCount =
     activeSessionExercise == null
@@ -1340,42 +1359,52 @@ export default function SessionDetailPage() {
                         className="mt-1 w-full"
                         options={addExercisePickerOptions}
                         value={addExerciseDraft.exerciseId}
-                        onChange={(exerciseId) =>
-                          setAddExerciseDraft((prev) => ({ ...prev, exerciseId }))
-                        }
+                        onChange={(exerciseId) => {
+                          const slug = exerciseSlugById.get(exerciseId);
+                          setAddExerciseDraft((prev) => ({
+                            ...prev,
+                            exerciseId,
+                            baseWeightKg: isAssistanceExercise(slug) ? "" : prev.baseWeightKg,
+                          }));
+                        }}
                       />
                     </label>
-                    <label className="block text-sm font-medium">
-                      Base weight (kg)
-                      <input
-                        type="number"
-                        min={0}
-                        step="0.25"
-                        value={addExerciseDraft.baseWeightKg}
-                        onChange={(event) =>
-                          setAddExerciseDraft((prev) => ({ ...prev, baseWeightKg: event.target.value }))
-                        }
-                        className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
-                        placeholder="e.g. 20"
-                      />
-                      <div className="mt-1 flex flex-wrap gap-1">
-                        {[20, 15, 10, 0].map((value) => (
-                          <button
-                            key={value}
-                            type="button"
-                            onClick={() =>
-                              setAddExerciseDraft((prev) => ({
-                                ...prev,
-                                baseWeightKg: value === 0 ? "" : String(value),
-                              }))
-                            }
-                            className="rounded border bg-white px-2 py-0.5 text-xs"
-                          >
-                            +{value}
-                          </button>
-                        ))}
-                      </div>
-                    </label>
+                    {addExerciseUsesAssistance ? null : (
+                      <label className="block text-sm font-medium">
+                        Base weight (kg)
+                        <input
+                          type="number"
+                          min={0}
+                          step="0.25"
+                          value={addExerciseDraft.baseWeightKg}
+                          onChange={(event) =>
+                            setAddExerciseDraft((prev) => ({
+                              ...prev,
+                              baseWeightKg: event.target.value,
+                            }))
+                          }
+                          className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                          placeholder="e.g. 20"
+                        />
+                        <div className="mt-1 flex flex-wrap gap-1">
+                          {[20, 15, 10, 0].map((value) => (
+                            <button
+                              key={value}
+                              type="button"
+                              onClick={() =>
+                                setAddExerciseDraft((prev) => ({
+                                  ...prev,
+                                  baseWeightKg: value === 0 ? "" : String(value),
+                                }))
+                              }
+                              className="rounded border bg-white px-2 py-0.5 text-xs"
+                            >
+                              +{value}
+                            </button>
+                          ))}
+                        </div>
+                      </label>
+                    )}
                     <p className="text-xs text-zinc-600 sm:col-span-2">
                       Target fields apply to working sets only; warmups do not count.
                     </p>
@@ -1393,7 +1422,7 @@ export default function SessionDetailPage() {
                       />
                     </label>
                     <label className="block text-sm font-medium">
-                      Target weight (kg)
+                      {targetWeightFieldLabel(addExerciseSlug)}
                       <input
                         type="number"
                         min={0}
@@ -1557,7 +1586,7 @@ export default function SessionDetailPage() {
                   />
                 </label>
                 <label className="block text-sm font-medium">
-                  Target weight (kg)
+                  {targetWeightFieldLabel(targetsExerciseSlug)}
                   <input
                     type="number"
                     min={0}
@@ -1649,28 +1678,38 @@ export default function SessionDetailPage() {
                     className="mt-1 w-full"
                     options={addExercisePickerOptions}
                     value={addExerciseDraft.exerciseId}
-                    onChange={(exerciseId) =>
-                      setAddExerciseDraft((prev) => ({ ...prev, exerciseId }))
-                    }
+                    onChange={(exerciseId) => {
+                      const slug = exerciseSlugById.get(exerciseId);
+                      setAddExerciseDraft((prev) => ({
+                        ...prev,
+                        exerciseId,
+                        baseWeightKg: isAssistanceExercise(slug) ? "" : prev.baseWeightKg,
+                      }));
+                    }}
                   />
                 </label>
                 <p className="text-xs text-zinc-600">
                   Target fields apply to working sets only; warmups do not count.
                 </p>
                 <div className="grid grid-cols-2 gap-3">
-                  <label className="block text-sm font-medium">
-                    Base (kg)
-                    <input
-                      type="number"
-                      min={0}
-                      step="0.25"
-                      value={addExerciseDraft.baseWeightKg}
-                      onChange={(event) =>
-                        setAddExerciseDraft((prev) => ({ ...prev, baseWeightKg: event.target.value }))
-                      }
-                      className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
-                    />
-                  </label>
+                  {addExerciseUsesAssistance ? null : (
+                    <label className="block text-sm font-medium">
+                      Base (kg)
+                      <input
+                        type="number"
+                        min={0}
+                        step="0.25"
+                        value={addExerciseDraft.baseWeightKg}
+                        onChange={(event) =>
+                          setAddExerciseDraft((prev) => ({
+                            ...prev,
+                            baseWeightKg: event.target.value,
+                          }))
+                        }
+                        className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                      />
+                    </label>
+                  )}
                   <label className="block text-sm font-medium">
                     Target working sets
                     <input
@@ -1685,7 +1724,7 @@ export default function SessionDetailPage() {
                     />
                   </label>
                   <label className="block text-sm font-medium">
-                    Target weight (kg)
+                    {targetWeightFieldLabel(addExerciseSlug)}
                     <input
                       type="number"
                       min={0}
