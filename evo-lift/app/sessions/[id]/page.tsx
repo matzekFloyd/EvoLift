@@ -45,6 +45,11 @@ import { workoutSessionPageTitle } from "@/lib/page-title";
 import { toExerciseBadge } from "@/lib/exercise-badge";
 import { exerciseOptionsForPicker } from "@/lib/exercise-picker-options";
 import {
+  canMarkSessionCompleted,
+  sessionLifecycleBadgeLabel,
+  sessionLifecycleStatus,
+} from "@/lib/session-lifecycle";
+import {
   getExerciseMetadataCacheStatus,
   loadExerciseMetadata,
 } from "@/lib/exercise-metadata-cache";
@@ -152,6 +157,7 @@ export default function SessionDetailPage() {
   const [sessionDetailsNotesError, setSessionDetailsNotesError] = useState<string | null>(null);
   const [isSavingSessionDetails, setIsSavingSessionDetails] = useState(false);
   const [isEditingSessionDetails, setIsEditingSessionDetails] = useState(false);
+  const [isMarkingCompleted, setIsMarkingCompleted] = useState(false);
 
   const warmupSuggestionsDisabledExerciseIds = useMemo(() => {
     const disabled = new Set<string>();
@@ -284,7 +290,7 @@ export default function SessionDetailPage() {
           supabaseBrowserClient
             .from("workout_sessions")
             .select(
-              "id, user_id, performed_on, notes, created_at, updated_at, source_template_id, plan_id, plan_day_id, workout_templates(name), workout_plans(name), workout_plan_days(name)",
+              "id, user_id, performed_on, notes, created_at, updated_at, source_template_id, plan_id, plan_day_id, started_at, completed_at, workout_templates(name), workout_plans(name), workout_plan_days(name)",
             )
             .eq("id", sessionId)
             .single(),
@@ -456,6 +462,8 @@ export default function SessionDetailPage() {
         source_template_id: sessionRow.source_template_id,
         plan_id: sessionRow.plan_id,
         plan_day_id: sessionRow.plan_day_id,
+        started_at: sessionRow.started_at ?? null,
+        completed_at: sessionRow.completed_at ?? null,
         created_at: sessionRow.created_at,
         updated_at: sessionRow.updated_at,
       });
@@ -765,6 +773,7 @@ export default function SessionDetailPage() {
     beginEditingSessionDetails,
     cancelEditingSessionDetails,
     saveSessionDetails,
+    markSessionCompleted,
     // Writes the ref only after a compact add succeeds. The helper does not read it while building actions.
     // eslint-disable-next-line react-hooks/refs
   } = createSessionDetailActions({
@@ -819,6 +828,7 @@ export default function SessionDetailPage() {
     setIsEditingSessionDetails,
     setIsSavingSessionDetails,
     setSession,
+    setIsMarkingCompleted,
     warmupSuggestionsDisabledExerciseIds,
     maxWarmupSetsByExerciseId,
   });
@@ -897,6 +907,19 @@ export default function SessionDetailPage() {
 
   const formattedPerformedOn = formatDateOnlyForLocale(session.performed_on);
   const isPlannedSession = isFutureSessionDate(session.performed_on);
+  const lifecycleStatus = sessionLifecycleStatus({
+    performedOn: session.performed_on,
+    startedAt: session.started_at,
+    completedAt: session.completed_at,
+  });
+  const lifecycleBadge = sessionLifecycleBadgeLabel(lifecycleStatus);
+  const showMarkCompleted =
+    !isReadOnly &&
+    canMarkSessionCompleted({
+      performedOn: session.performed_on,
+      startedAt: session.started_at,
+      completedAt: session.completed_at,
+    });
   const canManageSets = !isReadOnly && !isPlannedSession;
 
   const isCompactView = isSmallPhone;
@@ -972,9 +995,9 @@ export default function SessionDetailPage() {
             </h1>
             <p className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-zinc-500">
               <span>{formattedPerformedOn}</span>
-              {isPlannedSession ? (
+              {lifecycleBadge ? (
                 <span className="rounded-full border border-zinc-300 bg-zinc-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-700">
-                  Planned
+                  {lifecycleBadge}
                 </span>
               ) : null}
               {createdFromLabel ? (
@@ -989,9 +1012,9 @@ export default function SessionDetailPage() {
             <h1 className="text-2xl font-semibold tracking-tight">Workout session #{sessionNumber ?? "-"}</h1>
             <p className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-zinc-500">
               <span>{formattedPerformedOn}</span>
-              {isPlannedSession ? (
+              {lifecycleBadge ? (
                 <span className="rounded-full border border-zinc-300 bg-zinc-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-700">
-                  Planned
+                  {lifecycleBadge}
                 </span>
               ) : null}
               {createdFromLabel ? (
@@ -1009,10 +1032,23 @@ export default function SessionDetailPage() {
         >
           {!isReadOnly ? (
             <>
+              {showMarkCompleted ? (
+                <button
+                  type="button"
+                  onClick={markSessionCompleted}
+                  disabled={isMarkingCompleted || isSavingSet || isDeletingSession}
+                  className={`inline-flex items-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-3 py-1.5 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60 ${
+                    isCompactView ? "h-10 flex-1 justify-center" : "w-fit"
+                  }`}
+                >
+                  <Check className="h-4 w-4 text-white" />
+                  {isMarkingCompleted ? "Saving..." : "Mark completed"}
+                </button>
+              ) : null}
               <button
                 type="button"
                 onClick={() => setIsDeleteSessionConfirmOpen(true)}
-                disabled={isDeletingSession || isSavingSet}
+                disabled={isDeletingSession || isSavingSet || isMarkingCompleted}
                 className={`inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-sm text-zinc-800 hover:border-sky-400 hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-60 ${
                   isCompactView ? "h-10 flex-1 justify-center" : "w-fit"
                 }`}

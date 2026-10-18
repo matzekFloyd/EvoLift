@@ -68,6 +68,11 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
       "A strength target for one exercise. Progress uses working sets you have already logged. You can aim for a Total (kg) or a multiple of your bodyweight, with a minimum number of reps. New accounts start with bodyweight goals on Barbell Back Squat, Barbell Bench Press, Barbell Deadlift, and Barbell Overhead Press. You can edit or delete them. Progress on a bodyweight goal needs a bodyweight entry on Account.",
   },
   {
+    term: "In progress",
+    definition:
+      "A workout session you have started by logging at least one set, and have not marked completed yet. Home shows Continue for that session. Only one session can be in progress at a time.",
+  },
+  {
     term: "Insights",
     definition:
       "Charts and notes for a date range: training volume, working sets, Lift comparison, and personal bests.",
@@ -95,7 +100,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Planned session",
     definition:
-      "A workout session dated after today. It stays under Planned workouts until that day. A template or a plan day can prefill one.",
+      "A workout session dated after today. It stays under Planned workouts until that day. You cannot log sets until that day. A template or a plan day can prefill one.",
   },
   {
     term: "Reps",
@@ -163,7 +168,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Workout session",
     definition:
-      "A record of one workout: the date, the exercises, and the sets you log.",
+      "A record of one workout: the date, the exercises, and the sets you log. Logging the first set starts it (In progress). Mark completed when you finish so it leaves Continue on Home.",
   },
 ];
 

@@ -2,6 +2,12 @@ import type { Dispatch, SetStateAction } from "react";
 import type { Database } from "@/lib/supabase/database.types";
 import { isAssistanceExercise } from "@/lib/assistance-exercise";
 import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
+import {
+  OTHER_SESSION_IN_PROGRESS_MESSAGE,
+  canMarkSessionCompleted,
+  canStartOrContinueLogging,
+  wouldStartSession,
+} from "@/lib/session-lifecycle";
 import { isFutureSessionDate } from "@/lib/session-date";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { suggestWarmups } from "@/lib/warmup-suggestion";
@@ -90,6 +96,7 @@ export type SessionDetailActionDeps = {
   setIsEditingSessionDetails: Dispatch<SetStateAction<boolean>>;
   setIsSavingSessionDetails: Dispatch<SetStateAction<boolean>>;
   setSession: Dispatch<SetStateAction<SessionRow | null>>;
+  setIsMarkingCompleted: Dispatch<SetStateAction<boolean>>;
   /** Exercise ids whose account preference turns warmup suggestions off. */
   warmupSuggestionsDisabledExerciseIds: ReadonlySet<string>;
   /** Per-exercise cap; missing or null keeps the full warmup ladder. */
@@ -147,6 +154,7 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
     setIsEditingSessionDetails,
     setIsSavingSessionDetails,
     setSession,
+    setIsMarkingCompleted,
     warmupSuggestionsDisabledExerciseIds,
     maxWarmupSetsByExerciseId,
   } = deps;
@@ -155,11 +163,102 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
     return exerciseLabelForSessionExercise(sessionExercises, exerciseLabels, sessionExerciseId);
   }
 
-  async function handleAddSet(sessionExerciseId: string) {
-    if (session && isFutureSessionDate(session.performed_on)) {
-      showWarning(PLANNED_SESSION_SETS_MESSAGE);
-      return;
+  function lifecycleFields(row: SessionRow) {
+    return {
+      performedOn: row.performed_on,
+      startedAt: row.started_at,
+      completedAt: row.completed_at,
+    };
+  }
+
+  async function findOtherInProgressSessionId(currentSessionId: string): Promise<string | null> {
+    const { data, error } = await supabaseBrowserClient
+      .from("workout_sessions")
+      .select("id")
+      .not("started_at", "is", null)
+      .is("completed_at", null)
+      .neq("id", currentSessionId)
+      .limit(1)
+      .maybeSingle();
+    if (error || !data) {
+      return null;
     }
+    return data.id;
+  }
+
+  /**
+   * Enforces one in-progress session and sets started_at on the first logged set.
+   * Returns false when the caller should abort the set insert.
+   */
+  async function prepareSessionForLogging(): Promise<boolean> {
+    if (!session || !sessionId) {
+      return false;
+    }
+    if (isFutureSessionDate(session.performed_on)) {
+      showWarning(PLANNED_SESSION_SETS_MESSAGE);
+      return false;
+    }
+
+    const fields = lifecycleFields(session);
+    const otherInProgressSessionId = wouldStartSession(fields)
+      ? await findOtherInProgressSessionId(sessionId)
+      : null;
+
+    const gate = canStartOrContinueLogging({
+      targetSessionId: sessionId,
+      target: fields,
+      otherInProgressSessionId,
+    });
+    if (!gate.ok) {
+      showError(gate.message);
+      return false;
+    }
+
+    if (!wouldStartSession(fields)) {
+      return true;
+    }
+
+    const startedAt = new Date().toISOString();
+    const { data, error } = await supabaseBrowserClient
+      .from("workout_sessions")
+      .update({ started_at: startedAt })
+      .eq("id", sessionId)
+      .is("started_at", null)
+      .select(
+        "id, user_id, performed_on, notes, created_at, updated_at, source_template_id, plan_id, plan_day_id, started_at, completed_at",
+      )
+      .maybeSingle();
+
+    if (error) {
+      if (/idx_workout_sessions_one_in_progress|unique/i.test(error.message)) {
+        showError(OTHER_SESSION_IN_PROGRESS_MESSAGE);
+      } else {
+        showError(`Could not start this workout session: ${error.message}`);
+      }
+      return false;
+    }
+
+    if (data) {
+      setSession(data);
+    } else {
+      // Another request may have started this session; reload started_at.
+      const { data: refreshed } = await supabaseBrowserClient
+        .from("workout_sessions")
+        .select(
+          "id, user_id, performed_on, notes, created_at, updated_at, source_template_id, plan_id, plan_day_id, started_at, completed_at",
+        )
+        .eq("id", sessionId)
+        .single();
+      if (refreshed) {
+        setSession(refreshed);
+      }
+    }
+
+    invalidateLoggedHistoryCaches();
+    return true;
+  }
+
+  async function handleAddSet(sessionExerciseId: string) {
     const draft = resolvedAddDraft(sessionExercises, workoutSets, addDrafts, sessionExerciseId);
     const logged = parseLoggedSetInput(draft.reps, draft.weightKg);
     if (!logged.ok) {
@@ -173,6 +272,11 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
     const isWarmup = showWarmupSetToggle(previousSet?.is_warmup ?? null) && draft.isWarmup;
 
     setIsSavingSet(true);
+    const prepared = await prepareSessionForLogging();
+    if (!prepared) {
+      setIsSavingSet(false);
+      return;
+    }
 
     const { data, error } = await supabaseBrowserClient
       .from("workout_sets")
@@ -224,11 +328,6 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
   }
 
   async function handleAddWarmups(sessionExerciseId: string) {
-    if (session && isFutureSessionDate(session.performed_on)) {
-      showWarning(PLANNED_SESSION_SETS_MESSAGE);
-      return;
-    }
-
     const existingSets = setsForSessionExercise(workoutSets, sessionExerciseId);
     if (existingSets.length > 0) {
       return;
@@ -250,6 +349,12 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
     }
 
     setIsSavingSet(true);
+    const prepared = await prepareSessionForLogging();
+    if (!prepared) {
+      setIsSavingSet(false);
+      return;
+    }
+
     const rows = suggestion.steps.map((step, index) => ({
       session_exercise_id: sessionExerciseId,
       set_number: index + 1,
@@ -633,7 +738,7 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
       })
       .eq("id", sessionId)
       .select(
-        "id, user_id, performed_on, notes, created_at, updated_at, source_template_id, plan_id, plan_day_id",
+        "id, user_id, performed_on, notes, created_at, updated_at, source_template_id, plan_id, plan_day_id, started_at, completed_at",
       )
       .single();
 
@@ -657,6 +762,45 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
     setIsSavingSessionDetails(false);
   }
 
+  async function markSessionCompleted() {
+    if (!session || !sessionId) {
+      return;
+    }
+    if (!canMarkSessionCompleted(lifecycleFields(session))) {
+      showWarning("This workout session is already completed or still planned.");
+      return;
+    }
+
+    setIsMarkingCompleted(true);
+    const completedAt = new Date().toISOString();
+    const { data, error } = await supabaseBrowserClient
+      .from("workout_sessions")
+      .update({ completed_at: completedAt })
+      .eq("id", sessionId)
+      .is("completed_at", null)
+      .select(
+        "id, user_id, performed_on, notes, created_at, updated_at, source_template_id, plan_id, plan_day_id, started_at, completed_at",
+      )
+      .maybeSingle();
+
+    if (error) {
+      showError(`Could not mark this session completed: ${error.message}`);
+      setIsMarkingCompleted(false);
+      return;
+    }
+
+    if (!data) {
+      showWarning("This workout session is already completed.");
+      setIsMarkingCompleted(false);
+      return;
+    }
+
+    invalidateLoggedHistoryCaches();
+    setSession(data);
+    showSuccess("Workout session marked completed.");
+    setIsMarkingCompleted(false);
+  }
+
   return {
     handleAddSet,
     handleAddWarmups,
@@ -672,5 +816,6 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
     beginEditingSessionDetails,
     cancelEditingSessionDetails,
     saveSessionDetails,
+    markSessionCompleted,
   };
 }

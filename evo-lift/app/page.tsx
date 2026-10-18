@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarClock, ClipboardList, FilterX, History } from "lucide-react";
+import { CalendarClock, ClipboardList, FilterX, History, Play } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
@@ -14,6 +14,7 @@ import { NewSessionDraftCallout } from "@/app/components/new-session-draft-callo
 import { SessionsTable, type SessionsTableRow } from "@/app/components/sessions-table";
 import { ActivityDaySessionDialog } from "@/app/components/activity-day-session-dialog";
 import { WorkoutActivityChart } from "@/app/components/workout-activity-chart";
+import { ExerciseBadgeChip } from "@/app/components/exercise-badge-chip";
 import { activityDayOpen, activityDaySessionIds } from "@/app/home-activity-day";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { loadGoalReachedSessionDates } from "@/lib/goal-reached-dates";
@@ -23,19 +24,22 @@ import {
   type HomeSessionSummaryRow,
 } from "@/lib/home-session-cache";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
-import { homeExerciseBadges, homeSetCount } from "@/app/home-sessions";
+import { homeExerciseBadgeTone, homeExerciseBadges, homeSetCount } from "@/app/home-sessions";
 import { getDefaultHomeDateRange } from "@/app/home-date-range";
 import {
   formatDateToYyyyMmDd,
   getTodayYyyyMmDd,
   normalizeSessionDateOnly,
 } from "@/lib/session-date";
+import { partitionHomeSessions } from "@/lib/session-lifecycle";
 
 type WorkoutSessionRow = {
   id: string;
   performed_on: string;
   notes: string | null;
   created_at: string;
+  started_at: string | null;
+  completed_at: string | null;
 };
 
 type SessionExerciseBadge = {
@@ -91,6 +95,8 @@ export default function Home() {
             performed_on: row.performed_on,
             notes: row.notes,
             created_at: row.created_at,
+            started_at: row.started_at ?? null,
+            completed_at: row.completed_at ?? null,
           })),
         );
 
@@ -177,22 +183,35 @@ export default function Home() {
     };
   }, []);
 
-  const completedSessions = useMemo(
-    () => sessions.filter((session) => normalizeSessionDateOnly(session.performed_on) <= todayYyyyMmDd),
-    [sessions, todayYyyyMmDd],
-  );
+  const { inProgressSession, plannedSessions, historySessions } = useMemo(() => {
+    const partitioned = partitionHomeSessions(
+      sessions.map((session) => ({
+        id: session.id,
+        performedOn: session.performed_on,
+        startedAt: session.started_at,
+        completedAt: session.completed_at,
+        row: session,
+      })),
+      todayYyyyMmDd,
+    );
+    return {
+      inProgressSession: partitioned.inProgress?.row ?? null,
+      plannedSessions: partitioned.planned.map((item) => item.row),
+      historySessions: partitioned.history.map((item) => item.row),
+    };
+  }, [sessions, todayYyyyMmDd]);
 
-  const plannedSessions = useMemo(
-    () =>
-      sessions
-        .filter((session) => normalizeSessionDateOnly(session.performed_on) > todayYyyyMmDd)
-        .sort((a, b) => a.performed_on.localeCompare(b.performed_on)),
-    [sessions, todayYyyyMmDd],
-  );
-
+  /** History plus in-progress for activity chart / day picker (not planned). */
+  const activitySessions = useMemo(() => {
+    const rows = [...historySessions];
+    if (inProgressSession) {
+      rows.push(inProgressSession);
+    }
+    return rows;
+  }, [historySessions, inProgressSession]);
 
   const filteredSessions = useMemo(() => {
-    return completedSessions.filter((session) => {
+    return activitySessions.filter((session) => {
       const performedOn = normalizeSessionDateOnly(session.performed_on);
       if (dateFrom && performedOn < dateFrom) {
         return false;
@@ -202,13 +221,26 @@ export default function Home() {
       }
       return true;
     });
-  }, [completedSessions, dateFrom, dateTo]);
+  }, [activitySessions, dateFrom, dateTo]);
+
+  const filteredHistorySessions = useMemo(() => {
+    return historySessions.filter((session) => {
+      const performedOn = normalizeSessionDateOnly(session.performed_on);
+      if (dateFrom && performedOn < dateFrom) {
+        return false;
+      }
+      if (dateTo && performedOn > dateTo) {
+        return false;
+      }
+      return true;
+    });
+  }, [historySessions, dateFrom, dateTo]);
 
   const workoutActivityData = useMemo(() => {
-    const completedSessions = filteredSessions.filter(
+    const chartSessions = filteredSessions.filter(
       (session) => normalizeSessionDateOnly(session.performed_on) <= todayYyyyMmDd,
     );
-    const sortedCompletedDates = completedSessions
+    const sortedCompletedDates = chartSessions
       .map((session) => normalizeSessionDateOnly(session.performed_on))
       .sort();
     const fallbackTo = todayYyyyMmDd;
@@ -227,7 +259,7 @@ export default function Home() {
     const end = new Date(`${effectiveTo}T00:00:00`);
     const workoutsByDate = new Map<string, number>();
     const setsByDate = new Map<string, number>();
-    for (const session of completedSessions) {
+    for (const session of chartSessions) {
       const day = normalizeSessionDateOnly(session.performed_on);
       workoutsByDate.set(day, (workoutsByDate.get(day) ?? 0) + 1);
       setsByDate.set(day, (setsByDate.get(day) ?? 0) + (setCountBySessionId.get(session.id) ?? 0));
@@ -253,17 +285,21 @@ export default function Home() {
     return () => mediaQuery.removeEventListener("change", onChange);
   }, []);
 
-  const completedTableRows: SessionsTableRow[] = useMemo(
+  const historyTableRows: SessionsTableRow[] = useMemo(
     () =>
-      filteredSessions.map((session) => ({
+      filteredHistorySessions.map((session) => ({
         id: session.id,
         performedOn: session.performed_on,
         notes: session.notes ?? "",
         isPlanned: false,
         badges: exerciseBadgesBySessionId.get(session.id) ?? [],
       })),
-    [exerciseBadgesBySessionId, filteredSessions],
+    [exerciseBadgesBySessionId, filteredHistorySessions],
   );
+
+  const inProgressBadges = inProgressSession
+    ? (exerciseBadgesBySessionId.get(inProgressSession.id) ?? [])
+    : [];
 
   function openSession(sessionId: string) {
     if (openingSessionId) {
@@ -297,14 +333,22 @@ export default function Home() {
     if (!dayChoiceIds) {
       return [];
     }
-    const rowById = new Map(completedTableRows.map((row) => [row.id, row]));
+    const rowById = new Map(
+      filteredSessions.map((session) => [
+        session.id,
+        {
+          id: session.id,
+          notes: session.notes ?? "",
+          badges: exerciseBadgesBySessionId.get(session.id) ?? [],
+          performedOn: session.performed_on,
+        },
+      ]),
+    );
     return dayChoiceIds.flatMap((id) => {
       const row = rowById.get(id);
-      return row
-        ? [{ id: row.id, notes: row.notes, badges: row.badges, performedOn: row.performedOn }]
-        : [];
+      return row ? [row] : [];
     });
-  }, [completedTableRows, dayChoiceIds]);
+  }, [dayChoiceIds, exerciseBadgesBySessionId, filteredSessions]);
 
   const plannedTableRows: SessionsTableRow[] = useMemo(
     () =>
@@ -337,6 +381,48 @@ export default function Home() {
       </div>
       {userId ? <NewSessionDraftCallout userId={userId} /> : null}
       <ActivePlanPanel />
+      {inProgressSession ? (
+        <section className="panel p-5">
+          <SectionHeading className="mb-2 inline-flex items-center gap-1">
+            <Play className="h-3.5 w-3.5 text-sky-700" />
+            In progress
+          </SectionHeading>
+          <PanelInset className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="min-w-0 space-y-1">
+              <p className="text-sm font-medium text-zinc-900">
+                {formatDateOnlyForLocale(inProgressSession.performed_on)}
+              </p>
+              {inProgressSession.notes?.trim() ? (
+                <p className="truncate text-xs text-zinc-600">{inProgressSession.notes.trim()}</p>
+              ) : null}
+              {inProgressBadges.length > 0 ? (
+                <div className="flex flex-wrap gap-1">
+                  {inProgressBadges.map((badge) => (
+                    <ExerciseBadgeChip
+                      key={`${inProgressSession.id}-${badge.slug}`}
+                      slug={badge.slug}
+                      variant={homeExerciseBadgeTone(badge)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-zinc-500">No exercises yet.</p>
+              )}
+            </div>
+            <ActionButton
+              type="button"
+              variant="primary"
+              size="sm"
+              className="shrink-0"
+              disabled={openingSessionId === inProgressSession.id}
+              onClick={() => openSession(inProgressSession.id)}
+            >
+              <Play className="h-3.5 w-3.5 text-white" />
+              {openingSessionId === inProgressSession.id ? "Opening..." : "Continue"}
+            </ActionButton>
+          </PanelInset>
+        </section>
+      ) : null}
       <section className="panel p-5">
         <div className="mb-2 flex items-center justify-between gap-2">
           <SectionHeading className="inline-flex items-center gap-1">
@@ -417,9 +503,9 @@ export default function Home() {
             />
             <PanelInset className="p-3">
               <SessionsTable
-                rows={completedTableRows}
+                rows={historyTableRows}
                 dateHeaderLabel="Performed on"
-                emptyMessage="No completed workout sessions in the selected timeframe."
+                emptyMessage="No workout sessions in the selected timeframe."
                 showNotesColumn={!isSmallPhone}
                 compactMode={isSmallPhone}
                 openingRowId={openingSessionId}
