@@ -21,10 +21,10 @@ export function ExerciseProgressPanel({ report }: ExerciseProgressPanelProps) {
         <summary className="cursor-pointer font-medium text-zinc-700">How the pace works</summary>
         <p className="mt-2 leading-relaxed">
           A steady rate is a coaching pace after the first months of training: about 1.5 kg per month on
-          Back Squat and Deadlift, about 1 kg on Barbell Bench Press and Barbell Bent Over Row, and about
-          0.5 kg on Barbell Overhead Press. Published coaching summaries often put squat and deadlift in a 1–2.5 kg
-          per month band, with bench and press slower. This is a pace, not a ranking against other people.
-          Early training is often faster, so a steep rise can read as ahead.
+          Barbell Back Squat and Barbell Deadlift, about 1 kg on Barbell Bench Press and Barbell Bent Over
+          Row, and about 0.5 kg on Barbell Overhead Press. Published coaching summaries often put squat and
+          deadlift in a 1–2.5 kg per month band, with bench and press slower. This is a pace, not a ranking
+          against other people. Early training is often faster, so a steep rise can read as ahead.
         </p>
       </details>
       <InsightRowList rows={report.rows.map((row) => progressInsightRow(row))} />

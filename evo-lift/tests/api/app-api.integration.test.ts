@@ -187,6 +187,33 @@ describe("app API on local Supabase", () => {
     );
   });
 
+  it("seeds default bodyweight goals once on signup", async () => {
+    const first = await readJson(await listGoals(buildRequest("/api/goals", "GET", ownerToken)));
+    assert.equal(first.status, 200);
+    const rows = first.body.data as Array<{
+      exercise_id: string;
+      milestone_type: string;
+      bodyweight_multiple: number | null;
+      min_reps: number;
+    }>;
+    assert.equal(rows.length, 4);
+    assert.ok(rows.every((row) => row.milestone_type === "bodyweight_multiple"));
+    assert.ok(rows.every((row) => row.min_reps === 1));
+
+    const byExercise = new Map(rows.map((row) => [row.exercise_id, Number(row.bodyweight_multiple)]));
+    assert.equal(byExercise.get(squatId), 1.5);
+
+    const catalog = await readJson(await getExercises(buildRequest("/api/exercises", "GET", ownerToken)));
+    const exercises = catalog.body.data as Array<{ id: string; slug: string }>;
+    const idBySlug = new Map(exercises.map((row) => [row.slug, row.id]));
+    assert.equal(byExercise.get(idBySlug.get("barbell-bench-press") ?? ""), 1);
+    assert.equal(byExercise.get(idBySlug.get("deadlift") ?? ""), 2);
+    assert.equal(byExercise.get(idBySlug.get("overhead-press") ?? ""), 0.75);
+
+    const again = await readJson(await listGoals(buildRequest("/api/goals", "GET", ownerToken)));
+    assert.equal((again.body.data as unknown[]).length, 4);
+  });
+
   it("stores a reached goal from a logged working set", async () => {
     const created = await readJson(
       await createSession(

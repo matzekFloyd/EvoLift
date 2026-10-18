@@ -28,12 +28,12 @@ function item(
 describe("goal summary bars", () => {
   it("orders the fullest bar first and leaves a missing bodyweight last", () => {
     const bars = buildGoalSummaryBars([
-      item("squat", "Back Squat", "1.0× bodyweight", active(41.2)),
+      item("squat", "Barbell Back Squat", "1.0× bodyweight", active(41.2)),
       item("press", "Overhead Press", "0.8× bodyweight", {
         kind: "missing_bodyweight",
         pastDue: false,
       }),
-      item("deadlift", "Deadlift", "2.0× bodyweight", {
+      item("deadlift", "Barbell Deadlift", "2.0× bodyweight", {
         kind: "achieved",
         thresholdKg: 170,
         bestTotalKg: 180,
@@ -49,9 +49,9 @@ describe("goal summary bars", () => {
     assert.deepEqual(
       bars.map((bar) => [bar.label, bar.percent, bar.achieved, bar.pastDue]),
       [
-        ["Deadlift", 100, true, false],
+        ["Barbell Deadlift", 100, true, false],
         ["Barbell Bench Press", 54, false, true],
-        ["Back Squat", 41, false, false],
+        ["Barbell Back Squat", 41, false, false],
         ["Overhead Press", null, false, false],
       ],
     );
@@ -59,8 +59,8 @@ describe("goal summary bars", () => {
 
   it("keeps two goals for one exercise in target order when progress matches", () => {
     const bars = buildGoalSummaryBars([
-      item("b", "Back Squat", "2.0× bodyweight", active(0)),
-      item("a", "Back Squat", "1.0× bodyweight", active(0)),
+      item("b", "Barbell Back Squat", "2.0× bodyweight", active(0)),
+      item("a", "Barbell Back Squat", "1.0× bodyweight", active(0)),
     ]);
 
     assert.deepEqual(

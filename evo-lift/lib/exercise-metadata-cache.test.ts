@@ -56,10 +56,10 @@ describe("exercise metadata cache", () => {
     assert.equal(getExerciseMetadataCacheStatus(), "miss");
     const source = metadataClient({
       exercises: [{ id: "1", slug: "deadlift" }],
-      translations: [{ exercise_id: "1", name: "Deadlift" }],
+      translations: [{ exercise_id: "1", name: "Barbell Deadlift" }],
     });
     const rows = await loadExerciseMetadata(source.client as never);
-    assert.deepEqual(rows, [{ id: "1", slug: "deadlift", label: "Deadlift" }]);
+    assert.deepEqual(rows, [{ id: "1", slug: "deadlift", label: "Barbell Deadlift" }]);
     assert.equal(getExerciseMetadataCacheStatus(), "hit-memory");
     await loadExerciseMetadata(source.client as never);
     assert.equal(source.calls, 2);
@@ -93,14 +93,14 @@ describe("exercise metadata cache", () => {
       CACHE_KEY,
       JSON.stringify({
         fetchedAt: Date.now(),
-        rows: [{ id: "1", slug: "deadlift", label: "Deadlift" }],
+        rows: [{ id: "1", slug: "deadlift", label: "Barbell Deadlift" }],
       }),
     );
     assert.equal(getExerciseMetadataCacheStatus(), "hit-local");
     const source = metadataClient({});
     const rows = await loadExerciseMetadata(source.client as never);
     assert.equal(source.calls, 0);
-    assert.equal(rows[0]?.label, "Deadlift");
+    assert.equal(rows[0]?.label, "Barbell Deadlift");
     invalidateExerciseMetadataCache();
     assert.equal(storage.has(CACHE_KEY), false);
   });

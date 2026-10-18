@@ -261,13 +261,13 @@ const MOVEMENT_PATTERNS: Record<string, MovementPattern> = {
   squat: {
     id: "squat",
     name: "squat",
-    exampleLabel: "Back Squat",
+    exampleLabel: "Barbell Back Squat",
     slugs: ["back-squat", "front-squat", "goblet-squat", "hack-squat", "bulgarian-split-squat", "leg-press"],
   },
   hinge: {
     id: "hinge",
     name: "hinge",
-    exampleLabel: "Deadlift",
+    exampleLabel: "Barbell Deadlift",
     slugs: [
       "deadlift",
       "sumo-deadlift",
@@ -519,7 +519,7 @@ const BODY_PARTS: BodyPart[] = [
   {
     id: "legs",
     name: "Legs",
-    exampleLabel: "Back Squat",
+    exampleLabel: "Barbell Back Squat",
     slugs: [
       "back-squat",
       "front-squat",
@@ -621,7 +621,7 @@ function buildPublicComparison(
     return {
       publicNotes: [],
       comparisonHint:
-        "Add sex, date of birth, and bodyweight on Account to compare Back Squat, Barbell Bench Press, Deadlift, and Barbell Overhead Press with published standards.",
+        "Add sex, date of birth, and bodyweight on Account to compare Barbell Back Squat, Barbell Bench Press, Barbell Deadlift, and Barbell Overhead Press with published standards.",
     };
   }
 

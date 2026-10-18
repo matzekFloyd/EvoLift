@@ -355,7 +355,9 @@ export default function GoalsPage() {
 
       <section className="panel p-5">
         <p className="text-sm text-zinc-600">
-          Set a strength goal for one exercise. Progress uses working sets you have already logged.
+          Set a strength goal for one exercise. Progress uses working sets you have already logged. New
+          accounts start with bodyweight goals on the main barbell lifts. Edit or delete them anytime.
+          Bodyweight goals need a bodyweight entry on Account.
         </p>
         {message ? (
           <StatusNotice message={message} tone="error" onDismiss={() => setMessage(null)} className="mt-4" />

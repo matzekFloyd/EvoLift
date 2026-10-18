@@ -21,7 +21,7 @@ function sample(overrides: Partial<ExerciseWorkingSetSample> = {}): ExerciseWork
   return {
     exerciseId: "ex-squat",
     slug: "back-squat",
-    label: "Back Squat",
+    label: "Barbell Back Squat",
     sessionId: "s1",
     performedOn: "2026-01-01",
     reps: 1,
@@ -67,7 +67,7 @@ describe("buildExerciseProgressReport", () => {
       NO_PROFILE,
     );
     assert.equal(report.rows[0]?.read, "down");
-    assert.match(report.summary, /Back Squat is down/);
+    assert.match(report.summary, /Barbell Back Squat is down/);
   });
 
   it("marks a large squat gain as ahead of a steady rate", () => {
@@ -150,7 +150,7 @@ describe("buildExerciseProgressReport", () => {
         sample({
           exerciseId: "ex-deadlift",
           slug: "deadlift",
-          label: "Deadlift",
+          label: "Barbell Deadlift",
           sessionId: "deadlift",
           performedOn: "2026-02-01",
           totalKg: 100,
@@ -178,8 +178,8 @@ describe("buildExerciseProgressReport", () => {
         ageIsApproximate: false,
       },
     );
-    const squat = report.publicNotes.find((note) => note.title === "Back Squat");
-    const deadlift = report.publicNotes.find((note) => note.title === "Deadlift");
+    const squat = report.publicNotes.find((note) => note.title === "Barbell Back Squat");
+    const deadlift = report.publicNotes.find((note) => note.title === "Barbell Deadlift");
     const press = report.publicNotes.find((note) => note.title === "Barbell Overhead Press");
     assert.match(squat?.meta ?? "", /1\.3× bodyweight/);
     assert.match(deadlift?.meta ?? "", /1\.0× bodyweight/);

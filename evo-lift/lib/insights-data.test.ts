@@ -62,7 +62,7 @@ function historyTables() {
       error: null,
     },
     exercises: { data: [{ id: "ex-1", slug: "deadlift" }], error: null },
-    exercise_translations: { data: [{ exercise_id: "ex-1", name: "Deadlift" }], error: null },
+    exercise_translations: { data: [{ exercise_id: "ex-1", name: "Barbell Deadlift" }], error: null },
   };
 }
 
@@ -102,7 +102,7 @@ describe("insights history", () => {
       {
         exerciseId: "ex-1",
         slug: "deadlift",
-        label: "Deadlift",
+        label: "Barbell Deadlift",
         sessionId: "session-1",
         performedOn: "2026-10-12",
         reps: 5,
