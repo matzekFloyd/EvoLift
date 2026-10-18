@@ -1,19 +1,24 @@
-import {
-  type ExerciseProgressReport,
-} from "@/lib/exercise-progress-insights";
+import { TrendingUp } from "lucide-react";
+import { type ExerciseProgressReport } from "@/lib/exercise-progress-insights";
+import { CollapsibleSection } from "@/app/components/collapsible-section";
 import { InsightRowList, progressInsightRow } from "@/app/components/insight-row-list";
-import { PanelInset } from "@/app/components/panel-inset";
-import { SectionHeading } from "@/app/components/section-heading";
 
 type ExerciseProgressPanelProps = {
   report: ExerciseProgressReport;
+  defaultOpen?: boolean;
 };
 
-export function ExerciseProgressPanel({ report }: ExerciseProgressPanelProps) {
+export function ExerciseProgressPanel({
+  report,
+  defaultOpen = false,
+}: ExerciseProgressPanelProps) {
   return (
-    <PanelInset className="p-4">
-      <SectionHeading>Exercise progress</SectionHeading>
-      <p className="mt-1 text-sm text-zinc-800">{report.summary}</p>
+    <CollapsibleSection
+      title="Exercise progress"
+      icon={<TrendingUp />}
+      defaultOpen={defaultOpen}
+    >
+      <p className="text-sm text-zinc-800">{report.summary}</p>
       <p className="mt-1 text-xs text-zinc-500">
         Estimated 1RM uses working sets up to 12 reps, including base weight.
       </p>
@@ -28,6 +33,6 @@ export function ExerciseProgressPanel({ report }: ExerciseProgressPanelProps) {
         </p>
       </details>
       <InsightRowList rows={report.rows.map((row) => progressInsightRow(row))} />
-    </PanelInset>
+    </CollapsibleSection>
   );
 }

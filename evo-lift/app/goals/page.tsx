@@ -1,6 +1,7 @@
 "use client";
 
-import { ChevronRight, Target } from "lucide-react";
+import { Target } from "lucide-react";
+import { CollapsibleSection } from "@/app/components/collapsible-section";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
@@ -366,43 +367,49 @@ export default function GoalsPage() {
 
         <GoalSummaryChart bars={summaryBars} />
 
-        <details className="group mt-5">
-          <summary className="w-fit cursor-pointer list-none rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60 [&::-webkit-details-marker]:hidden">
-            <SectionHeading className="inline-flex items-center gap-1.5">
-              <ChevronRight className="h-4 w-4 text-zinc-500 transition-transform group-open:rotate-90" aria-hidden />
-              Active
-              <span className="font-normal tabular-nums text-zinc-500">{activeItems.length}</span>
-            </SectionHeading>
-          </summary>
+        <CollapsibleSection
+          title="Active"
+          count={activeItems.length}
+          inset={false}
+          className="mt-5"
+        >
           {activeItems.length === 0 ? (
-            <p className="mt-3 text-sm text-zinc-600">Add a goal to track a lift.</p>
+            <p className="text-sm text-zinc-600">Add a goal to track a lift.</p>
           ) : (
-            <div className="mt-3 grid gap-3">
+            <div className="grid gap-3">
               {activeItems.map((item) => (
-                <GoalCard key={item.row.id} {...cardProps(item)} onEdit={() => openEdit(item)} onDelete={() => setDeleteTarget(item)} />
+                <GoalCard
+                  key={item.row.id}
+                  {...cardProps(item)}
+                  onEdit={() => openEdit(item)}
+                  onDelete={() => setDeleteTarget(item)}
+                />
               ))}
             </div>
           )}
-        </details>
+        </CollapsibleSection>
 
-        <details className="group mt-6">
-          <summary className="w-fit cursor-pointer list-none rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60 [&::-webkit-details-marker]:hidden">
-            <SectionHeading className="inline-flex items-center gap-1.5">
-              <ChevronRight className="h-4 w-4 text-zinc-500 transition-transform group-open:rotate-90" aria-hidden />
-              Achieved
-              <span className="font-normal tabular-nums text-zinc-500">{achievedItems.length}</span>
-            </SectionHeading>
-          </summary>
+        <CollapsibleSection
+          title="Achieved"
+          count={achievedItems.length}
+          inset={false}
+          className="mt-6"
+        >
           {achievedItems.length === 0 ? (
-            <p className="mt-3 text-sm text-zinc-600">No achieved goals yet.</p>
+            <p className="text-sm text-zinc-600">No achieved goals yet.</p>
           ) : (
-            <div className="mt-3 grid gap-3">
+            <div className="grid gap-3">
               {achievedItems.map((item) => (
-                <GoalCard key={item.row.id} {...cardProps(item)} onEdit={() => openEdit(item)} onDelete={() => setDeleteTarget(item)} />
+                <GoalCard
+                  key={item.row.id}
+                  {...cardProps(item)}
+                  onEdit={() => openEdit(item)}
+                  onDelete={() => setDeleteTarget(item)}
+                />
               ))}
             </div>
           )}
-        </details>
+        </CollapsibleSection>
       </section>
 
       {draft ? (

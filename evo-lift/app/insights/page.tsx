@@ -1,9 +1,19 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { BarChart3, Dumbbell, FilterX, Hash, Weight } from "lucide-react";
+import {
+  Activity,
+  BarChart3,
+  CalendarRange,
+  ChartLine,
+  Dumbbell,
+  FilterX,
+  Hash,
+  Weight,
+} from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
+import { CollapsibleSection } from "@/app/components/collapsible-section";
 import { KpiBadge } from "@/app/components/kpi-badge";
 import { ExerciseProgressPanel } from "@/app/components/exercise-progress-panel";
 import { LiftComparisonPanel } from "@/app/components/lift-comparison-panel";
@@ -11,7 +21,6 @@ import { PersonalBestsPanel } from "@/app/components/personal-bests-panel";
 import { InsightsWeeklyVolumeChart } from "@/app/components/insights-weekly-volume-chart";
 import { DateInput } from "@/app/components/date-input";
 import { PageShell } from "@/app/components/page-shell";
-import { PanelInset } from "@/app/components/panel-inset";
 import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
@@ -30,6 +39,7 @@ import {
   type WorkoutActivityPoint,
 } from "@/lib/insights-data";
 import { buildPersonalBestRows } from "@/lib/personal-bests";
+import { withWeeklyMovingAverage } from "@/app/insights/insights-weekly-chart-data";
 import { getInsightsPresetRange } from "@/app/insights/insights-presets";
 import { getTodayYyyyMmDd } from "@/lib/session-date";
 
@@ -37,7 +47,6 @@ type RangeOption = {
   value: InsightsRange;
   label: string;
 };
-type InsightTrendMetric = "volume" | "workingSets";
 
 const rangeOptions: RangeOption[] = [
   { value: "4w", label: "4w" },
@@ -46,6 +55,10 @@ const rangeOptions: RangeOption[] = [
   { value: "all", label: "All" },
 ];
 const defaultInsightsRange: InsightsRange = "12w";
+
+/** Grey inset fill for summary KPI panels on the white Insights panel. */
+const insightsKpiClassName =
+  "border-zinc-200 bg-zinc-50/80 shadow-none hover:shadow-none";
 
 const emptyLifterProfile: LifterProfile = {
   sex: null,
@@ -63,7 +76,6 @@ export default function InsightsPage() {
   const [selectedRange, setSelectedRange] = useState<InsightsRange>(defaultInsightsRange);
   const [dateFrom, setDateFrom] = useState(() => getInsightsPresetRange(defaultInsightsRange, new Date()).from);
   const [dateTo, setDateTo] = useState(() => getInsightsPresetRange(defaultInsightsRange, new Date()).to);
-  const [trendMetric, setTrendMetric] = useState<InsightTrendMetric>("volume");
   const [basePoints, setBasePoints] = useState<WorkoutActivityPoint[]>([]);
   const [weeklyVolumeBase, setWeeklyVolumeBase] = useState<WeeklyVolumePoint[]>([]);
   const [exerciseSets, setExerciseSets] = useState<ExerciseWorkingSetSample[]>([]);
@@ -221,21 +233,13 @@ export default function InsightsPage() {
     [dateFrom, dateTo, weeklyVolumeRanged],
   );
 
-  const weeklyVolumeChartData = useMemo(() => {
-    const movingAverageSource = (item: WeeklyVolumePoint) =>
-      trendMetric === "volume" ? item.volumeKg : item.workingSets;
-    return weeklyVolumeFiltered.map((item, index) => {
-      if (index < 3) {
-        return { ...item, movingAverage: null };
-      }
-      const window = weeklyVolumeFiltered.slice(index - 3, index + 1);
-      const average = window.reduce((sum, row) => sum + movingAverageSource(row), 0) / window.length;
-      return { ...item, movingAverage: Number(average.toFixed(2)) };
-    });
-  }, [trendMetric, weeklyVolumeFiltered]);
+  const volumeChartData = useMemo(
+    () => withWeeklyMovingAverage(weeklyVolumeFiltered, "volume"),
+    [weeklyVolumeFiltered],
+  );
 
-  const workingSetsTotal = useMemo(
-    () => weeklyVolumeFiltered.reduce((sum, item) => sum + item.workingSets, 0),
+  const workingSetsChartData = useMemo(
+    () => withWeeklyMovingAverage(weeklyVolumeFiltered, "workingSets"),
     [weeklyVolumeFiltered],
   );
 
@@ -259,17 +263,30 @@ export default function InsightsPage() {
     return null;
   }, [dateFrom, dateTo, selectedRange]);
 
-  const comparisonSentence = useMemo(
+  const volumeComparisonSentence = useMemo(
     () =>
       buildInsightsComparisonSentence({
-        metric: trendMetric,
+        metric: "volume",
         currentWeeks: weeklyVolumeFiltered,
         allWeeks: weeklyVolumeBase,
         dateFrom,
         dateTo,
         periodName: comparisonPeriodName,
       }),
-    [comparisonPeriodName, dateFrom, dateTo, trendMetric, weeklyVolumeBase, weeklyVolumeFiltered],
+    [comparisonPeriodName, dateFrom, dateTo, weeklyVolumeBase, weeklyVolumeFiltered],
+  );
+
+  const workingSetsComparisonSentence = useMemo(
+    () =>
+      buildInsightsComparisonSentence({
+        metric: "workingSets",
+        currentWeeks: weeklyVolumeFiltered,
+        allWeeks: weeklyVolumeBase,
+        dateFrom,
+        dateTo,
+        periodName: comparisonPeriodName,
+      }),
+    [comparisonPeriodName, dateFrom, dateTo, weeklyVolumeBase, weeklyVolumeFiltered],
   );
 
   const exerciseProgress = useMemo(
@@ -285,23 +302,7 @@ export default function InsightsPage() {
     [catalogExercises, exerciseSets, hideEmptyPersonalBests],
   );
 
-  const trendMetricKpi = useMemo(() => {
-    if (trendMetric === "workingSets") {
-      return {
-        label: "Working sets",
-        value: String(workingSetsTotal),
-        icon: <Hash className="h-4 w-4 text-zinc-600" />,
-        description: "Total non-warmup sets in the selected filter window.",
-      };
-    }
-    return {
-      label: "Volume (kg)",
-      value: summary.loadedKg.toFixed(1),
-      icon: <Weight className="h-4 w-4 text-zinc-600" />,
-      description:
-        "Total weekly training volume (loaded kg × reps) in the selected filter window.",
-    };
-  }, [summary.loadedKg, trendMetric, workingSetsTotal]);
+  const hasTrendChartData = weeklyVolumeFiltered.length > 0;
 
   return (
     <PageShell>
@@ -315,86 +316,88 @@ export default function InsightsPage() {
         </p>
       </section>
 
-      <section className="panel p-5">
-        <div className="flex flex-col gap-2">
-          <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
-            <label className="block text-xs font-medium text-zinc-600">
-              From
-              <DateInput
-                value={dateFrom}
-                onChange={(event) => setDateFrom(event.target.value)}
-                max={todayYyyyMmDd}
-                className="mt-1 w-full rounded-md border bg-white px-2 py-1.5 text-sm"
-              />
-            </label>
-            <label className="block text-xs font-medium text-zinc-600">
-              To
-              <DateInput
-                value={dateTo}
-                onChange={(event) => setDateTo(event.target.value)}
-                max={todayYyyyMmDd}
-                className="mt-1 w-full rounded-md border bg-white px-2 py-1.5 text-sm"
-              />
-            </label>
-            <div>
-              <p className="text-xs font-medium text-zinc-600">Range</p>
-              <div className="mt-1 grid w-full grid-cols-4 gap-1 rounded-md border border-zinc-300 bg-zinc-50 p-1 sm:inline-flex sm:w-auto">
-                {rangeOptions.map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => {
-                      setSelectedRange(option.value);
-                      const preset = getInsightsPresetRange(option.value, new Date());
-                      setDateFrom(preset.from);
-                      setDateTo(preset.to);
-                    }}
-                    className={`rounded px-3 py-1 text-xs font-medium ${
-                      selectedRange === option.value
-                        ? "bg-sky-100 text-sky-900"
-                        : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
-                    }`}
-                  >
-                    {option.label}
-                  </button>
-                ))}
+      <section className="panel space-y-3 p-5">
+        <CollapsibleSection title="Date filter" icon={<CalendarRange />} alwaysOpen>
+          <div className="flex flex-col gap-2">
+            <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
+              <label className="block text-xs font-medium text-zinc-600">
+                From
+                <DateInput
+                  value={dateFrom}
+                  onChange={(event) => setDateFrom(event.target.value)}
+                  max={todayYyyyMmDd}
+                  className="mt-1 w-full rounded-md border bg-white px-2 py-1.5 text-sm"
+                />
+              </label>
+              <label className="block text-xs font-medium text-zinc-600">
+                To
+                <DateInput
+                  value={dateTo}
+                  onChange={(event) => setDateTo(event.target.value)}
+                  max={todayYyyyMmDd}
+                  className="mt-1 w-full rounded-md border bg-white px-2 py-1.5 text-sm"
+                />
+              </label>
+              <div>
+                <p className="text-xs font-medium text-zinc-600">Range</p>
+                <div className="mt-1 grid w-full grid-cols-4 gap-1 rounded-md border border-zinc-300 bg-white p-1 sm:inline-flex sm:w-auto">
+                  {rangeOptions.map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => {
+                        setSelectedRange(option.value);
+                        const preset = getInsightsPresetRange(option.value, new Date());
+                        setDateFrom(preset.from);
+                        setDateTo(preset.to);
+                      }}
+                      className={`rounded px-3 py-1 text-xs font-medium ${
+                        selectedRange === option.value
+                          ? "bg-sky-100 text-sky-900"
+                          : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
+            <ActionButton
+              type="button"
+              onClick={() => {
+                setSelectedRange("all");
+                setDateFrom("");
+                setDateTo("");
+              }}
+              disabled={selectedRange === "all" && dateFrom === "" && dateTo === ""}
+              variant="secondary"
+              size="sm"
+              className="mt-1 w-full text-sm font-normal text-amber-800 hover:text-amber-900 sm:mt-0 sm:w-auto sm:self-end"
+              iconColor="amber"
+            >
+              <FilterX className="h-3.5 w-3.5" />
+              Clear filters
+            </ActionButton>
           </div>
-          <ActionButton
-            type="button"
-            onClick={() => {
-              setSelectedRange("all");
-              setDateFrom("");
-              setDateTo("");
-            }}
-            disabled={
-              selectedRange === "all" &&
-              dateFrom === "" &&
-              dateTo === ""
-            }
-            variant="secondary"
-            size="sm"
-            className="mt-1 w-full text-sm font-normal text-amber-800 hover:text-amber-900 sm:mt-0 sm:w-auto sm:self-end"
-            iconColor="amber"
-          >
-            <FilterX className="h-3.5 w-3.5" />
-            Clear filters
-          </ActionButton>
-        </div>
+        </CollapsibleSection>
       </section>
 
       <section className="panel p-5">
+        <SectionHeading className="inline-flex items-center gap-1.5">
+          <Activity className="h-3.5 w-3.5 text-zinc-500" aria-hidden />
+          Workouts, sets & volume
+        </SectionHeading>
         {errorMessage ? (
-          <StatusNotice message={errorMessage} tone="error" />
+          <StatusNotice message={errorMessage} tone="error" className="mt-3" />
         ) : isLoading ? (
-          <p className="text-sm text-zinc-600">Loading insights...</p>
+          <p className="mt-3 text-sm text-zinc-600">Loading insights...</p>
         ) : filteredPoints.length === 0 ? (
-          <p className="text-sm text-zinc-600">
+          <p className="mt-3 text-sm text-zinc-600">
             No workout data in this range yet. Log sessions to unlock insights.
           </p>
         ) : (
-          <div className="space-y-3">
+          <div className="mt-3 space-y-3">
             <div className="grid gap-2 sm:grid-cols-3">
               <KpiBadge
                 label="Workouts"
@@ -402,6 +405,7 @@ export default function InsightsPage() {
                 icon={<Dumbbell className="h-4 w-4 text-zinc-600" />}
                 description="Total workout sessions in the selected filter window."
                 tone="neutral"
+                className={insightsKpiClassName}
               />
               <KpiBadge
                 label="Sets"
@@ -409,13 +413,15 @@ export default function InsightsPage() {
                 icon={<Hash className="h-4 w-4 text-zinc-600" />}
                 description="Total logged sets in the selected filter window."
                 tone="neutral"
+                className={insightsKpiClassName}
               />
               <KpiBadge
-                label={trendMetricKpi.label}
-                value={trendMetricKpi.value}
-                icon={trendMetricKpi.icon}
-                description={trendMetricKpi.description}
+                label="Volume (kg)"
+                value={summary.loadedKg.toFixed(1)}
+                icon={<Weight className="h-4 w-4 text-zinc-600" />}
+                description="Total weekly training volume (loaded kg × reps) in the selected filter window."
                 tone="neutral"
+                className={insightsKpiClassName}
               />
             </div>
             <LiftComparisonPanel report={exerciseProgress} />
@@ -425,55 +431,40 @@ export default function InsightsPage() {
               hideEmpty={hideEmptyPersonalBests}
               onHideEmptyChange={setHideEmptyPersonalBests}
             />
-            <PanelInset className="p-4">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                <SectionHeading>
-                  {trendMetric === "volume" ? "Volume trend" : "Working sets trend"}
-                </SectionHeading>
-                <div className="grid w-full grid-cols-2 rounded-md border border-zinc-300 bg-zinc-50 p-1 sm:inline-flex sm:w-auto">
-                  <button
-                    type="button"
-                    onClick={() => setTrendMetric("volume")}
-                    className={`rounded px-2.5 py-1.5 text-xs font-medium ${
-                      trendMetric === "volume"
-                        ? "bg-sky-100 text-sky-900"
-                        : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
-                    }`}
-                  >
-                    Volume
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setTrendMetric("workingSets")}
-                    className={`rounded px-2.5 py-1.5 text-xs font-medium ${
-                      trendMetric === "workingSets"
-                        ? "bg-sky-100 text-sky-900"
-                        : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
-                    }`}
-                  >
-                    Working sets
-                  </button>
-                </div>
-              </div>
-              {weeklyVolumeChartData.length === 0 ? (
-                <p className="mt-1 text-xs text-zinc-500">
-                  No qualifying {trendMetric === "volume" ? "set volume" : "working set"} data for
-                  the current filters yet.
+            <CollapsibleSection
+              title="Weekly volume & sets"
+              icon={<ChartLine />}
+              defaultOpen={false}
+            >
+              {!hasTrendChartData ? (
+                <p className="text-xs text-zinc-500">
+                  No qualifying volume or working set data for the current filters yet.
                 </p>
               ) : (
-                <>
-                  <p className="mt-2 text-sm text-zinc-800">{comparisonSentence}</p>
-                  <p className="mt-1 text-xs text-zinc-500">
-                    {trendMetric === "volume"
-                      ? "Weekly total of loaded kg × reps. The line is a 4-week average."
-                      : "Weekly working sets, warmups excluded. The line is a 4-week average."}
-                  </p>
-                  <div className="mt-3">
-                    <InsightsWeeklyVolumeChart data={weeklyVolumeChartData} metric={trendMetric} />
+                <div className="space-y-6">
+                  <div>
+                    <p className="text-sm font-medium text-zinc-800">Volume</p>
+                    <p className="mt-1 text-sm text-zinc-800">{volumeComparisonSentence}</p>
+                    <p className="mt-1 text-xs text-zinc-500">
+                      Weekly total of loaded kg × reps. The line is a 4-week average.
+                    </p>
+                    <div className="mt-3">
+                      <InsightsWeeklyVolumeChart data={volumeChartData} metric="volume" />
+                    </div>
                   </div>
-                </>
+                  <div>
+                    <p className="text-sm font-medium text-zinc-800">Working sets</p>
+                    <p className="mt-1 text-sm text-zinc-800">{workingSetsComparisonSentence}</p>
+                    <p className="mt-1 text-xs text-zinc-500">
+                      Weekly working sets, warmups excluded. The line is a 4-week average.
+                    </p>
+                    <div className="mt-3">
+                      <InsightsWeeklyVolumeChart data={workingSetsChartData} metric="workingSets" />
+                    </div>
+                  </div>
+                </div>
               )}
-            </PanelInset>
+            </CollapsibleSection>
           </div>
         )}
       </section>
