@@ -141,7 +141,7 @@ export default function AccountPage() {
       ] = await Promise.all([
         supabaseBrowserClient
           .from("user_profile_metrics")
-          .select("bodyweight_kg,height_cm,birth_year,sex,date_of_birth,max_suggested_warmup_sets")
+          .select("bodyweight_kg,height_cm,birth_year,sex,date_of_birth")
           .eq("user_id", session.user.id)
           .maybeSingle(),
         supabaseBrowserClient
@@ -187,9 +187,6 @@ export default function AccountPage() {
       setDateOfBirth(profile?.date_of_birth ?? "");
       setBirthYearFallback(profile?.date_of_birth ? null : (profile?.birth_year ?? null));
       setHasProfileMetrics(profile != null);
-      setMaxWarmupSets(
-        profile?.max_suggested_warmup_sets == null ? "" : String(profile.max_suggested_warmup_sets),
-      );
 
       const hiddenSet = new Set<string>();
       for (const row of hiddenRows ?? []) {
@@ -223,6 +220,10 @@ export default function AccountPage() {
   }, [router]);
 
   useEffect(() => {
+    setDefaultsMessage(null);
+  }, [selectedExerciseId]);
+
+  useEffect(() => {
     const selectedDefault = defaultsByExerciseId.get(selectedExerciseId);
     setDefaultBaseWeightKg(
       selectedDefault?.default_base_weight_kg == null
@@ -247,6 +248,11 @@ export default function AccountPage() {
         : true,
     );
     setSuggestTarget(selectedDefault?.suggest_target !== false);
+    setMaxWarmupSets(
+      selectedDefault?.max_suggested_warmup_sets == null
+        ? ""
+        : String(selectedDefault.max_suggested_warmup_sets),
+    );
   }, [defaultsByExerciseId, exerciseOptions, selectedExerciseId]);
 
   async function handleEmailUpdate(event: React.FormEvent<HTMLFormElement>) {
@@ -582,34 +588,6 @@ export default function AccountPage() {
     setIsSavingDefaults(true);
     setDefaultsMessage(null);
 
-    if (parsedMaxWarmupSets != null || hasProfileMetrics) {
-      const maxPayload = { max_suggested_warmup_sets: parsedMaxWarmupSets };
-      const { data: updatedRows, error: maxUpdateError } = await supabaseBrowserClient
-        .from("user_profile_metrics")
-        .update(maxPayload)
-        .eq("user_id", userId)
-        .select("user_id");
-      if (maxUpdateError) {
-        setDefaultsMessageTone("error");
-        setDefaultsMessage(`Could not save warmup suggestions: ${maxUpdateError.message}`);
-        setIsSavingDefaults(false);
-        return;
-      }
-      if (!updatedRows?.length) {
-        const { error: maxInsertError } = await supabaseBrowserClient.from("user_profile_metrics").insert({
-          user_id: userId,
-          ...maxPayload,
-        });
-        if (maxInsertError) {
-          setDefaultsMessageTone("error");
-          setDefaultsMessage(`Could not save warmup suggestions: ${maxInsertError.message}`);
-          setIsSavingDefaults(false);
-          return;
-        }
-      }
-      setHasProfileMetrics(true);
-    }
-
     const payload: Database["public"]["Tables"]["user_exercise_defaults"]["Insert"] = {
       user_id: userId,
       exercise_id: selectedExerciseId,
@@ -619,6 +597,7 @@ export default function AccountPage() {
       default_target_weight_kg: parsedTargetWeight,
       suggest_warmups: suggestWarmups,
       suggest_target: suggestTarget,
+      max_suggested_warmup_sets: parsedMaxWarmupSets,
     };
 
     const { data, error } = await supabaseBrowserClient
@@ -671,6 +650,7 @@ export default function AccountPage() {
       default_target_weight_kg: null,
       suggest_warmups: suggestWarmupsDefault,
       suggest_target: true,
+      max_suggested_warmup_sets: null,
     };
 
     const { data, error } = await supabaseBrowserClient
@@ -697,6 +677,7 @@ export default function AccountPage() {
     setDefaultTargetWeightKg("");
     setSuggestWarmups(suggestWarmupsDefault);
     setSuggestTarget(true);
+    setMaxWarmupSets("");
     setDefaultsMessage(null);
     setIsClearingDefaults(false);
   }
@@ -1087,9 +1068,9 @@ export default function AccountPage() {
           <div className="space-y-2 border-t border-zinc-200 pt-3">
             <h3 className="text-sm font-medium text-zinc-800">Suggestions</h3>
             <p className="text-sm leading-snug text-zinc-600">
-              The warmup ladder is the suggested warmup sets, stepping up toward the target weight.
-              The maximum applies to every exercise: leave it empty to keep every step, or enter a
-              number to keep that many of the heaviest steps.
+              For this exercise only. Suggest warmups shows the warmup ladder toward the target
+              weight. Leave maximum warmup sets empty to keep every step, or enter a number to keep
+              that many of the heaviest steps.
             </p>
             <div className="grid gap-3 sm:grid-cols-3">
               <label className="block text-sm font-medium">
@@ -1119,6 +1100,7 @@ export default function AccountPage() {
                 <input
                   type="number"
                   step={1}
+                  min={1}
                   value={maxWarmupSets}
                   onChange={(event) => setMaxWarmupSets(event.target.value)}
                   className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"

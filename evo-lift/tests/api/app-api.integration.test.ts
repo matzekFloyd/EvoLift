@@ -305,11 +305,15 @@ describe("app API on local Supabase", () => {
     );
     assert.equal(defaults.status, 200);
     const savedDefaults = defaults.body.data as {
-      max_suggested_warmup_sets: number;
-      exercises: Array<{ exercise_id: string; default_target_sets: number }>;
+      exercises: Array<{
+        exercise_id: string;
+        default_target_sets: number;
+        max_suggested_warmup_sets: number | null;
+      }>;
     };
-    assert.equal(savedDefaults.max_suggested_warmup_sets, 3);
-    assert.equal(savedDefaults.exercises.find((row) => row.exercise_id === squatId)?.default_target_sets, 5);
+    const squatDefaults = savedDefaults.exercises.find((row) => row.exercise_id === squatId);
+    assert.equal(squatDefaults?.default_target_sets, 5);
+    assert.equal(squatDefaults?.max_suggested_warmup_sets, 3);
 
     const cleared = await readJson(
       await clearDefaults(buildRequest(`/api/account/exercise-defaults/${squatId}`, "DELETE", ownerToken), {
