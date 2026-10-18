@@ -159,7 +159,7 @@ describe("buildExerciseProgressReport", () => {
         sample({
           exerciseId: "ex-press",
           slug: "overhead-press",
-          label: "Overhead Press",
+          label: "Barbell Overhead Press",
           sessionId: "press",
           performedOn: "2025-12-01",
           totalKg: 40,
@@ -180,7 +180,7 @@ describe("buildExerciseProgressReport", () => {
     );
     const squat = report.publicNotes.find((note) => note.title === "Back Squat");
     const deadlift = report.publicNotes.find((note) => note.title === "Deadlift");
-    const press = report.publicNotes.find((note) => note.title === "Overhead Press");
+    const press = report.publicNotes.find((note) => note.title === "Barbell Overhead Press");
     assert.match(squat?.meta ?? "", /1\.3× bodyweight/);
     assert.match(deadlift?.meta ?? "", /1\.0× bodyweight/);
     assert.equal(press, undefined);

@@ -32,12 +32,12 @@ export function LiftComparisonPanel({ report }: LiftComparisonPanelProps) {
           <p>
             Lift-to-lift balance uses coaching ratios for barbell compounds, with a little room either
             side. Deadlift is often about 110–125% of Back Squat, so Back Squat is about 80–90% of
-            Deadlift. Barbell Bench Press is often about 65–85% of Back Squat. Overhead Press is often
-            about 60–75% of Barbell Bench Press. Barbell Bent Over Row is often about 80–100% of Barbell
-            Bench Press. Romanian Deadlift is often about 70–85% of Deadlift. Close-Grip Bench Press is
-            often about 90–95% of Barbell Bench Press. Barbell Hip Thrust is often about 130–170% of Back
-            Squat. Limb length and technique move these numbers, so a note appears only when a ratio sits
-            clearly outside the band. These are coaching rules of thumb, not a lab study.
+            Deadlift. Barbell Bench Press is often about 65–85% of Back Squat. Barbell Overhead Press is
+            often about 60–75% of Barbell Bench Press. Barbell Bent Over Row is often about 80–100% of
+            Barbell Bench Press. Barbell Romanian Deadlift is often about 70–85% of Deadlift. Close-Grip
+            Bench Press is often about 90–95% of Barbell Bench Press. Barbell Hip Thrust is often about
+            130–170% of Back Squat. Limb length and technique move these numbers, so a note appears only
+            when a ratio sits clearly outside the band. These are coaching rules of thumb, not a lab study.
           </p>
           <p>
             Machine, dumbbell, and leg-press loads are not turned into a ratio against a barbell, because
@@ -57,7 +57,7 @@ export function LiftComparisonPanel({ report }: LiftComparisonPanelProps) {
               ExRx.net
             </a>{" "}
             tables for ages 18–39, separate for women and men, at your bodyweight. It applies only to Back
-            Squat, Barbell Bench Press, Deadlift, and Overhead Press, and only when sex, date of birth, and
+            Squat, Barbell Bench Press, Deadlift, and Barbell Overhead Press, and only when sex, date of birth, and
             bodyweight are saved. ExRx describes those standards for a squat below parallel, a bench with a
             pause and lockout, a locked-out deadlift, and a strict press. The number here is an Epley
             estimate from sets of 12 reps or fewer, not a tested max, so the level can be off by a step.
