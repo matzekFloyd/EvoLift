@@ -213,6 +213,8 @@ export type ExerciseWorkingSetSample = {
   sessionId: string;
   performedOn: string;
   reps: number;
+  /** Loaded (kg) on the set, before base weight. */
+  loadedKg: number;
   totalKg: number;
 };
 
@@ -380,6 +382,7 @@ export async function loadInsightsHistory(
         sessionId,
         performedOn,
         reps: setRow.reps,
+        loadedKg: loaded,
         totalKg,
       });
     }

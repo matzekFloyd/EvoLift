@@ -25,6 +25,7 @@ function sample(overrides: Partial<ExerciseWorkingSetSample> = {}): ExerciseWork
     sessionId: "s1",
     performedOn: "2026-01-01",
     reps: 1,
+    loadedKg: 100,
     totalKg: 100,
     ...overrides,
   };
