@@ -10,7 +10,7 @@
     "android": "cap run android",
     "android:sync": "cap sync android",
     "android:bundle": "node shell/bundle-release.mjs",
-    "test": "node --test shell/"
+    "test": "node --test shell/bundle-release.test.mjs shell/github-release.test.mjs shell/server-config.test.mjs"
   },
   "dependencies": {
     "@capacitor/android": "7.6.9",

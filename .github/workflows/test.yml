@@ -17,15 +17,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Test Android shell config
-        run: node --test shell/server-config.test.mjs
-
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 20
           cache: npm
           cache-dependency-path: evo-lift/package-lock.json
+
+      - name: Test Android shell and release helpers
+        run: npm test
 
       - name: Install dependencies
         working-directory: evo-lift
