@@ -2,7 +2,7 @@
 
 import { FileStack, Pencil, Play, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
 import { AppDialog } from "@/app/components/app-dialog";
@@ -24,6 +24,11 @@ import {
   tableRowActionLinkClassName,
 } from "@/app/components/table-row-actions";
 import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
+import {
+  sortRowsByName,
+  toggleNamedListSortDirection,
+  type NamedListSortDirection,
+} from "@/lib/named-list-sort";
 import { getTodayYyyyMmDd } from "@/lib/session-date";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { deleteUserTemplate, instantiateUserTemplate } from "@/server/actions/templates";
@@ -42,6 +47,12 @@ export default function TemplatesPage() {
   const [isStartingSession, setIsStartingSession] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [nameSortDirection, setNameSortDirection] = useState<NamedListSortDirection>("asc");
+
+  const sortedTemplates = useMemo(
+    () => sortRowsByName(templates, nameSortDirection),
+    [nameSortDirection, templates],
+  );
 
   function showError(text: string) {
     setMessageTone("error");
@@ -205,35 +216,57 @@ export default function TemplatesPage() {
         ) : templates.length === 0 ? (
           <p className="mt-4 text-center text-sm text-zinc-600">No templates yet.</p>
         ) : (
-          <AppTable className="mt-4">
+          <AppTable className="mt-4" tableClassName="table-fixed w-full min-w-0">
+            <colgroup>
+              <col />
+              <col className="w-14 sm:w-24" />
+              <col className="w-[7.25rem] md:w-[28rem]" />
+            </colgroup>
             <thead>
               <tr className={appTableHeadRowClassName}>
-                <th className={appTableThClassName}>Name</th>
-                <th className={appTableThClassName}>Exercises</th>
+                <th className={appTableThClassName}>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setNameSortDirection((prev) => toggleNamedListSortDirection(prev))
+                    }
+                    className="inline-flex items-center gap-1"
+                  >
+                    Name <span>{nameSortDirection === "asc" ? "↑" : "↓"}</span>
+                  </button>
+                </th>
+                <th className={`${appTableThClassName} whitespace-nowrap`}>
+                  <span className="sm:hidden">Ex.</span>
+                  <span className="hidden sm:inline">Exercises</span>
+                </th>
                 <AppTableActionsHeader />
               </tr>
             </thead>
             <tbody className="divide-y divide-zinc-100">
-              {templates.map((row) => (
+              {sortedTemplates.map((row) => (
                 <tr key={row.id} className={appTableRowClassName}>
-                  <td className={`${appTableTdClassName} font-medium text-zinc-900`}>{row.name}</td>
+                  <td
+                    className={`${appTableTdClassName} break-words whitespace-normal font-medium text-zinc-900`}
+                  >
+                    {row.name}
+                  </td>
                   <td className={`${appTableTdClassName} text-zinc-600`}>{row.exerciseCount}</td>
                   <td className={appTableTdClassName}>
-                    <TableRowActions>
+                    <TableRowActions stackUntil="md">
                       <ActionButton
                         type="button"
                         size="sm"
                         variant="primary"
                         onClick={() => openUseDialog(row.id)}
                       >
-                        <Play className="h-3.5 w-3.5" />
+                        <Play className="h-3.5 w-3.5 shrink-0" aria-hidden />
                         Use
                       </ActionButton>
                       <Link
                         href={`/templates/${row.id}/edit`}
                         className={tableRowActionLinkClassName}
                       >
-                        <Pencil className="h-3.5 w-3.5" />
+                        <Pencil className="h-3.5 w-3.5 shrink-0" aria-hidden />
                         Edit
                       </Link>
                       <ActionButton
@@ -242,7 +275,7 @@ export default function TemplatesPage() {
                         variant="danger"
                         onClick={() => setDeleteTargetId(row.id)}
                       >
-                        <Trash2 className="h-3.5 w-3.5" />
+                        <Trash2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
                         Delete
                       </ActionButton>
                     </TableRowActions>
