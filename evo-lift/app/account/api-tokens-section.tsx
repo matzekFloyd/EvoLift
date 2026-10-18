@@ -4,7 +4,15 @@ import { Copy, KeyRound, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ActionButton } from "@/app/components/action-button";
-import { AppTable } from "@/app/components/app-table";
+import {
+  AppTable,
+  AppTableActionsHeader,
+  appTableHeadRowClassName,
+  appTableRowClassName,
+  appTableTdClassName,
+  appTableThClassName,
+} from "@/app/components/app-table";
+import { TableRowActions } from "@/app/components/table-row-actions";
 import { SettingsSection, SettingsSectionBody } from "@/app/components/settings-section";
 import { SettingsSectionHeader } from "@/app/components/settings-section-header";
 import { StatusNotice } from "@/app/components/status-notice";
@@ -184,34 +192,40 @@ export function AccountApiTokensSection({ accessToken }: AccountApiTokensSection
           ) : (
             <AppTable>
               <thead>
-                <tr className="border-b border-zinc-200 bg-zinc-50 text-xs font-medium text-zinc-600">
-                  <th className="px-3 py-2">Name</th>
-                  <th className="px-3 py-2">Prefix</th>
-                  <th className="px-3 py-2">Created</th>
-                  <th className="px-3 py-2">Last used</th>
-                  <th className="px-3 py-2 text-right"> </th>
+                <tr className={appTableHeadRowClassName}>
+                  <th className={appTableThClassName}>Name</th>
+                  <th className={appTableThClassName}>Prefix</th>
+                  <th className={appTableThClassName}>Created</th>
+                  <th className={appTableThClassName}>Last used</th>
+                  <AppTableActionsHeader />
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-zinc-100">
                 {tokens.map((row) => (
-                  <tr key={row.id} className="border-b border-zinc-100 last:border-0">
-                    <td className="px-3 py-2 text-zinc-800">{row.name}</td>
-                    <td className="px-3 py-2 font-mono text-xs text-zinc-700">{row.tokenPrefix}…</td>
-                    <td className="px-3 py-2 text-zinc-600">{formatTimestamp(row.createdAt)}</td>
-                    <td className="px-3 py-2 text-zinc-600">
+                  <tr key={row.id} className={appTableRowClassName}>
+                    <td className={`${appTableTdClassName} text-zinc-800`}>{row.name}</td>
+                    <td className={`${appTableTdClassName} font-mono text-xs text-zinc-700`}>
+                      {row.tokenPrefix}…
+                    </td>
+                    <td className={`${appTableTdClassName} text-zinc-600`}>
+                      {formatTimestamp(row.createdAt)}
+                    </td>
+                    <td className={`${appTableTdClassName} text-zinc-600`}>
                       {row.lastUsedAt ? formatTimestamp(row.lastUsedAt) : "Never"}
                     </td>
-                    <td className="px-3 py-2 text-right">
-                      <ActionButton
-                        type="button"
-                        variant="danger"
-                        size="sm"
-                        disabled={revokingId === row.id}
-                        onClick={() => void handleRevoke(row.id)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                        Revoke
-                      </ActionButton>
+                    <td className={appTableTdClassName}>
+                      <TableRowActions>
+                        <ActionButton
+                          type="button"
+                          variant="danger"
+                          size="sm"
+                          disabled={revokingId === row.id}
+                          onClick={() => void handleRevoke(row.id)}
+                        >
+                          <Trash2 className="h-3 w-3" />
+                          Revoke
+                        </ActionButton>
+                      </TableRowActions>
                     </td>
                   </tr>
                 ))}

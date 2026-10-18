@@ -6,13 +6,13 @@ import {
   Legend,
   Line,
   LineChart,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
   type TooltipContentProps,
 } from "recharts";
 import type { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
+import { ChartResponsiveContainer } from "@/app/components/chart-responsive-container";
 import { SegmentedTabs } from "@/app/components/segmented-tabs";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { formatKgTick } from "@/app/components/exercise-weight-progress-format";
@@ -129,7 +129,7 @@ export function ExerciseWeightProgressChart({ points }: ExerciseWeightProgressCh
         className="exercise-weight-progress-chart relative h-52 w-full sm:h-64"
         style={{ WebkitTapHighlightColor: "transparent" }}
       >
-        <ResponsiveContainer width="100%" height="100%">
+        <ChartResponsiveContainer initialDimension={{ width: 320, height: 208 }}>
           <LineChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 4 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
             <XAxis
@@ -177,7 +177,7 @@ export function ExerciseWeightProgressChart({ points }: ExerciseWeightProgressCh
               />
             ) : null}
           </LineChart>
-        </ResponsiveContainer>
+        </ChartResponsiveContainer>
       </div>
     </div>
   );

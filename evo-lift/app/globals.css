@@ -21,6 +21,14 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/*
+ * Keep header and page content on the same horizontal measure when a classic
+ * scrollbar appears (Windows), so right-aligned controls share the same inset.
+ */
+html {
+  scrollbar-gutter: stable;
+}
+
 body {
   background: var(--background);
   color: var(--foreground);

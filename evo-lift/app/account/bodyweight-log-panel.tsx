@@ -3,9 +3,17 @@
 import { Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { ActionButton } from "@/app/components/action-button";
-import { AppTable } from "@/app/components/app-table";
+import {
+  AppTable,
+  AppTableActionsHeader,
+  appTableHeadRowClassName,
+  appTableRowClassName,
+  appTableTdClassName,
+  appTableThClassName,
+} from "@/app/components/app-table";
 import { DateInput } from "@/app/components/date-input";
 import { StatusNotice } from "@/app/components/status-notice";
+import { TableRowActions } from "@/app/components/table-row-actions";
 import {
   bodyweightLogEntryError,
   parseBodyweightKg,
@@ -105,18 +113,18 @@ export function BodyweightLogPanel({ entries, today, onSave, onRemove }: Bodywei
       ) : (
         <AppTable>
           <thead>
-            <tr className="text-left text-xs font-medium uppercase tracking-wide text-zinc-600">
-              <th className="px-3 py-2">Date</th>
-              <th className="px-3 py-2">Bodyweight (kg)</th>
-              <th className="px-3 py-2 text-right">Actions</th>
+            <tr className={appTableHeadRowClassName}>
+              <th className={appTableThClassName}>Date</th>
+              <th className={appTableThClassName}>Bodyweight (kg)</th>
+              <AppTableActionsHeader />
             </tr>
           </thead>
           <tbody className="divide-y divide-zinc-100">
             {rows.map((row) => {
               const isEditing = editingId === row.id;
               return (
-                <tr key={row.id} className="bg-white">
-                  <td className="px-3 py-2">
+                <tr key={row.id} className={appTableRowClassName}>
+                  <td className={appTableTdClassName}>
                     {isEditing ? (
                       <DateInput
                         min="1900-01-01"
@@ -129,7 +137,7 @@ export function BodyweightLogPanel({ entries, today, onSave, onRemove }: Bodywei
                       formatDateOnlyForLocale(row.loggedOn)
                     )}
                   </td>
-                  <td className="px-3 py-2">
+                  <td className={appTableTdClassName}>
                     {isEditing ? (
                       <input
                         type="number"
@@ -142,8 +150,8 @@ export function BodyweightLogPanel({ entries, today, onSave, onRemove }: Bodywei
                       row.bodyweightKg
                     )}
                   </td>
-                  <td className="px-3 py-2">
-                    <div className="flex justify-end gap-2">
+                  <td className={appTableTdClassName}>
+                    <TableRowActions>
                       {isEditing ? (
                         <>
                           <ActionButton
@@ -195,7 +203,7 @@ export function BodyweightLogPanel({ entries, today, onSave, onRemove }: Bodywei
                           </ActionButton>
                         </>
                       )}
-                    </div>
+                    </TableRowActions>
                   </td>
                 </tr>
               );
