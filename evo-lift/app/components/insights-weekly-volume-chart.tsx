@@ -18,6 +18,7 @@ import type {
 } from "recharts/types/component/DefaultTooltipContent";
 import { ChartResponsiveContainer } from "@/app/components/chart-responsive-container";
 import { formatCompactNumber } from "@/app/components/insights-weekly-volume-format";
+import type { InsightsTrendMetric } from "@/app/insights/insights-weekly-chart-data";
 
 type WeeklyVolumeChartPoint = {
   weekStart: string;
@@ -29,7 +30,7 @@ type WeeklyVolumeChartPoint = {
 
 type InsightsWeeklyVolumeChartProps = {
   data: WeeklyVolumeChartPoint[];
-  metric: "volume" | "workingSets";
+  metric: InsightsTrendMetric;
 };
 
 function formatWeekLabel(dateText: string): string {
@@ -45,11 +46,60 @@ function toDate(value: string): Date {
   return new Date(Number(yearText), Number(monthText) - 1, Number(dayText));
 }
 
+const SERIES_PRIMARY = {
+  fill: "#0284c7",
+  emphasis: "#0369a1",
+  muted: "#7dd3fc",
+  stroke: "#075985",
+} as const;
+
+const SERIES_VOLUME = {
+  fill: "#059669",
+  emphasis: "#047857",
+  muted: "#6ee7b7",
+  stroke: "#065f46",
+} as const;
+
+const SERIES_SECONDARY_STROKE = "#0f766e";
+
+function metricConfig(metric: InsightsTrendMetric) {
+  if (metric === "volume") {
+    return {
+      valueKey: "volumeKg" as const,
+      barName: "Volume",
+      movingAverageName: "4w avg",
+      barSeries: SERIES_VOLUME,
+      formatBar: (value: number) => `${value.toFixed(1)} kg`,
+      formatAverage: (value: number) => `${value.toFixed(1)} kg`,
+      formatTick: (value: number, compact: boolean) =>
+        compact ? `${formatCompactNumber(value)} kg` : `${Math.round(value)} kg`,
+    };
+  }
+  if (metric === "workingSets") {
+    return {
+      valueKey: "workingSets" as const,
+      barName: "Working sets",
+      movingAverageName: "4w avg working sets",
+      barSeries: SERIES_PRIMARY,
+      formatBar: (value: number) => `${Math.round(value)}`,
+      formatAverage: (value: number) => `${value.toFixed(1)}`,
+      formatTick: (value: number) => `${Math.round(value)}`,
+    };
+  }
+  return {
+    valueKey: "sessionCount" as const,
+    barName: "Sessions",
+    movingAverageName: "4w avg sessions",
+    barSeries: SERIES_PRIMARY,
+    formatBar: (value: number) => `${Math.round(value)}`,
+    formatAverage: (value: number) => `${value.toFixed(1)}`,
+    formatTick: (value: number) => `${Math.round(value)}`,
+  };
+}
+
 export function InsightsWeeklyVolumeChart({ data, metric }: InsightsWeeklyVolumeChartProps) {
-  const isVolumeMetric = metric === "volume";
-  const valueKey = isVolumeMetric ? "volumeKg" : "workingSets";
-  const barName = isVolumeMetric ? "Volume" : "Working sets";
-  const movingAverageName = isVolumeMetric ? "4w avg" : "4w avg working sets";
+  const config = metricConfig(metric);
+  const { valueKey, barName, movingAverageName, barSeries } = config;
   const [isCompactView, setIsCompactView] = useState(false);
   const [selectedWeekStart, setSelectedWeekStart] = useState<string | null>(null);
   const chartRef = useRef<HTMLDivElement | null>(null);
@@ -107,6 +157,8 @@ export function InsightsWeeklyVolumeChart({ data, metric }: InsightsWeeklyVolume
     return `${startText}-${endText}`;
   }, [selectedWeek]);
 
+  const selectedBarValue = selectedWeek ? selectedWeek[valueKey] : 0;
+
   const renderTooltip = ({
     active,
     payload,
@@ -122,27 +174,21 @@ export function InsightsWeeklyVolumeChart({ data, metric }: InsightsWeeklyVolume
         <p className="font-medium text-zinc-800">{`Week of ${formatWeekLabel(label)}`}</p>
         {payload.map((entry) => {
           const numericValue = Number(entry.value ?? 0);
-          const formatted = (() => {
-            if (entry.name === barName) {
-              if (isVolumeMetric) {
-                return `${numericValue.toFixed(1)} kg`;
-              }
-              return `${Math.round(numericValue)}`;
-            }
-            if (entry.name === movingAverageName) {
-              return isVolumeMetric
-                ? `${numericValue.toFixed(1)} kg`
-                : `${numericValue.toFixed(1)}`;
-            }
-            return `${numericValue}`;
-          })();
+          const formatted =
+            entry.name === barName
+              ? config.formatBar(numericValue)
+              : entry.name === movingAverageName
+                ? config.formatAverage(numericValue)
+                : `${numericValue}`;
           return (
             <p key={`${entry.name}`} className="text-zinc-700">
               {entry.name}: {formatted}
             </p>
           );
         })}
-        <p className="text-zinc-700">Sessions: {sessionCount}</p>
+        {metric === "sessions" ? null : (
+          <p className="text-zinc-700">Sessions: {sessionCount}</p>
+        )}
       </div>
     );
   };
@@ -163,18 +209,13 @@ export function InsightsWeeklyVolumeChart({ data, metric }: InsightsWeeklyVolume
             dataKey="weekStart"
             tick={{ fill: "#52525b", fontSize: 11 }}
             tickFormatter={formatWeekLabel}
-            minTickGap={isCompactView ? 32 : 20}
-            interval={isCompactView ? "preserveStartEnd" : 0}
+            minTickGap={isCompactView ? 36 : 48}
+            interval="preserveStartEnd"
           />
           <YAxis
+            allowDecimals={metric !== "sessions"}
             tick={{ fill: "#52525b", fontSize: 11 }}
-            tickFormatter={(value: number) =>
-              isVolumeMetric
-                ? isCompactView
-                  ? `${formatCompactNumber(value)} kg`
-                  : `${Math.round(value)} kg`
-                : `${Math.round(value)}`
-            }
+            tickFormatter={(value: number) => config.formatTick(value, isCompactView)}
             width={isCompactView ? 56 : 72}
           />
           <Tooltip
@@ -185,7 +226,7 @@ export function InsightsWeeklyVolumeChart({ data, metric }: InsightsWeeklyVolume
           <Bar
             dataKey={valueKey}
             name={barName}
-            fill="#0284c7"
+            fill={barSeries.fill}
             radius={[4, 4, 0, 0]}
           >
             {data.map((item) => {
@@ -194,8 +235,14 @@ export function InsightsWeeklyVolumeChart({ data, metric }: InsightsWeeklyVolume
               return (
                 <Cell
                   key={`bar-${item.weekStart}`}
-                  fill={isSelected ? "#0369a1" : hasSelection ? "#7dd3fc" : "#0284c7"}
-                  stroke={isSelected ? "#075985" : undefined}
+                  fill={
+                    isSelected
+                      ? barSeries.emphasis
+                      : hasSelection
+                        ? barSeries.muted
+                        : barSeries.fill
+                  }
+                  stroke={isSelected ? barSeries.stroke : undefined}
                   strokeWidth={isSelected ? 1.5 : 0}
                   onClick={() => {
                     setSelectedWeekStart((current) =>
@@ -210,7 +257,7 @@ export function InsightsWeeklyVolumeChart({ data, metric }: InsightsWeeklyVolume
             type="monotone"
             dataKey="movingAverage"
             name={movingAverageName}
-            stroke="#0f766e"
+            stroke={SERIES_SECONDARY_STROKE}
             strokeWidth={2}
             dot={false}
             connectNulls={false}
@@ -221,20 +268,16 @@ export function InsightsWeeklyVolumeChart({ data, metric }: InsightsWeeklyVolume
         <div className="pointer-events-none absolute right-2 top-2 z-10 rounded-md border border-zinc-200 bg-white/95 px-2 py-1.5 text-sm shadow-sm">
           <p className="font-medium text-zinc-800">{`Week of ${formatWeekLabel(selectedWeek.weekStart)}`}</p>
           <p className="text-zinc-700">
-            {barName}:{" "}
-            {isVolumeMetric
-              ? `${selectedWeek.volumeKg.toFixed(1)} kg`
-              : `${selectedWeek.workingSets}`}
+            {barName}: {config.formatBar(selectedBarValue)}
           </p>
           {selectedWeek.movingAverage != null ? (
             <p className="text-zinc-700">
-              {movingAverageName}:{" "}
-              {isVolumeMetric
-                ? `${selectedWeek.movingAverage.toFixed(1)} kg`
-                : `${selectedWeek.movingAverage.toFixed(1)}`}
+              {movingAverageName}: {config.formatAverage(selectedWeek.movingAverage)}
             </p>
           ) : null}
-          <p className="text-zinc-700">Sessions: {selectedWeek.sessionCount}</p>
+          {metric === "sessions" ? null : (
+            <p className="text-zinc-700">Sessions: {selectedWeek.sessionCount}</p>
+          )}
           <p className="text-zinc-500">{selectedWeekRangeLabel}</p>
         </div>
       ) : null}

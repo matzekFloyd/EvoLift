@@ -4,7 +4,6 @@ import { CollapsibleSection } from "@/app/components/collapsible-section";
 import { ExerciseProgressPaceChart } from "@/app/components/exercise-progress-pace-chart";
 import { exerciseProgressPaceBuckets } from "@/app/components/exercise-progress-pace";
 import { InsightRowList, progressInsightRow } from "@/app/components/insight-row-list";
-import { StatusBadge } from "@/app/components/status-badge";
 
 type ExerciseProgressPanelProps = {
   report: ExerciseProgressReport;
@@ -22,17 +21,6 @@ export function ExerciseProgressPanel({
       title="Exercise progress"
       icon={<TrendingUp />}
       defaultOpen={defaultOpen}
-      titleAside={
-        paceBuckets.length > 0 ? (
-          <span className="flex flex-wrap items-center gap-1 sm:ms-auto">
-            {paceBuckets.map((bucket) => (
-              <StatusBadge key={bucket.read} tone={bucket.tone}>
-                {bucket.count} {bucket.label}
-              </StatusBadge>
-            ))}
-          </span>
-        ) : null
-      }
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">

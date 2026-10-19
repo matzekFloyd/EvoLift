@@ -167,7 +167,8 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-gradient-to-b from-sky-100 via-sky-50 to-white">
-      <PageShell className="max-w-md justify-center gap-6">
+      <PageShell className="max-w-md justify-start gap-6">
+        <div className="flex w-full flex-col gap-6 pt-[max(0px,8vh)]">
         <section className="panel p-4">
         {isVerifiedNotice ? (
           <div className="mb-4 flex items-start gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
@@ -188,7 +189,9 @@ export default function LoginPage() {
               setSuccessEmail(null);
             }}
             className="w-full sm:w-auto"
+            buttonLayout="equal-row"
             buttonMinWidthClassName="sm:min-w-0"
+            tabListAriaLabel="Log in or register"
             options={[
               { value: "login", label: "Log in" },
               { value: "register", label: "Register" },
@@ -289,6 +292,7 @@ export default function LoginPage() {
           </p>
         </section>
       ) : null}
+        </div>
       </PageShell>
     </div>
   );

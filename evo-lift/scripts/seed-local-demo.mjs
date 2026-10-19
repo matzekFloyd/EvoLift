@@ -1,5 +1,5 @@
 /**
- * Creates the local demo user, workout history, and active plan when they are missing.
+ * Creates the local demo user, workout history, plans, and templates when they are missing.
  * Runs from `npm run dev`. Refuses any Supabase URL that is not localhost.
  */
 import { randomUUID } from "node:crypto";
@@ -9,23 +9,103 @@ import { createClient } from "@supabase/supabase-js";
 
 const DEMO_EMAIL = "demo@example.com";
 const DEMO_PASSWORD = "demo1234";
-const HISTORY_WEEKS = 16;
+const HISTORY_WEEKS = 24;
 const BARBELL_BASE_KG = 20;
-const PLAN_NAME = "3-Day Strength";
 
 const LIFTS = {
   squat: { slug: "back-squat", startKg: 80, stepKg: 2.5 },
+  frontSquat: { slug: "front-squat", startKg: 60, stepKg: 2.5 },
   bench: { slug: "barbell-bench-press", startKg: 60, stepKg: 2.5 },
+  incline: { slug: "barbell-incline-press", startKg: 50, stepKg: 2.5 },
   deadlift: { slug: "deadlift", startKg: 120, stepKg: 5 },
+  rdl: { slug: "barbell-romanian-deadlift", startKg: 80, stepKg: 5 },
   press: { slug: "overhead-press", startKg: 40, stepKg: 2.5 },
   row: { slug: "barbell-bent-over-row", startKg: 60, stepKg: 2.5 },
+  pullUp: { slug: "pull-up", startKg: 0, stepKg: 2.5 },
 };
 
-/** Monday, Wednesday, Friday. Offsets are days from the Monday of that week. */
-const PLAN_DAYS = [
-  { name: "Squat Bench", dayOffset: 0, note: "Squat and bench", lifts: ["squat", "bench"] },
-  { name: "Deadlift Row", dayOffset: 2, note: "Deadlift and row", lifts: ["deadlift", "row"] },
-  { name: "Press Bench", dayOffset: 4, note: "Press and bench", lifts: ["press", "bench"] },
+/** Active plan: Monday / Wednesday / Friday. */
+const STRENGTH_PLAN = {
+  name: "3-Day Strength",
+  notes: "Local demo plan. Three full-body days.",
+  isActive: true,
+  days: [
+    { name: "Squat Bench", dayOffset: 0, note: "Squat and bench", lifts: ["squat", "bench"] },
+    { name: "Deadlift Row", dayOffset: 2, note: "Deadlift and row", lifts: ["deadlift", "row"] },
+    { name: "Press Bench", dayOffset: 4, note: "Press and bench", lifts: ["press", "bench"] },
+  ],
+};
+
+/** Second plan (inactive): upper / lower. */
+const UPPER_LOWER_PLAN = {
+  name: "Upper Lower",
+  notes: "Local demo plan. Four days, not active.",
+  isActive: false,
+  days: [
+    { name: "Upper A", dayOffset: 0, note: "Upper A", lifts: ["bench", "row", "press"] },
+    { name: "Lower A", dayOffset: 1, note: "Lower A", lifts: ["squat", "rdl"] },
+    { name: "Upper B", dayOffset: 3, note: "Upper B", lifts: ["incline", "pullUp", "press"] },
+    { name: "Lower B", dayOffset: 4, note: "Lower B", lifts: ["frontSquat", "deadlift"] },
+  ],
+};
+
+const DEMO_PLANS = [STRENGTH_PLAN, UPPER_LOWER_PLAN];
+
+const DEMO_TEMPLATES = [
+  {
+    name: "Upper Power",
+    notes: "Local demo template. Pressing and pulling.",
+    lifts: [
+      { key: "bench", sets: 4, reps: 5 },
+      { key: "row", sets: 4, reps: 6 },
+      { key: "press", sets: 3, reps: 6 },
+    ],
+  },
+  {
+    name: "Lower Strength",
+    notes: "Local demo template. Squat and hinge.",
+    lifts: [
+      { key: "squat", sets: 4, reps: 5 },
+      { key: "rdl", sets: 3, reps: 8 },
+      { key: "frontSquat", sets: 3, reps: 5 },
+    ],
+  },
+  {
+    name: "Push Focus",
+    notes: "Local demo template. Bench variations and press.",
+    lifts: [
+      { key: "bench", sets: 3, reps: 8 },
+      { key: "incline", sets: 3, reps: 8 },
+      { key: "press", sets: 3, reps: 8 },
+    ],
+  },
+];
+
+/** Extra sessions started from templates (notes used for idempotent top-up). */
+const TEMPLATE_SESSION_SPECS = [
+  { templateName: "Upper Power", weeksAgo: 1, dayOffset: 6, note: "Template: Upper Power" },
+  { templateName: "Lower Strength", weeksAgo: 2, dayOffset: 6, note: "Template: Lower Strength" },
+  { templateName: "Push Focus", weeksAgo: 3, dayOffset: 5, note: "Template: Push Focus" },
+  { templateName: "Upper Power", weeksAgo: 5, dayOffset: 6, note: "Template: Upper Power (earlier)" },
+  { templateName: "Lower Strength", weeksAgo: 6, dayOffset: 5, note: "Template: Lower Strength (earlier)" },
+  { templateName: "Push Focus", weeksAgo: 7, dayOffset: 6, note: "Template: Push Focus (earlier)" },
+];
+
+/**
+ * Future-dated sessions with targets but no logged sets (Home “Upcoming workouts”).
+ * Monday / Wednesday in March 2028 match the active 3-Day Strength days.
+ */
+const PLANNED_SESSION_SPECS = [
+  {
+    performedOn: "2028-03-06",
+    planDayNote: "Squat and bench",
+    note: "Planned: Squat Bench",
+  },
+  {
+    performedOn: "2028-03-08",
+    planDayNote: "Deadlift and row",
+    note: "Planned: Deadlift Row",
+  },
 ];
 
 function loadEnvFile(filePath) {
@@ -93,13 +173,13 @@ function roundToStep(value, step) {
 }
 
 function weekKind(weekIndex) {
-  if (weekIndex === 4) {
+  if (weekIndex === 4 || weekIndex === 16) {
     return "miss";
   }
-  if (weekIndex === 8) {
+  if (weekIndex === 8 || weekIndex === 20) {
     return "deload";
   }
-  if (weekIndex === 12) {
+  if (weekIndex === 12 || weekIndex === 22) {
     return "heavy";
   }
   return "normal";
@@ -108,18 +188,21 @@ function weekKind(weekIndex) {
 function workingWeightKg(lift, weekIndex, kind) {
   const progressed = lift.startKg + lift.stepKg * weekIndex;
   if (kind === "deload") {
-    return roundToStep(progressed * 0.85, lift.stepKg);
+    return roundToStep(Math.max(lift.stepKg, progressed * 0.85), lift.stepKg);
   }
-  return roundToStep(progressed, lift.stepKg);
+  return roundToStep(Math.max(0, progressed), lift.stepKg);
 }
 
 function setsFor(kind, topWeight, step) {
   const warmupRatios = kind === "deload" ? [0.6] : [0.5, 0.75];
-  const warmups = warmupRatios.map((ratio) => ({
-    reps: ratio < 0.7 ? 5 : 3,
-    weight_kg: Math.max(step, roundToStep(topWeight * ratio, step)),
-    is_warmup: true,
-  }));
+  const warmups =
+    topWeight <= 0
+      ? []
+      : warmupRatios.map((ratio) => ({
+          reps: ratio < 0.7 ? 5 : 3,
+          weight_kg: Math.max(step, roundToStep(topWeight * ratio, step)),
+          is_warmup: true,
+        }));
   const workingCount = kind === "deload" ? 2 : kind === "heavy" ? 5 : 4;
   const working = Array.from({ length: workingCount }, () => ({
     reps: 5,
@@ -129,7 +212,7 @@ function setsFor(kind, topWeight, step) {
   return [...warmups, ...working];
 }
 
-function buildHistory(exerciseIdBySlug, planId, planDayIdByNote) {
+function buildPlanHistory(exerciseIdBySlug, planId, planDayIdByNote, planDays) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const thisWeek = startOfWeekMonday(today);
@@ -144,7 +227,7 @@ function buildHistory(exerciseIdBySlug, planId, planDayIdByNote) {
       continue;
     }
     const weekStart = addDays(firstWeek, weekIndex * 7);
-    for (const day of PLAN_DAYS) {
+    for (const day of planDays) {
       const performed = addDays(weekStart, day.dayOffset);
       if (performed > today) {
         continue;
@@ -156,7 +239,8 @@ function buildHistory(exerciseIdBySlug, planId, planDayIdByNote) {
         performed_on: toYyyyMmDd(performed),
         notes: note,
         plan_id: planId,
-        plan_day_id: planDayIdByNote.get(day.note),
+        plan_day_id: planDayIdByNote.get(day.note) ?? null,
+        source_template_id: null,
       });
       day.lifts.forEach((liftKey, index) => {
         const lift = LIFTS[liftKey];
@@ -199,32 +283,100 @@ function buildHistory(exerciseIdBySlug, planId, planDayIdByNote) {
   return { sessions, sessionExercises, sets };
 }
 
-async function ensureActivePlan(supabase, userId, exerciseIdBySlug) {
+function buildTemplateSession(
+  exerciseIdBySlug,
+  templateId,
+  templateDef,
+  performed,
+  note,
+  weekIndex,
+) {
+  const sessionId = randomUUID();
+  const sessions = [
+    {
+      id: sessionId,
+      performed_on: toYyyyMmDd(performed),
+      notes: note,
+      plan_id: null,
+      plan_day_id: null,
+      source_template_id: templateId,
+    },
+  ];
+  const sessionExercises = [];
+  const sets = [];
+
+  templateDef.lifts.forEach((entry, index) => {
+    const lift = LIFTS[entry.key];
+    const exerciseId = exerciseIdBySlug.get(lift.slug);
+    const topWeight = workingWeightKg(lift, weekIndex, "normal");
+    const warmups = setsFor("normal", topWeight, lift.stepKg).filter((set) => set.is_warmup);
+    const working = Array.from({ length: entry.sets }, () => ({
+      reps: entry.reps,
+      weight_kg: topWeight,
+      is_warmup: false,
+    }));
+    const plannedSets = [...warmups, ...working];
+    const sessionExerciseId = randomUUID();
+    sessionExercises.push({
+      id: sessionExerciseId,
+      session_id: sessionId,
+      exercise_id: exerciseId,
+      position: index + 1,
+      target_sets: entry.sets,
+      target_reps: entry.reps,
+      target_weight_kg: topWeight,
+      base_weight_kg: BARBELL_BASE_KG,
+      notes: null,
+    });
+    plannedSets.forEach((set, setIndex) => {
+      sets.push({
+        session_exercise_id: sessionExerciseId,
+        set_number: setIndex + 1,
+        reps: set.reps,
+        weight_kg: set.weight_kg,
+        is_warmup: set.is_warmup,
+        performed_at: new Date(
+          performed.getFullYear(),
+          performed.getMonth(),
+          performed.getDate(),
+          17,
+          setIndex,
+        ).toISOString(),
+      });
+    });
+  });
+
+  return { sessions, sessionExercises, sets };
+}
+
+async function ensurePlan(supabase, userId, exerciseIdBySlug, planDef) {
   const { data: existing, error: existingError } = await supabase
     .from("workout_plans")
     .select("id, is_active")
     .eq("user_id", userId)
-    .eq("name", PLAN_NAME)
+    .eq("name", planDef.name)
     .maybeSingle();
   if (existingError) {
-    throw new Error(`Could not read demo plan: ${existingError.message}`);
+    throw new Error(`Could not read demo plan "${planDef.name}": ${existingError.message}`);
   }
 
   let planId = existing?.id ?? null;
+  let created = false;
   if (!planId) {
+    created = true;
     planId = randomUUID();
     const { error: planError } = await supabase.from("workout_plans").insert({
       id: planId,
       user_id: userId,
-      name: PLAN_NAME,
-      notes: "Local demo plan. Three full-body days.",
-      is_active: true,
+      name: planDef.name,
+      notes: planDef.notes,
+      is_active: planDef.isActive,
     });
     if (planError) {
-      throw new Error(`Could not create demo plan: ${planError.message}`);
+      throw new Error(`Could not create demo plan "${planDef.name}": ${planError.message}`);
     }
 
-    const days = PLAN_DAYS.map((day, index) => ({
+    const days = planDef.days.map((day, index) => ({
       id: randomUUID(),
       plan_id: planId,
       name: day.name,
@@ -236,7 +388,7 @@ async function ensureActivePlan(supabase, userId, exerciseIdBySlug) {
       days.map(({ id, plan_id, name, position }) => ({ id, plan_id, name, position })),
     );
     if (daysError) {
-      throw new Error(`Could not create demo plan days: ${daysError.message}`);
+      throw new Error(`Could not create days for "${planDef.name}": ${daysError.message}`);
     }
 
     const dayExercises = [];
@@ -258,15 +410,15 @@ async function ensureActivePlan(supabase, userId, exerciseIdBySlug) {
       .from("workout_plan_day_exercises")
       .insert(dayExercises);
     if (dayExercisesError) {
-      throw new Error(`Could not create demo plan exercises: ${dayExercisesError.message}`);
+      throw new Error(`Could not create exercises for "${planDef.name}": ${dayExercisesError.message}`);
     }
-  } else if (!existing.is_active) {
+  } else if (planDef.isActive && !existing.is_active) {
     const { error: activateError } = await supabase
       .from("workout_plans")
       .update({ is_active: true })
       .eq("id", planId);
     if (activateError) {
-      throw new Error(`Could not activate demo plan: ${activateError.message}`);
+      throw new Error(`Could not activate demo plan "${planDef.name}": ${activateError.message}`);
     }
   }
 
@@ -276,36 +428,86 @@ async function ensureActivePlan(supabase, userId, exerciseIdBySlug) {
     .eq("plan_id", planId)
     .order("position", { ascending: true });
   if (daysReadError) {
-    throw new Error(`Could not read demo plan days: ${daysReadError.message}`);
+    throw new Error(`Could not read days for "${planDef.name}": ${daysReadError.message}`);
   }
 
   const planDayIdByNote = new Map();
-  for (const day of PLAN_DAYS) {
+  for (const day of planDef.days) {
     const match = (days ?? []).find((row) => row.name === day.name);
     if (match) {
       planDayIdByNote.set(day.note, match.id);
     }
   }
 
-  for (const day of PLAN_DAYS) {
-    const planDayId = planDayIdByNote.get(day.note);
-    if (!planDayId) {
-      continue;
-    }
-    const notes = [day.note, `Deload. ${day.note}`];
-    const { error: linkError } = await supabase
-      .from("workout_sessions")
-      .update({ plan_id: planId, plan_day_id: planDayId })
-      .eq("user_id", userId)
-      .in("notes", notes)
-      .is("plan_id", null);
-    if (linkError) {
-      throw new Error(`Could not link demo sessions to plan: ${linkError.message}`);
+  if (planDef.isActive) {
+    for (const day of planDef.days) {
+      const planDayId = planDayIdByNote.get(day.note);
+      if (!planDayId) {
+        continue;
+      }
+      const notes = [day.note, `Deload. ${day.note}`];
+      const { error: linkError } = await supabase
+        .from("workout_sessions")
+        .update({ plan_id: planId, plan_day_id: planDayId })
+        .eq("user_id", userId)
+        .in("notes", notes)
+        .is("plan_id", null);
+      if (linkError) {
+        throw new Error(`Could not link demo sessions to plan: ${linkError.message}`);
+      }
     }
   }
 
-  return { planId, planDayIdByNote, created: !existing };
+  return { planId, planDayIdByNote, created, name: planDef.name };
 }
+
+async function ensureTemplate(supabase, userId, exerciseIdBySlug, templateDef) {
+  const { data: existing, error: existingError } = await supabase
+    .from("workout_templates")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("name", templateDef.name)
+    .maybeSingle();
+  if (existingError) {
+    throw new Error(`Could not read demo template "${templateDef.name}": ${existingError.message}`);
+  }
+  if (existing?.id) {
+    return { templateId: existing.id, created: false, name: templateDef.name };
+  }
+
+  const templateId = randomUUID();
+  const { error: templateError } = await supabase.from("workout_templates").insert({
+    id: templateId,
+    user_id: userId,
+    name: templateDef.name,
+    notes: templateDef.notes,
+  });
+  if (templateError) {
+    throw new Error(`Could not create demo template "${templateDef.name}": ${templateError.message}`);
+  }
+
+  const exercises = templateDef.lifts.map((entry, index) => {
+    const lift = LIFTS[entry.key];
+    return {
+      template_id: templateId,
+      exercise_id: exerciseIdBySlug.get(lift.slug),
+      position: index + 1,
+      target_sets: entry.sets,
+      target_reps: entry.reps,
+      target_weight_kg: lift.startKg,
+      base_weight_kg: BARBELL_BASE_KG,
+    };
+  });
+  const { error: exercisesError } = await supabase.from("workout_template_exercises").insert(exercises);
+  if (exercisesError) {
+    throw new Error(
+      `Could not create exercises for template "${templateDef.name}": ${exercisesError.message}`,
+    );
+  }
+
+  return { templateId, created: true, name: templateDef.name };
+}
+
 async function insertChunks(supabase, table, rows) {
   const size = 200;
   for (let index = 0; index < rows.length; index += size) {
@@ -348,6 +550,156 @@ async function ensureDemoUser(supabase) {
     throw new Error(error?.message ?? "Could not create the demo user.");
   }
   return { userId: data.user.id, created: true };
+}
+
+async function ensureExerciseDefaults(supabase, userId, exerciseIdBySlug) {
+  const slugs = Object.values(LIFTS).map((lift) => lift.slug);
+  const defaults = slugs.map((slug) => ({
+    user_id: userId,
+    exercise_id: exerciseIdBySlug.get(slug),
+    default_base_weight_kg: BARBELL_BASE_KG,
+    default_target_sets: 4,
+    default_target_reps: 5,
+  }));
+  const { error: defaultsError } = await supabase
+    .from("user_exercise_defaults")
+    .upsert(defaults, { onConflict: "user_id,exercise_id", ignoreDuplicates: true });
+  if (defaultsError) {
+    throw new Error(`Could not save exercise defaults: ${defaultsError.message}`);
+  }
+}
+
+async function seedPlanSessions(supabase, userId, exerciseIdBySlug, activePlan) {
+  const history = buildPlanHistory(
+    exerciseIdBySlug,
+    activePlan.planId,
+    activePlan.planDayIdByNote,
+    STRENGTH_PLAN.days,
+  );
+  const sessions = history.sessions.map((session) => ({ ...session, user_id: userId }));
+  await insertChunks(supabase, "workout_sessions", sessions);
+  await insertChunks(supabase, "workout_session_exercises", history.sessionExercises);
+  await insertChunks(supabase, "workout_sets", history.sets);
+  return sessions.length;
+}
+
+function buildPlannedSession(exerciseIdBySlug, activePlan, planDay, performedOn, note) {
+  const sessionId = randomUUID();
+  const sessions = [
+    {
+      id: sessionId,
+      performed_on: performedOn,
+      notes: note,
+      plan_id: activePlan.planId,
+      plan_day_id: activePlan.planDayIdByNote.get(planDay.note) ?? null,
+      source_template_id: null,
+    },
+  ];
+  const sessionExercises = planDay.lifts.map((liftKey, index) => {
+    const lift = LIFTS[liftKey];
+    return {
+      id: randomUUID(),
+      session_id: sessionId,
+      exercise_id: exerciseIdBySlug.get(lift.slug),
+      position: index + 1,
+      target_sets: 4,
+      target_reps: 5,
+      target_weight_kg: lift.startKg,
+      base_weight_kg: BARBELL_BASE_KG,
+      notes: null,
+    };
+  });
+  return { sessions, sessionExercises };
+}
+
+async function seedMissingPlannedSessions(supabase, userId, exerciseIdBySlug, activePlan) {
+  const notes = PLANNED_SESSION_SPECS.map((spec) => spec.note);
+  const { data: existing, error } = await supabase
+    .from("workout_sessions")
+    .select("notes")
+    .eq("user_id", userId)
+    .in("notes", notes);
+  if (error) {
+    throw new Error(`Could not read planned sessions: ${error.message}`);
+  }
+  const have = new Set((existing ?? []).map((row) => row.notes));
+
+  let added = 0;
+  for (const spec of PLANNED_SESSION_SPECS) {
+    if (have.has(spec.note)) {
+      continue;
+    }
+    const planDay = STRENGTH_PLAN.days.find((day) => day.note === spec.planDayNote);
+    if (!planDay) {
+      continue;
+    }
+    const built = buildPlannedSession(
+      exerciseIdBySlug,
+      activePlan,
+      planDay,
+      spec.performedOn,
+      spec.note,
+    );
+    await insertChunks(
+      supabase,
+      "workout_sessions",
+      built.sessions.map((session) => ({ ...session, user_id: userId })),
+    );
+    await insertChunks(supabase, "workout_session_exercises", built.sessionExercises);
+    added += 1;
+  }
+  return added;
+}
+
+async function seedMissingTemplateSessions(supabase, userId, exerciseIdBySlug, templatesByName) {
+  const notes = TEMPLATE_SESSION_SPECS.map((spec) => spec.note);
+  const { data: existing, error } = await supabase
+    .from("workout_sessions")
+    .select("notes")
+    .eq("user_id", userId)
+    .in("notes", notes);
+  if (error) {
+    throw new Error(`Could not read template sessions: ${error.message}`);
+  }
+  const have = new Set((existing ?? []).map((row) => row.notes));
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const thisWeek = startOfWeekMonday(today);
+
+  let added = 0;
+  for (const spec of TEMPLATE_SESSION_SPECS) {
+    if (have.has(spec.note)) {
+      continue;
+    }
+    const template = templatesByName.get(spec.templateName);
+    const templateDef = DEMO_TEMPLATES.find((row) => row.name === spec.templateName);
+    if (!template || !templateDef) {
+      continue;
+    }
+    const weekStart = addDays(thisWeek, -spec.weeksAgo * 7);
+    const performed = addDays(weekStart, spec.dayOffset);
+    if (performed > today) {
+      continue;
+    }
+    const weekIndex = Math.max(0, HISTORY_WEEKS - 1 - spec.weeksAgo);
+    const built = buildTemplateSession(
+      exerciseIdBySlug,
+      template.templateId,
+      templateDef,
+      performed,
+      spec.note,
+      weekIndex,
+    );
+    await insertChunks(
+      supabase,
+      "workout_sessions",
+      built.sessions.map((session) => ({ ...session, user_id: userId })),
+    );
+    await insertChunks(supabase, "workout_session_exercises", built.sessionExercises);
+    await insertChunks(supabase, "workout_sets", built.sets);
+    added += 1;
+  }
+  return added;
 }
 
 async function seed() {
@@ -433,7 +785,22 @@ async function seed() {
     );
   }
 
-  const plan = await ensureActivePlan(supabase, userId, exerciseIdBySlug);
+  const plans = [];
+  for (const planDef of DEMO_PLANS) {
+    plans.push(await ensurePlan(supabase, userId, exerciseIdBySlug, planDef));
+  }
+  const activePlan = plans.find((plan) => plan.name === STRENGTH_PLAN.name);
+  if (!activePlan) {
+    throw new Error("Active demo plan was not created.");
+  }
+
+  const templates = [];
+  for (const templateDef of DEMO_TEMPLATES) {
+    templates.push(await ensureTemplate(supabase, userId, exerciseIdBySlug, templateDef));
+  }
+  const templatesByName = new Map(templates.map((row) => [row.name, row]));
+
+  await ensureExerciseDefaults(supabase, userId, exerciseIdBySlug);
 
   const { count, error: countError } = await supabase
     .from("workout_sessions")
@@ -444,39 +811,45 @@ async function seed() {
   }
 
   let sessionCount = count ?? 0;
+  let seededPlanSessions = 0;
   if (sessionCount === 0) {
-    const history = buildHistory(exerciseIdBySlug, plan.planId, plan.planDayIdByNote);
-    const sessions = history.sessions.map((session) => ({ ...session, user_id: userId }));
-    await insertChunks(supabase, "workout_sessions", sessions);
-    await insertChunks(supabase, "workout_session_exercises", history.sessionExercises);
-    await insertChunks(supabase, "workout_sets", history.sets);
-    sessionCount = sessions.length;
-
-    const defaults = slugs.map((slug) => ({
-      user_id: userId,
-      exercise_id: exerciseIdBySlug.get(slug),
-      default_base_weight_kg: BARBELL_BASE_KG,
-      default_target_sets: 4,
-      default_target_reps: 5,
-    }));
-    const { error: defaultsError } = await supabase
-      .from("user_exercise_defaults")
-      .upsert(defaults, { onConflict: "user_id,exercise_id", ignoreDuplicates: true });
-    if (defaultsError) {
-      throw new Error(`Could not save exercise defaults: ${defaultsError.message}`);
-    }
+    seededPlanSessions = await seedPlanSessions(supabase, userId, exerciseIdBySlug, activePlan);
+    sessionCount = seededPlanSessions;
   }
+
+  const seededTemplateSessions = await seedMissingTemplateSessions(
+    supabase,
+    userId,
+    exerciseIdBySlug,
+    templatesByName,
+  );
+  sessionCount += seededTemplateSessions;
+
+  const seededPlannedSessions = await seedMissingPlannedSessions(
+    supabase,
+    userId,
+    exerciseIdBySlug,
+    activePlan,
+  );
+  sessionCount += seededPlannedSessions;
 
   const createdLabel = created ? "Created" : "Using";
-  const planLabel = plan.created
-    ? `Seeded active plan "${PLAN_NAME}".`
-    : `Active plan "${PLAN_NAME}" ready.`;
-  if ((count ?? 0) > 0) {
-    console.log(`${createdLabel} local demo user ${DEMO_EMAIL} / ${DEMO_PASSWORD}. ${planLabel}`);
-    return;
-  }
+  const planNames = plans.map((plan) => plan.name).join(", ");
+  const templateNames = templates.map((template) => template.name).join(", ");
+  const planCreated = plans.filter((plan) => plan.created).length;
+  const templateCreated = templates.filter((template) => template.created).length;
+  const addedBits = [
+    seededPlanSessions ? `+${seededPlanSessions} plan` : null,
+    seededTemplateSessions ? `+${seededTemplateSessions} template` : null,
+    seededPlannedSessions ? `+${seededPlannedSessions} planned` : null,
+  ].filter(Boolean);
   console.log(
-    `${createdLabel} local demo user ${DEMO_EMAIL} / ${DEMO_PASSWORD}. Seeded ${sessionCount} sessions. ${planLabel}`,
+    [
+      `${createdLabel} local demo user ${DEMO_EMAIL} / ${DEMO_PASSWORD}.`,
+      `${sessionCount} sessions` + (addedBits.length > 0 ? ` (${addedBits.join(", ")})` : ""),
+      `${plans.length} plans (${planCreated} new): ${planNames}.`,
+      `${templates.length} templates (${templateCreated} new): ${templateNames}.`,
+    ].join(" "),
   );
 }
 try {

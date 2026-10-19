@@ -35,7 +35,12 @@ describe("withWeeklyMovingAverage", () => {
     ];
     const volume = withWeeklyMovingAverage(points, "volume");
     const sets = withWeeklyMovingAverage(points, "workingSets");
+    const sessions = withWeeklyMovingAverage(
+      points.map((point, index) => ({ ...point, sessionCount: index + 1 })),
+      "sessions",
+    );
     assert.equal(volume[3]?.movingAverage, 250);
     assert.equal(sets[3]?.movingAverage, 25);
+    assert.equal(sessions[3]?.movingAverage, 2.5);
   });
 });

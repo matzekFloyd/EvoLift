@@ -17,7 +17,6 @@ import {
 import { PageAddAction } from "@/app/components/page-add-action";
 import { PageShell } from "@/app/components/page-shell";
 import { SectionHeading } from "@/app/components/section-heading";
-import { StatusNotice } from "@/app/components/status-notice";
 import {
   TableRowActions,
   tableRowActionLinkClassName,
@@ -42,8 +41,7 @@ export default function PlansPage() {
   const [isChecking, setIsChecking] = useState(true);
   const [plans, setPlans] = useState<PlanListRow[]>([]);
   const [loadError, setLoadError] = useState<string | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
-  const [messageTone, setMessageTone] = useState<"error" | "success">("error");
+  const [actionError, setActionError] = useState<string | null>(null);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [pendingPlanId, setPendingPlanId] = useState<string | null>(null);
@@ -53,20 +51,6 @@ export default function PlansPage() {
     () => sortRowsByName(plans, nameSortDirection),
     [nameSortDirection, plans],
   );
-
-  function showError(text: string) {
-    setMessageTone("error");
-    setMessage(text);
-  }
-
-  function showSuccess(text: string) {
-    setMessageTone("success");
-    setMessage(text);
-  }
-
-  function clearMessage() {
-    setMessage(null);
-  }
 
   async function reloadPlans() {
     const { data, error } = await supabaseBrowserClient
@@ -124,17 +108,16 @@ export default function PlansPage() {
   async function changeActive(planId: string, isActive: boolean) {
     const token = await accessToken();
     if (!token) {
-      showError("You must be logged in.");
+      setActionError("You must be logged in.");
       return;
     }
     setPendingPlanId(planId);
-    clearMessage();
+    setActionError(null);
     try {
       await setUserPlanActive({ accessToken: token, planId, isActive });
       await reloadPlans();
-      showSuccess(isActive ? "This plan is now active." : "No plan is active.");
     } catch (err) {
-      showError(err instanceof Error ? err.message : "Could not update the active plan.");
+      setActionError(err instanceof Error ? err.message : "Could not update the active plan.");
     } finally {
       setPendingPlanId(null);
     }
@@ -143,17 +126,16 @@ export default function PlansPage() {
   async function duplicate(planId: string) {
     const token = await accessToken();
     if (!token) {
-      showError("You must be logged in.");
+      setActionError("You must be logged in.");
       return;
     }
     setPendingPlanId(planId);
-    clearMessage();
+    setActionError(null);
     try {
       await duplicateUserPlan(token, planId);
       await reloadPlans();
-      showSuccess("Plan duplicated.");
     } catch (err) {
-      showError(err instanceof Error ? err.message : "Could not duplicate plan.");
+      setActionError(err instanceof Error ? err.message : "Could not duplicate plan.");
     } finally {
       setPendingPlanId(null);
     }
@@ -165,18 +147,17 @@ export default function PlansPage() {
     }
     const token = await accessToken();
     if (!token) {
-      showError("You must be logged in.");
+      setActionError("You must be logged in.");
       return;
     }
     setIsDeleting(true);
-    clearMessage();
+    setActionError(null);
     try {
       await deleteUserPlan(token, deleteTargetId);
       setDeleteTargetId(null);
       await reloadPlans();
-      showSuccess("Plan deleted.");
     } catch (err) {
-      showError(err instanceof Error ? err.message : "Could not delete plan.");
+      setActionError(err instanceof Error ? err.message : "Could not delete plan.");
     } finally {
       setIsDeleting(false);
     }
@@ -206,14 +187,7 @@ export default function PlansPage() {
           can be active. Home starts the next session from that plan. Templates stay separate.
         </p>
 
-        {message ? (
-          <StatusNotice
-            message={message}
-            tone={messageTone}
-            onDismiss={clearMessage}
-            className="mt-4"
-          />
-        ) : null}
+        {actionError ? <p className="mt-4 text-sm text-red-600">{actionError}</p> : null}
 
         {loadError ? (
           <p className="mt-4 text-sm text-red-600">{loadError}</p>
@@ -251,7 +225,11 @@ export default function PlansPage() {
                         <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-sky-800 sm:hidden">
                           Active
                         </span>
-                      ) : null}
+                      ) : (
+                        <span className="rounded-full border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-600 sm:hidden">
+                          Inactive
+                        </span>
+                      )}
                     </span>
                   </td>
                   <td className={`${appTableTdClassName} text-zinc-600`}>{row.dayCount}</td>
@@ -260,7 +238,11 @@ export default function PlansPage() {
                       <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-sky-800">
                         Active
                       </span>
-                    ) : null}
+                    ) : (
+                      <span className="rounded-full border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-600">
+                        Inactive
+                      </span>
+                    )}
                   </td>
                   <td className={appTableTdClassName}>
                     <TableRowActions stackUntil="md">

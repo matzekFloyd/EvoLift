@@ -8,6 +8,7 @@ import {
   ChartLine,
   Dumbbell,
   FilterX,
+  Gauge,
   Hash,
   Weight,
 } from "lucide-react";
@@ -16,6 +17,7 @@ import { ActionButton } from "@/app/components/action-button";
 import { CollapsibleSection } from "@/app/components/collapsible-section";
 import { KpiBadge } from "@/app/components/kpi-badge";
 import { ExerciseProgressPanel } from "@/app/components/exercise-progress-panel";
+import { InsightsCompoundE1rmChart } from "@/app/components/insights-compound-e1rm-chart";
 import { LiftComparisonPanel } from "@/app/components/lift-comparison-panel";
 import { PersonalBestsPanel } from "@/app/components/personal-bests-panel";
 import { InsightsWeeklyVolumeChart } from "@/app/components/insights-weekly-volume-chart";
@@ -26,6 +28,7 @@ import { StatusNotice } from "@/app/components/status-notice";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { buildExerciseProgressReport, type LifterProfile } from "@/lib/exercise-progress-insights";
 import { buildInsightsComparisonSentence } from "@/lib/insights-chart-summary";
+import { buildInsightsCompoundE1rmSeries } from "@/lib/insights-compound-e1rm";
 import { resolveLifterAge } from "@/lib/body-metrics";
 import { loadExerciseMetadata } from "@/lib/exercise-metadata-cache";
 import {
@@ -233,6 +236,11 @@ export default function InsightsPage() {
     [dateFrom, dateTo, weeklyVolumeRanged],
   );
 
+  const sessionsChartData = useMemo(
+    () => withWeeklyMovingAverage(weeklyVolumeFiltered, "sessions"),
+    [weeklyVolumeFiltered],
+  );
+
   const volumeChartData = useMemo(
     () => withWeeklyMovingAverage(weeklyVolumeFiltered, "volume"),
     [weeklyVolumeFiltered],
@@ -262,6 +270,19 @@ export default function InsightsPage() {
     }
     return null;
   }, [dateFrom, dateTo, selectedRange]);
+
+  const sessionsComparisonSentence = useMemo(
+    () =>
+      buildInsightsComparisonSentence({
+        metric: "sessions",
+        currentWeeks: weeklyVolumeFiltered,
+        allWeeks: weeklyVolumeBase,
+        dateFrom,
+        dateTo,
+        periodName: comparisonPeriodName,
+      }),
+    [comparisonPeriodName, dateFrom, dateTo, weeklyVolumeBase, weeklyVolumeFiltered],
+  );
 
   const volumeComparisonSentence = useMemo(
     () =>
@@ -293,6 +314,19 @@ export default function InsightsPage() {
     () => buildExerciseProgressReport(exerciseSets, { from: dateFrom, to: dateTo }, lifterProfile),
     [dateFrom, dateTo, exerciseSets, lifterProfile],
   );
+
+  const compoundE1rmSeries = useMemo(() => {
+    const inRange = exerciseSets.filter((sample) => {
+      if (dateFrom && sample.performedOn < dateFrom) {
+        return false;
+      }
+      if (dateTo && sample.performedOn > dateTo) {
+        return false;
+      }
+      return true;
+    });
+    return buildInsightsCompoundE1rmSeries(inRange);
+  }, [dateFrom, dateTo, exerciseSets]);
 
   const personalBestRows = useMemo(
     () =>
@@ -425,6 +459,23 @@ export default function InsightsPage() {
               />
             </div>
             <ExerciseProgressPanel report={exerciseProgress} />
+            <CollapsibleSection
+              title="Estimated one-rep max (1RM)"
+              icon={<Gauge />}
+              defaultOpen={false}
+            >
+              <p className="text-sm text-zinc-800">
+                Best estimated 1RM per session for Barbell Back Squat, Bench Press, Deadlift, and
+                Overhead Press.
+              </p>
+              <p className="mt-1 text-xs text-zinc-500">
+                Epley on Total (kg), working sets of 12 reps or fewer. Not a tested max. Open an
+                exercise for the full chart.
+              </p>
+              <div className="mt-3">
+                <InsightsCompoundE1rmChart series={compoundE1rmSeries} />
+              </div>
+            </CollapsibleSection>
             <LiftComparisonPanel report={exerciseProgress} />
             <PersonalBestsPanel
               rows={personalBestRows}
@@ -432,16 +483,26 @@ export default function InsightsPage() {
               onHideEmptyChange={setHideEmptyPersonalBests}
             />
             <CollapsibleSection
-              title="Weekly volume & sets"
+              title="Weekly sessions, volume & sets"
               icon={<ChartLine />}
               defaultOpen={false}
             >
               {!hasTrendChartData ? (
                 <p className="text-xs text-zinc-500">
-                  No qualifying volume or working set data for the current filters yet.
+                  No qualifying session, volume, or working set data for the current filters yet.
                 </p>
               ) : (
                 <div className="space-y-6">
+                  <div>
+                    <p className="text-sm font-medium text-zinc-800">Sessions</p>
+                    <p className="mt-1 text-sm text-zinc-800">{sessionsComparisonSentence}</p>
+                    <p className="mt-1 text-xs text-zinc-500">
+                      Workout sessions per week. The line is a 4-week average.
+                    </p>
+                    <div className="mt-3">
+                      <InsightsWeeklyVolumeChart data={sessionsChartData} metric="sessions" />
+                    </div>
+                  </div>
                   <div>
                     <p className="text-sm font-medium text-zinc-800">Volume</p>
                     <p className="mt-1 text-sm text-zinc-800">{volumeComparisonSentence}</p>

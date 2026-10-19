@@ -1,5 +1,5 @@
 export const PLANNED_SESSION_SETS_MESSAGE =
-  "Planned workouts cannot have sets yet. Log sets on or after the session date.";
+  "Upcoming workouts cannot have sets yet. Log sets on or after the session date.";
 
 export const TARGETS_EXERCISE_MISSING = "Could not determine which exercise targets to update.";
 

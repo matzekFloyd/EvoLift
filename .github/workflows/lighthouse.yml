@@ -3,8 +3,6 @@ name: Lighthouse
 on:
   push:
     branches: ["master"]
-  pull_request:
-    branches: ["master"]
 
 permissions:
   contents: read
@@ -72,4 +70,6 @@ jobs:
         with:
           name: lighthouse-reports
           path: evo-lift/.lighthouseci/
-          if-no-files-found: ignore
+          # Dot-directories are skipped unless this is true.
+          include-hidden-files: true
+          if-no-files-found: warn

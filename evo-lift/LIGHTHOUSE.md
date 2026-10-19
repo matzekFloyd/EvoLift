@@ -48,6 +48,8 @@ Optional env:
 
 ## CI
 
-The **Lighthouse** workflow (`.github/workflows/lighthouse.yml`) starts local Supabase, seeds the demo user, builds the app, and runs the same `npm run lighthouse` command on pull requests and pushes to `master`.
+The **Lighthouse** workflow (`.github/workflows/lighthouse.yml`) starts local Supabase, seeds the demo user, builds the app, and runs the same `npm run lighthouse` command on pushes to `master`.
+
+The job fails when a score is below the thresholds above. HTML/JSON reports under `.lighthouseci/` are uploaded as the `lighthouse-reports` workflow artifact (including on failure) so you can inspect a run in the Actions UI.
 
 Chrome is launched with `--no-sandbox` so the job works on GitHub-hosted Ubuntu runners.
