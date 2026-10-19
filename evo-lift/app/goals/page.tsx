@@ -21,7 +21,7 @@ import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { exerciseOptionsForPicker, type ExercisePickerOption } from "@/lib/exercise-picker-options";
 import {
   formatBestSet,
-  formatGoalGap,
+  goalGapLabel,
   formatKgAmount,
   milestoneDefinitionChanged,
   parseGoalForm,
@@ -472,7 +472,7 @@ export default function GoalsPage() {
         measured?.bestTotalKg != null && measured.bestReps != null
           ? formatBestSet(measured.bestTotalKg, measured.bestReps)
           : null,
-      gapLabel: measured ? formatGoalGap(measured.gapKg) : null,
+      gapLabel: goalGapLabel(progress),
       percent: measured?.percent ?? null,
       achievedLabel:
         measured?.kind === "achieved" && measured.achievedAt
