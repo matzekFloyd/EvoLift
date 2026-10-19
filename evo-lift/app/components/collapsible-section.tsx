@@ -71,10 +71,8 @@ export function CollapsibleSection({
     </>
   );
 
-  let content: ReactNode;
-
   if (!canToggle) {
-    content = (
+    const staticContent = (
       <>
         <SectionHeading id={headingId} className="inline-flex min-w-0 items-center gap-1.5">
           {titleRow}
@@ -82,28 +80,39 @@ export function CollapsibleSection({
         {body}
       </>
     );
-  } else {
-    content = (
-      <details className="group" {...(defaultOpen ? { open: true } : {})}>
-        <summary className="w-fit cursor-pointer list-none rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60 [&::-webkit-details-marker]:hidden">
-          <SectionHeading id={headingId} className="inline-flex items-center gap-1.5">
-            <ChevronRight
-              className="h-4 w-4 shrink-0 text-zinc-500 transition-transform group-open:rotate-90"
-              aria-hidden
-            />
-            {titleRow}
-          </SectionHeading>
-        </summary>
-        {body}
-      </details>
+    if (!inset) {
+      return <section className={className}>{staticContent}</section>;
+    }
+    return (
+      <PanelInset className={["p-4", className].filter(Boolean).join(" ")}>{staticContent}</PanelInset>
     );
   }
 
+  const summaryClassName = [
+    "flex w-full cursor-pointer list-none items-center",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60 focus-visible:ring-inset",
+    "[&::-webkit-details-marker]:hidden",
+    inset ? "px-4 py-4 hover:bg-zinc-100/90" : "rounded-md py-1 hover:bg-zinc-100/60",
+  ].join(" ");
+
+  const details = (
+    <details className="group" {...(defaultOpen ? { open: true } : {})}>
+      <summary className={summaryClassName}>
+        <SectionHeading id={headingId} className="inline-flex w-full min-w-0 items-center gap-1.5">
+          <ChevronRight
+            className="h-4 w-4 shrink-0 text-zinc-500 transition-transform group-open:rotate-90"
+            aria-hidden
+          />
+          {titleRow}
+        </SectionHeading>
+      </summary>
+      {inset ? <div className="px-4 pb-4">{body}</div> : body}
+    </details>
+  );
+
   if (!inset) {
-    return <section className={className}>{content}</section>;
+    return <section className={className}>{details}</section>;
   }
 
-  return (
-    <PanelInset className={["p-4", className].filter(Boolean).join(" ")}>{content}</PanelInset>
-  );
+  return <PanelInset className={["overflow-hidden p-0", className].filter(Boolean).join(" ")}>{details}</PanelInset>;
 }
