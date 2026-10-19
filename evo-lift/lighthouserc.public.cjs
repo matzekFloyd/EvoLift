@@ -9,6 +9,8 @@ module.exports = {
       settings: {
         preset: "desktop",
         onlyCategories: ["performance"],
+        // Required on GitHub-hosted runners (no usable Chrome sandbox).
+        chromeFlags: "--no-sandbox --disable-setuid-sandbox --disable-gpu",
       },
     },
     assert: {

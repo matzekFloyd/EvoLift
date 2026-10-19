@@ -15,6 +15,8 @@ module.exports = {
         onlyCategories: ["performance"],
         // Keep the session from lighthouse-login across Lighthouse runs.
         disableStorageReset: true,
+        // Required on GitHub-hosted runners (no usable Chrome sandbox).
+        chromeFlags: "--no-sandbox --disable-setuid-sandbox --disable-gpu",
       },
     },
     assert: {
