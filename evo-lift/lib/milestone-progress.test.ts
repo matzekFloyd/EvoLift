@@ -7,6 +7,7 @@ import {
   formatKgAmount,
   formatMilestoneTarget,
   formatRepCount,
+  goalGapLabel,
   milestoneDefinitionChanged,
   parseGoalForm,
   resolveMilestone,
@@ -84,6 +85,37 @@ describe("milestone totals and copy", () => {
     );
     assert.equal(formatGoalGap(12.5), "12.5 kg to go");
     assert.equal(formatBestSet(80, 5), "Best set: 80 kg × 5 reps");
+  });
+
+  it("hides the gap line for achieved goals and keeps it for active ones", () => {
+    assert.equal(goalGapLabel(null), null);
+    assert.equal(goalGapLabel({ kind: "missing_bodyweight", pastDue: false }), null);
+    assert.equal(
+      goalGapLabel({
+        kind: "achieved",
+        thresholdKg: 100,
+        bestTotalKg: 100,
+        bestReps: 5,
+        gapKg: 0,
+        percent: 100,
+        achievedAt: "2026-10-01T12:00:00Z",
+        pastDue: false,
+      }),
+      null,
+    );
+    assert.equal(
+      goalGapLabel({
+        kind: "active",
+        thresholdKg: 100,
+        bestTotalKg: 87.5,
+        bestReps: 5,
+        gapKg: 12.5,
+        percent: 87.5,
+        achievedAt: null,
+        pastDue: false,
+      }),
+      "12.5 kg to go",
+    );
   });
 
   it("notices a change to the exercise, type, target, multiple, or reps", () => {
