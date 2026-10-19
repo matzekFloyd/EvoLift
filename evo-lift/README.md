@@ -23,6 +23,10 @@ Minimum review checklist:
 
 Install, local Supabase, and scripts are in the repository [README](../README.md). From this folder, `npm run dev` starts the app at [http://localhost:3000](http://localhost:3000).
 
+## Lighthouse performance
+
+Surfaces, pass/fail scores, and how to re-run locally or in CI are in [`LIGHTHOUSE.md`](./LIGHTHOUSE.md).
+
 ## Supabase DB Workflow
 
 Use this workflow for all database schema changes so local and remote stay in sync.
