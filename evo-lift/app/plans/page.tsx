@@ -220,13 +220,7 @@ export default function PlansPage() {
         ) : plans.length === 0 ? (
           <p className="mt-4 text-center text-sm text-zinc-600">No plans yet.</p>
         ) : (
-          <AppTable className="mt-4" tableClassName="table-fixed w-full min-w-0">
-            <colgroup>
-              <col />
-              <col className="w-16" />
-              <col className="w-0 sm:w-24" />
-              <col className="w-[7.25rem] md:w-[36rem]" />
-            </colgroup>
+          <AppTable className="mt-4">
             <thead>
               <tr className={appTableHeadRowClassName}>
                 <th className={appTableThClassName}>
@@ -240,8 +234,8 @@ export default function PlansPage() {
                     Name <span>{nameSortDirection === "asc" ? "↑" : "↓"}</span>
                   </button>
                 </th>
-                <th className={appTableThClassName}>Days</th>
-                <th className={`${appTableThClassName} hidden sm:table-cell`}>Status</th>
+                <th className={`${appTableThClassName} w-16`}>Days</th>
+                <th className={`${appTableThClassName} hidden w-24 sm:table-cell`}>Status</th>
                 <AppTableActionsHeader />
               </tr>
             </thead>

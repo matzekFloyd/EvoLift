@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { PanelInset } from "@/app/components/panel-inset";
+import { PanelInsetSurfaceProvider } from "@/app/components/panel-inset";
 
 type AppTableProps = {
   children: ReactNode;
@@ -10,13 +10,15 @@ type AppTableProps = {
 };
 
 export const appTableHeadRowClassName =
-  "text-left text-xs font-medium uppercase tracking-wide text-zinc-600";
+  "bg-zinc-200/60 text-left text-xs font-medium uppercase tracking-wide text-zinc-600";
 
 export const appTableThClassName = "px-4 py-3";
 
 export const appTableTdClassName = "px-4 py-3";
 
-export const appTableRowClassName = "bg-white";
+/** Zebra rows: white / grey. Prefer this on every `tbody` row. */
+export const appTableRowClassName =
+  "odd:bg-white even:bg-zinc-100 hover:bg-sky-50";
 
 /** Visually empty actions header; keeps the column labeled for assistive tech. */
 export function AppTableActionsHeader() {
@@ -27,17 +29,36 @@ export function AppTableActionsHeader() {
   );
 }
 
-/** Nested data table shell (PanelInset + scroll). Use for plans, templates, logs, etc. */
+/**
+ * Full-width bordered table on a white `.panel` with alternating row tones.
+ * Do not wrap in another inset.
+ */
 export function AppTable({ children, tableClassName, className }: AppTableProps) {
   return (
-    <PanelInset className={["overflow-x-auto p-0", className].filter(Boolean).join(" ")}>
-      <table
-        className={["min-w-full divide-y divide-zinc-200 text-sm", tableClassName]
+    <PanelInsetSurfaceProvider>
+      <div
+        className={[
+          "w-full overflow-x-auto rounded-md border border-zinc-200 bg-white",
+          className,
+        ]
           .filter(Boolean)
           .join(" ")}
       >
-        {children}
-      </table>
-    </PanelInset>
+        <table
+          className={[
+            "w-full min-w-full divide-y divide-zinc-200 text-sm",
+            // Zebra only when not hovered so hover can paint sky without !important wars.
+            "[&_tbody>tr:nth-child(odd):not(:hover)]:bg-white",
+            "[&_tbody>tr:nth-child(even):not(:hover)]:bg-zinc-100",
+            "[&_tbody>tr:hover]:bg-sky-50",
+            tableClassName,
+          ]
+            .filter(Boolean)
+            .join(" ")}
+        >
+          {children}
+        </table>
+      </div>
+    </PanelInsetSurfaceProvider>
   );
 }
