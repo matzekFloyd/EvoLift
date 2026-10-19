@@ -26,6 +26,11 @@ type CollapsibleSectionProps = {
    */
   headerAside?: ReactNode;
   /**
+   * Compact chips in the summary row (e.g. Exercise progress pace counts).
+   * Shown only while the section is collapsed.
+   */
+  titleAside?: ReactNode;
+  /**
    * When false, render without the muted PanelInset shell (e.g. Goals groups,
    * or grey KPI tiles that already provide the inset surface).
    */
@@ -42,6 +47,7 @@ export function CollapsibleSection({
   alwaysOpen = false,
   defaultOpen = false,
   headerAside,
+  titleAside,
   inset = true,
   className,
   titleId,
@@ -74,9 +80,12 @@ export function CollapsibleSection({
   if (!canToggle) {
     const staticContent = (
       <>
-        <SectionHeading id={headingId} className="inline-flex min-w-0 items-center gap-1.5">
-          {titleRow}
-        </SectionHeading>
+        <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
+          <SectionHeading id={headingId} className="inline-flex min-w-0 items-center gap-1.5">
+            {titleRow}
+          </SectionHeading>
+          {titleAside}
+        </div>
         {body}
       </>
     );
@@ -89,7 +98,7 @@ export function CollapsibleSection({
   }
 
   const summaryClassName = [
-    "flex w-full cursor-pointer list-none items-center",
+    "flex w-full cursor-pointer list-none flex-wrap items-center gap-x-2 gap-y-1.5",
     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60 focus-visible:ring-inset",
     "[&::-webkit-details-marker]:hidden",
     inset ? "px-4 py-4 hover:bg-zinc-100/90" : "rounded-md py-1 hover:bg-zinc-100/60",
@@ -98,13 +107,14 @@ export function CollapsibleSection({
   const details = (
     <details className="group" {...(defaultOpen ? { open: true } : {})}>
       <summary className={summaryClassName}>
-        <SectionHeading id={headingId} className="inline-flex w-full min-w-0 items-center gap-1.5">
+        <SectionHeading id={headingId} className="inline-flex min-w-0 items-center gap-1.5">
           <ChevronRight
             className="h-4 w-4 shrink-0 text-zinc-500 transition-transform group-open:rotate-90"
             aria-hidden
           />
           {titleRow}
         </SectionHeading>
+        {titleAside ? <span className="contents group-open:hidden">{titleAside}</span> : null}
       </summary>
       {inset ? <div className="px-4 pb-4">{body}</div> : body}
     </details>
