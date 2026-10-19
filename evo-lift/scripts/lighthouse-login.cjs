@@ -2,12 +2,19 @@
  * Logs in as the local demo user before Lighthouse measures Home / Insights.
  * Pair with `settings.disableStorageReset: true` in lighthouserc.app.cjs.
  *
- * LHCI invokes this before every URL. After the first login, the session is kept,
- * so later calls must no-op when already authenticated.
+ * LHCI invokes this before every URL in the same Node process. After the first
+ * successful login, later calls no-op so a client redirect off `/login` does not
+ * race the form selectors.
  *
  * @param {import("puppeteer").Browser} browser
  */
+let hasLoggedIn = false;
+
 module.exports = async (browser) => {
+  if (hasLoggedIn) {
+    return;
+  }
+
   const baseUrl = process.env.LHCI_BASE_URL || "http://127.0.0.1:3000";
   const email = process.env.LHCI_EMAIL || "demo@example.com";
   const password = process.env.LHCI_PASSWORD || "demo1234";
@@ -16,18 +23,26 @@ module.exports = async (browser) => {
   try {
     await page.goto(`${baseUrl}/login`, { waitUntil: "load", timeout: 60_000 });
 
-    // Already signed in: login redirects to Home, so there is no form to fill.
+    // Form ready, or already authenticated and redirected away from /login.
+    await page.waitForFunction(
+      () =>
+        Boolean(document.querySelector('input[type="email"]')) ||
+        !window.location.pathname.startsWith("/login"),
+      { timeout: 30_000 },
+    );
+
     if (!new URL(page.url()).pathname.startsWith("/login")) {
+      hasLoggedIn = true;
       return;
     }
 
     const emailInput = await page.waitForSelector('input[type="email"]', {
       visible: true,
-      timeout: 30_000,
+      timeout: 10_000,
     });
     const passwordInput = await page.waitForSelector('input[type="password"]', {
       visible: true,
-      timeout: 30_000,
+      timeout: 10_000,
     });
     if (!emailInput || !passwordInput) {
       throw new Error("Login form fields were not found.");
@@ -44,6 +59,8 @@ module.exports = async (browser) => {
       }),
       page.click('button[type="submit"]'),
     ]);
+
+    hasLoggedIn = true;
   } catch (error) {
     const pathname = (() => {
       try {
