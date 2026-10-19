@@ -245,22 +245,25 @@ export default function LoginPage() {
             </label>
           ) : null}
 
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            {message ? <p className="text-sm text-red-600 sm:flex-1">{message}</p> : null}
+          {message ? <p className="text-sm text-red-600">{message}</p> : null}
+          <div className="flex w-full items-center gap-3">
+            <Link
+              href="/privacy"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mr-auto shrink-0 text-sm font-medium text-sky-800 underline-offset-2 hover:underline"
+            >
+              Privacy policy
+            </Link>
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full cursor-pointer rounded-md border border-sky-700 bg-sky-700 px-4 py-2 text-sm text-white shadow-sm hover:border-sky-600 hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-60 sm:ml-auto sm:w-24"
+              className="ml-auto shrink-0 cursor-pointer rounded-md border border-sky-700 bg-sky-700 px-4 py-2 text-sm text-white shadow-sm hover:border-sky-600 hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {mode === "login" ? "Log in" : "Register"}
             </button>
           </div>
         </form>
-        <p className="mt-4 text-sm">
-          <Link href="/privacy" className="font-medium text-sky-800 underline-offset-2 hover:underline">
-            Privacy policy
-          </Link>
-        </p>
       </section>
 
       {successEmail ? (
