@@ -1,6 +1,6 @@
 # EvoLift
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Test](https://github.com/matzekFloyd/EvoLift/actions/workflows/test.yml/badge.svg)](https://github.com/matzekFloyd/EvoLift/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Test](https://github.com/matzekFloyd/EvoLift/actions/workflows/test.yml/badge.svg)](https://github.com/matzekFloyd/EvoLift/actions/workflows/test.yml) [![Lighthouse](https://github.com/matzekFloyd/EvoLift/actions/workflows/lighthouse.yml/badge.svg)](https://github.com/matzekFloyd/EvoLift/actions/workflows/lighthouse.yml)
 
 EvoLift is a mobile-first workout logging application built with Next.js and Supabase.
 
@@ -199,9 +199,12 @@ npm run lint
 npm test
 npm run test:integration
 npm run build
+npm run lighthouse
 ```
 
 `npm run test:integration` calls the workout API against local Supabase. Start it with `supabase start` from the repository root first. The URL must be `127.0.0.1` or `localhost`.
+
+`npm run lighthouse` builds on a production `next start` server and fails if performance scores drop below the thresholds in [`evo-lift/LIGHTHOUSE.md`](evo-lift/LIGHTHOUSE.md). Seed the local demo user first (`npm run seed:local`) so Home and Insights run logged in.
 
 ## Android app
 
