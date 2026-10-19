@@ -166,8 +166,9 @@ export default function LoginPage() {
   }
 
   return (
-    <PageShell className="max-w-md gap-6 pt-6 sm:pt-8">
-      <section className="panel p-4">
+    <div className="flex min-h-full flex-1 flex-col bg-gradient-to-b from-sky-100 via-sky-50 to-white">
+      <PageShell className="max-w-md justify-center gap-6">
+        <section className="panel p-4">
         {isVerifiedNotice ? (
           <div className="mb-4 flex items-start gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
             <CircleCheck className="mt-0.5 h-4 w-4 shrink-0" />
@@ -247,14 +248,24 @@ export default function LoginPage() {
 
           {message ? <p className="text-sm text-red-600">{message}</p> : null}
           <div className="flex w-full items-center gap-3">
-            <Link
-              href="/privacy"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mr-auto shrink-0 text-sm font-medium text-sky-800 underline-offset-2 hover:underline"
-            >
-              Privacy policy
-            </Link>
+            <div className="mr-auto flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+              <Link
+                href="/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 text-sm font-medium text-sky-800 underline-offset-2 hover:underline"
+              >
+                Terms of use
+              </Link>
+              <Link
+                href="/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="shrink-0 text-sm font-medium text-sky-800 underline-offset-2 hover:underline"
+              >
+                Privacy policy
+              </Link>
+            </div>
             <button
               type="submit"
               disabled={isLoading}
@@ -278,6 +289,7 @@ export default function LoginPage() {
           </p>
         </section>
       ) : null}
-    </PageShell>
+      </PageShell>
+    </div>
   );
 }
