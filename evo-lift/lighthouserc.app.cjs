@@ -8,15 +8,14 @@ module.exports = {
       url: [`${baseUrl}/`, `${baseUrl}/insights`],
       puppeteerScript: "./scripts/lighthouse-login.cjs",
       puppeteerLaunchOptions: {
-        args: ["--no-sandbox", "--disable-setuid-sandbox"],
+        // chromeFlags in settings are ignored when puppeteerScript is set.
+        args: ["--no-sandbox", "--disable-setuid-sandbox", "--disable-gpu"],
       },
       settings: {
         preset: "desktop",
         onlyCategories: ["performance"],
         // Keep the session from lighthouse-login across Lighthouse runs.
         disableStorageReset: true,
-        // Required on GitHub-hosted runners (no usable Chrome sandbox).
-        chromeFlags: "--no-sandbox --disable-setuid-sandbox --disable-gpu",
       },
     },
     assert: {
