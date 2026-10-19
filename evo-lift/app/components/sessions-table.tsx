@@ -106,9 +106,7 @@ export function SessionsTable({
   return (
     <div className="space-y-3">
       <AppTable
-        tableClassName={`table-fixed ${
-          compactMode ? "min-w-0" : "min-w-full md:min-w-[620px]"
-        }`}
+        tableClassName={`w-full table-fixed ${compactMode ? "min-w-0" : "min-w-full"}`}
       >
           <colgroup>
             <col className={compactMode ? "w-[152px]" : "w-[180px]"} />
@@ -116,8 +114,8 @@ export function SessionsTable({
             {showNotesColumn ? <col className={compactMode ? "w-[140px]" : "w-[180px]"} /> : null}
           </colgroup>
           <thead>
-            <tr className="border-b">
-              <th className="px-2 py-2 font-medium">
+            <tr className="border-b border-zinc-200 bg-zinc-200/60">
+              <th className="px-2 py-2 font-medium text-zinc-700">
                 <button
                   type="button"
                   onClick={togglePerformedOnSort}
@@ -126,9 +124,9 @@ export function SessionsTable({
                   {dateHeaderLabel} {renderPerformedOnSortIndicator()}
                 </button>
               </th>
-              <th className="px-2 py-2 font-medium">Exercises</th>
+              <th className="px-2 py-2 font-medium text-zinc-700">Exercises</th>
               {showNotesColumn ? (
-                <th className="px-2 py-2 font-medium">Notes</th>
+                <th className="px-2 py-2 font-medium text-zinc-700">Notes</th>
               ) : null}
             </tr>
           </thead>
@@ -157,9 +155,9 @@ export function SessionsTable({
                     key={row.id}
                     className={`border-b last:border-b-0 ${
                       isOpening
-                        ? "cursor-progress bg-sky-100"
+                        ? "cursor-progress !bg-sky-100 hover:!bg-sky-100"
                         : isHighlighted
-                          ? "cursor-pointer bg-sky-100/70 hover:bg-sky-100"
+                          ? "cursor-pointer !bg-sky-100/70 hover:!bg-sky-100"
                           : "cursor-pointer hover:bg-sky-50"
                     }`}
                     onClick={() => onOpenRow(row.id)}

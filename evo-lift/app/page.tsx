@@ -7,7 +7,6 @@ import { ActionButton } from "@/app/components/action-button";
 import { PageAddAction } from "@/app/components/page-add-action";
 import { DateInput } from "@/app/components/date-input";
 import { PageShell } from "@/app/components/page-shell";
-import { PanelInset } from "@/app/components/panel-inset";
 import { SectionHeading } from "@/app/components/section-heading";
 import { ActivePlanPanel } from "@/app/components/active-plan-panel";
 import { NewSessionDraftCallout } from "@/app/components/new-session-draft-callout";
@@ -347,18 +346,16 @@ export default function Home() {
         {plannedSessions.length === 0 ? (
           <p className="text-sm text-zinc-500">No planned workouts.</p>
         ) : (
-          <PanelInset className="p-3">
-            <SessionsTable
-              rows={plannedTableRows}
-              dateHeaderLabel="Planned on"
-              emptyMessage="No planned workouts."
-              showNotesColumn={!isSmallPhone}
-              compactMode={isSmallPhone}
-              openingRowId={openingSessionId}
-              highlightedPerformedOnDates={highlightedActivityDates}
-              onOpenRow={openSession}
-            />
-          </PanelInset>
+          <SessionsTable
+            rows={plannedTableRows}
+            dateHeaderLabel="Planned on"
+            emptyMessage="No planned workouts."
+            showNotesColumn={!isSmallPhone}
+            compactMode={isSmallPhone}
+            openingRowId={openingSessionId}
+            highlightedPerformedOnDates={highlightedActivityDates}
+            onOpenRow={openSession}
+          />
         )}
       </section>
       <section className="panel p-5">
@@ -415,19 +412,17 @@ export default function Home() {
               goalReachedByDate={goalReachedByDate}
               onDayClick={openActivityDay}
             />
-            <PanelInset className="p-3">
-              <SessionsTable
-                rows={completedTableRows}
-                dateHeaderLabel="Performed on"
-                emptyMessage="No completed workout sessions in the selected timeframe."
-                showNotesColumn={!isSmallPhone}
-                compactMode={isSmallPhone}
-                openingRowId={openingSessionId}
-                highlightedPerformedOnDates={highlightedActivityDates}
-                goalReachedByDate={goalReachedByDate}
-                onOpenRow={openSession}
-              />
-            </PanelInset>
+            <SessionsTable
+              rows={completedTableRows}
+              dateHeaderLabel="Performed on"
+              emptyMessage="No completed workout sessions in the selected timeframe."
+              showNotesColumn={!isSmallPhone}
+              compactMode={isSmallPhone}
+              openingRowId={openingSessionId}
+              highlightedPerformedOnDates={highlightedActivityDates}
+              goalReachedByDate={goalReachedByDate}
+              onOpenRow={openSession}
+            />
           </div>
         )}
       </section>

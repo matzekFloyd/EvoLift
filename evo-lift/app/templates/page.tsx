@@ -216,12 +216,7 @@ export default function TemplatesPage() {
         ) : templates.length === 0 ? (
           <p className="mt-4 text-center text-sm text-zinc-600">No templates yet.</p>
         ) : (
-          <AppTable className="mt-4" tableClassName="table-fixed w-full min-w-0">
-            <colgroup>
-              <col />
-              <col className="w-14 sm:w-24" />
-              <col className="w-[7.25rem] md:w-[28rem]" />
-            </colgroup>
+          <AppTable className="mt-4">
             <thead>
               <tr className={appTableHeadRowClassName}>
                 <th className={appTableThClassName}>
@@ -235,7 +230,7 @@ export default function TemplatesPage() {
                     Name <span>{nameSortDirection === "asc" ? "↑" : "↓"}</span>
                   </button>
                 </th>
-                <th className={`${appTableThClassName} whitespace-nowrap`}>
+                <th className={`${appTableThClassName} w-14 whitespace-nowrap sm:w-24`}>
                   <span className="sm:hidden">Ex.</span>
                   <span className="hidden sm:inline">Exercises</span>
                 </th>
