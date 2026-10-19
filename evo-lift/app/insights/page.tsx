@@ -424,8 +424,8 @@ export default function InsightsPage() {
                 className={insightsKpiClassName}
               />
             </div>
-            <LiftComparisonPanel report={exerciseProgress} />
             <ExerciseProgressPanel report={exerciseProgress} />
+            <LiftComparisonPanel report={exerciseProgress} />
             <PersonalBestsPanel
               rows={personalBestRows}
               hideEmpty={hideEmptyPersonalBests}
