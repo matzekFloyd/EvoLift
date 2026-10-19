@@ -974,7 +974,7 @@ export default function SessionDetailPage() {
               <span>{formattedPerformedOn}</span>
               {isPlannedSession ? (
                 <span className="rounded-full border border-zinc-300 bg-zinc-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-700">
-                  Planned
+                  Upcoming
                 </span>
               ) : null}
               {createdFromLabel ? (
@@ -991,7 +991,7 @@ export default function SessionDetailPage() {
               <span>{formattedPerformedOn}</span>
               {isPlannedSession ? (
                 <span className="rounded-full border border-zinc-300 bg-zinc-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-700">
-                  Planned
+                  Upcoming
                 </span>
               ) : null}
               {createdFromLabel ? (

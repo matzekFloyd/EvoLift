@@ -93,11 +93,6 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
       "An ordered cycle of days. One plan can be active. Starting a day copies its exercises and targets into a new workout session. Later edits do not change sessions you already started.",
   },
   {
-    term: "Planned session",
-    definition:
-      "A workout session dated after today. It stays under Planned workouts until that day. A template or a plan day can prefill one.",
-  },
-  {
     term: "Reps",
     definition:
       "How many times you complete the movement in a set. Written as a number plus reps, for example 5 reps.",
@@ -144,6 +139,11 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Total (kg)",
     definition: "Loaded (kg) plus the base weight for that exercise on the session.",
+  },
+  {
+    term: "Upcoming session",
+    definition:
+      "A workout session dated after today. It stays under Upcoming workouts until that day. A template or a plan day can prefill one.",
   },
   {
     term: "Warmup",

@@ -721,6 +721,9 @@ export default function AccountPage() {
         value={activeSection}
         onChange={setActiveSection}
         className="w-full"
+        buttonLayout="equal-row"
+        buttonMinWidthClassName="min-w-0"
+        tabListAriaLabel="Account sections"
         options={[
           { value: "security", label: "Login", icon: <Lock className="h-3.5 w-3.5" /> },
           { value: "profile", label: "Profile", icon: <UserRound className="h-3.5 w-3.5" /> },

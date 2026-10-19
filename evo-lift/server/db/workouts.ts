@@ -498,7 +498,7 @@ export async function addWorkoutSet(
   if (isFutureSessionDate(session.performed_on)) {
     throw new ApiHttpError(
       400,
-      "Planned workouts cannot have sets yet. Log sets on or after the session date.",
+      "Upcoming workouts cannot have sets yet. Log sets on or after the session date.",
     );
   }
 

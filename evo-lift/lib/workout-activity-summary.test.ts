@@ -39,7 +39,7 @@ describe("activity intensity", () => {
     assert.equal(activityIntensityPhrase("workout"), "A workout was done.");
     assert.equal(
       activityIntensityPhrase("no-sets"),
-      "A workout is planned, and no exercises are logged yet.",
+      "An upcoming workout has no exercises logged yet.",
     );
   });
 });

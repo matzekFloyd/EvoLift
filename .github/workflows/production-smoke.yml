@@ -1,46 +1,91 @@
 name: Production smoke
 
 on:
-  deployment_status:
+  push:
+    branches: ["master"]
   workflow_dispatch:
 
 permissions:
   contents: read
 
+env:
+  SMOKE_BASE_URL: https://evo-lift.vercel.app
+
 jobs:
   smoke:
     name: Production smoke
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      (
-        github.event.deployment_status.state == 'success' &&
-        github.event.deployment.environment == 'Production'
-      )
     runs-on: ubuntu-latest
     steps:
-      - name: Login page loads
+      - name: Wait for production (login)
         run: |
           set -euo pipefail
-          code=$(curl -sS -o /tmp/login.html -w "%{http_code}" --max-time 30 https://evo-lift.vercel.app/login)
-          if [[ "$code" != "200" ]]; then
-            echo "Login page returned HTTP ${code}"
-            exit 1
-          fi
-          if ! grep -q "Log in" /tmp/login.html; then
-            echo "Login page did not include Log in"
-            exit 1
-          fi
+          # Merges can land before Vercel finishes deploying; retry briefly.
+          for attempt in 1 2 3 4 5 6; do
+            code=$(curl -sS -o /tmp/login.html -w "%{http_code}" --max-time 30 "${SMOKE_BASE_URL}/login" || true)
+            if [[ "$code" == "200" ]] && grep -q "Log in" /tmp/login.html; then
+              exit 0
+            fi
+            echo "Attempt ${attempt}: login returned HTTP ${code:-failed}; waiting 20s"
+            sleep 20
+          done
+          echo "Login page did not become ready"
+          exit 1
+
+      - name: Login page content
+        run: |
+          set -euo pipefail
+          code=$(curl -sS -o /tmp/login.html -w "%{http_code}" --max-time 30 "${SMOKE_BASE_URL}/login")
+          [[ "$code" == "200" ]] || { echo "Login returned HTTP ${code}"; exit 1; }
+          grep -q "Log in" /tmp/login.html
+          grep -q "Register" /tmp/login.html
+          grep -q "Terms of use" /tmp/login.html
+          grep -q "Privacy policy" /tmp/login.html
+          grep -q 'href="/terms"' /tmp/login.html
+          grep -q 'href="/privacy"' /tmp/login.html
+
+      - name: Privacy policy page
+        run: |
+          set -euo pipefail
+          code=$(curl -sS -o /tmp/privacy.html -w "%{http_code}" --max-time 30 "${SMOKE_BASE_URL}/privacy")
+          [[ "$code" == "200" ]] || { echo "Privacy returned HTTP ${code}"; exit 1; }
+          grep -q "Privacy policy" /tmp/privacy.html
+          grep -q "Delete account" /tmp/privacy.html
+
+      - name: Terms of use page
+        run: |
+          set -euo pipefail
+          code=$(curl -sS -o /tmp/terms.html -w "%{http_code}" --max-time 30 "${SMOKE_BASE_URL}/terms")
+          [[ "$code" == "200" ]] || { echo "Terms returned HTTP ${code}"; exit 1; }
+          grep -q "Terms of use" /tmp/terms.html
+          grep -q "Personal API tokens" /tmp/terms.html
+
+      - name: Glossary page
+        run: |
+          set -euo pipefail
+          code=$(curl -sS -o /tmp/glossary.html -w "%{http_code}" --max-time 30 "${SMOKE_BASE_URL}/glossary")
+          [[ "$code" == "200" ]] || { echo "Glossary returned HTTP ${code}"; exit 1; }
+          grep -q "Glossary" /tmp/glossary.html
+          grep -q "1RM" /tmp/glossary.html
 
       - name: OpenAPI JSON
         run: |
           set -euo pipefail
-          code=$(curl -sS -D /tmp/openapi.headers -o /tmp/openapi.json -w "%{http_code}" --max-time 30 https://evo-lift.vercel.app/api/openapi)
-          if [[ "$code" != "200" ]]; then
-            echo "/api/openapi returned HTTP ${code}"
-            exit 1
-          fi
-          if ! grep -qi "application/json" /tmp/openapi.headers; then
-            echo "/api/openapi did not return JSON"
-            exit 1
-          fi
+          code=$(curl -sS -D /tmp/openapi.headers -o /tmp/openapi.json -w "%{http_code}" --max-time 30 "${SMOKE_BASE_URL}/api/openapi")
+          [[ "$code" == "200" ]] || { echo "/api/openapi returned HTTP ${code}"; exit 1; }
+          grep -qi "application/json" /tmp/openapi.headers
           jq -e '.openapi | strings | startswith("3.")' /tmp/openapi.json >/dev/null
+          jq -e '.paths["/api/sessions"]' /tmp/openapi.json >/dev/null
+          jq -e '.paths["/api/exercises"]' /tmp/openapi.json >/dev/null
+
+      - name: Protected API rejects missing auth
+        run: |
+          set -euo pipefail
+          for path in /api/sessions /api/exercises /api/plans; do
+            code=$(curl -sS -o /tmp/api.json -w "%{http_code}" --max-time 30 "${SMOKE_BASE_URL}${path}")
+            if [[ "$code" != "401" ]]; then
+              echo "${path} returned HTTP ${code}, expected 401"
+              cat /tmp/api.json
+              exit 1
+            fi
+            jq -e '.error | type == "string" and length > 0' /tmp/api.json >/dev/null
+          done

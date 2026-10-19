@@ -41,6 +41,7 @@ import {
   parseExerciseDetailFiltersFromSearchParams,
   sortExerciseHistoryRowsCanonical,
 } from "./exercise-history";
+import { ExerciseSessionE1rmChart } from "@/app/components/exercise-session-e1rm-chart";
 import { ExerciseSessionVolumeChart } from "@/app/components/exercise-session-volume-chart";
 import { ExerciseWeightProgressChart } from "@/app/components/exercise-weight-progress-chart";
 import { ExerciseInsightPanel } from "@/app/components/lift-comparison-panel";
@@ -62,6 +63,7 @@ import { fetchAllPages, fetchInChunks } from "@/lib/supabase/chunked-query";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { formatMilestoneTarget } from "@/lib/milestone-progress";
 import { toExerciseBadge } from "@/lib/exercise-badge";
+import { buildExerciseSessionE1rmChartPoints } from "@/lib/exercise-session-e1rm-chart";
 import { buildExerciseSessionVolumeChartPoints } from "@/lib/exercise-session-volume-chart";
 import { buildExerciseSessionWeightChartPoints } from "@/lib/exercise-session-weight-chart";
 import { createPageLoadPerfTracker } from "@/lib/page-load-perf";
@@ -566,6 +568,12 @@ export default function ExerciseDetailPage() {
   const sessionWeightChartPoints = useMemo(
     () => buildExerciseSessionWeightChartPoints(filteredHistoryRows),
     [filteredHistoryRows],
+  );
+
+  const sessionE1rmChartPoints = useMemo(
+    () =>
+      assistance ? [] : buildExerciseSessionE1rmChartPoints(filteredHistoryRows),
+    [assistance, filteredHistoryRows],
   );
 
   const sessionVolumeChartPoints = useMemo(
@@ -1154,6 +1162,49 @@ export default function ExerciseDetailPage() {
                   points={sessionWeightChartPoints}
                   assistance={assistance}
                 />
+              </div>
+            </section>
+
+            <section
+              className={panelInsetClass("p-4 sm:p-5")}
+              aria-labelledby="exercise-detail-e1rm-heading"
+            >
+              <div className="flex items-center gap-2">
+                <SectionHeading id="exercise-detail-e1rm-heading" className="min-w-0 flex-1">
+                  Estimated one-rep max (1RM)
+                </SectionHeading>
+                <InfoPopover label="How estimated one-rep max works">
+                  <div className="space-y-2">
+                    {assistance ? (
+                      <p>
+                        Assistance is counterweight help, not load moved. Estimated 1RM is not
+                        calculated for Assisted Dip or Assisted Pull-Up.
+                      </p>
+                    ) : (
+                      <>
+                        <p>
+                          Each point is one workout session. The value is the highest estimated 1RM
+                          from a <span className="font-medium">working set</span> with a logged load
+                          and 12 reps or fewer, using Total (kg) and the Epley formula. It is not a
+                          tested max.
+                        </p>
+                        <p>
+                          Warmups and sets above 12 reps are excluded. Tap or hover a point for the
+                          set that produced the estimate.
+                        </p>
+                      </>
+                    )}
+                  </div>
+                </InfoPopover>
+              </div>
+              <div className="mt-3">
+                {assistance ? (
+                  <p className="text-sm text-zinc-600">
+                    Assistance is not used for estimated 1RM, so there is nothing to plot.
+                  </p>
+                ) : (
+                  <ExerciseSessionE1rmChart points={sessionE1rmChartPoints} />
+                )}
               </div>
             </section>
 

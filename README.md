@@ -189,7 +189,7 @@ App runs at:
 - Email: `demo@example.com`
 - Password: `demo1234`
 
-The account gets about 16 weeks of sessions (a missed week, a deload, and a heavier week) so the home chart, Insights, and exercise charts have data. It does not run against a hosted Supabase project. `npm run seed:local` runs the same step on its own.
+The account gets about 24 weeks of plan sessions (missed, deload, and heavy weeks), two plans (`3-Day Strength` active, `Upper Lower` inactive), three templates (`Upper Power`, `Lower Strength`, `Push Focus`), a few template-started sessions, and two planned workouts in March 2028 (targets only, no sets). That feeds Home, Insights, Plans, and Templates. It does not run against a hosted Supabase project. `npm run seed:local` runs the same step on its own. Re-running adds any missing plans, templates, or sessions without wiping existing history.
 
 ### 5) Quality checks
 
@@ -350,7 +350,7 @@ Before that deploy:
 2. Apply production-safe seed files as needed
 3. Ensure environment variables are set correctly in the hosting platform
 
-After a successful production deploy, the Production smoke workflow checks that the login page loads and that `GET /api/openapi` returns OpenAPI JSON. It does not sign in, create a session, or call the database. Unit tests and API integration tests stay on the pull request and use local Supabase.
+After a push to `master` (including a merged pull request), the Production smoke workflow checks public surfaces on `https://evo-lift.vercel.app`: login (with Terms/Privacy links), privacy, terms, glossary, OpenAPI JSON (including key paths), and that protected API routes return 401 without auth. It retries briefly so a Vercel deploy can finish first. It does not sign in, create a session, or call the database. Unit tests and API integration tests stay on the pull request and use local Supabase. You can also run it manually with workflow_dispatch.
 
 ## Branding and UX Consistency
 

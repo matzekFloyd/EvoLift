@@ -1,5 +1,4 @@
 import { Scale } from "lucide-react";
-import Link from "next/link";
 import { type ExerciseProgressReport } from "@/lib/exercise-progress-insights";
 import { isPublicStandardLift, exrxTableUrl } from "@/lib/strength-standards";
 import {
@@ -107,12 +106,7 @@ export function ExerciseInsightPanel({ report, slug }: ExerciseInsightPanelProps
       className={panelInsetClass("p-4")}
       aria-labelledby="exercise-insight-heading"
     >
-      <div className="flex items-start justify-between gap-3">
-        <SectionHeading id="exercise-insight-heading">Insight</SectionHeading>
-        <Link href="/insights" className="shrink-0 text-xs text-sky-800 underline-offset-2 hover:underline">
-          All lifts
-        </Link>
-      </div>
+      <SectionHeading id="exercise-insight-heading">Insight</SectionHeading>
       <p className="mt-1 text-xs text-zinc-500">
         Uses the date range on this page, and the same pace, balance, and published standards as Insights.
       </p>

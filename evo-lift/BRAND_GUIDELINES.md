@@ -62,6 +62,39 @@ Example:
 - Warning state: amber (`amber-*`) for cautionary feedback.
 - Neutral controls: zinc (`zinc-*`) for secondary actions.
 
+## Charts and data visualization
+
+Use the same palette as UI intent. Do not invent one-off hues (orange, purple, pink) just to differentiate charts.
+
+### Chart chrome
+
+- Grid lines: `#e4e4e7` (zinc-200).
+- Axis ticks and labels: `#52525b` (zinc-600).
+
+### Continuous series (lines, bars, areas)
+
+Pick the role that matches the metric. Use these hex values in Recharts (Tailwind token in parentheses):
+
+| Role | Use for | Hex | Token |
+| --- | --- | --- | --- |
+| Primary | Default single series; Total (kg); counts; estimated 1RM; working-set bars | `#0284c7` | sky-600 |
+| Primary emphasis | Selected / current period (primary series) | `#0369a1` | sky-700 |
+| Primary muted | Unselected bars when another period is selected (primary series) | `#7dd3fc` | sky-300 |
+| Secondary | Companion load metric (e.g. Loaded (kg)); trend overlay on a primary or volume series | `#0f766e` | teal-700 |
+| Volume / work | Session or weekly tonnage-style volume bars | `#059669` | emerald-600 |
+| Volume emphasis | Selected volume bar | `#047857` | emerald-700 |
+| Volume muted | Unselected volume bars when another week is selected | `#6ee7b7` | emerald-300 |
+
+Rules:
+
+- A page with several single-series charts still uses the role for each metric (strength → primary; volume → volume/work). Same sky on Weight and Estimated 1RM is correct; color encodes meaning, not “chart number.”
+- Amber / orange is **not** a series color. It is reserved for warning feedback (and for categorical pace status below).
+- Prefer a legend or chart title over a unique hue when two series share a chart.
+
+### Categorical status in charts
+
+Pace mixes and similar status breakdowns may use semantic fills (e.g. on-track → primary sky, ahead → emerald, caution → amber, early/neutral → zinc). Keep those tied to status meaning; do not reuse them as arbitrary continuous-series colors.
+
 ## Iconography
 
 - Every high-frequency action should have an icon if space allows.
@@ -126,5 +159,6 @@ Avoid stacking the same fill on itself (e.g. white row on white card, or `zinc-5
 - Are user-named labels weighted per **User-named text** (medium, not italic/semibold-only)?
 - Are nested groups using `PanelInset` / **Nested surfaces** (no hand-rolled muted fills)?
 - Are action colors and icons semantically correct?
+- Do chart series use **Charts and data visualization** roles (no one-off hues)?
 - Is compact/mobile behavior still usable with one hand?
 - Is success/error feedback shown near the triggering control?

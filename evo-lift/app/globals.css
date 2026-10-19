@@ -174,3 +174,23 @@ button:disabled {
   outline: none !important;
   box-shadow: none !important;
 }
+
+.exercise-session-e1rm-chart .recharts-surface,
+.exercise-session-e1rm-chart .recharts-wrapper {
+  outline: none !important;
+}
+
+.exercise-session-e1rm-chart :focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.insights-compound-e1rm-chart .recharts-surface,
+.insights-compound-e1rm-chart .recharts-wrapper {
+  outline: none !important;
+}
+
+.insights-compound-e1rm-chart :focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}

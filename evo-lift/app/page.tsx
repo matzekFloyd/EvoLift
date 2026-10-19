@@ -340,16 +340,16 @@ export default function Home() {
         <div className="mb-2 flex items-center justify-between gap-2">
           <SectionHeading className="inline-flex items-center gap-1">
             <CalendarClock className="h-3.5 w-3.5 text-zinc-500" />
-            Planned workouts
+            Upcoming workouts
           </SectionHeading>
         </div>
         {plannedSessions.length === 0 ? (
-          <p className="text-sm text-zinc-500">No planned workouts.</p>
+          <p className="text-sm text-zinc-500">No upcoming workouts.</p>
         ) : (
           <SessionsTable
             rows={plannedTableRows}
-            dateHeaderLabel="Planned on"
-            emptyMessage="No planned workouts."
+            dateHeaderLabel="Upcoming on"
+            emptyMessage="No upcoming workouts."
             showNotesColumn={!isSmallPhone}
             compactMode={isSmallPhone}
             openingRowId={openingSessionId}
