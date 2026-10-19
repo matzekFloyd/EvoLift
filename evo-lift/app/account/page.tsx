@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import { authEmailRedirectUrl } from "@/lib/auth-email-redirect";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import type { Database } from "@/lib/supabase/database.types";
 import { ExerciseBadgeChip } from "@/app/components/exercise-badge-chip";
@@ -268,9 +269,14 @@ export default function AccountPage() {
     setIsSavingEmail(true);
     setEmailMessage(null);
 
-    const { error } = await supabaseBrowserClient.auth.updateUser({
-      email: normalized,
+    const emailRedirectTo = authEmailRedirectUrl({
+      envAppUrl: process.env.NEXT_PUBLIC_APP_URL,
+      windowOrigin: window.location.origin,
     });
+    const { error } = await supabaseBrowserClient.auth.updateUser(
+      { email: normalized },
+      emailRedirectTo ? { emailRedirectTo } : undefined,
+    );
 
     if (error) {
       setEmailMessageTone("error");

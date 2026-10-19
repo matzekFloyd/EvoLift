@@ -161,13 +161,17 @@ SUPABASE_SERVICE_ROLE_KEY=<SERVICE_ROLE_KEY from the command above>
 NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
 SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
+NEXT_PUBLIC_APP_URL=https://evo-lift.vercel.app
 ```
+
+Also set **Authentication → URL Configuration** on that hosted project: Site URL = the production app origin (not localhost), and Redirect URLs that allow that origin plus local `http://localhost:3000/**`. Details are in `evo-lift/README.md`.
 
 Notes:
 
 - `NEXT_PUBLIC_SUPABASE_URL` must be the base URL (not `/rest/v1`)
 - `NEXT_PUBLIC_*` variables are embedded at build time
 - `SUPABASE_SERVICE_ROLE_KEY` must remain server-side only
+- Omit `NEXT_PUBLIC_APP_URL` for local Docker so confirm links use `http://localhost:3000`
 
 ### 4) Run the app
 

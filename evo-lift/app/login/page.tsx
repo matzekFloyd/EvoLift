@@ -4,6 +4,7 @@ import { CircleCheck, Dumbbell, Lock, Mail } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { authEmailRedirectUrl } from "@/lib/auth-email-redirect";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { PageShell } from "@/app/components/page-shell";
 import { SectionHeading } from "@/app/components/section-heading";
@@ -140,12 +141,14 @@ export default function LoginPage() {
     setMessage(null);
     setSuccessEmail(null);
 
+    const emailRedirectTo = authEmailRedirectUrl({
+      envAppUrl: process.env.NEXT_PUBLIC_APP_URL,
+      windowOrigin: window.location.origin,
+    });
     const { error } = await supabaseBrowserClient.auth.signUp({
       email: normalizedEmail,
       password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/login?verified=1`,
-      },
+      options: emailRedirectTo ? { emailRedirectTo } : undefined,
     });
 
     if (error) {
