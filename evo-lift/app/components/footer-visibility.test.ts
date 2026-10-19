@@ -13,6 +13,7 @@ describe("footer visibility", () => {
     assert.equal(shouldHideFooter("/"), false);
     assert.equal(shouldHideFooter("/glossary"), false);
     assert.equal(shouldHideFooter("/privacy"), false);
+    assert.equal(shouldHideFooter("/terms"), false);
     assert.equal(shouldHideFooter("/exercises/back-squat"), false);
     assert.equal(shouldHideFooter("/plans"), false);
     assert.equal(shouldHideFooter("/sessions/28a7049e/edit"), false);

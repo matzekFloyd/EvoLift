@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
+import { PUBLIC_APP_ORIGIN } from "@/lib/public-app-origin";
 import { PRIVACY_POLICY_HREF, privacyPolicySections } from "./privacy-policy";
 
 const text = privacyPolicySections
@@ -10,7 +11,7 @@ describe("privacy policy", () => {
   it("is a public page and covers the data the account stores", () => {
     assert.equal(PRIVACY_POLICY_HREF, "/privacy");
     for (const phrase of [
-      "https://evo-lift.vercel.app",
+      PUBLIC_APP_ORIGIN,
       "email",
       "password held by Supabase Auth",
       "workout sessions and sets",
