@@ -1,8 +1,7 @@
 name: npm audit
 
+# Required PR check (ruleset). No push-to-master re-run — merges already passed this.
 on:
-  push:
-    branches: ["master"]
   pull_request:
     branches: ["master"]
 

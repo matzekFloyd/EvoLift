@@ -219,13 +219,16 @@ Classic “Branch protection rules” for `master` may show as inactive; the rul
 
 ### Related workflows (reference)
 
-| Workflow | Role |
-| --- | --- |
-| `test.yml` | Unit/typecheck + API integration (required on PR) |
-| `npm-audit.yml` | High/critical production advisories (required on PR) |
-| `codeql.yml` | Code scanning (scheduled + PR); not a merge gate |
-| `release.yml` | GitHub Release when `app-version.json` changes on `master` |
-| `production-smoke.yml` / `lighthouse.yml` | Post-merge / push on `master` only |
+| Workflow | When it runs | Role |
+| --- | --- | --- |
+| `test.yml` | **PR only** (required) | Unit/typecheck + API integration |
+| `npm-audit.yml` | **PR only** (required) | High/critical production advisories |
+| `codeql.yml` | **`master` push + weekly schedule** | Code scanning; not a merge gate |
+| `release.yml` | **`master` push** when `app-version.json` changes | GitHub Release |
+| `production-smoke.yml` | **`master` push** (+ manual dispatch) | Public production URL checks |
+| `lighthouse.yml` | **`master` push** | Perf budgets; heavy local build |
+
+PR gates stay on `pull_request` only so a merge does not re-run the same checks on the `push` to `master`. Post-merge signal is smoke + Lighthouse (+ CodeQL / Release when relevant).
 
 ## Dependency advisories (npm audit)
 
