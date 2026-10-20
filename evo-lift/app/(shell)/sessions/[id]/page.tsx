@@ -18,8 +18,15 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
+import {
+  openedSessionEpoch,
+  peekOpenedSession,
+  rememberOpenedSession,
+  type OpenedSessionSnapshot,
+} from "@/lib/opened-session-cache";
+import { confirmSignedInUser } from "@/lib/confirm-signed-in-user";
+import { rememberedUserId } from "@/lib/signed-in-memory";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
-import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { CompactStickyBar } from "@/app/components/compact-sticky-bar";
 import { compactLogScrollDelta } from "@/app/sessions/[id]/compact-log-scroll";
 import {
@@ -90,22 +97,36 @@ function replaceSessionDetailQuery(
   router.replace(sessionDetailHref(pathname, searchParams.toString(), mutator), { scroll: false });
 }
 
+function openedSessionFor(sessionId: string | undefined): OpenedSessionSnapshot | null {
+  const userId = rememberedUserId();
+  if (!sessionId || !userId) {
+    return null;
+  }
+  return peekOpenedSession(userId, sessionId);
+}
+
 export default function SessionDetailPage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const params = useParams<{ id: string }>();
   const sessionId = params?.id;
+  const [openedSession] = useState(() => openedSessionFor(sessionId));
+  const [trackedSessionId, setTrackedSessionId] = useState(sessionId);
 
-  const [isChecking, setIsChecking] = useState(true);
+  const [isChecking, setIsChecking] = useState(openedSession == null);
   const [message, setMessage] = useState<string | null>(null);
   const [messageTone, setMessageTone] = useState<MessageTone>("error");
-  const [session, setSession] = useState<SessionRow | null>(null);
-  const [sessionExercises, setSessionExercises] = useState<SessionExerciseRow[]>([]);
-  const [workoutSets, setWorkoutSets] = useState<WorkoutSetRow[]>([]);
-  const [sessionNumber, setSessionNumber] = useState<number | null>(null);
-  const [createdFromLabel, setCreatedFromLabel] = useState<string | null>(null);
-  const [exerciseLabels, setExerciseLabels] = useState<Map<string, string>>(new Map());
+  const [session, setSession] = useState<SessionRow | null>(openedSession?.session ?? null);
+  const [sessionExercises, setSessionExercises] = useState<SessionExerciseRow[]>(
+    openedSession?.sessionExercises ?? [],
+  );
+  const [workoutSets, setWorkoutSets] = useState<WorkoutSetRow[]>(openedSession?.workoutSets ?? []);
+  const [sessionNumber, setSessionNumber] = useState<number | null>(openedSession?.sessionNumber ?? null);
+  const [createdFromLabel, setCreatedFromLabel] = useState<string | null>(openedSession?.createdFromLabel ?? null);
+  const [exerciseLabels, setExerciseLabels] = useState<Map<string, string>>(
+    () => new Map(openedSession?.exerciseLabels ?? []),
+  );
   const [addDrafts, setAddDrafts] = useState<Record<string, Partial<SetDraft>>>({});
   const [editingSetId, setEditingSetId] = useState<string | null>(null);
   const [editDraft, setEditDraft] = useState<SetDraft>(emptySetDraft);
@@ -114,7 +135,9 @@ export default function SessionDetailPage() {
   const [isDeleteSessionConfirmOpen, setIsDeleteSessionConfirmOpen] = useState(false);
   const [isReadOnly, setIsReadOnly] = useState(false);
   const [hasHydratedReadOnly, setHasHydratedReadOnly] = useState(false);
-  const [exerciseOptions, setExerciseOptions] = useState<Array<{ id: string; label: string; slug: string }>>([]);
+  const [exerciseOptions, setExerciseOptions] = useState<Array<{ id: string; label: string; slug: string }>>(
+    openedSession?.exerciseOptions ?? [],
+  );
   const [addExerciseDraft, setAddExerciseDraft] =
     useState<AddExerciseDraft>(emptyAddExerciseDraft);
   const [isAddingExercise, setIsAddingExercise] = useState(false);
@@ -135,7 +158,9 @@ export default function SessionDetailPage() {
   /** Compact add-exercise jumps to the new row in the same tick as success; keep that toast once. */
   const skipNextClearMessageOnExerciseIdChangeRef = useRef(false);
   const lastSessionExerciseIdsKeyRef = useRef<string>("");
-  const [hiddenExerciseIds, setHiddenExerciseIds] = useState<Set<string>>(new Set());
+  const [hiddenExerciseIds, setHiddenExerciseIds] = useState<Set<string>>(
+    () => new Set(openedSession?.hiddenExerciseIds ?? []),
+  );
   const [suggestWarmupsByExerciseId, setSuggestWarmupsByExerciseId] = useState<Map<string, boolean>>(
     () => new Map(),
   );
@@ -153,12 +178,49 @@ export default function SessionDetailPage() {
   const [fullViewExpandAddSetRowIds, setFullViewExpandAddSetRowIds] = useState<Set<string>>(
     () => new Set(),
   );
-  const [performedOnDraft, setPerformedOnDraft] = useState("");
-  const [notesDraft, setNotesDraft] = useState("");
+  const [performedOnDraft, setPerformedOnDraft] = useState(openedSession?.session.performed_on ?? "");
+  const [notesDraft, setNotesDraft] = useState(openedSession?.session.notes ?? "");
   const [sessionDetailsDateError, setSessionDetailsDateError] = useState<string | null>(null);
   const [sessionDetailsNotesError, setSessionDetailsNotesError] = useState<string | null>(null);
   const [isSavingSessionDetails, setIsSavingSessionDetails] = useState(false);
   const [isEditingSessionDetails, setIsEditingSessionDetails] = useState(false);
+  const skipSessionRefreshRef = useRef(false);
+  skipSessionRefreshRef.current =
+    editingSetId != null ||
+    isEditingSessionDetails ||
+    isSavingSet ||
+    isAddingExercise ||
+    isSavingTargets ||
+    isSavingSessionDetails;
+
+  function applyOpenedSession(snapshot: OpenedSessionSnapshot, keepDrafts = false) {
+    setSession(snapshot.session);
+    setSessionExercises(snapshot.sessionExercises);
+    setWorkoutSets(snapshot.workoutSets);
+    setSessionNumber(snapshot.sessionNumber);
+    setCreatedFromLabel(snapshot.createdFromLabel);
+    setExerciseLabels(new Map(snapshot.exerciseLabels));
+    setExerciseOptions(snapshot.exerciseOptions);
+    setHiddenExerciseIds(new Set(snapshot.hiddenExerciseIds));
+    if (!keepDrafts) {
+      setPerformedOnDraft(snapshot.session.performed_on);
+      setNotesDraft(snapshot.session.notes ?? "");
+      setSessionDetailsDateError(null);
+      setSessionDetailsNotesError(null);
+    }
+    setIsChecking(false);
+  }
+
+  if (sessionId !== trackedSessionId) {
+    setTrackedSessionId(sessionId);
+    const nextOpened = openedSessionFor(sessionId);
+    if (nextOpened) {
+      applyOpenedSession(nextOpened);
+    } else {
+      setIsChecking(true);
+      setSession(null);
+    }
+  }
 
   const warmupSuggestionsDisabledExerciseIds = useMemo(() => {
     const disabled = new Set<string>();
@@ -271,18 +333,32 @@ export default function SessionDetailPage() {
 
   useEffect(() => {
     let isMounted = true;
+    const startedEpoch = openedSessionEpoch();
     const perf = createPageLoadPerfTracker("/sessions/[id]");
 
     async function loadData() {
-      const authSession = await perf.trackQuery("auth.getUser", () => getBrowserAuthSession());
-
-      if (!isMounted) {
+      if (!sessionId) {
+        setIsChecking(false);
         return;
       }
-      if (!authSession || !sessionId) {
+      const visit = await perf.trackQuery("auth.getUser", () => confirmSignedInUser());
+
+      if (!isMounted || startedEpoch !== openedSessionEpoch()) {
+        return;
+      }
+      if (visit.status === "signed-out") {
         router.replace("/login");
         return;
       }
+      const cached = peekOpenedSession(visit.userId, sessionId);
+      if (cached && visit.showCached) {
+        if (!skipSessionRefreshRef.current) {
+          applyOpenedSession(cached);
+        }
+      } else {
+        setIsChecking(true);
+      }
+      const authUserId = visit.userId;
 
       const { data: sessionData, error: sessionError } = await perf.trackQuery(
         "workout_sessions.selectById",
@@ -306,7 +382,7 @@ export default function SessionDetailPage() {
         return;
       }
 
-      if (sessionData.user_id !== authSession.user.id) {
+      if (sessionData.user_id !== authUserId) {
         showError("You do not have access to this workout session.");
         setIsChecking(false);
         perf.flush();
@@ -319,14 +395,14 @@ export default function SessionDetailPage() {
         supabaseBrowserClient
           .from("workout_sessions")
           .select("id", { count: "exact", head: true })
-          .eq("user_id", authSession.user.id)
+          .eq("user_id", authUserId)
           .lt("created_at", sessionData.created_at),
       );
       const sameCreatedAtPromise = perf.trackQuery("workout_sessions.selectSameCreatedAtIds", () =>
         supabaseBrowserClient
           .from("workout_sessions")
           .select("id")
-          .eq("user_id", authSession.user.id)
+          .eq("user_id", authUserId)
           .eq("created_at", sessionData.created_at)
           .order("id", { ascending: true }),
       );
@@ -356,7 +432,7 @@ export default function SessionDetailPage() {
         supabaseBrowserClient
           .from("user_hidden_exercises")
           .select("exercise_id")
-          .eq("user_id", authSession.user.id),
+          .eq("user_id", authUserId),
       );
 
       const sessionExerciseResult = await sessionExercisesPromise;
@@ -450,38 +526,40 @@ export default function SessionDetailPage() {
         return name ? name : null;
       }
       const resolvedTemplateName = joinedName(joined.workout_templates);
-      setCreatedFromLabel(
-        formatPlanSessionSource(joinedName(joined.workout_plans), joinedName(joined.workout_plan_days)) ??
+      const snapshot: OpenedSessionSnapshot = {
+        session: {
+          id: sessionRow.id,
+          user_id: sessionRow.user_id,
+          performed_on: sessionRow.performed_on,
+          notes: sessionRow.notes,
+          source_template_id: sessionRow.source_template_id,
+          plan_id: sessionRow.plan_id,
+          plan_day_id: sessionRow.plan_day_id,
+          created_at: sessionRow.created_at,
+          updated_at: sessionRow.updated_at,
+        },
+        sessionExercises: sessionExerciseData,
+        workoutSets: sets,
+        sessionNumber: computedSessionNumber > 0 ? computedSessionNumber : null,
+        createdFromLabel:
+          formatPlanSessionSource(joinedName(joined.workout_plans), joinedName(joined.workout_plan_days)) ??
           resolvedTemplateName,
-      );
-      setSession({
-        id: sessionRow.id,
-        user_id: sessionRow.user_id,
-        performed_on: sessionRow.performed_on,
-        notes: sessionRow.notes,
-        source_template_id: sessionRow.source_template_id,
-        plan_id: sessionRow.plan_id,
-        plan_day_id: sessionRow.plan_day_id,
-        created_at: sessionRow.created_at,
-        updated_at: sessionRow.updated_at,
-      });
-      setPerformedOnDraft(sessionRow.performed_on);
-      setNotesDraft(sessionRow.notes ?? "");
-      setSessionDetailsDateError(null);
-      setSessionDetailsNotesError(null);
-      setSessionNumber(computedSessionNumber > 0 ? computedSessionNumber : null);
-      setSessionExercises(sessionExerciseData);
-      setWorkoutSets(sets);
-      setExerciseLabels(labels);
-      setExerciseOptions(
-        allExercises.map((item) => ({
+        exerciseLabels: [...labels],
+        exerciseOptions: allExercises.map((item) => ({
           id: item.id,
           label: item.label,
           slug: item.slug,
         })),
-      );
-      setHiddenExerciseIds(hiddenSet);
-      setIsChecking(false);
+        hiddenExerciseIds: [...hiddenSet],
+      };
+      if (!isMounted || startedEpoch !== openedSessionEpoch()) {
+        perf.flush();
+        return;
+      }
+      rememberOpenedSession(authUserId, sessionId, snapshot);
+      if (!skipSessionRefreshRef.current) {
+        applyOpenedSession(snapshot, false);
+      }
       perf.flush();
     }
 

@@ -32,13 +32,14 @@ import {
   parseGoalForm,
   resolveMilestone,
   type GoalProgress,
-  type StoredAchievement,
 } from "@/lib/milestone-progress";
 import { loadMilestoneWorkingSets } from "@/lib/milestone-sets";
 import { type BodyweightLogEntry } from "@/lib/bodyweight-log";
 import { getTodayYyyyMmDd } from "@/lib/session-date";
+import { goalsListEpoch, invalidateGoalsList, loadGoalsList, peekGoalsList, type GoalsListSnapshot } from "@/lib/goals-list-cache";
+import { confirmSignedInUser } from "@/lib/confirm-signed-in-user";
+import { rememberedUserId } from "@/lib/signed-in-memory";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
-import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import type { Database } from "@/lib/supabase/database.types";
 
 type MilestoneRow = Database["public"]["Tables"]["strength_milestones"]["Row"];
@@ -60,13 +61,25 @@ function formatAchievedOn(iso: string): string {
 
 export default function GoalsPage() {
   const router = useRouter();
-  const [isChecking, setIsChecking] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
-  const [rows, setRows] = useState<MilestoneRow[]>([]);
-  const [progressById, setProgressById] = useState<Map<string, GoalProgress>>(new Map());
-  const [exerciseOptions, setExerciseOptions] = useState<ExercisePickerOption[]>([]);
-  const [hiddenExerciseIds, setHiddenExerciseIds] = useState<Set<string>>(new Set());
-  const [bodyweightEntries, setBodyweightEntries] = useState<BodyweightLogEntry[]>([]);
+  const [cachedGoals] = useState(() => {
+    const remembered = rememberedUserId();
+    return remembered ? peekGoalsList(remembered) : null;
+  });
+  const [isChecking, setIsChecking] = useState(cachedGoals == null);
+  const [userId, setUserId] = useState<string | null>(rememberedUserId);
+  const [rows, setRows] = useState<MilestoneRow[]>(cachedGoals?.rows ?? []);
+  const [progressById, setProgressById] = useState<Map<string, GoalProgress>>(
+    () => new Map(cachedGoals?.progressEntries ?? []),
+  );
+  const [exerciseOptions, setExerciseOptions] = useState<ExercisePickerOption[]>(
+    cachedGoals?.exerciseOptions ?? [],
+  );
+  const [hiddenExerciseIds, setHiddenExerciseIds] = useState<Set<string>>(
+    () => new Set(cachedGoals?.hiddenExerciseIds ?? []),
+  );
+  const [bodyweightEntries, setBodyweightEntries] = useState<BodyweightLogEntry[]>(
+    cachedGoals?.bodyweightEntries ?? [],
+  );
   const [loadError, setLoadError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [draft, setDraft] = useState<GoalDraft | null>(null);
@@ -75,119 +88,59 @@ export default function GoalsPage() {
   const [deleteTarget, setDeleteTarget] = useState<GoalListItem | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  async function loadGoals(currentUserId: string) {
-    const today = getTodayYyyyMmDd();
-    const [milestoneResult, logResult, exerciseResult, translationResult, hiddenResult] =
-      await Promise.all([
-        supabaseBrowserClient
-          .from("strength_milestones")
-          .select("*")
-          .order("created_at", { ascending: true }),
-        supabaseBrowserClient
-          .from("user_bodyweight_log")
-          .select("logged_on, bodyweight_kg")
-          .eq("user_id", currentUserId)
-          .order("logged_on", { ascending: true }),
-        supabaseBrowserClient.from("exercises").select("id, slug").order("slug", { ascending: true }),
-        supabaseBrowserClient
-          .from("exercise_translations")
-          .select("exercise_id, name")
-          .eq("lang_code", "en"),
-        supabaseBrowserClient.from("user_hidden_exercises").select("exercise_id").eq("user_id", currentUserId),
-      ]);
-
-    if (milestoneResult.error || logResult.error || exerciseResult.error) {
-      setLoadError("Could not load goals.");
-      return;
-    }
-
-    const translationMap = new Map<string, string>();
-    for (const translation of translationResult.data ?? []) {
-      translationMap.set(translation.exercise_id, translation.name);
-    }
-    const options = (exerciseResult.data ?? []).map((exercise) => ({
-      id: exercise.id,
-      slug: exercise.slug,
-      label: translationMap.get(exercise.id) ?? exercise.slug,
-    }));
-    const milestones = milestoneResult.data ?? [];
-    const entries: BodyweightLogEntry[] = (logResult.data ?? []).flatMap((row) => {
-      const bodyweightKg = Number(row.bodyweight_kg);
-      if (!Number.isFinite(bodyweightKg) || bodyweightKg <= 0) {
-        return [];
-      }
-      return [{ loggedOn: row.logged_on.slice(0, 10), bodyweightKg }];
-    });
-    const sets = await loadMilestoneWorkingSets(
-      supabaseBrowserClient,
-      milestones.map((row) => row.exercise_id),
-      currentUserId,
-    );
-
-    const progress = new Map<string, GoalProgress>();
-    const writes: Array<{ id: string; stored: StoredAchievement }> = [];
-    for (const row of milestones) {
-      const resolved = resolveMilestone({
-        definition: definitionFromRow(row),
-        stored: storedFromRow(row),
-        sets,
-        bodyweightEntries: entries,
-        dueOn: row.due_on,
-        today,
-        recalculate: false,
-      });
-      progress.set(row.id, resolved.progress);
-      if (resolved.shouldWrite) {
-        writes.push({ id: row.id, stored: resolved.stored });
-      }
-    }
-
-    if (writes.length > 0) {
-      const results = await Promise.all(
-        writes.map((write) =>
-          supabaseBrowserClient
-            .from("strength_milestones")
-            .update({
-              achieved_at: write.stored.achievedAt,
-              achieved_bodyweight_kg: write.stored.achievedBodyweightKg,
-              achieved_threshold_kg: write.stored.achievedThresholdKg,
-            })
-            .eq("id", write.id),
-        ),
-      );
-      if (results.some((result) => result.error)) {
-        setMessage("Could not update goal progress.");
-      }
-    }
-
-    setRows(milestones);
-    setProgressById(progress);
-    setExerciseOptions(options);
-    setHiddenExerciseIds(new Set((hiddenResult.data ?? []).map((row) => row.exercise_id)));
-    setBodyweightEntries(entries);
+  function applyGoals(snapshot: GoalsListSnapshot) {
+    setRows(snapshot.rows);
+    setProgressById(new Map(snapshot.progressEntries));
+    setExerciseOptions(snapshot.exerciseOptions);
+    setHiddenExerciseIds(new Set(snapshot.hiddenExerciseIds));
+    setBodyweightEntries(snapshot.bodyweightEntries);
     setLoadError(null);
+    if (snapshot.progressWriteFailed) {
+      setMessage("Could not update goal progress.");
+    }
+  }
+
+  async function loadGoals(currentUserId: string, fresh: boolean, reportError: boolean) {
+    const started = goalsListEpoch();
+    try {
+      const result = await loadGoalsList(supabaseBrowserClient, currentUserId, { fresh });
+      if (started !== goalsListEpoch()) {
+        return;
+      }
+      if (result.error || !result.snapshot) {
+        if (reportError) {
+          setLoadError(result.error ?? "Could not load goals.");
+        }
+        return;
+      }
+      applyGoals(result.snapshot);
+    } catch {
+      if (started === goalsListEpoch() && reportError) {
+        setLoadError("Could not load goals.");
+      }
+    }
   }
 
   useEffect(() => {
     let isMounted = true;
     async function init() {
-      const session = await getBrowserAuthSession();
-      if (!isMounted) {
+      const started = goalsListEpoch();
+      const visit = await confirmSignedInUser();
+      if (!isMounted || started !== goalsListEpoch()) {
         return;
       }
-      if (!session) {
+      if (visit.status === "signed-out") {
         router.replace("/login");
         return;
       }
-      setUserId(session.user.id);
-      try {
-        await loadGoals(session.user.id);
-      } catch {
-        if (isMounted) {
-          setLoadError("Could not load goals.");
-        }
+      setUserId(visit.userId);
+      if (!visit.showCached) {
+        setRows([]);
+        setProgressById(new Map());
+        setIsChecking(true);
       }
-      if (isMounted) {
+      await loadGoals(visit.userId, visit.showCached, !visit.showCached);
+      if (isMounted && started === goalsListEpoch()) {
         setIsChecking(false);
       }
     }
@@ -311,7 +264,8 @@ export default function GoalsPage() {
         return;
       }
       setDraft(null);
-      await loadGoals(userId);
+      invalidateGoalsList();
+      await loadGoals(userId, true, true);
     } catch {
       setFormError("Could not save this goal.");
     } finally {
@@ -336,7 +290,8 @@ export default function GoalsPage() {
     }
     setDeleteTarget(null);
     setIsDeleting(false);
-    await loadGoals(userId);
+    invalidateGoalsList();
+    await loadGoals(userId, true, true);
   }
 
   return (

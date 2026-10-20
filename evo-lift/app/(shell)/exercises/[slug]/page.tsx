@@ -63,6 +63,13 @@ import {
   getExerciseMetadataCacheStatus,
   loadExerciseMetadata,
 } from "@/lib/exercise-metadata-cache";
+import {
+  openedExerciseHistoryEpoch,
+  peekOpenedExerciseHistory,
+  rememberOpenedExerciseHistory,
+} from "@/lib/opened-exercise-history-cache";
+import { confirmSignedInUser } from "@/lib/confirm-signed-in-user";
+import { rememberedUserId } from "@/lib/signed-in-memory";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { fetchAllPages, fetchInChunks } from "@/lib/supabase/chunked-query";
@@ -167,14 +174,22 @@ export default function ExerciseDetailPage() {
   const searchParams = useSearchParams();
   const params = useParams<{ slug: string }>();
   const slug = params?.slug;
+  const [openedHistory] = useState(() => {
+    const userId = rememberedUserId();
+    if (!slug || !userId) {
+      return null;
+    }
+    return peekOpenedExerciseHistory(userId, slug);
+  });
+  const [trackedSlug, setTrackedSlug] = useState(slug);
   const assistance = isAssistanceExercise(slug);
   const loadColumnLabel = externalLoadFieldLabel(slug);
   const defaultDateRange = useMemo(() => getDefaultRollingYearDateRange(), []);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(openedHistory == null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isNotFound, setIsNotFound] = useState(false);
-  const [exerciseLabel, setExerciseLabel] = useState("");
-  const [historyRows, setHistoryRows] = useState<ExerciseSetHistoryRow[]>([]);
+  const [exerciseLabel, setExerciseLabel] = useState(openedHistory?.label ?? "");
+  const [historyRows, setHistoryRows] = useState<ExerciseSetHistoryRow[]>(openedHistory?.rows ?? []);
   const [insightSamples, setInsightSamples] = useState<ExerciseWorkingSetSample[]>([]);
   const [lifterProfile, setLifterProfile] = useState<LifterProfile>({
     sex: null,
@@ -190,6 +205,23 @@ export default function ExerciseDetailPage() {
   const [historyPageSize, setHistoryPageSize] = useState<HistoryPageSize>("25");
   const [historyPage, setHistoryPage] = useState(1);
   const [detailPanelTab, setDetailPanelTab] = useState<ExerciseDetailPanelTab>("data");
+
+  if (slug !== trackedSlug) {
+    setTrackedSlug(slug);
+    const userId = rememberedUserId();
+    const nextHistory = slug && userId ? peekOpenedExerciseHistory(userId, slug) : null;
+    if (nextHistory) {
+      setExerciseLabel(nextHistory.label);
+      setHistoryRows(nextHistory.rows);
+      setIsLoading(false);
+      setIsNotFound(false);
+      setErrorMessage(null);
+    } else {
+      setIsLoading(true);
+      setExerciseLabel("");
+      setHistoryRows([]);
+    }
+  }
 
   const filterState = useMemo(
     () =>
@@ -241,6 +273,7 @@ export default function ExerciseDetailPage() {
 
   useEffect(() => {
     let isMounted = true;
+    const startedEpoch = openedExerciseHistoryEpoch();
     const perf = createPageLoadPerfTracker("/exercises/[slug]");
 
     async function loadData() {
@@ -250,13 +283,22 @@ export default function ExerciseDetailPage() {
         return;
       }
 
-      const session = await perf.trackQuery("auth.getUser", () => getBrowserAuthSession());
-      if (!isMounted) {
+      const visit = await perf.trackQuery("auth.getUser", () => confirmSignedInUser());
+      if (!isMounted || startedEpoch !== openedExerciseHistoryEpoch()) {
         return;
       }
-      if (!session) {
+      if (visit.status === "signed-out") {
         router.replace("/login");
         return;
+      }
+      const cached = peekOpenedExerciseHistory(visit.userId, slug);
+      const keepCached = Boolean(cached && visit.showCached);
+      if (keepCached && cached) {
+        setExerciseLabel(cached.label);
+        setHistoryRows(cached.rows);
+        setIsLoading(false);
+      } else {
+        setIsLoading(true);
       }
 
       perf.noteCache("exerciseMetadata", getExerciseMetadataCacheStatus(5 * 60 * 1000));
@@ -266,7 +308,9 @@ export default function ExerciseDetailPage() {
           loadExerciseMetadata(supabaseBrowserClient, { ttlMs: 5 * 60 * 1000 }),
         );
       } catch (error) {
-        setErrorMessage(error instanceof Error ? error.message : "Could not load exercise.");
+        if (!keepCached) {
+          setErrorMessage(error instanceof Error ? error.message : "Could not load exercise.");
+        }
         setIsLoading(false);
         perf.flush();
         return;
@@ -294,7 +338,9 @@ export default function ExerciseDetailPage() {
           ),
       );
       if (sessionExercisesError) {
-        setErrorMessage("Could not load exercise sessions.");
+        if (!keepCached) {
+          setErrorMessage("Could not load exercise sessions.");
+        }
         setIsLoading(false);
         perf.flush();
         return;
@@ -349,13 +395,17 @@ export default function ExerciseDetailPage() {
         milestonesPromise,
       ]);
       if (sessionsResult.error) {
-        setErrorMessage("Could not load your workout sessions.");
+        if (!keepCached) {
+          setErrorMessage("Could not load your workout sessions.");
+        }
         setIsLoading(false);
         perf.flush();
         return;
       }
       if (setsResult.error) {
-        setErrorMessage("Could not load exercise sets.");
+        if (!keepCached) {
+          setErrorMessage("Could not load exercise sets.");
+        }
         setIsLoading(false);
         perf.flush();
         return;
@@ -433,9 +483,13 @@ export default function ExerciseDetailPage() {
         history = sortExerciseHistoryRowsCanonical(history);
       }
 
-      if (!isMounted) {
+      if (!isMounted || startedEpoch !== openedExerciseHistoryEpoch()) {
         return;
       }
+      rememberOpenedExerciseHistory(visit.userId, slug, {
+        label: exerciseData.label,
+        rows: history.map((row) => ({ ...row })),
+      });
       setExerciseLabel(exerciseData.label);
       setHistoryRows(history);
       setIsLoading(false);

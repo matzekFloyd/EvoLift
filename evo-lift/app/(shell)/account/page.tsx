@@ -10,17 +10,25 @@ import {
   SlidersHorizontal,
   UserRound,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authEmailRedirectUrl } from "@/lib/auth-email-redirect";
 import { friendlyAuthError } from "@/lib/friendly-auth-error";
 import { reportSecurityEvent } from "@/lib/report-security-event";
-import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import type { Database } from "@/lib/supabase/database.types";
 import { ExerciseBadgeChip } from "@/app/components/exercise-badge-chip";
 import { approximateAge, ageFromDateOfBirth, birthYearFromDate, validateBodyMetricsInput } from "@/lib/body-metrics";
 import { latestBodyweightEntry } from "@/lib/bodyweight-log";
+import {
+  accountProfileEpoch,
+  invalidateAccountProfile,
+  loadAccountProfile,
+  peekAccountProfile,
+  type AccountProfileSnapshot,
+} from "@/lib/account-profile-cache";
+import { confirmSignedInUser } from "@/lib/confirm-signed-in-user";
+import { rememberedUserEmail, rememberedUserId } from "@/lib/signed-in-memory";
 import { isCompoundExercise } from "@/lib/compound-exercise";
 import { warmupSuggestionsEnabled } from "@/lib/warmup-suggestion";
 import { DateInput } from "@/app/components/date-input";
@@ -51,14 +59,19 @@ import { StatusNotice } from "@/app/components/status-notice";
 
 export default function AccountPage() {
   const router = useRouter();
-  const [isChecking, setIsChecking] = useState(true);
-  const [userId, setUserId] = useState<string | null>(null);
+  const [cachedAccount] = useState(() => {
+    const id = rememberedUserId();
+    return id ? peekAccountProfile(id) : null;
+  });
+  const accountDirtyRef = useRef(false);
+  const [isChecking, setIsChecking] = useState(cachedAccount == null);
+  const [userId, setUserId] = useState<string | null>(rememberedUserId);
   const [accessToken, setAccessToken] = useState<string | null>(null);
-  const [userEmail, setUserEmail] = useState<string | null>(null);
-  const [exerciseOptions, setExerciseOptions] = useState<Array<{ id: string; label: string; slug: string }>>([]);
+  const [userEmail, setUserEmail] = useState<string | null>(rememberedUserEmail);
+  const [exerciseOptions, setExerciseOptions] = useState(cachedAccount?.exerciseOptions ?? []);
   const [defaultsByExerciseId, setDefaultsByExerciseId] = useState<
     Map<string, Database["public"]["Tables"]["user_exercise_defaults"]["Row"]>
-  >(new Map());
+  >(() => new Map((cachedAccount?.defaults ?? []).map((row) => [row.exercise_id, row])));
   const [selectedExerciseId, setSelectedExerciseId] = useState("");
   const [defaultBaseWeightKg, setDefaultBaseWeightKg] = useState("");
   const [defaultTargetSets, setDefaultTargetSets] = useState("");
@@ -67,7 +80,7 @@ export default function AccountPage() {
   const [maxWarmupSets, setMaxWarmupSets] = useState("");
   const [suggestWarmups, setSuggestWarmups] = useState(true);
   const [suggestTarget, setSuggestTarget] = useState(true);
-  const [hasProfileMetrics, setHasProfileMetrics] = useState(false);
+  const [hasProfileMetrics, setHasProfileMetrics] = useState(cachedAccount?.hasProfileMetrics ?? false);
   const [newEmail, setNewEmail] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -82,140 +95,98 @@ export default function AccountPage() {
   const [passwordMessageTone, setPasswordMessageTone] = useState<"error" | "success">("error");
   const [defaultsMessage, setDefaultsMessage] = useState<string | null>(null);
   const [defaultsMessageTone, setDefaultsMessageTone] = useState<"error" | "success">("success");
-  const [bodyweightKg, setBodyweightKg] = useState("");
-  const [bodyweightLog, setBodyweightLog] = useState<BodyweightLogRow[]>([]);
-  const [heightCm, setHeightCm] = useState("");
-  const [sex, setSex] = useState("");
-  const [dateOfBirth, setDateOfBirth] = useState("");
-  const [birthYearFallback, setBirthYearFallback] = useState<number | null>(null);
+  const [bodyweightKg, setBodyweightKg] = useState(cachedAccount?.bodyweightKg ?? "");
+  const [bodyweightLog, setBodyweightLog] = useState<BodyweightLogRow[]>(cachedAccount?.bodyweightLog ?? []);
+  const [heightCm, setHeightCm] = useState(cachedAccount?.heightCm ?? "");
+  const [sex, setSex] = useState(cachedAccount?.sex ?? "");
+  const [dateOfBirth, setDateOfBirth] = useState(cachedAccount?.dateOfBirth ?? "");
+  const [birthYearFallback, setBirthYearFallback] = useState<number | null>(cachedAccount?.birthYearFallback ?? null);
   const [isSavingMetrics, setIsSavingMetrics] = useState(false);
   const [metricsMessage, setMetricsMessage] = useState<string | null>(null);
   const [metricsMessageTone, setMetricsMessageTone] = useState<"error" | "success">("success");
-  const [hiddenExerciseIds, setHiddenExerciseIds] = useState<Set<string>>(new Set());
+  const [hiddenExerciseIds, setHiddenExerciseIds] = useState<Set<string>>(
+    () => new Set(cachedAccount?.hiddenExerciseIds ?? []),
+  );
   const [hiddenToggleExerciseId, setHiddenToggleExerciseId] = useState<string | null>(null);
   const [hiddenMessage, setHiddenMessage] = useState<string | null>(null);
   const [hiddenMessageTone, setHiddenMessageTone] = useState<"error" | "success">("error");
   const [activeSection, setActiveSection] = useState<"security" | "profile" | "exercises">("security");
 
+  function applyAccountSnapshot(snapshot: AccountProfileSnapshot) {
+    setExerciseOptions(snapshot.exerciseOptions);
+    setDefaultsByExerciseId(new Map(snapshot.defaults.map((row) => [row.exercise_id, row])));
+    setHasProfileMetrics(snapshot.hasProfileMetrics);
+    setBodyweightLog(snapshot.bodyweightLog);
+    setBodyweightKg(snapshot.bodyweightKg);
+    setHeightCm(snapshot.heightCm);
+    setSex(snapshot.sex);
+    setDateOfBirth(snapshot.dateOfBirth);
+    setBirthYearFallback(snapshot.birthYearFallback);
+    setHiddenExerciseIds(new Set(snapshot.hiddenExerciseIds));
+  }
+
+  function showAccountLoadError(error: "profile" | "hidden" | "exercises" | "defaults") {
+    if (error === "profile") {
+      setMetricsMessageTone("error");
+      setMetricsMessage("Could not load profile.");
+      return;
+    }
+    if (error === "hidden") {
+      setHiddenMessageTone("error");
+      setHiddenMessage("Could not load hidden exercises.");
+      return;
+    }
+    if (error === "defaults") {
+      setDefaultsMessageTone("error");
+      setDefaultsMessage("Could not load exercise defaults.");
+      return;
+    }
+    setHiddenMessageTone("error");
+    setHiddenMessage("Could not load exercises.");
+  }
+
+  function refillAccountCache(currentUserId: string) {
+    invalidateAccountProfile();
+    void loadAccountProfile(supabaseBrowserClient, currentUserId, { fresh: true });
+  }
+
   useEffect(() => {
     let isMounted = true;
 
     async function checkSession() {
-      const session = await getBrowserAuthSession();
-
-      if (!isMounted) {
+      const started = accountProfileEpoch();
+      const visit = await confirmSignedInUser();
+      if (!isMounted || started !== accountProfileEpoch()) {
         return;
       }
-
-      if (!session) {
+      if (visit.status === "signed-out") {
         router.replace("/login");
         return;
       }
 
-      setUserId(session.user.id);
-      setAccessToken(session.access_token);
-      setUserEmail(session.user.email ?? null);
-      const { data: exercises, error: exercisesError } = await supabaseBrowserClient
-        .from("exercises")
-        .select("id, slug")
-        .order("slug", { ascending: true });
-      if (exercisesError) {
-        setHiddenMessageTone("error");
-        setHiddenMessage("Could not load exercises.");
+      setUserId(visit.userId);
+      setAccessToken(visit.accessToken);
+      setUserEmail(visit.email);
+      if (!visit.showCached) {
+        setIsChecking(true);
+      }
+
+      const result = await loadAccountProfile(supabaseBrowserClient, visit.userId, {
+        fresh: visit.showCached,
+      });
+      if (!isMounted || started !== accountProfileEpoch()) {
+        return;
+      }
+      if (result.error || !result.snapshot) {
+        if (!visit.showCached) {
+          showAccountLoadError(result.error ?? "profile");
+        }
         setIsChecking(false);
         return;
       }
-
-      const { data: translations } = await supabaseBrowserClient
-        .from("exercise_translations")
-        .select("exercise_id, lang_code, name")
-        .eq("lang_code", "en");
-      const translationMap = new Map<string, string>();
-      for (const row of translations ?? []) {
-        translationMap.set(row.exercise_id, row.name);
+      if (!accountDirtyRef.current) {
+        applyAccountSnapshot(result.snapshot);
       }
-      const options = (exercises ?? []).map((exercise) => ({
-        id: exercise.id,
-        label: translationMap.get(exercise.id) ?? exercise.slug,
-        slug: exercise.slug,
-      }));
-      setExerciseOptions(options);
-
-      const [
-        { data: profile, error: profileError },
-        { data: hiddenRows, error: hiddenError },
-        { data: logRows, error: logError },
-      ] = await Promise.all([
-        supabaseBrowserClient
-          .from("user_profile_metrics")
-          .select("bodyweight_kg,height_cm,birth_year,sex,date_of_birth")
-          .eq("user_id", session.user.id)
-          .maybeSingle(),
-        supabaseBrowserClient
-          .from("user_hidden_exercises")
-          .select("exercise_id")
-          .eq("user_id", session.user.id),
-        supabaseBrowserClient
-          .from("user_bodyweight_log")
-          .select("id, logged_on, bodyweight_kg")
-          .eq("user_id", session.user.id)
-          .order("logged_on", { ascending: false }),
-      ]);
-
-      if (profileError || logError) {
-        setMetricsMessageTone("error");
-        setMetricsMessage("Could not load profile.");
-        setIsChecking(false);
-        return;
-      }
-      if (hiddenError) {
-        setHiddenMessageTone("error");
-        setHiddenMessage("Could not load hidden exercises.");
-        setIsChecking(false);
-        return;
-      }
-
-      const log = (logRows ?? []).map((row) => ({
-        id: row.id,
-        loggedOn: row.logged_on.slice(0, 10),
-        bodyweightKg: Number(row.bodyweight_kg),
-      }));
-      const latestBodyweight = latestBodyweightEntry(log);
-      setBodyweightLog(log);
-      setBodyweightKg(
-        latestBodyweight
-          ? String(latestBodyweight.bodyweightKg)
-          : profile?.bodyweight_kg == null
-            ? ""
-            : String(profile.bodyweight_kg),
-      );
-      setHeightCm(profile?.height_cm == null ? "" : String(profile.height_cm));
-      setSex(profile?.sex ?? "");
-      setDateOfBirth(profile?.date_of_birth ?? "");
-      setBirthYearFallback(profile?.date_of_birth ? null : (profile?.birth_year ?? null));
-      setHasProfileMetrics(profile != null);
-
-      const hiddenSet = new Set<string>();
-      for (const row of hiddenRows ?? []) {
-        hiddenSet.add(row.exercise_id);
-      }
-      setHiddenExerciseIds(hiddenSet);
-
-      const { data: defaultsData, error: defaultsError } = await supabaseBrowserClient
-        .from("user_exercise_defaults")
-        .select("*")
-        .eq("user_id", session.user.id);
-      if (defaultsError) {
-        setDefaultsMessageTone("error");
-        setDefaultsMessage("Could not load exercise defaults.");
-        setIsChecking(false);
-        return;
-      }
-      const defaultsMap = new Map<string, Database["public"]["Tables"]["user_exercise_defaults"]["Row"]>();
-      for (const row of defaultsData ?? []) {
-        defaultsMap.set(row.exercise_id, row);
-      }
-      setDefaultsByExerciseId(defaultsMap);
       setIsChecking(false);
     }
 
@@ -465,6 +436,8 @@ export default function AccountPage() {
     if (parsed.value.date_of_birth) {
       setBirthYearFallback(null);
     }
+    accountDirtyRef.current = false;
+    refillAccountCache(userId);
     setIsSavingMetrics(false);
   }
 
@@ -493,6 +466,7 @@ export default function AccountPage() {
       setHasProfileMetrics(true);
     }
     setBodyweightKg(bodyweight_kg == null ? "" : String(bodyweight_kg));
+    refillAccountCache(userId);
     return null;
   }
 
@@ -587,6 +561,7 @@ export default function AccountPage() {
         return next;
       });
     }
+    refillAccountCache(userId);
     setHiddenToggleExerciseId(null);
   }
 
@@ -654,6 +629,7 @@ export default function AccountPage() {
       exerciseOptions.find((option) => option.id === selectedExerciseId)?.label ?? "Exercise";
     setDefaultsMessageTone("success");
     setDefaultsMessage(`Defaults saved for ${selectedExerciseLabel}.`);
+    refillAccountCache(userId);
     setIsSavingDefaults(false);
   }
 
@@ -711,6 +687,7 @@ export default function AccountPage() {
     setSuggestTarget(true);
     setMaxWarmupSets("");
     setDefaultsMessage(null);
+    refillAccountCache(userId);
     setIsClearingDefaults(false);
   }
 
@@ -896,7 +873,13 @@ export default function AccountPage() {
           icon={<UserRound className="h-4 w-4 text-zinc-500" />}
         />
         <SettingsSectionBody>
-        <form onSubmit={handleMetricsSave} className="space-y-3">
+        <form
+          onSubmit={handleMetricsSave}
+          onChange={() => {
+            accountDirtyRef.current = true;
+          }}
+          className="space-y-3"
+        >
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block text-sm font-medium">
               Sex

@@ -12,6 +12,7 @@ import { SettingsSection, SettingsSectionBody } from "@/app/components/settings-
 import { SettingsSectionHeader } from "@/app/components/settings-section-header";
 import { StatusNotice } from "@/app/components/status-notice";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
+import { clearSignedInMemory } from "@/lib/signed-in-memory";
 
 type AccountDeleteSectionProps = {
   accessToken: string;
@@ -63,6 +64,7 @@ export function AccountDeleteSection({ accessToken, userEmail }: AccountDeleteSe
       return;
     }
 
+    clearSignedInMemory();
     await supabaseBrowserClient.auth.signOut({ scope: "local" });
     router.replace("/login");
   }

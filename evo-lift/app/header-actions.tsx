@@ -24,7 +24,7 @@ import {
 } from "@/app/components/app-header-nav-link";
 import { EvoLiftMark } from "@/app/components/evo-lift-logo";
 import { prefetchHomeSessionSummaries } from "@/lib/home-session-cache";
-import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
+import { clearSignedInMemory, rememberUserId } from "@/lib/signed-in-memory";
 import { getBrowserUser } from "@/lib/supabase/browser-auth";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 
@@ -118,10 +118,11 @@ export function HeaderActions() {
       setUserEmail(session?.user.email ?? null);
       setIsReady(true);
       if (event === "SIGNED_IN" && session) {
+        rememberUserId(session.user.id, session.user.email ?? null);
         prefetchHomeSessionSummaries(supabaseBrowserClient, session.user.id);
       }
       if (event === "SIGNED_OUT") {
-        invalidateLoggedHistoryCaches();
+        clearSignedInMemory();
       }
     });
 
@@ -161,7 +162,7 @@ export function HeaderActions() {
   }
 
   async function handleAuthClick() {
-    invalidateLoggedHistoryCaches();
+    clearSignedInMemory();
     await supabaseBrowserClient.auth.signOut();
     router.replace("/login");
   }
