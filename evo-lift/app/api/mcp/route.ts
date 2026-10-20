@@ -1,6 +1,6 @@
 import { createMcpHandler, withMcpAuth } from "mcp-handler";
+import type { AuthInfo } from "@modelcontextprotocol/server";
 import { z } from "zod";
-import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import type { LanguageCode } from "@/lib/supabase/database.types";
 import {
   authenticateBearer,
@@ -18,6 +18,8 @@ import type { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
+
+type ToolCtx = { http?: { authInfo?: AuthInfo } };
 
 function jsonResult(payload: unknown, isError = false) {
   return {
@@ -38,16 +40,18 @@ function deploymentOrigin(): string {
   return "http://localhost:3000";
 }
 
-async function authFromExtra(extra: { authInfo?: AuthInfo }) {
-  return authenticateBearer(extra.authInfo?.token);
+async function authFromCtx(ctx: ToolCtx) {
+  return authenticateBearer(ctx.http?.authInfo?.token);
 }
 
 const handler = createMcpHandler(
   (server) => {
-    server.tool(
+    server.registerTool(
       "get_targets",
-      "Show this EvoLift deployment origin. Hosted MCP always queries this app (production on evo-lift.vercel.app).",
-      {},
+      {
+        description:
+          "Show this EvoLift deployment origin. Hosted MCP always queries this app (production on evo-lift.vercel.app).",
+      },
       async () =>
         jsonResult({
           deployment: deploymentOrigin(),
@@ -56,10 +60,11 @@ const handler = createMcpHandler(
         }),
     );
 
-    server.tool(
+    server.registerTool(
       "get_openapi",
-      "Fetch GET /api/openapi for this EvoLift deployment.",
-      {},
+      {
+        description: "Fetch GET /api/openapi for this EvoLift deployment.",
+      },
       async () => {
         const response = await fetch(`${deploymentOrigin()}/api/openapi`, {
           headers: { Accept: "application/json" },
@@ -74,14 +79,16 @@ const handler = createMcpHandler(
       },
     );
 
-    server.tool(
+    server.registerTool(
       "list_exercises",
-      "Fetch GET /api/exercises on this EvoLift deployment. Optional lang: en or de.",
       {
-        lang: z.enum(["en", "de"]).optional().describe("Optional language filter"),
+        description: "Fetch GET /api/exercises on this EvoLift deployment. Optional lang: en or de.",
+        inputSchema: z.object({
+          lang: z.enum(["en", "de"]).optional().describe("Optional language filter"),
+        }),
       },
-      async ({ lang }, extra) => {
-        const auth = await authFromExtra(extra);
+      async ({ lang }, ctx) => {
+        const auth = await authFromCtx(ctx);
         if ("error" in auth) {
           return jsonResult({ error: auth.error }, true);
         }
@@ -98,18 +105,21 @@ const handler = createMcpHandler(
       },
     );
 
-    server.tool(
+    server.registerTool(
       "evo_api_get",
-      "GET an EvoLift /api/* route on this deployment. Prefer get_openapi first. Read-only.",
       {
-        path: z.string().describe("Path starting with /api/, for example /api/exercises"),
-        query: z
-          .record(z.string(), z.string())
-          .optional()
-          .describe("Optional query string key/value pairs"),
+        description:
+          "GET an EvoLift /api/* route on this deployment. Prefer get_openapi first. Read-only.",
+        inputSchema: z.object({
+          path: z.string().describe("Path starting with /api/, for example /api/exercises"),
+          query: z
+            .record(z.string(), z.string())
+            .optional()
+            .describe("Optional query string key/value pairs"),
+        }),
       },
-      async ({ path, query }, extra) => {
-        const auth = await authFromExtra(extra);
+      async ({ path, query }, ctx) => {
+        const auth = await authFromCtx(ctx);
         if ("error" in auth) {
           return jsonResult({ error: auth.error }, true);
         }
@@ -120,7 +130,7 @@ const handler = createMcpHandler(
         const response = await fetch(built.url, {
           headers: {
             Accept: "application/json",
-            Authorization: `Bearer ${extra.authInfo?.token ?? ""}`,
+            Authorization: `Bearer ${ctx.http?.authInfo?.token ?? ""}`,
           },
         });
         const text = await response.text();
@@ -142,22 +152,25 @@ const handler = createMcpHandler(
       },
     );
 
-    server.tool(
+    server.registerTool(
       "evo_api_request",
-      "Call an EvoLift /api/* route on this deployment (GET, POST, PATCH, PUT, DELETE). Prefer get_openapi first. JSON body for write methods.",
       {
-        method: z
-          .enum(["GET", "POST", "PATCH", "PUT", "DELETE"])
-          .describe("HTTP method"),
-        path: z.string().describe("Path starting with /api/, for example /api/sessions"),
-        query: z
-          .record(z.string(), z.string())
-          .optional()
-          .describe("Optional query string key/value pairs"),
-        body: z.any().optional().describe("JSON object body for POST, PATCH, PUT"),
+        description:
+          "Call an EvoLift /api/* route on this deployment (GET, POST, PATCH, PUT, DELETE). Prefer get_openapi first. JSON body for write methods.",
+        inputSchema: z.object({
+          method: z
+            .enum(["GET", "POST", "PATCH", "PUT", "DELETE"])
+            .describe("HTTP method"),
+          path: z.string().describe("Path starting with /api/, for example /api/sessions"),
+          query: z
+            .record(z.string(), z.string())
+            .optional()
+            .describe("Optional query string key/value pairs"),
+          body: z.any().optional().describe("JSON object body for POST, PATCH, PUT"),
+        }),
       },
-      async ({ method, path, query, body }, extra) => {
-        const auth = await authFromExtra(extra);
+      async ({ method, path, query, body }, ctx) => {
+        const auth = await authFromCtx(ctx);
         if ("error" in auth) {
           return jsonResult({ error: auth.error }, true);
         }
@@ -167,7 +180,7 @@ const handler = createMcpHandler(
         }
         const headers: Record<string, string> = {
           Accept: "application/json",
-          Authorization: `Bearer ${extra.authInfo?.token ?? ""}`,
+          Authorization: `Bearer ${ctx.http?.authInfo?.token ?? ""}`,
         };
         const init: RequestInit = { method, headers };
         if (body !== undefined && method !== "GET") {
@@ -194,8 +207,7 @@ const handler = createMcpHandler(
       },
     );
   },
-  {},
-  { basePath: "/api", maxDuration: 60, verboseLogs: false },
+  { verboseLogs: false },
 );
 
 const verifyToken = async (
