@@ -1,6 +1,4 @@
 import assert from "node:assert/strict";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { NextRequest } from "next/server";
 import { afterAll, beforeAll, describe, it } from "vitest";
 import { GET as getAccount, DELETE as deleteAccount } from "@/app/api/account/route";
 import { PATCH as patchEmail } from "@/app/api/account/email/route";
@@ -27,61 +25,22 @@ import { POST as setActive } from "@/app/api/plans/[id]/active/route";
 import { POST as startPlanDay } from "@/app/api/plans/[id]/days/[dayId]/sessions/route";
 import { POST as createSession } from "@/app/api/sessions/route";
 import { POST as addSet } from "@/app/api/sessions/[id]/exercises/[sessionExerciseId]/sets/route";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
-
-function assertLocalSupabase() {
-  if (!supabaseUrl || !anonKey || !serviceRoleKey) {
-    throw new Error("Integration tests need local Supabase credentials.");
-  }
-  const host = new URL(supabaseUrl).hostname;
-  if (host !== "127.0.0.1" && host !== "localhost") {
-    throw new Error("Integration tests only run against local Supabase.");
-  }
-}
+import {
+  adminClient,
+  assertLocalSupabase,
+  buildRequest,
+  catalogId,
+  createTestUser,
+  deleteTestUsers,
+  readJson,
+  signIn,
+  TEST_PASSWORD,
+  type CatalogExercise,
+} from "./integration-helpers";
 
 assertLocalSupabase();
 
-type ApiBody = { data?: unknown; error?: string };
-
-const PASSWORD = "test-pass-1";
 const NEXT_PASSWORD = "test-pass-2";
-
-function adminClient(): SupabaseClient {
-  return createClient(supabaseUrl, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-}
-
-function buildRequest(pathname: string, method: string, token: string, body?: unknown): NextRequest {
-  const headers = new Headers({ authorization: `Bearer ${token}` });
-  if (body !== undefined) {
-    headers.set("content-type", "application/json");
-  }
-  return new NextRequest(`http://127.0.0.1${pathname}`, {
-    method,
-    headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
-}
-
-async function readJson(response: Response): Promise<{ status: number; body: ApiBody }> {
-  const text = await response.text();
-  return { status: response.status, body: text ? (JSON.parse(text) as ApiBody) : {} };
-}
-
-async function signIn(email: string, password = PASSWORD): Promise<string> {
-  const client = createClient(supabaseUrl, anonKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-  const { data, error } = await client.auth.signInWithPassword({ email, password });
-  if (error || !data.session?.access_token) {
-    throw new Error(error?.message ?? "Could not sign in the test user.");
-  }
-  return data.session.access_token;
-}
 
 describe("app API on local Supabase", () => {
   const admin = adminClient();
@@ -92,36 +51,19 @@ describe("app API on local Supabase", () => {
   let squatId = "";
 
   beforeAll(async () => {
-    const suffix = crypto.randomUUID();
-    for (const name of ["owner", "other"] as const) {
-      const email = `evo-app-${name}-${suffix}@example.com`;
-      const { data, error } = await admin.auth.admin.createUser({
-        email,
-        password: PASSWORD,
-        email_confirm: true,
-      });
-      if (error || !data.user) {
-        throw new Error(error?.message ?? "Could not create a test user.");
-      }
-      userIds.push(data.user.id);
-      const token = await signIn(email);
-      if (name === "owner") {
-        ownerEmail = email;
-        ownerToken = token;
-      } else {
-        otherToken = token;
-      }
-    }
+    const owner = await createTestUser(admin, "evo-app-owner");
+    const other = await createTestUser(admin, "evo-app-other");
+    userIds.push(owner.id, other.id);
+    ownerEmail = owner.email;
+    ownerToken = owner.token;
+    otherToken = other.token;
     const catalog = await readJson(await getExercises(buildRequest("/api/exercises", "GET", ownerToken)));
-    const rows = catalog.body.data as Array<{ id: string; slug: string }>;
-    squatId = rows.find((row) => row.slug === "back-squat")?.id ?? "";
-    assert.ok(squatId);
+    const rows = catalog.body.data as CatalogExercise[];
+    squatId = catalogId(rows, "back-squat");
   });
 
   afterAll(async () => {
-    for (const userId of userIds) {
-      await admin.auth.admin.deleteUser(userId);
-    }
+    await deleteTestUsers(admin, userIds);
   });
 
   it("rejects a plan without a name and saves one the other user cannot read", async () => {
@@ -370,7 +312,7 @@ describe("app API on local Supabase", () => {
     const changed = await readJson(
       await patchPassword(
         buildRequest("/api/account/password", "PATCH", ownerToken, {
-          current_password: PASSWORD,
+          current_password: TEST_PASSWORD,
           new_password: NEXT_PASSWORD,
           confirm_new_password: NEXT_PASSWORD,
         }),
