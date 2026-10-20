@@ -21,12 +21,12 @@ import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { CompactStickyBar } from "@/app/components/compact-sticky-bar";
-import { compactLogScrollDelta } from "./compact-log-scroll";
+import { compactLogScrollDelta } from "@/app/sessions/[id]/compact-log-scroll";
 import {
   SKIPPED_EXERCISE_BUTTON_TITLE,
   skippedExerciseButtonClass,
   skippedExerciseLabel,
-} from "./session-exercise-status";
+} from "@/app/sessions/[id]/session-exercise-status";
 import { DateInput } from "@/app/components/date-input";
 import { ExerciseSearchSelect } from "@/app/components/exercise-search-select";
 import { NotesTextareaField } from "@/app/components/notes-textarea-field";
@@ -56,7 +56,7 @@ import {
   type SessionExerciseRow,
   type SessionRow,
   type WorkoutSetRow,
-} from "./session-detail-actions";
+} from "@/app/sessions/[id]/session-detail-actions";
 import {
   emptyAddExerciseDraft,
   emptySetDraft,
@@ -64,10 +64,10 @@ import {
   maxSessionNotesLength,
   type AddExerciseDraft,
   type MessageTone,
-} from "./session-detail-model";
-import { SessionExerciseBlock } from "./session-exercise-block";
-import { SESSION_DETAIL_EXERCISE_QUERY, sessionDetailHref } from "./session-detail-query";
-import type { SessionSetDraft as SetDraft } from "./session-set-draft";
+} from "@/app/sessions/[id]/session-detail-model";
+import { SessionExerciseBlock } from "@/app/sessions/[id]/session-exercise-block";
+import { SESSION_DETAIL_EXERCISE_QUERY, sessionDetailHref } from "@/app/sessions/[id]/session-detail-query";
+import type { SessionSetDraft as SetDraft } from "@/app/sessions/[id]/session-set-draft";
 
 type SessionNumberCountRow = {
   id: string;

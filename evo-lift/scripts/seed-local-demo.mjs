@@ -4,8 +4,19 @@
  */
 import { randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import { createClient } from "@supabase/supabase-js";
+
+const require = createRequire(import.meta.url);
+
+/** Node 22+ has a global WebSocket. Node 20 needs the `ws` package, same as the app clients. */
+function realtimeTransportOptions() {
+  if (typeof globalThis.WebSocket !== "undefined") {
+    return {};
+  }
+  return { realtime: { transport: require("ws") } };
+}
 
 const DEMO_EMAIL = "demo@example.com";
 const DEMO_PASSWORD = "demo1234";
@@ -734,6 +745,7 @@ async function seed() {
 
   const supabase = createClient(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
+    ...realtimeTransportOptions(),
   });
 
   const { userId, created } = await ensureDemoUser(supabase);
@@ -741,6 +753,7 @@ async function seed() {
   if (!created) {
     const anon = createClient(supabaseUrl, anonKey, {
       auth: { autoRefreshToken: false, persistSession: false },
+      ...realtimeTransportOptions(),
     });
     const signIn = await anon.auth.signInWithPassword({
       email: DEMO_EMAIL,

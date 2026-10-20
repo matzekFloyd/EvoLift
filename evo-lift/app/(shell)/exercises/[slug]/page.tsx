@@ -34,13 +34,13 @@ import {
   historyValueClass,
   normalizeLoadedForComparison,
   summarizeExerciseHistory,
-} from "./exercise-history-display";
+} from "@/app/exercises/[slug]/exercise-history-display";
 import {
   compareExerciseSetHistoryForPerformedOn,
   isRowEarlier,
   parseExerciseDetailFiltersFromSearchParams,
   sortExerciseHistoryRowsCanonical,
-} from "./exercise-history";
+} from "@/app/exercises/[slug]/exercise-history";
 import { ExerciseSessionE1rmChart } from "@/app/components/exercise-session-e1rm-chart";
 import { ExerciseSessionVolumeChart } from "@/app/components/exercise-session-volume-chart";
 import { ExerciseWeightProgressChart } from "@/app/components/exercise-weight-progress-chart";
