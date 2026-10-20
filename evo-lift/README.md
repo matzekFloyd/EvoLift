@@ -43,6 +43,8 @@ This generates a new timestamped SQL file in `supabase/migrations`.
 
 Open the new migration file and add your schema changes (`create table`, `alter table`, indexes, RLS policies, etc.).
 
+Grant every new table, view, and Data API or trigger function in `public` in that same migration. Tables keep `GRANT ALL` to `anon`, `authenticated`, and `service_role`, plus row-level security. Trigger functions get `EXECUTE` for the roles that write the table. A missing grant fails with `permission denied` before row-level security runs. Do not turn on `auto_expose_new_tables`.
+
 ### 3) Validate locally
 
 ```bash
