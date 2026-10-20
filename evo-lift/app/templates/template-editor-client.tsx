@@ -14,6 +14,7 @@ import {
   exerciseDraftRowsFromTemplateLines,
   type ExerciseDraftRow,
 } from "@/lib/workout-exercise-draft";
+import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import {
   createUserTemplate,
@@ -95,9 +96,7 @@ export function TemplateEditorClient(props: Props) {
     let isMounted = true;
 
     async function load() {
-      const {
-        data: { session },
-      } = await supabaseBrowserClient.auth.getSession();
+      const session = await getBrowserAuthSession();
       if (!isMounted) {
         return;
       }
@@ -199,9 +198,7 @@ export function TemplateEditorClient(props: Props) {
     event.preventDefault();
     clearMessage();
 
-    const {
-      data: { session },
-    } = await supabaseBrowserClient.auth.getSession();
+    const session = await getBrowserAuthSession();
     const saveError = templateSaveError({
       isLoggedIn: Boolean(session?.access_token),
       name,

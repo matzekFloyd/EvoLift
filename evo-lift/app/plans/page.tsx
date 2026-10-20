@@ -27,6 +27,7 @@ import {
   type NamedListSortDirection,
 } from "@/lib/named-list-sort";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
+import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { deleteUserPlan, duplicateUserPlan, setUserPlanActive } from "@/server/actions/plans";
 
 type PlanListRow = {
@@ -78,9 +79,7 @@ export default function PlansPage() {
     let isMounted = true;
 
     async function init() {
-      const {
-        data: { session },
-      } = await supabaseBrowserClient.auth.getSession();
+      const session = await getBrowserAuthSession();
       if (!isMounted) {
         return;
       }
@@ -99,9 +98,7 @@ export default function PlansPage() {
   }, [router]);
 
   async function accessToken(): Promise<string | null> {
-    const {
-      data: { session },
-    } = await supabaseBrowserClient.auth.getSession();
+    const session = await getBrowserAuthSession();
     return session?.access_token ?? null;
   }
 

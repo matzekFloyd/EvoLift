@@ -92,6 +92,23 @@ If a high/critical production advisory cannot be fixed immediately (no patched r
 | --- | --- | --- | --- |
 | _(none)_ | | | |
 
+## App session gate (UI shell)
+
+Next.js **`proxy.ts`** (Next 16; formerly middleware) runs `lib/supabase/update-session.ts` on matched requests:
+
+1. Refreshes the Supabase auth cookie via `@supabase/ssr`.
+2. Calls **`auth.getUser()`** (not cookie-only `getSession()`) to verify the user.
+3. Redirects anonymous browsers to `/login` for protected app routes.
+4. Redirects signed-in users away from `/login` to `/`.
+
+**Public without a session cookie:** `/login`, `/privacy`, `/terms`, `/glossary`, and all `/api/*` paths.
+
+`/api/*` is intentionally not redirected: API auth stays bearer JWT / personal token + RLS (or ownership helpers). The proxy is defense-in-depth for the HTML shell only.
+
+The browser client (`lib/supabase/browser.ts`) uses **cookie** session storage so the proxy can see the session. After deploy, users who only had a localStorage session may need to **log in once** again.
+
+Client pages use `getBrowserUser` / `getBrowserAuthSession` (`lib/supabase/browser-auth.ts`) so identity checks prefer `getUser()`.
+
 ## Security event logging
 
 Server routes and a small client reporter emit **one JSON object per line** on stdout with `"channel":"security"`. On Vercel, open the deployment **Logs** and filter for `channel":"security"` (or the event `type`).

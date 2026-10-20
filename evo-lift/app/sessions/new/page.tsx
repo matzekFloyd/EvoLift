@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
+import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { ActionButton } from "@/app/components/action-button";
 import { DateInput } from "@/app/components/date-input";
 import { PageShell } from "@/app/components/page-shell";
@@ -32,6 +33,7 @@ import { coalesceNewSessionDraftPerformedOn, getTodayYyyyMmDd } from "@/lib/sess
 import type { WorkoutTemplateWithExercises } from "@/server/db/templates";
 
 type ExerciseDefaultsRow = Database["public"]["Tables"]["user_exercise_defaults"]["Row"];
+type TemplateExerciseRow = Database["public"]["Tables"]["workout_template_exercises"]["Row"];
 
 function NewSessionPageContent() {
   const router = useRouter();
@@ -119,9 +121,7 @@ function NewSessionPageContent() {
     let isMounted = true;
 
     async function checkSession() {
-      const {
-        data: { session },
-      } = await supabaseBrowserClient.auth.getSession();
+      const session = await getBrowserAuthSession();
 
       if (!isMounted) {
         return;
@@ -432,9 +432,11 @@ function NewSessionPageContent() {
       return;
     }
 
-    const exercises = [...(data.workout_template_exercises ?? [])].sort(
-      (a, b) => a.position - b.position,
-    );
+    const nestedExercises = data.workout_template_exercises;
+    const exercises = (
+      Array.isArray(nestedExercises) ? (nestedExercises as TemplateExerciseRow[]) : []
+    ).slice()
+      .sort((a, b) => a.position - b.position);
     const full: WorkoutTemplateWithExercises = {
       id: data.id,
       user_id: data.user_id,

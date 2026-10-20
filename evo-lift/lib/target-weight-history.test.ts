@@ -3,12 +3,12 @@ import { describe, it } from "vitest";
 import { loadTargetWeightHistory } from "./target-weight-history";
 
 function historyClient(options: {
-  auth?: { data: { session: { user: { id: string } } | null }; error: { message: string } | null };
+  auth?: { data: { user: { id: string } | null }; error: { message: string } | null };
   tables?: Record<string, { data: unknown; error: { message: string } | null }>;
 }) {
   return {
     auth: {
-      getSession: () => Promise.resolve(options.auth ?? { data: { session: null }, error: null }),
+      getUser: () => Promise.resolve(options.auth ?? { data: { user: null }, error: null }),
     },
     from(table: string) {
       const result = options.tables?.[table] ?? { data: [], error: null };
@@ -38,7 +38,7 @@ describe("loadTargetWeightHistory", () => {
   it("returns nothing when the exercise has no session rows", async () => {
     const rows = await loadTargetWeightHistory(
       historyClient({
-        auth: { data: { session: { user: { id: "user-1" } } }, error: null },
+        auth: { data: { user: { id: "user-1" } }, error: null },
         tables: { workout_session_exercises: { data: [], error: null } },
       }) as never,
       "squat",
@@ -49,7 +49,7 @@ describe("loadTargetWeightHistory", () => {
   it("maps sets onto the session day", async () => {
     const rows = await loadTargetWeightHistory(
       historyClient({
-        auth: { data: { session: { user: { id: "user-1" } } }, error: null },
+        auth: { data: { user: { id: "user-1" } }, error: null },
         tables: {
           workout_session_exercises: {
             data: [{ id: "se-1", session_id: "session-1", target_weight_kg: 60 }],

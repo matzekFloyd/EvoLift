@@ -14,6 +14,7 @@ import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
 import { latestSessionByPlanDay, nextPlanDayId } from "@/lib/plan-cycle";
 import { getTodayYyyyMmDd } from "@/lib/session-date";
+import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { instantiateUserPlanDay } from "@/server/actions/plans";
 
@@ -137,9 +138,7 @@ export function ActivePlanPanel() {
       setMessage("Please choose a performed date.");
       return;
     }
-    const {
-      data: { session },
-    } = await supabaseBrowserClient.auth.getSession();
+    const session = await getBrowserAuthSession();
     if (!session?.access_token) {
       setMessage("You must be logged in.");
       return;

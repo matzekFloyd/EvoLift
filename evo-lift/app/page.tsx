@@ -21,6 +21,7 @@ import {
   peekHomeSessionSummaries,
   type HomeSessionSummaryRow,
 } from "@/lib/home-session-cache";
+import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { homeExerciseBadges, homeSetCount } from "@/app/home-sessions";
 import { getDefaultHomeDateRange } from "@/app/home-date-range";
@@ -68,9 +69,7 @@ export default function Home() {
     let isMounted = true;
 
     async function checkSession() {
-      const {
-        data: { session },
-      } = await supabaseBrowserClient.auth.getSession();
+      const session = await getBrowserAuthSession();
 
       if (!isMounted) {
         return;

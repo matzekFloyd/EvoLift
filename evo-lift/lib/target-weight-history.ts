@@ -37,8 +37,8 @@ export async function loadTargetWeightHistory(
     return [];
   }
 
-  const { data: authData, error: authError } = await client.auth.getSession();
-  const userId = authData.session?.user.id;
+  const { data: authData, error: authError } = await client.auth.getUser();
+  const userId = authData.user?.id;
   if (authError || !userId) {
     throw new Error("Could not load recent working sets.");
   }

@@ -8,13 +8,15 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.mts",
     "lighthouse": "node scripts/run-lighthouse.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "1.32.1",
-    "@supabase/supabase-js": "^2.105.0",
+    "@supabase/ssr": "0.6.1",
+    "@supabase/supabase-js": "2.105.0",
     "lucide-react": "^1.59.0",
     "mcp-handler": "^1.1.0",
     "next": "16.4.0",

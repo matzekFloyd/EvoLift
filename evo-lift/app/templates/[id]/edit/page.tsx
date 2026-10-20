@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { PageShell } from "@/app/components/page-shell";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
+import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { getUserTemplateById } from "@/server/actions/templates";
 import type { WorkoutTemplateWithExercises } from "@/server/db/templates";
 import { TemplateEditorClient } from "@/app/templates/template-editor-client";
@@ -19,9 +20,7 @@ export default function EditTemplatePage() {
     let isMounted = true;
 
     async function load() {
-      const {
-        data: { session },
-      } = await supabaseBrowserClient.auth.getSession();
+      const session = await getBrowserAuthSession();
       if (!isMounted) {
         return;
       }

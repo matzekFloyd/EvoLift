@@ -14,6 +14,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authEmailRedirectUrl } from "@/lib/auth-email-redirect";
 import { reportSecurityEvent } from "@/lib/report-security-event";
+import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import type { Database } from "@/lib/supabase/database.types";
 import { ExerciseBadgeChip } from "@/app/components/exercise-badge-chip";
@@ -94,9 +95,7 @@ export default function AccountPage() {
     let isMounted = true;
 
     async function checkSession() {
-      const {
-        data: { session },
-      } = await supabaseBrowserClient.auth.getSession();
+      const session = await getBrowserAuthSession();
 
       if (!isMounted) {
         return;

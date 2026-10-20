@@ -26,6 +26,7 @@ import { PageShell } from "@/app/components/page-shell";
 import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
+import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { buildExerciseProgressReport, type LifterProfile } from "@/lib/exercise-progress-insights";
 import { buildInsightsComparisonSentence } from "@/lib/insights-chart-summary";
 import { buildInsightsCompoundE1rmSeries } from "@/lib/insights-compound-e1rm";
@@ -93,9 +94,7 @@ export default function InsightsPage() {
   const loadInsights = useCallback(
     async (mode: "initial" | "refresh") => {
       const requestId = ++loadRequestRef.current;
-      const {
-        data: { session },
-      } = await supabaseBrowserClient.auth.getSession();
+      const session = await getBrowserAuthSession();
       if (!isMountedRef.current) {
         return;
       }
