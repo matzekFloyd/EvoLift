@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-import { CI_SUPABASE_EXCLUDE, disableCiSeed } from "./ci-supabase-start.mjs";
+import { CI_IMAGE_REGISTRY, CI_SUPABASE_EXCLUDE, prepareCiConfig } from "./ci-supabase-start.mjs";
 
 const seedBlock = `[db.seed]
 # If enabled, seeds the database after migrations during a db reset.
@@ -11,26 +11,58 @@ enabled = true
 sql_paths = ["./seeds/*.sql"]
 `;
 
-test("the checked-in config can turn CI seeding off", () => {
+test("the checked-in config keeps Auth and the API, and turns the rest off for CI", () => {
   const toml = readFileSync("supabase/config.toml", "utf8");
-  const next = disableCiSeed(toml);
-  assert.match(next, /\[db\.seed\][\s\S]*?\r?\nenabled = false\r?\n/);
+  const next = prepareCiConfig(toml);
+  for (const section of ["db.seed", "realtime", "studio", "inbucket", "storage", "edge_runtime", "analytics"]) {
+    const escaped = section.replaceAll(".", "\\.");
+    assert.match(next, new RegExp(`\\[${escaped}\\](?:\\r?\\n#[^\\n]*)*\\r?\\nenabled = false`));
+  }
+  assert.match(next, /\[storage\.s3_protocol\]\r?\nenabled = false/);
+  assert.match(next, /\[api\]\r?\nenabled = true/);
   assert.match(next, /\[auth\]\r?\nenabled = true/);
-  assert.equal(toml.includes("enabled = true"), true);
+  assert.match(next, /\[db\.migrations\][\s\S]*?\r?\nenabled = true/);
+  assert.match(toml, /\[realtime\]\r?\nenabled = true/);
 });
 
 test("CI seed switch turns off only the db.seed block", () => {
-  const toml = `[analytics]
+  const toml = `[db.migrations]
 enabled = true
 
 ${seedBlock}
+[api]
+enabled = true
+
+[auth]
+enabled = true
+
 [realtime]
 enabled = true
+
+[studio]
+enabled = true
+
+[inbucket]
+enabled = true
+
+[storage]
+enabled = true
+
+[storage.s3_protocol]
+enabled = true
+
+[edge_runtime]
+enabled = true
+
+[analytics]
+enabled = true
 `;
-  const next = disableCiSeed(toml);
-  assert.match(next, /\[db\.seed\]\r?\n# If enabled[\s\S]*?\nenabled = false\n/);
-  assert.match(next, /\[analytics\]\nenabled = true/);
-  assert.match(next, /\[realtime\]\nenabled = true/);
+  const next = prepareCiConfig(toml);
+  assert.match(next, /\[db\.seed\]\n# If enabled[\s\S]*?\nenabled = false\n/);
+  assert.match(next, /\[db\.migrations\]\nenabled = true/);
+  assert.match(next, /\[api\]\nenabled = true/);
+  assert.match(next, /\[auth\]\nenabled = true/);
+  assert.match(next, /\[realtime\]\nenabled = false/);
   assert.match(next, /sql_paths = \["\.\/seeds\/\*\.sql"\]/);
 });
 
@@ -50,6 +82,7 @@ test("CI starts Postgres, Auth, and the API only", () => {
   for (const kept of ["gotrue", "kong", "postgrest"]) {
     assert.equal(CI_SUPABASE_EXCLUDE.includes(kept), false, kept);
   }
+  assert.equal(CI_IMAGE_REGISTRY, "ghcr.io");
 });
 
 test("API integration and Lighthouse share the slim start and catalog seeds", () => {
