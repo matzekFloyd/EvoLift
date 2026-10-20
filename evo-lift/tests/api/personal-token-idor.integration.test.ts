@@ -13,6 +13,7 @@ import { GET as getTemplate } from "@/app/api/templates/[id]/route";
 import { POST as createTemplate } from "@/app/api/templates/route";
 import {
   adminClient,
+  assertHttpStatus,
   assertLocalSupabase,
   buildRequest,
   catalogId,
@@ -66,7 +67,7 @@ describe("personal API token IDOR on local Supabase", () => {
         }),
       ),
     );
-    assert.equal(session.status, 201, session.body.error);
+    assertHttpStatus(session.status, 201, session.body.error);
     const sessionId = (session.body.data as { id: string }).id;
 
     const otherSessionGet = await readJson(
@@ -95,7 +96,7 @@ describe("personal API token IDOR on local Supabase", () => {
         }),
       ),
     );
-    assert.equal(template.status, 201, template.body.error);
+    assertHttpStatus(template.status, 201, template.body.error);
     const templateId = (template.body.data as { id: string }).id;
     const otherTemplate = await readJson(
       await getTemplate(buildRequest(`/api/templates/${templateId}`, "GET", otherPersonalToken), {
@@ -151,7 +152,7 @@ describe("personal API token IDOR on local Supabase", () => {
         }),
       ),
     );
-    assert.equal(goal.status, 201, goal.body.error);
+    assertHttpStatus(goal.status, 201, goal.body.error);
     const goalId = (goal.body.data as { id: string }).id;
     const otherGoal = await readJson(
       await getGoal(buildRequest(`/api/goals/${goalId}`, "GET", otherPersonalToken), {
