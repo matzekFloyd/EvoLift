@@ -51,7 +51,7 @@ jobs:
           cache-dependency-path: evo-lift/package-lock.json
 
       - name: Setup Supabase CLI
-        uses: supabase/setup-cli@v1
+        uses: supabase/setup-cli@v3
         with:
           version: 2.121.0
 
