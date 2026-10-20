@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { authEmailRedirectUrl } from "@/lib/auth-email-redirect";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
-import { PageShell } from "@/app/components/page-shell";
+import { PageFrame } from "@/app/components/page-frame";
 import { SectionHeading } from "@/app/components/section-heading";
 import { SegmentedTabs } from "@/app/components/segmented-tabs";
 import {
@@ -15,10 +15,6 @@ import {
   loginPasswordError,
   normalizeLoginEmail,
 } from "@/app/login/login-form";
-import {
-  getExerciseMetadataCacheStatus,
-  loadExerciseMetadata,
-} from "@/lib/exercise-metadata-cache";
 import { reportSecurityEvent } from "@/lib/report-security-event";
 import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 
@@ -32,20 +28,6 @@ export default function LoginPage() {
   const [successEmail, setSuccessEmail] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifiedNotice, setIsVerifiedNotice] = useState(false);
-
-  async function warmExerciseMetadataCache() {
-    const startedAt = performance.now();
-    const cacheStatus = getExerciseMetadataCacheStatus(5 * 60 * 1000);
-    try {
-      await loadExerciseMetadata(supabaseBrowserClient, { ttlMs: 5 * 60 * 1000 });
-      const elapsedMs = Number((performance.now() - startedAt).toFixed(1));
-      console.info(`[Perf] login metadata warm-up ${cacheStatus} in ${elapsedMs}ms`);
-    } catch {
-      // Best-effort warm-up: login flow should not fail on cache preloading.
-      const elapsedMs = Number((performance.now() - startedAt).toFixed(1));
-      console.info(`[Perf] login metadata warm-up failed after ${elapsedMs}ms`);
-    }
-  }
 
   useEffect(() => {
     let isMounted = true;
@@ -61,7 +43,6 @@ export default function LoginPage() {
       }
 
       if (session) {
-        void warmExerciseMetadataCache();
         router.replace("/");
         return;
       }
@@ -73,7 +54,6 @@ export default function LoginPage() {
       data: { subscription },
     } = supabaseBrowserClient.auth.onAuthStateChange((_event, session) => {
       if (session) {
-        void warmExerciseMetadataCache();
         router.replace("/");
         return;
       }
@@ -118,7 +98,6 @@ export default function LoginPage() {
       return;
     }
 
-    await warmExerciseMetadataCache();
     router.replace("/");
     setIsLoading(false);
   }
@@ -168,7 +147,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-gradient-to-b from-sky-100 via-sky-50 to-white">
-      <PageShell className="max-w-md justify-start gap-6">
+      <PageFrame className="max-w-md justify-start gap-6">
         <div className="flex w-full flex-col gap-6 pt-[max(0px,8vh)]">
         <section className="panel p-4">
         {isVerifiedNotice ? (
@@ -296,7 +275,7 @@ export default function LoginPage() {
         </section>
       ) : null}
         </div>
-      </PageShell>
+      </PageFrame>
     </div>
   );
 }
