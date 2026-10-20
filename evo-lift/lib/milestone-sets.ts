@@ -6,6 +6,7 @@ import {
 } from "@/lib/milestone-progress";
 import { fetchInChunks } from "@/lib/supabase/chunked-query";
 import type { Database } from "@/lib/supabase/database.types";
+import { fetchWorkoutSessionsByIds } from "@/lib/workout-sessions-by-ids";
 
 type Client = SupabaseClient<Database>;
 
@@ -75,15 +76,11 @@ export async function loadMilestoneWorkingSets(
   const sessionIds = [...new Set(exercises.map((row) => row.session_id).filter(Boolean))];
   const performedOnBySessionId = new Map<string, string>();
   if (sessionIds.length > 0) {
-    const { data: sessionRows, error: sessionsError } = await fetchInChunks(sessionIds, (chunk, from, to) => {
-      return client
-        .from("workout_sessions")
-        .select("id, performed_on")
-        .in("id", chunk)
-        .eq("user_id", userId)
-        .order("id", { ascending: true })
-        .range(from, to);
-    });
+    const { data: sessionRows, error: sessionsError } = await fetchWorkoutSessionsByIds(
+      client,
+      sessionIds,
+      userId,
+    );
     if (sessionsError) {
       throw new Error("Could not load workout sets.");
     }

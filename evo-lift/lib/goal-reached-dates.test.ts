@@ -14,6 +14,11 @@ function queryClient(tables: Record<string, { data: unknown; error: { message: s
       builder.then = (onFulfilled: (value: unknown) => unknown) => Promise.resolve(result).then(onFulfilled);
       return builder;
     },
+    rpc(name: string) {
+      assert.equal(name, "workout_sessions_by_ids");
+      const result = tables.workout_sessions ?? { data: [], error: null };
+      return Promise.resolve(result);
+    },
   };
 }
 
