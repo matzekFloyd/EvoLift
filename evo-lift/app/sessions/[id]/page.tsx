@@ -229,12 +229,13 @@ export default function SessionDetailPage() {
     if (!userId) {
       return;
     }
+    const scopedUserId: string = userId;
     let cancelled = false;
     async function loadSuggestionSettings() {
       const { data: defaults } = await supabaseBrowserClient
         .from("user_exercise_defaults")
         .select("exercise_id, suggest_warmups, suggest_target, max_suggested_warmup_sets")
-        .eq("user_id", userId);
+        .eq("user_id", scopedUserId);
       if (cancelled) {
         return;
       }

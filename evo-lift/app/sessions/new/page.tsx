@@ -33,6 +33,7 @@ import { coalesceNewSessionDraftPerformedOn, getTodayYyyyMmDd } from "@/lib/sess
 import type { WorkoutTemplateWithExercises } from "@/server/db/templates";
 
 type ExerciseDefaultsRow = Database["public"]["Tables"]["user_exercise_defaults"]["Row"];
+type TemplateExerciseRow = Database["public"]["Tables"]["workout_template_exercises"]["Row"];
 
 function NewSessionPageContent() {
   const router = useRouter();
@@ -431,9 +432,11 @@ function NewSessionPageContent() {
       return;
     }
 
-    const exercises = [...(data.workout_template_exercises ?? [])].sort(
-      (a, b) => a.position - b.position,
-    );
+    const nestedExercises = data.workout_template_exercises;
+    const exercises = (
+      Array.isArray(nestedExercises) ? (nestedExercises as TemplateExerciseRow[]) : []
+    ).slice()
+      .sort((a, b) => a.position - b.position);
     const full: WorkoutTemplateWithExercises = {
       id: data.id,
       user_id: data.user_id,

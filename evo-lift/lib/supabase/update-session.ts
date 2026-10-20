@@ -1,10 +1,16 @@
-import { createServerClient } from "@supabase/ssr";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { sessionGateDecision } from "@/lib/auth-route-access";
 
 function normalizeSupabaseUrl(url: string): string {
   return url.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
 }
+
+type CookieToSet = {
+  name: string;
+  value: string;
+  options?: CookieOptions;
+};
 
 /**
  * Refresh the auth cookie and gate protected app routes with `getUser()`.
@@ -24,7 +30,7 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
       getAll() {
         return request.cookies.getAll();
       },
-      setAll(cookiesToSet) {
+      setAll(cookiesToSet: CookieToSet[]) {
         cookiesToSet.forEach(({ name, value }) => {
           request.cookies.set(name, value);
         });
