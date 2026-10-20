@@ -26,6 +26,11 @@ import { warmupSuggestionsEnabled } from "@/lib/warmup-suggestion";
 import { DateInput } from "@/app/components/date-input";
 import { ExerciseFilteredList } from "@/app/components/exercise-filtered-list";
 import { ExerciseSearchSelect } from "@/app/components/exercise-search-select";
+import { ContentPlaceholder } from "@/app/components/content-placeholder";
+import {
+  ACCOUNT_PLACEHOLDER_CLASS,
+  ACCOUNT_PLACEHOLDER_ROWS,
+} from "@/app/components/content-placeholder-layout";
 import { PageShell } from "@/app/components/page-shell";
 import { SegmentedTabs } from "@/app/components/segmented-tabs";
 import { SettingsSection, SettingsSectionBody } from "@/app/components/settings-section";
@@ -724,16 +729,8 @@ export default function AccountPage() {
     setDefaultsMessage(null);
   }, [activeSection]);
 
-  if (isChecking) {
-    return (
-      <PageShell className="items-center justify-center">
-        <p className="text-sm text-zinc-600">Checking session...</p>
-      </PageShell>
-    );
-  }
-
-  return (
-    <PageShell>
+  const accountChrome = (
+    <>
       <h1 className="inline-flex items-center gap-2 text-2xl font-semibold tracking-tight">
         <UserRound className="h-6 w-6 text-sky-700" />
         User information
@@ -751,6 +748,25 @@ export default function AccountPage() {
           { value: "exercises", label: "Exercises", icon: <SlidersHorizontal className="h-3.5 w-3.5" /> },
         ]}
       />
+    </>
+  );
+
+  if (isChecking) {
+    return (
+      <PageShell>
+        {accountChrome}
+        <ContentPlaceholder
+          label="Checking session..."
+          rows={ACCOUNT_PLACEHOLDER_ROWS}
+          rowClassName={ACCOUNT_PLACEHOLDER_CLASS}
+        />
+      </PageShell>
+    );
+  }
+
+  return (
+    <PageShell>
+      {accountChrome}
       {activeSection === "security" ? (
         <>
       <SettingsSection>

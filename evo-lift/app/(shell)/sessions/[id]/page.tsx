@@ -31,6 +31,11 @@ import { DateInput } from "@/app/components/date-input";
 import { ExerciseSearchSelect } from "@/app/components/exercise-search-select";
 import { NotesTextareaField } from "@/app/components/notes-textarea-field";
 import { DocumentTitle } from "@/app/components/document-title";
+import { ContentPlaceholder } from "@/app/components/content-placeholder";
+import {
+  SESSION_LOG_PLACEHOLDER_CLASS,
+  SESSION_LOG_PLACEHOLDER_ROWS,
+} from "@/app/components/content-placeholder-layout";
 import { PageShell } from "@/app/components/page-shell";
 import { panelInsetClass } from "@/app/components/panel-inset";
 import { SectionHeading } from "@/app/components/section-heading";
@@ -880,8 +885,13 @@ export default function SessionDetailPage() {
 
   if (isChecking) {
     return (
-      <PageShell className="items-center justify-center">
-        <p className="text-sm text-zinc-600">Loading workout session...</p>
+      <PageShell>
+        <h1 className="text-2xl font-semibold tracking-tight">Workout session</h1>
+        <ContentPlaceholder
+          label="Loading workout session..."
+          rows={SESSION_LOG_PLACEHOLDER_ROWS}
+          rowClassName={SESSION_LOG_PLACEHOLDER_CLASS}
+        />
       </PageShell>
     );
   }

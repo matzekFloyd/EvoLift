@@ -6,6 +6,11 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
 import { AppDialog } from "@/app/components/app-dialog";
+import { ContentPlaceholder } from "@/app/components/content-placeholder";
+import {
+  GOAL_CARD_PLACEHOLDER_CLASS,
+  GOAL_CARD_PLACEHOLDER_ROWS,
+} from "@/app/components/content-placeholder-layout";
 import { PageAddAction } from "@/app/components/page-add-action";
 import { PageShell } from "@/app/components/page-shell";
 import { SectionHeading } from "@/app/components/section-heading";
@@ -334,14 +339,6 @@ export default function GoalsPage() {
     await loadGoals(userId);
   }
 
-  if (isChecking) {
-    return (
-      <PageShell className="items-center justify-center">
-        <p className="text-sm text-zinc-600">Checking session...</p>
-      </PageShell>
-    );
-  }
-
   return (
     <PageShell>
       <div className="flex items-center justify-between gap-3">
@@ -364,6 +361,15 @@ export default function GoalsPage() {
           accounts start with bodyweight goals on the main barbell lifts. Edit or delete them anytime.
           Bodyweight goals need a bodyweight entry on Account.
         </p>
+        {isChecking ? (
+          <ContentPlaceholder
+            label="Checking session..."
+            rows={GOAL_CARD_PLACEHOLDER_ROWS}
+            rowClassName={GOAL_CARD_PLACEHOLDER_CLASS}
+            className="mt-4"
+          />
+        ) : (
+          <>
         {message ? (
           <StatusNotice message={message} tone="error" onDismiss={() => setMessage(null)} className="mt-4" />
         ) : null}
@@ -414,6 +420,8 @@ export default function GoalsPage() {
             </div>
           )}
         </CollapsibleSection>
+          </>
+        )}
       </section>
 
       {draft ? (

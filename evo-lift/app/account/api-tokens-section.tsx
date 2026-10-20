@@ -4,6 +4,8 @@ import { Copy, KeyRound, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ActionButton } from "@/app/components/action-button";
+import { ContentPlaceholder } from "@/app/components/content-placeholder";
+import { API_TOKEN_PLACEHOLDER_ROWS } from "@/app/components/content-placeholder-layout";
 import {
   AppTable,
   AppTableActionsHeader,
@@ -191,7 +193,7 @@ export function AccountApiTokensSection({ accessToken }: AccountApiTokensSection
 
         <div className="mt-4">
           {isLoading ? (
-            <p className="text-sm text-zinc-600">Loading API tokens...</p>
+            <ContentPlaceholder label="Loading API tokens..." rows={API_TOKEN_PLACEHOLDER_ROWS} />
           ) : tokens.length === 0 ? (
             <p className="text-sm text-zinc-600">No active API tokens.</p>
           ) : (

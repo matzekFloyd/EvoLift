@@ -4,6 +4,8 @@ import Link from "next/link";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { History, LayoutGrid, Weight } from "lucide-react";
+import { ContentPlaceholder } from "@/app/components/content-placeholder";
+import { EXERCISE_LIST_PLACEHOLDER_CLASS } from "@/app/components/content-placeholder-layout";
 import { ExerciseBadgeChip } from "@/app/components/exercise-badge-chip";
 import { ExerciseFilteredList } from "@/app/components/exercise-filtered-list";
 import { PageShell } from "@/app/components/page-shell";
@@ -26,6 +28,57 @@ type ExerciseListItem = {
   label: string;
   sessionCount: number;
 };
+
+const exerciseScopePillBase =
+  "rounded-md border px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40";
+const exerciseScopePillActive = "border-sky-600 bg-sky-100 text-sky-950";
+const exerciseScopePillInactive =
+  "border-zinc-300 bg-zinc-50 text-zinc-700 hover:border-zinc-400 hover:bg-zinc-100";
+
+function ExerciseScopePills({
+  scopeAll,
+  onScope,
+  disabled = false,
+}: {
+  scopeAll: boolean;
+  onScope?: (next: "used" | "all") => void;
+  disabled?: boolean;
+}) {
+  return (
+    <div className="mb-3 grid grid-cols-2 gap-2">
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => onScope?.("used")}
+        className={`flex w-full flex-col items-center justify-center gap-1.5 text-center leading-tight ${exerciseScopePillBase} ${!scopeAll ? exerciseScopePillActive : exerciseScopePillInactive}`}
+      >
+        <History className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
+        <span>With session history</span>
+      </button>
+      <button
+        type="button"
+        disabled={disabled}
+        onClick={() => onScope?.("all")}
+        className={`flex w-full flex-col items-center justify-center gap-1.5 text-center leading-tight ${exerciseScopePillBase} ${scopeAll ? exerciseScopePillActive : exerciseScopePillInactive}`}
+      >
+        <LayoutGrid className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
+        <span>All exercises</span>
+      </button>
+    </div>
+  );
+}
+
+function ExercisesLoadingPanel() {
+  return (
+    <section className="panel p-4 sm:p-5">
+      <p className="mb-3 text-sm text-zinc-600">
+        Open an exercise to review your full set history.
+      </p>
+      <ExerciseScopePills scopeAll={false} disabled />
+      <ContentPlaceholder label="Loading exercises..." rowClassName={EXERCISE_LIST_PLACEHOLDER_CLASS} />
+    </section>
+  );
+}
 
 function ExercisesMain() {
   const router = useRouter();
@@ -179,11 +232,6 @@ function ExercisesMain() {
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
   }
 
-  const pillBase =
-    "rounded-md border px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40";
-  const pillActive = "border-sky-600 bg-sky-100 text-sky-950";
-  const pillInactive = "border-zinc-300 bg-zinc-50 text-zinc-700 hover:border-zinc-400 hover:bg-zinc-100";
-
   return (
     <section className="panel p-4 sm:p-5">
       <p className="mb-3 text-sm text-zinc-600">
@@ -192,27 +240,13 @@ function ExercisesMain() {
       {errorMessage ? (
         <StatusNotice message={errorMessage} tone="error" />
       ) : isLoading ? (
-        <p className="text-sm text-zinc-600">Loading exercises...</p>
+        <>
+          <ExerciseScopePills scopeAll={scopeAll} onScope={setScope} />
+          <ContentPlaceholder label="Loading exercises..." rowClassName={EXERCISE_LIST_PLACEHOLDER_CLASS} />
+        </>
       ) : (
         <>
-          <div className="mb-3 grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => setScope("used")}
-              className={`flex w-full flex-col items-center justify-center gap-1.5 text-center leading-tight ${pillBase} ${!scopeAll ? pillActive : pillInactive}`}
-            >
-              <History className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
-              <span>With session history</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setScope("all")}
-              className={`flex w-full flex-col items-center justify-center gap-1.5 text-center leading-tight ${pillBase} ${scopeAll ? pillActive : pillInactive}`}
-            >
-              <LayoutGrid className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
-              <span>All exercises</span>
-            </button>
-          </div>
+          <ExerciseScopePills scopeAll={scopeAll} onScope={setScope} />
           {displayItems.length === 0 ? (
             <p className="text-sm text-zinc-600">
               {scopeAll
@@ -271,11 +305,7 @@ export default function ExercisesPage() {
       </div>
 
       <Suspense
-        fallback={
-          <section className="panel p-4 sm:p-5">
-            <p className="text-sm text-zinc-600">Loading exercises...</p>
-          </section>
-        }
+        fallback={<ExercisesLoadingPanel />}
       >
         <ExercisesMain />
       </Suspense>

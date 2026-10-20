@@ -11,7 +11,3 @@ export const HOME_UPCOMING_PLACEHOLDER_ROWS = 2;
 
 /** Active plan body while that request is in flight. A short day list fits here. */
 export const HOME_PLAN_LOADING_CLASSNAME = "min-h-64";
-
-export function homePlaceholderIndexes(count: number): number[] {
-  return Array.from({ length: count }, (_, index) => index);
-}

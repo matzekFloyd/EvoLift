@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
 import { PageAddAction } from "@/app/components/page-add-action";
 import { DateInput } from "@/app/components/date-input";
+import { ContentPlaceholder } from "@/app/components/content-placeholder";
 import { PageShell } from "@/app/components/page-shell";
 import { SectionHeading } from "@/app/components/section-heading";
 import { ActivePlanPanel } from "@/app/components/active-plan-panel";
@@ -28,7 +29,6 @@ import { getDefaultHomeDateRange } from "@/app/home-date-range";
 import {
   HOME_PAST_WORKOUT_PLACEHOLDER_ROWS,
   HOME_UPCOMING_PLACEHOLDER_ROWS,
-  homePlaceholderIndexes,
 } from "@/app/home-loading-layout";
 import {
   formatDateToYyyyMmDd,
@@ -48,16 +48,6 @@ type SessionExerciseBadge = {
   hasLoggedSet: boolean;
   skipped: boolean;
 };
-
-function SessionPlaceholderRows({ count }: { count: number }) {
-  return (
-    <div aria-hidden className="space-y-2">
-      {homePlaceholderIndexes(count).map((index) => (
-        <div key={index} className="h-10 rounded-md border border-zinc-200 bg-zinc-50/80" />
-      ))}
-    </div>
-  );
-}
 
 export default function Home() {
   const router = useRouter();
@@ -350,7 +340,7 @@ export default function Home() {
           </SectionHeading>
         </div>
         {isChecking ? (
-          <SessionPlaceholderRows count={HOME_UPCOMING_PLACEHOLDER_ROWS} />
+          <ContentPlaceholder label="Loading workouts..." rows={HOME_UPCOMING_PLACEHOLDER_ROWS} />
         ) : plannedSessions.length === 0 ? (
           <p className="text-sm text-zinc-500">No upcoming workouts.</p>
         ) : (
@@ -421,7 +411,10 @@ export default function Home() {
               onDayClick={openActivityDay}
             />
             {isChecking ? (
-              <SessionPlaceholderRows count={HOME_PAST_WORKOUT_PLACEHOLDER_ROWS} />
+              <ContentPlaceholder
+                label="Loading workouts..."
+                rows={HOME_PAST_WORKOUT_PLACEHOLDER_ROWS}
+              />
             ) : (
               <SessionsTable
                 rows={completedTableRows}

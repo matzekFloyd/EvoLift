@@ -14,6 +14,12 @@ import {
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
+import { ContentPlaceholder } from "@/app/components/content-placeholder";
+import {
+  INSIGHTS_KPI_PLACEHOLDER_CLASS,
+  INSIGHTS_KPI_PLACEHOLDER_COUNT,
+  INSIGHTS_WEEKLY_CHART_HEIGHT_CLASS,
+} from "@/app/components/content-placeholder-layout";
 import { CollapsibleSection } from "@/app/components/collapsible-section";
 import { KpiBadge } from "@/app/components/kpi-badge";
 import { ExerciseProgressPanel } from "@/app/components/exercise-progress-panel";
@@ -424,7 +430,15 @@ export default function InsightsPage() {
         {errorMessage ? (
           <StatusNotice message={errorMessage} tone="error" className="mt-3" />
         ) : isLoading ? (
-          <p className="mt-3 text-sm text-zinc-600">Loading insights...</p>
+          <div className="mt-3 space-y-3">
+            <ContentPlaceholder
+              label="Loading insights..."
+              rows={INSIGHTS_KPI_PLACEHOLDER_COUNT}
+              rowClassName={INSIGHTS_KPI_PLACEHOLDER_CLASS}
+              barsClassName="grid gap-2 sm:grid-cols-3"
+            />
+            <ContentPlaceholder rowClassName={INSIGHTS_WEEKLY_CHART_HEIGHT_CLASS} />
+          </div>
         ) : filteredPoints.length === 0 ? (
           <p className="mt-3 text-sm text-zinc-600">
             No workout data in this range yet. Log sessions to unlock insights.

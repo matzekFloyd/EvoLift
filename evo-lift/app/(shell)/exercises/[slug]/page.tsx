@@ -16,6 +16,11 @@ import {
   Weight,
 } from "lucide-react";
 import { ActionButton } from "@/app/components/action-button";
+import { ContentPlaceholder } from "@/app/components/content-placeholder";
+import {
+  EXERCISE_CHART_HEIGHT_CLASS,
+  EXERCISE_HISTORY_PLACEHOLDER_ROWS,
+} from "@/app/components/content-placeholder-layout";
 import { AppTable } from "@/app/components/app-table";
 import { externalLoadFieldLabel, isAssistanceExercise } from "@/lib/assistance-exercise";
 import {
@@ -711,7 +716,13 @@ export default function ExerciseDetailPage() {
         {errorMessage ? (
           <StatusNotice message={errorMessage} tone="error" />
         ) : isLoading ? (
-          <p className="text-sm text-zinc-600">Loading exercise history...</p>
+          <div className="space-y-3">
+            <ContentPlaceholder
+              label="Loading exercise history..."
+              rowClassName={EXERCISE_CHART_HEIGHT_CLASS}
+            />
+            <ContentPlaceholder rows={EXERCISE_HISTORY_PLACEHOLDER_ROWS} />
+          </div>
         ) : isNotFound ? (
           <p className="text-sm text-zinc-600">
             Exercise not found. Please check the link or open an exercise from the list.
