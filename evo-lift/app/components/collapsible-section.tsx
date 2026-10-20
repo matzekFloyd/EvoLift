@@ -1,8 +1,12 @@
 "use client";
 
 import { ChevronRight } from "lucide-react";
-import { useId, type ReactNode } from "react";
-import { collapsibleSectionCanToggle } from "@/app/components/collapsible-section-open";
+import { useId, useState, type ReactNode, type SyntheticEvent } from "react";
+import {
+  collapsibleSectionCanToggle,
+  initialCollapsibleSectionOpen,
+  shouldRenderCollapsibleBody,
+} from "@/app/components/collapsible-section-open";
 import { PanelInset } from "@/app/components/panel-inset";
 import { SectionHeading } from "@/app/components/section-heading";
 
@@ -55,6 +59,13 @@ export function CollapsibleSection({
   const autoId = useId();
   const headingId = titleId ?? autoId;
   const canToggle = collapsibleSectionCanToggle(alwaysOpen);
+  const [open, setOpen] = useState(() =>
+    initialCollapsibleSectionOpen({ alwaysOpen, defaultOpen }),
+  );
+
+  function handleToggle(event: SyntheticEvent<HTMLDetailsElement>) {
+    setOpen(event.currentTarget.open);
+  }
 
   const titleRow = (
     <>
@@ -104,8 +115,14 @@ export function CollapsibleSection({
     inset ? "px-4 py-4 hover:bg-zinc-100/90" : "rounded-md py-1 hover:bg-zinc-100/60",
   ].join(" ");
 
+  const detailsBody = shouldRenderCollapsibleBody(open)
+    ? inset
+      ? <div className="px-4 pb-4">{body}</div>
+      : body
+    : null;
+
   const details = (
-    <details className="group" {...(defaultOpen ? { open: true } : {})}>
+    <details className="group" open={open} onToggle={handleToggle}>
       <summary className={summaryClassName}>
         <SectionHeading id={headingId} className="inline-flex min-w-0 items-center gap-1.5">
           <ChevronRight
@@ -116,7 +133,7 @@ export function CollapsibleSection({
         </SectionHeading>
         {titleAside ? <span className="contents group-open:hidden">{titleAside}</span> : null}
       </summary>
-      {inset ? <div className="px-4 pb-4">{body}</div> : body}
+      {detailsBody}
     </details>
   );
 
