@@ -3,6 +3,7 @@ import {
   CURRENT_PASSWORD_INCORRECT,
   CURRENT_PASSWORD_REQUIRED,
 } from "@/app/account/account-form";
+import { friendlyAuthError } from "@/lib/friendly-auth-error";
 import { createPublicServerClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { ApiHttpError } from "@/server/api/http";
 import { logSecurityEvent } from "@/server/security/log-security-event";
@@ -52,7 +53,10 @@ export async function updateAccountEmail(userId: string, email: string): Promise
   const admin = createServiceRoleClient();
   const { data, error } = await admin.auth.admin.updateUserById(userId, { email });
   if (error || !data.user) {
-    throw new ApiHttpError(400, error?.message ?? "Could not update the email.");
+    throw new ApiHttpError(
+      400,
+      error ? friendlyAuthError(error.message, "account") : "Could not update the email.",
+    );
   }
   return { email: data.user.email ?? email };
 }
@@ -61,6 +65,6 @@ export async function updateAccountPassword(userId: string, password: string): P
   const admin = createServiceRoleClient();
   const { error } = await admin.auth.admin.updateUserById(userId, { password });
   if (error) {
-    throw new ApiHttpError(400, error.message);
+    throw new ApiHttpError(400, friendlyAuthError(error.message, "account"));
   }
 }

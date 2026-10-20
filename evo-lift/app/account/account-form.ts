@@ -1,3 +1,5 @@
+import { passwordStrengthError } from "@/lib/password-policy";
+
 function invalidWhenPresent(
   value: string,
   invalid: (parsed: number) => boolean,
@@ -41,11 +43,9 @@ export function accountPasswordUpdateError(input: {
   if (!input.currentPassword) {
     return CURRENT_PASSWORD_REQUIRED;
   }
-  if (input.newPassword.length < 8) {
-    return "New password must be at least 8 characters.";
-  }
-  if (!/[a-zA-Z]/.test(input.newPassword) || !/[0-9]/.test(input.newPassword)) {
-    return "New password must include at least one letter and one number.";
+  const strengthError = passwordStrengthError(input.newPassword, "New password");
+  if (strengthError) {
+    return strengthError;
   }
   if (input.newPassword !== input.confirmNewPassword) {
     return "New password and confirmation do not match.";

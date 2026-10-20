@@ -113,7 +113,7 @@ export default function LoginPage() {
 
     if (error) {
       void reportSecurityEvent({ type: "login_failed", email: normalizedEmail });
-      setMessage(friendlyAuthError(error.message));
+      setMessage(friendlyAuthError(error.message, "login"));
       setIsLoading(false);
       return;
     }
@@ -153,7 +153,7 @@ export default function LoginPage() {
     });
 
     if (error) {
-      setMessage(friendlyAuthError(error.message));
+      setMessage(friendlyAuthError(error.message, "register"));
       setIsLoading(false);
       return;
     }

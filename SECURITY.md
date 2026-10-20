@@ -92,6 +92,43 @@ If a high/critical production advisory cannot be fixed immediately (no patched r
 | --- | --- | --- | --- |
 | _(none)_ | | | |
 
+## Authentication (password policy, redirects, MFA)
+
+### Password policy
+
+In-app rules live in `evo-lift/lib/password-policy.ts` (register and password change):
+
+- Minimum **8** characters
+- At least **one letter** and **one number**
+
+Local Auth mirrors that in `supabase/config.toml`:
+
+- `minimum_password_length = 8`
+- `password_requirements = "letters_digits"`
+
+**Hosted Supabase (ops):** Authentication → Providers → Email → password strength must match (min length 8, require letters and digits). After changing `config.toml`, restart local Supabase (`supabase stop` then `supabase start`).
+
+Login does **not** re-check strength so existing accounts can still sign in; Auth still verifies the password.
+
+User-visible auth failures go through `evo-lift/lib/friendly-auth-error.ts` (login, register, account email/password updates, and account API paths). Raw Supabase/GoTrue strings are not shown.
+
+### Site URL and redirect allowlists
+
+Production confirm / email-change links use `NEXT_PUBLIC_APP_URL` via `evo-lift/lib/auth-email-redirect.ts` (path `/login?verified=1`). Locally, omit that env var so the browser origin is used.
+
+**Hosted checklist** (Authentication → URL Configuration) — see also `evo-lift/README.md`:
+
+| Setting | Expected |
+| --- | --- |
+| Site URL | Canonical production origin (e.g. `https://evo-lift.vercel.app`; not localhost) |
+| Redirect URLs | Production `/**`, local `http://localhost:3000/**` and `http://127.0.0.1:3000/**`, plus future custom domain / preview wildcards as needed |
+
+When the public host moves (e.g. to `evolift.at`), update Site URL, Redirect URLs, `NEXT_PUBLIC_APP_URL`, and `PUBLIC_APP_ORIGIN` together.
+
+### MFA decision
+
+**Deferred.** MFA (TOTP / WebAuthn) is not enabled (`[auth.mfa.totp]` enroll/verify remain false locally). Product intent is to add it later; track in GitHub issue #297. Do not treat missing MFA as an accidental omission—it is an explicit near-term out-of-scope choice.
+
 ## App session gate (UI shell)
 
 Next.js **`proxy.ts`** (Next 16; formerly middleware) runs `lib/supabase/update-session.ts` on matched requests:
