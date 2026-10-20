@@ -27,7 +27,9 @@ create unique index if not exists idx_workout_sessions_one_in_progress_per_user
   on public.workout_sessions (user_id)
   where started_at is not null and completed_at is null;
 
-create or replace view public.home_session_summaries
+-- CREATE OR REPLACE cannot insert columns ahead of set_count.
+drop view if exists public.home_session_summaries;
+create view public.home_session_summaries
 with (security_invoker = true) as
 select
   ws.id,

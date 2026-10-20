@@ -1,10 +1,13 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 import {
-  OTHER_SESSION_IN_PROGRESS_MESSAGE,
+  MAX_OPEN_SESSIONS,
+  OPEN_SESSION_LIMIT_MESSAGE,
   canLogSetsOnSession,
   canMarkSessionCompleted,
   canStartOrContinueLogging,
+  canUndoSessionCompleted,
+  sessionIsReadOnly,
   isSessionCompleted,
   isSessionInProgress,
   partitionHomeSessions,
@@ -73,35 +76,35 @@ describe("set logging exclusivity", () => {
     assert.equal(canLogSetsOnSession(session({ performedOn: "2026-10-20" }), TODAY), false);
   });
 
-  it("allows the first set when nothing else is in progress", () => {
+  it("allows the first set when fewer than 3 sessions are open", () => {
     assert.equal(wouldStartSession(session()), true);
     assert.deepEqual(
       canStartOrContinueLogging({
         targetSessionId: "a",
         target: session(),
-        otherInProgressSessionId: null,
+        otherOpenSessionCount: MAX_OPEN_SESSIONS - 1,
       }),
       { ok: true },
     );
   });
 
-  it("refuses starting a second in-progress session", () => {
+  it("refuses starting a session when 3 are already open", () => {
     assert.deepEqual(
       canStartOrContinueLogging({
-        targetSessionId: "b",
+        targetSessionId: "d",
         target: session(),
-        otherInProgressSessionId: "a",
+        otherOpenSessionCount: MAX_OPEN_SESSIONS,
       }),
-      { ok: false, message: OTHER_SESSION_IN_PROGRESS_MESSAGE },
+      { ok: false, message: OPEN_SESSION_LIMIT_MESSAGE },
     );
   });
 
-  it("allows more sets on the session that is already in progress", () => {
+  it("allows more sets on a session that is already open", () => {
     assert.deepEqual(
       canStartOrContinueLogging({
         targetSessionId: "a",
         target: session({ startedAt: "2026-10-18T10:00:00Z" }),
-        otherInProgressSessionId: "a",
+        otherOpenSessionCount: MAX_OPEN_SESSIONS,
       }),
       { ok: true },
     );
@@ -125,6 +128,21 @@ describe("mark completed and badges", () => {
     assert.equal(canMarkSessionCompleted(session({ performedOn: "2026-10-20" }), TODAY), false);
   });
 
+  it("allows undo only after the session is completed", () => {
+    assert.equal(canUndoSessionCompleted(session()), false);
+    assert.equal(
+      canUndoSessionCompleted(
+        session({ startedAt: "2026-10-18T10:00:00Z", completedAt: "2026-10-18T11:00:00Z" }),
+      ),
+      true,
+    );
+  });
+
+  it("keeps a finished session read-only until it is reopened", () => {
+    assert.equal(sessionIsReadOnly("2026-10-18T11:00:00Z"), true);
+    assert.equal(sessionIsReadOnly(null), false);
+  });
+
   it("labels planned, in progress, and completed", () => {
     assert.equal(sessionLifecycleBadgeLabel("planned"), "Upcoming");
     assert.equal(sessionLifecycleBadgeLabel("in_progress"), "In progress");
@@ -134,14 +152,20 @@ describe("mark completed and badges", () => {
 });
 
 describe("partitionHomeSessions", () => {
-  it("puts one in-progress session under Continue and keeps empty shells in history", () => {
+  it("puts unfinished sessions under Continue and keeps finished sessions in history", () => {
     const partitioned = partitionHomeSessions(
       [
         { id: "planned", performedOn: "2026-10-20", startedAt: null, completedAt: null },
         {
-          id: "active",
+          id: "older",
           performedOn: TODAY,
-          startedAt: "2026-10-18T10:00:00Z",
+          startedAt: "2026-10-18T09:00:00Z",
+          completedAt: null,
+        },
+        {
+          id: "newer",
+          performedOn: TODAY,
+          startedAt: "2026-10-18T12:00:00Z",
           completedAt: null,
         },
         { id: "empty", performedOn: TODAY, startedAt: null, completedAt: null },
@@ -154,14 +178,17 @@ describe("partitionHomeSessions", () => {
       ],
       TODAY,
     );
-    assert.equal(partitioned.inProgress?.id, "active");
+    assert.deepEqual(
+      partitioned.inProgress.map((row) => row.id),
+      ["newer", "older", "empty"],
+    );
     assert.deepEqual(
       partitioned.planned.map((row) => row.id),
       ["planned"],
     );
     assert.deepEqual(
       partitioned.history.map((row) => row.id),
-      ["empty", "done"],
+      ["done"],
     );
   });
 });

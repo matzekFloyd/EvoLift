@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  exerciseIdsToSkipOnComplete,
   setsToShowForSkippedExercise,
   showSessionExerciseTargetsMet,
   skippedExerciseButtonClass,
@@ -25,6 +26,25 @@ describe("skipped exercise", () => {
     ];
     expect(setsToShowForSkippedExercise(sets, true)).toEqual(sets);
     expect(setsToShowForSkippedExercise(sets, false)).toEqual(sets);
+  });
+});
+
+describe("exerciseIdsToSkipOnComplete", () => {
+  it("skips exercises that have no sets and leaves logged or already skipped exercises", () => {
+    expect(
+      exerciseIdsToSkipOnComplete(
+        [
+          { id: "empty", notDone: false },
+          { id: "logged", notDone: false },
+          { id: "warmup-only", notDone: false },
+          { id: "already", notDone: true },
+        ],
+        [
+          { sessionExerciseId: "logged" },
+          { sessionExerciseId: "warmup-only" },
+        ],
+      ),
+    ).toEqual(["empty"]);
   });
 });
 

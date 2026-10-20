@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 import {
+  continuablePlanSession,
   formatPlanSessionSource,
   latestSessionByPlanDay,
   nextPlanDayId,
+  openSessionByPlanDay,
   type PlanCycleDay,
   type PlanCycleSession,
 } from "./plan-cycle";
@@ -18,8 +20,15 @@ function session(
   planDayId: string | null,
   performedOn: string,
   createdAt: string,
+  completedAt?: string | null,
 ): PlanCycleSession & { id: string } {
-  return { id: `${planDayId ?? "none"}-${performedOn}-${createdAt}`, planDayId, performedOn, createdAt };
+  return {
+    id: `${planDayId ?? "none"}-${performedOn}-${createdAt}`,
+    planDayId,
+    performedOn,
+    createdAt,
+    completedAt,
+  };
 }
 
 describe("nextPlanDayId", () => {
@@ -99,6 +108,36 @@ describe("latestSessionByPlanDay", () => {
     assert.equal(latest.get("day-a")?.id, newer.id);
     assert.equal(latest.get("day-b")?.id, other.id);
     assert.equal(latest.has("day-c"), false);
+  });
+});
+
+describe("continuablePlanSession", () => {
+  it("returns the earliest unfinished session and ignores finished ones", () => {
+    const later = session("day-b", "2026-05-08", "2026-05-01T10:00:00Z", null);
+    const earlier = session("day-a", "2026-05-02", "2026-05-02T10:00:00Z", null);
+    const finished = session("day-c", "2026-05-01", "2026-05-01T10:00:00Z", "2026-05-01T12:00:00Z");
+    const unknown = session("day-c", "2026-04-01", "2026-04-01T10:00:00Z");
+    const chosen = continuablePlanSession([later, finished, earlier, unknown]);
+    assert.equal(chosen?.id, earlier.id);
+  });
+
+  it("returns null when every plan session is finished", () => {
+    const finished = session("day-a", "2026-05-01", "2026-05-01T10:00:00Z", "2026-05-01T12:00:00Z");
+    assert.equal(continuablePlanSession([finished]), null);
+  });
+});
+
+describe("openSessionByPlanDay", () => {
+  it("keeps the latest unfinished session and skips a finished day", () => {
+    const finished = session("day-a", "2026-05-04", "2026-05-04T10:00:00Z", "2026-05-04T12:00:00Z");
+    const olderOpen = session("day-a", "2026-05-01", "2026-05-01T10:00:00Z", null);
+    const newerOpen = session("day-b", "2026-05-03", "2026-05-03T10:00:00Z", null);
+    const olderOnB = session("day-b", "2026-05-02", "2026-05-02T10:00:00Z", null);
+    const doneOnly = session("day-c", "2026-05-02", "2026-05-02T10:00:00Z", "2026-05-02T12:00:00Z");
+    const open = openSessionByPlanDay([finished, olderOpen, newerOpen, olderOnB, doneOnly]);
+    assert.equal(open.get("day-a")?.id, olderOpen.id);
+    assert.equal(open.get("day-b")?.id, newerOpen.id);
+    assert.equal(open.has("day-c"), false);
   });
 });
 

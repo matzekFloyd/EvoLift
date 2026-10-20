@@ -26,6 +26,17 @@ export function setsToShowForSkippedExercise<T extends { is_warmup: boolean }>(
   return [...sets];
 }
 
+/** Exercises with no logged sets are Skipped when the session is finished. */
+export function exerciseIdsToSkipOnComplete(
+  exercises: readonly { id: string; notDone: boolean }[],
+  sets: readonly { sessionExerciseId: string }[],
+): string[] {
+  const exerciseIdsWithSets = new Set(sets.map((set) => set.sessionExerciseId));
+  return exercises
+    .filter((exercise) => !exercise.notDone && !exerciseIdsWithSets.has(exercise.id))
+    .map((exercise) => exercise.id);
+}
+
 export function showSessionExerciseTargetsMet(input: {
   workingSetCount: number;
   targetSets: number | null;

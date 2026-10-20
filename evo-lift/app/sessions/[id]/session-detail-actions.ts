@@ -2,15 +2,19 @@ import type { Dispatch, SetStateAction } from "react";
 import type { Database } from "@/lib/supabase/database.types";
 import { isAssistanceExercise } from "@/lib/assistance-exercise";
 import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
+import { PLAN_ALREADY_OPEN_MESSAGE } from "@/lib/plan-cycle";
 import {
-  OTHER_SESSION_IN_PROGRESS_MESSAGE,
+  MAX_OPEN_SESSIONS,
+  OPEN_SESSION_LIMIT_MESSAGE,
   canMarkSessionCompleted,
   canStartOrContinueLogging,
+  canUndoSessionCompleted,
   wouldStartSession,
 } from "@/lib/session-lifecycle";
 import { isFutureSessionDate } from "@/lib/session-date";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { suggestWarmups } from "@/lib/warmup-suggestion";
+import { exerciseIdsToSkipOnComplete } from "./session-exercise-status";
 import {
   compactSetNumbers,
   nextSetNumber,
@@ -65,7 +69,6 @@ export type SessionDetailActionDeps = {
   exerciseSlugById: Map<string, string>;
   showError: (messageText: string) => void;
   showWarning: (messageText: string) => void;
-  showSuccess: (messageText: string) => void;
   clearMessage: () => void;
   router: RouterReplace;
   setIsSavingSet: Dispatch<SetStateAction<boolean>>;
@@ -82,7 +85,6 @@ export type SessionDetailActionDeps = {
   setIsAddExerciseSheetOpen: Dispatch<SetStateAction<boolean>>;
   setAddExerciseDraft: Dispatch<SetStateAction<AddExerciseDraft>>;
   setIsAddingExercise: Dispatch<SetStateAction<boolean>>;
-  markSkipNextExerciseMessageClear: () => void;
   setTargetsSessionExerciseId: Dispatch<SetStateAction<string | null>>;
   setTargetsSets: Dispatch<SetStateAction<string>>;
   setTargetsReps: Dispatch<SetStateAction<string>>;
@@ -123,7 +125,6 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
     exerciseSlugById,
     showError,
     showWarning,
-    showSuccess,
     clearMessage,
     router,
     setIsSavingSet,
@@ -140,7 +141,6 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
     setIsAddExerciseSheetOpen,
     setAddExerciseDraft,
     setIsAddingExercise,
-    markSkipNextExerciseMessageClear,
     setTargetsSessionExerciseId,
     setTargetsSets,
     setTargetsReps,
@@ -171,23 +171,21 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
     };
   }
 
-  async function findOtherInProgressSessionId(currentSessionId: string): Promise<string | null> {
-    const { data, error } = await supabaseBrowserClient
+  async function countOtherOpenSessions(currentSessionId: string): Promise<number | null> {
+    const { count, error } = await supabaseBrowserClient
       .from("workout_sessions")
-      .select("id")
+      .select("id", { count: "exact", head: true })
       .not("started_at", "is", null)
       .is("completed_at", null)
-      .neq("id", currentSessionId)
-      .limit(1)
-      .maybeSingle();
-    if (error || !data) {
+      .neq("id", currentSessionId);
+    if (error || count == null) {
       return null;
     }
-    return data.id;
+    return count;
   }
 
   /**
-   * Enforces one in-progress session and sets started_at on the first logged set.
+   * Enforces the open-session limit and sets started_at on the first logged set.
    * Returns false when the caller should abort the set insert.
    */
   async function prepareSessionForLogging(): Promise<boolean> {
@@ -200,14 +198,18 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
     }
 
     const fields = lifecycleFields(session);
-    const otherInProgressSessionId = wouldStartSession(fields)
-      ? await findOtherInProgressSessionId(sessionId)
-      : null;
+    const otherOpenSessionCount = wouldStartSession(fields)
+      ? await countOtherOpenSessions(sessionId)
+      : 0;
+    if (otherOpenSessionCount == null) {
+      showError("Could not check open workout sessions.");
+      return false;
+    }
 
     const gate = canStartOrContinueLogging({
       targetSessionId: sessionId,
       target: fields,
-      otherInProgressSessionId,
+      otherOpenSessionCount,
     });
     if (!gate.ok) {
       showError(gate.message);
@@ -230,8 +232,8 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
       .maybeSingle();
 
     if (error) {
-      if (/idx_workout_sessions_one_in_progress|unique/i.test(error.message)) {
-        showError(OTHER_SESSION_IN_PROGRESS_MESSAGE);
+      if (/open workout session limit|idx_workout_sessions_one_in_progress|unique/i.test(error.message)) {
+        showError(OPEN_SESSION_LIMIT_MESSAGE);
       } else {
         showError(`Could not start this workout session: ${error.message}`);
       }
@@ -319,7 +321,7 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
       ...prev,
       [sessionExerciseId]: nextSuggested,
     }));
-    showSuccess(`Set ${data.set_number} added for ${labelFor(sessionExerciseId)}.`);
+    clearMessage();
     if (isCompactView) {
       setCompactShowExtraSetComposer(true);
       setPendingCompactSetFocusSessionExerciseId(sessionExerciseId);
@@ -373,7 +375,7 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
 
     invalidateLoggedHistoryCaches();
     setWorkoutSets((prev) => [...prev, ...data]);
-    showSuccess(`Warmups added for ${labelFor(sessionExerciseId)}.`);
+    clearMessage();
     setIsSavingSet(false);
   }
 
@@ -429,7 +431,7 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
     setWorkoutSets((prev) => prev.map((item) => (item.id === setId ? data : item)));
     setEditingSetId(null);
     setEditDraft(emptySetDraft);
-    showSuccess(`Set ${data.set_number} updated for ${exerciseLabel}.`);
+    clearMessage();
     setIsSavingSet(false);
   }
 
@@ -502,11 +504,8 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
           return next;
         });
       }
-
-      showSuccess(`Set ${deletedSet.set_number} deleted from ${labelFor(sessionExerciseId)}.`);
-    } else {
-      showSuccess("Set deleted.");
     }
+    clearMessage();
     setIsSavingSet(false);
   }
 
@@ -608,11 +607,10 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
     invalidateLoggedHistoryCaches();
     setSessionExercises((prev) => [...prev, data].sort((a, b) => a.position - b.position));
     if (isCompactView) {
-      markSkipNextExerciseMessageClear();
       setActiveExerciseIndex(sessionExercises.length);
       setIsAddExerciseSheetOpen(false);
     }
-    showSuccess("Exercise added to session.");
+    clearMessage();
     setAddExerciseDraft(emptyAddExerciseDraft);
     setIsAddingExercise(false);
   }
@@ -672,7 +670,7 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
     setIsSavingTargets(false);
     setIsTargetsSheetOpen(false);
     setTargetsSessionExerciseId(null);
-    showSuccess(`Targets updated for ${labelFor(targetsSessionExerciseId)}.`);
+    clearMessage();
   }
 
   function beginEditingSessionDetails() {
@@ -758,7 +756,7 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
     setPerformedOnDraft(data.performed_on);
     setNotesDraft(data.notes ?? "");
     setIsEditingSessionDetails(false);
-    showSuccess("Session date and notes saved.");
+    clearMessage();
     setIsSavingSessionDetails(false);
   }
 
@@ -772,6 +770,22 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
     }
 
     setIsMarkingCompleted(true);
+    const skippedExerciseIds = exerciseIdsToSkipOnComplete(
+      sessionExercises.map((exercise) => ({ id: exercise.id, notDone: exercise.not_done })),
+      workoutSets.map((set) => ({ sessionExerciseId: set.session_exercise_id })),
+    );
+    if (skippedExerciseIds.length > 0) {
+      const { error: skipError } = await supabaseBrowserClient
+        .from("workout_session_exercises")
+        .update({ not_done: true })
+        .in("id", skippedExerciseIds);
+      if (skipError) {
+        showError(`Could not mark empty exercises as skipped: ${skipError.message}`);
+        setIsMarkingCompleted(false);
+        return;
+      }
+    }
+
     const completedAt = new Date().toISOString();
     const { data, error } = await supabaseBrowserClient
       .from("workout_sessions")
@@ -784,7 +798,7 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
       .maybeSingle();
 
     if (error) {
-      showError(`Could not mark this session completed: ${error.message}`);
+      showError(`Could not finish this session: ${error.message}`);
       setIsMarkingCompleted(false);
       return;
     }
@@ -795,9 +809,94 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
       return;
     }
 
+    if (skippedExerciseIds.length > 0) {
+      const skippedIds = new Set(skippedExerciseIds);
+      setSessionExercises((prev) =>
+        prev.map((exercise) =>
+          skippedIds.has(exercise.id) ? { ...exercise, not_done: true } : exercise,
+        ),
+      );
+    }
+
     invalidateLoggedHistoryCaches();
     setSession(data);
-    showSuccess("Workout session marked completed.");
+    clearMessage();
+    setIsMarkingCompleted(false);
+  }
+
+  async function undoSessionCompleted() {
+    if (!session || !sessionId) {
+      return;
+    }
+    if (!canUndoSessionCompleted(lifecycleFields(session))) {
+      showWarning("This workout session is not completed.");
+      return;
+    }
+
+    if (session.plan_id) {
+      const { count, error: openPlanError } = await supabaseBrowserClient
+        .from("workout_sessions")
+        .select("id", { count: "exact", head: true })
+        .eq("plan_id", session.plan_id)
+        .is("completed_at", null)
+        .neq("id", sessionId);
+      if (openPlanError) {
+        showError("Could not check the plan.");
+        return;
+      }
+      if ((count ?? 0) >= 1) {
+        showWarning(PLAN_ALREADY_OPEN_MESSAGE);
+        return;
+      }
+    }
+
+    setIsMarkingCompleted(true);
+    if (session.started_at != null) {
+      const otherOpenSessionCount = await countOtherOpenSessions(sessionId);
+      if (otherOpenSessionCount == null) {
+        showError("Could not check open workout sessions.");
+        setIsMarkingCompleted(false);
+        return;
+      }
+      if (otherOpenSessionCount >= MAX_OPEN_SESSIONS) {
+        showWarning(OPEN_SESSION_LIMIT_MESSAGE);
+        setIsMarkingCompleted(false);
+        return;
+      }
+    }
+
+    const { data, error } = await supabaseBrowserClient
+      .from("workout_sessions")
+      .update({ completed_at: null })
+      .eq("id", sessionId)
+      .not("completed_at", "is", null)
+      .select(
+        "id, user_id, performed_on, notes, created_at, updated_at, source_template_id, plan_id, plan_day_id, started_at, completed_at",
+      )
+      .maybeSingle();
+
+    if (error) {
+      const msg = error.message ?? "";
+      if (/open plan session limit/i.test(msg)) {
+        showWarning(PLAN_ALREADY_OPEN_MESSAGE);
+      } else if (/open workout session limit|duplicate|unique|one_in_progress/i.test(msg)) {
+        showWarning(OPEN_SESSION_LIMIT_MESSAGE);
+      } else {
+        showError(`Could not reopen this session: ${msg}`);
+      }
+      setIsMarkingCompleted(false);
+      return;
+    }
+
+    if (!data) {
+      showWarning("This workout session is not completed.");
+      setIsMarkingCompleted(false);
+      return;
+    }
+
+    invalidateLoggedHistoryCaches();
+    setSession(data);
+    clearMessage();
     setIsMarkingCompleted(false);
   }
 
@@ -817,5 +916,6 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
     cancelEditingSessionDetails,
     saveSessionDetails,
     markSessionCompleted,
+    undoSessionCompleted,
   };
 }

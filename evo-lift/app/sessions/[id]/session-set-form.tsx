@@ -109,6 +109,8 @@ type SessionExerciseSetsProps = {
   onSaveEdit: (setId: string) => void;
   onCancelEdit: () => void;
   onDeleteSet: (setId: string) => void;
+  onMarkCompleted?: () => void;
+  isMarkingCompleted?: boolean;
   onNextExercise: () => void;
   onAddExercise: () => void;
   onShowExtraSets: () => void;
@@ -142,6 +144,8 @@ export function SessionExerciseSets({
   onSaveEdit,
   onCancelEdit,
   onDeleteSet,
+  onMarkCompleted,
+  isMarkingCompleted = false,
   onNextExercise,
   onAddExercise,
   onShowExtraSets,
@@ -318,24 +322,49 @@ export function SessionExerciseSets({
                   <ChevronRight className="h-4 w-4 shrink-0" aria-hidden />
                   Next exercise
                 </ActionButton>
+              ) : onMarkCompleted ? (
+                <ActionButton
+                  type="button"
+                  variant="primary"
+                  fullWidth
+                  className="mt-2"
+                  disabled={isMarkingCompleted || isSavingSet}
+                  onClick={onMarkCompleted}
+                >
+                  <Check className="h-4 w-4 shrink-0" aria-hidden />
+                  {isMarkingCompleted ? "Saving..." : "Finish session"}
+                </ActionButton>
               ) : (
-                <>
-                  <p className="mt-2 text-xs text-zinc-600">
-                    Last exercise in this session. Add another exercise when you are ready, or finish
-                    logging.
-                  </p>
-                  <ActionButton
-                    type="button"
-                    variant="primary"
-                    fullWidth
-                    className="mt-2"
-                    onClick={onAddExercise}
-                  >
-                    <Plus className="h-4 w-4 shrink-0" aria-hidden />
-                    Add exercise
-                  </ActionButton>
-                </>
+                <p className="mt-2 text-xs text-zinc-600">
+                  Last exercise in this session. Add another exercise when you are ready, or finish
+                  logging.
+                </p>
               )}
+              {exerciseIndex < exerciseCount - 1 && onMarkCompleted ? (
+                <ActionButton
+                  type="button"
+                  variant="secondary"
+                  fullWidth
+                  className="mt-2"
+                  disabled={isMarkingCompleted || isSavingSet}
+                  onClick={onMarkCompleted}
+                >
+                  <Check className="h-4 w-4 shrink-0" aria-hidden />
+                  {isMarkingCompleted ? "Saving..." : "Finish session"}
+                </ActionButton>
+              ) : null}
+              {exerciseIndex >= exerciseCount - 1 ? (
+                <ActionButton
+                  type="button"
+                  variant={onMarkCompleted ? "secondary" : "primary"}
+                  fullWidth
+                  className="mt-2"
+                  onClick={onAddExercise}
+                >
+                  <Plus className="h-4 w-4 shrink-0" aria-hidden />
+                  Add exercise
+                </ActionButton>
+              ) : null}
               <ActionButton
                 type="button"
                 variant="secondary"

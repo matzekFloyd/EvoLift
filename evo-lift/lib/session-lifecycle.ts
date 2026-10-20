@@ -8,9 +8,11 @@ export type SessionLifecycleFields = {
   completedAt: string | null;
 };
 
-/** Shown when logging a set would start a second in-progress session. */
-export const OTHER_SESSION_IN_PROGRESS_MESSAGE =
-  "Finish the workout session already in progress first. Open it from Home with Continue, then mark it completed.";
+/** Shown when starting or reopening would exceed the open-session limit. */
+export const MAX_OPEN_SESSIONS = 3;
+
+export const OPEN_SESSION_LIMIT_MESSAGE =
+  "You already have 3 open workout sessions. Finish one from Home before starting another.";
 
 export function sessionLifecycleStatus(
   session: SessionLifecycleFields,
@@ -51,13 +53,13 @@ export function wouldStartSession(session: SessionLifecycleFields): boolean {
 }
 
 /**
- * Whether logging a set on `targetSessionId` is allowed given another in-progress session.
- * Pass null when no other session is in progress.
+ * Whether logging a set on `targetSessionId` is allowed given how many other sessions are open.
+ * An open session is started and not finished. Pass 0 when none are open.
  */
 export function canStartOrContinueLogging(input: {
   targetSessionId: string;
   target: SessionLifecycleFields;
-  otherInProgressSessionId: string | null;
+  otherOpenSessionCount: number;
 }): { ok: true } | { ok: false; message: string } {
   if (!canLogSetsOnSession(input.target)) {
     return { ok: false, message: "Sets cannot be logged on an upcoming session yet." };
@@ -65,13 +67,18 @@ export function canStartOrContinueLogging(input: {
   if (!wouldStartSession(input.target)) {
     return { ok: true };
   }
-  if (
-    input.otherInProgressSessionId != null &&
-    input.otherInProgressSessionId !== input.targetSessionId
-  ) {
-    return { ok: false, message: OTHER_SESSION_IN_PROGRESS_MESSAGE };
+  if (input.otherOpenSessionCount >= MAX_OPEN_SESSIONS) {
+    return { ok: false, message: OPEN_SESSION_LIMIT_MESSAGE };
   }
   return { ok: true };
+}
+
+/**
+ * A finished session stays read-only until it is reopened.
+ * An unfinished session is editable.
+ */
+export function sessionIsReadOnly(completedAt: string | null): boolean {
+  return completedAt != null;
 }
 
 export function sessionLifecycleBadgeLabel(status: SessionLifecycleStatus): string | null {
@@ -92,17 +99,22 @@ export function canMarkSessionCompleted(session: SessionLifecycleFields, todayYy
   return status === "not_started" || status === "in_progress";
 }
 
+export function canUndoSessionCompleted(session: SessionLifecycleFields): boolean {
+  return session.completedAt != null;
+}
+
 export type HomeSessionListItem = SessionLifecycleFields & { id: string };
 
 /**
- * Home list split: one Continue target, planned (future date), and history
- * (completed plus not-started shells). In-progress is excluded from history.
+ * Home list split: open sessions for Continue (started, or created and not
+ * finished), planned future dates, and history. Up to {@link MAX_OPEN_SESSIONS}
+ * started sessions can be open.
  */
 export function partitionHomeSessions<T extends HomeSessionListItem>(
   sessions: T[],
   todayYyyyMmDd: string,
-): { inProgress: T | null; planned: T[]; history: T[] } {
-  let inProgress: T | null = null;
+): { inProgress: T[]; planned: T[]; history: T[] } {
+  const inProgress: T[] = [];
   const planned: T[] = [];
   const history: T[] = [];
 
@@ -112,15 +124,27 @@ export function partitionHomeSessions<T extends HomeSessionListItem>(
       planned.push(session);
       continue;
     }
-    if (status === "in_progress") {
-      if (inProgress == null) {
-        inProgress = session;
-      }
+    if (status === "in_progress" || status === "not_started") {
+      inProgress.push(session);
       continue;
     }
     history.push(session);
   }
 
+  inProgress.sort((a, b) => {
+    const aStarted = a.startedAt != null;
+    const bStarted = b.startedAt != null;
+    if (aStarted !== bStarted) {
+      return aStarted ? -1 : 1;
+    }
+    if (a.startedAt && b.startedAt) {
+      const byStart = b.startedAt.localeCompare(a.startedAt);
+      if (byStart !== 0) {
+        return byStart;
+      }
+    }
+    return b.performedOn.localeCompare(a.performedOn);
+  });
   planned.sort((a, b) => a.performedOn.localeCompare(b.performedOn));
   return { inProgress, planned, history };
 }

@@ -9,7 +9,7 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
 import { ChartResponsiveContainer } from "@/app/components/chart-responsive-container";
 import {
   activityDateKey,
@@ -28,6 +28,25 @@ import {
   type ActivitySetTrend,
 } from "@/lib/workout-activity-summary";
 
+const HYDRATION_LOCALE = "en";
+
+function subscribeDisplayLocale() {
+  return () => {};
+}
+
+function clientDisplayLocale() {
+  return navigator.language || HYDRATION_LOCALE;
+}
+
+function serverDisplayLocale() {
+  return HYDRATION_LOCALE;
+}
+
+/** Browser language after hydration. The server and the first client render share English so month names match. */
+function useDisplayLocale(): string {
+  return useSyncExternalStore(subscribeDisplayLocale, clientDisplayLocale, serverDisplayLocale);
+}
+
 type WorkoutActivityPoint = {
   date: string;
   workouts: number;
@@ -43,6 +62,8 @@ type WorkoutActivityHeatmapProps = {
   onDayClick?: (date: string) => void;
   /** Session dates (`YYYY-MM-DD`) that reached a goal, with the goal names for that day. */
   goalReachedByDate?: Record<string, string>;
+  /** Date-range controls, aligned with the summary line above the chart. */
+  headerAside?: ReactNode;
 };
 
 const INTENSITY_LEGEND: ActivityIntensity[] = ["rest", "no-sets", "workout"];
@@ -91,10 +112,12 @@ export function WorkoutActivityChart({
   onHighlightDatesChange,
   onDayClick,
   goalReachedByDate = {},
+  headerAside = null,
 }: WorkoutActivityHeatmapProps) {
   const sortedData = [...data].sort((a, b) => a.date.localeCompare(b.date));
   const totalWorkouts = sortedData.reduce((sum, item) => sum + item.workouts, 0);
   const totalSets = sortedData.reduce((sum, item) => sum + item.sets, 0);
+  const locale = useDisplayLocale();
   const [selectedCompactWeekStart, setSelectedCompactWeekStart] = useState<string | null>(null);
   const compactChartRef = useRef<HTMLDivElement | null>(null);
   const highlightedDateSet = useMemo(() => new Set(highlightedDates ?? []), [highlightedDates]);
@@ -122,7 +145,12 @@ export function WorkoutActivityChart({
   }, [isCompactView, onHighlightDatesChange, selectedCompactWeekStart]);
 
   if (sortedData.length === 0) {
-    return <p className="text-xs text-zinc-500">No workouts in the selected timeframe.</p>;
+    return (
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <p className="text-xs text-zinc-500">No workouts in the selected timeframe.</p>
+        {headerAside}
+      </div>
+    );
   }
 
   const today = new Date();
@@ -131,15 +159,18 @@ export function WorkoutActivityChart({
   const comparison = buildActivityComparison(sortedData, todayKey);
 
   if (isCompactView) {
-    const compactData = buildCompactActivityWeeks(sortedData, today);
+    const compactData = buildCompactActivityWeeks(sortedData, today, locale);
     const currentWeekInCompact = compactData.some((item) => item.isCurrentWeek);
     const selectedWeek = compactData.find((item) => item.weekStart === selectedCompactWeekStart);
 
     return (
       <div>
-        <ActivityRangeLine
-          sentence={`${totalSets} sets across ${totalWorkouts} workouts in the last 10 weeks`}
-        />
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+          <ActivityRangeLine
+            sentence={`${totalSets} sets across ${totalWorkouts} workouts in the last 10 weeks`}
+          />
+          {headerAside}
+        </div>
         <div className="mb-2 mt-1">
           <ActivityComparisonLine sentence={comparison.sentence} setTrend={comparison.setTrend} />
         </div>
@@ -211,34 +242,44 @@ export function WorkoutActivityChart({
     gridTemplateRows: `repeat(7, ${HEATMAP_ROW_PX}px)`,
   };
   const weekdayLabels = ["Mon", "", "Wed", "", "Fri", "", "Sun"];
+  const monthFormat = new Intl.DateTimeFormat(locale, { month: "short" });
+  const dayFormat = new Intl.DateTimeFormat(locale, {
+    weekday: "short",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+  });
   const monthLabels = visibleWeeks.map((week, index) => {
-    const date = activityDateToLocalDate(week[0].date);
-    const label = new Intl.DateTimeFormat(undefined, { month: "short" }).format(date);
-    const previous = index > 0 ? new Intl.DateTimeFormat(undefined, { month: "short" }).format(activityDateToLocalDate(visibleWeeks[index - 1][0].date)) : null;
+    const label = monthFormat.format(activityDateToLocalDate(week[0].date));
+    const previous =
+      index > 0 ? monthFormat.format(activityDateToLocalDate(visibleWeeks[index - 1][0].date)) : null;
     return previous !== label ? label : "";
   });
   return (
     <div>
-      <div className="mb-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-2">
+      <div className="mb-3 space-y-2">
+        <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
           <ActivityRangeLine
             sentence={`${totalSets} sets across ${totalWorkouts} workouts in the selected range.`}
           />
-          <ActivityComparisonLine sentence={comparison.sentence} setTrend={comparison.setTrend} />
+          {headerAside}
         </div>
-        <div className="flex shrink-0 flex-wrap gap-x-3 gap-y-1 text-[10px] text-zinc-500">
-          {INTENSITY_LEGEND.map((intensity) => (
-            <span
-              key={intensity}
-              className="inline-flex items-center gap-1"
-              title={activityIntensityPhrase(intensity)}
-            >
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <ActivityComparisonLine sentence={comparison.sentence} setTrend={comparison.setTrend} />
+          <div className="flex shrink-0 flex-wrap gap-x-3 gap-y-1 text-[10px] text-zinc-500">
+            {INTENSITY_LEGEND.map((intensity) => (
               <span
-                className={`h-3 w-3 rounded-sm border border-zinc-200 ${activityIntensityClass(intensity)}`}
-              />
-              {activityIntensityLabel(intensity)}
-            </span>
-          ))}
+                key={intensity}
+                className="inline-flex items-center gap-1"
+                title={activityIntensityPhrase(intensity)}
+              >
+                <span
+                  className={`h-3 w-3 rounded-sm border border-zinc-200 ${activityIntensityClass(intensity)}`}
+                />
+                {activityIntensityLabel(intensity)}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
       <div className="grid grid-cols-[32px_minmax(0,1fr)] gap-2">
@@ -285,12 +326,7 @@ export function WorkoutActivityChart({
                 const canOpen = day.isInRange && day.workouts > 0;
                 const openHint =
                   day.workouts > 1 ? " Choose a workout session." : " Open this workout session.";
-                const tooltip = `${new Intl.DateTimeFormat(undefined, {
-                  weekday: "short",
-                  year: "numeric",
-                  month: "short",
-                  day: "numeric",
-                }).format(parsedDate)}: ${day.sets} set${day.sets === 1 ? "" : "s"} across ${
+                const tooltip = `${dayFormat.format(parsedDate)}: ${day.sets} set${day.sets === 1 ? "" : "s"} across ${
                   day.workouts
                 } workout${day.workouts === 1 ? "" : "s"}${
                   intensity ? ` ${activityIntensityPhrase(intensity)}` : ""

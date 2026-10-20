@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarClock, ClipboardList, FilterX, History, Play } from "lucide-react";
+import { ClipboardList, FilterX, History, Play } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
@@ -8,7 +8,6 @@ import { PageAddAction } from "@/app/components/page-add-action";
 import { DateInput } from "@/app/components/date-input";
 import { ContentPlaceholder } from "@/app/components/content-placeholder";
 import { PageShell } from "@/app/components/page-shell";
-import { PanelInset } from "@/app/components/panel-inset";
 import { SectionHeading } from "@/app/components/section-heading";
 import { ActivePlanPanel } from "@/app/components/active-plan-panel";
 import { NewSessionDraftCallout } from "@/app/components/new-session-draft-callout";
@@ -29,10 +28,8 @@ import { rememberedUserId } from "@/lib/signed-in-memory";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { homeExerciseBadgeTone, homeExerciseBadges, homeSetCount } from "@/app/home-sessions";
 import { getDefaultHomeDateRange } from "@/app/home-date-range";
-import {
-  HOME_PAST_WORKOUT_PLACEHOLDER_ROWS,
-  HOME_UPCOMING_PLACEHOLDER_ROWS,
-} from "@/app/home-loading-layout";
+import { HOME_PAST_WORKOUT_PLACEHOLDER_ROWS } from "@/app/home-loading-layout";
+import type { ScheduledHomeSession } from "@/app/home-scheduled-sessions";
 import {
   formatDateToYyyyMmDd,
   getTodayYyyyMmDd,
@@ -213,7 +210,7 @@ export default function Home() {
     };
   }, []);
 
-  const { inProgressSession, plannedSessions, historySessions } = useMemo(() => {
+  const { inProgressSessions, plannedSessions, historySessions } = useMemo(() => {
     const partitioned = partitionHomeSessions(
       sessions.map((session) => ({
         id: session.id,
@@ -225,20 +222,16 @@ export default function Home() {
       todayYyyyMmDd,
     );
     return {
-      inProgressSession: partitioned.inProgress?.row ?? null,
+      inProgressSessions: partitioned.inProgress.map((item) => item.row),
       plannedSessions: partitioned.planned.map((item) => item.row),
       historySessions: partitioned.history.map((item) => item.row),
     };
   }, [sessions, todayYyyyMmDd]);
 
-  /** History plus in-progress for activity chart / day picker (not planned). */
+  /** History plus open sessions for activity chart / day picker (not planned). */
   const activitySessions = useMemo(() => {
-    const rows = [...historySessions];
-    if (inProgressSession) {
-      rows.push(inProgressSession);
-    }
-    return rows;
-  }, [historySessions, inProgressSession]);
+    return [...historySessions, ...inProgressSessions];
+  }, [historySessions, inProgressSessions]);
 
   const filteredSessions = useMemo(() => {
     return activitySessions.filter((session) => {
@@ -327,10 +320,6 @@ export default function Home() {
     [exerciseBadgesBySessionId, filteredHistorySessions],
   );
 
-  const inProgressBadges = inProgressSession
-    ? (exerciseBadgesBySessionId.get(inProgressSession.id) ?? [])
-    : [];
-
   function openSession(sessionId: string) {
     if (openingSessionId) {
       return;
@@ -380,16 +369,53 @@ export default function Home() {
     });
   }, [dayChoiceIds, exerciseBadgesBySessionId, filteredSessions]);
 
-  const plannedTableRows: SessionsTableRow[] = useMemo(
+  const scheduledSessions: ScheduledHomeSession[] = useMemo(
     () =>
       plannedSessions.map((session) => ({
         id: session.id,
         performedOn: session.performed_on,
         notes: session.notes ?? "",
-        isPlanned: true,
         badges: exerciseBadgesBySessionId.get(session.id) ?? [],
       })),
     [exerciseBadgesBySessionId, plannedSessions],
+  );
+
+  const pastRangeControls = (
+    <div className="flex flex-wrap items-end gap-2">
+      <label className="text-xs font-medium text-zinc-600">
+        From
+        <DateInput
+          value={dateFrom}
+          onChange={(event) => setDateFrom(event.target.value)}
+          max={todayYyyyMmDd}
+          className="mt-1 w-[9.5rem] rounded-md border bg-white px-2 py-1 text-sm"
+        />
+      </label>
+      <label className="text-xs font-medium text-zinc-600">
+        To
+        <DateInput
+          value={dateTo}
+          onChange={(event) => setDateTo(event.target.value)}
+          max={todayYyyyMmDd}
+          className="mt-1 w-[9.5rem] rounded-md border bg-white px-2 py-1 text-sm"
+        />
+      </label>
+      <ActionButton
+        type="button"
+        onClick={() => {
+          setDateFrom(defaultDateRange.from);
+          setDateTo(defaultDateRange.to);
+        }}
+        disabled={dateFrom === defaultDateRange.from && dateTo === defaultDateRange.to}
+        variant="secondary"
+        size="sm"
+        className="text-sm font-normal text-amber-800 hover:text-amber-900"
+        iconColor="amber"
+      >
+        <FilterX className="h-3.5 w-3.5" />
+        Clear filters
+      </ActionButton>
+    </div>
   );
 
   return (
@@ -402,73 +428,57 @@ export default function Home() {
         <PageAddAction href="/sessions/new" label="Create session" />
       </div>
       {userId ? <NewSessionDraftCallout userId={userId} /> : null}
-      <ActivePlanPanel />
-      {inProgressSession ? (
-        <section className="panel p-5">
-          <SectionHeading className="mb-2 inline-flex items-center gap-1">
-            <Play className="h-3.5 w-3.5 text-sky-700" />
-            In progress
-          </SectionHeading>
-          <PanelInset className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0 space-y-1">
-              <p className="text-sm font-medium text-zinc-900">
-                {formatDateOnlyForLocale(inProgressSession.performed_on)}
-              </p>
-              {inProgressSession.notes?.trim() ? (
-                <p className="truncate text-xs text-zinc-600">{inProgressSession.notes.trim()}</p>
-              ) : null}
-              {inProgressBadges.length > 0 ? (
-                <div className="flex flex-wrap gap-1">
-                  {inProgressBadges.map((badge) => (
-                    <ExerciseBadgeChip
-                      key={`${inProgressSession.id}-${badge.slug}`}
-                      slug={badge.slug}
-                      variant={homeExerciseBadgeTone(badge)}
-                    />
-                  ))}
+      {inProgressSessions.length > 0 ? (
+        <section className="panel divide-y divide-zinc-200" aria-label="In progress">
+          {inProgressSessions.map((session) => {
+            const badges = exerciseBadgesBySessionId.get(session.id) ?? [];
+            return (
+              <div
+                key={session.id}
+                className="flex items-center justify-between gap-2 px-3 py-2"
+              >
+                <div className="min-w-0 space-y-1">
+                  <p className="text-sm font-medium text-zinc-900">
+                    {formatDateOnlyForLocale(session.performed_on)}
+                  </p>
+                  {session.notes?.trim() ? (
+                    <p className="truncate text-xs text-zinc-600">{session.notes.trim()}</p>
+                  ) : null}
+                  {badges.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {badges.map((badge) => (
+                        <ExerciseBadgeChip
+                          key={`${session.id}-${badge.slug}`}
+                          slug={badge.slug}
+                          variant={homeExerciseBadgeTone(badge)}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-zinc-500">No exercises yet.</p>
+                  )}
                 </div>
-              ) : (
-                <p className="text-xs text-zinc-500">No exercises yet.</p>
-              )}
-            </div>
-            <ActionButton
-              type="button"
-              variant="primary"
-              size="sm"
-              className="shrink-0"
-              disabled={openingSessionId === inProgressSession.id}
-              onClick={() => openSession(inProgressSession.id)}
-            >
-              <Play className="h-3.5 w-3.5 text-white" />
-              {openingSessionId === inProgressSession.id ? "Opening..." : "Continue"}
-            </ActionButton>
-          </PanelInset>
+                <ActionButton
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  className="shrink-0"
+                  disabled={openingSessionId === session.id}
+                  onClick={() => openSession(session.id)}
+                >
+                  <Play className="h-3.5 w-3.5 text-white" />
+                  {openingSessionId === session.id ? "Opening..." : "Continue"}
+                </ActionButton>
+              </div>
+            );
+          })}
         </section>
       ) : null}
-      <section className="panel p-5">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <SectionHeading className="inline-flex items-center gap-1">
-            <CalendarClock className="h-3.5 w-3.5 text-zinc-500" />
-            Upcoming workouts
-          </SectionHeading>
-        </div>
-        {isChecking ? (
-          <ContentPlaceholder label="Loading workouts..." rows={HOME_UPCOMING_PLACEHOLDER_ROWS} />
-        ) : plannedSessions.length === 0 ? (
-          <p className="text-sm text-zinc-500">No upcoming workouts.</p>
-        ) : (
-          <SessionsTable
-            rows={plannedTableRows}
-            dateHeaderLabel="Upcoming on"
-            emptyMessage="No upcoming workouts."
-            showNotesColumn={!isSmallPhone}
-            compactMode={isSmallPhone}
-            openingRowId={openingSessionId}
-            highlightedPerformedOnDates={highlightedActivityDates}
-            onOpenRow={openSession}
-          />
-        )}
-      </section>
+      <ActivePlanPanel
+        scheduledSessions={scheduledSessions}
+        openingSessionId={openingSessionId}
+        onOpenSession={openSession}
+      />
       <section className="panel p-5" aria-busy={isChecking}>
         {sessionsError ? (
           <p className="text-sm text-red-600">{sessionsError}</p>
@@ -478,51 +488,22 @@ export default function Home() {
               <History className="h-3.5 w-3.5 text-zinc-500" />
               Past workouts
             </SectionHeading>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-              <div className="grid gap-2 sm:grid-cols-2">
-                <label className="block text-xs font-medium text-zinc-600">
-                  From
-                  <DateInput
-                    value={dateFrom}
-                    onChange={(event) => setDateFrom(event.target.value)}
-                    max={todayYyyyMmDd}
-                    className="mt-1 w-full rounded-md border bg-white px-2 py-1.5 text-sm"
-                  />
-                </label>
-                <label className="block text-xs font-medium text-zinc-600">
-                  To
-                  <DateInput
-                    value={dateTo}
-                    onChange={(event) => setDateTo(event.target.value)}
-                    max={todayYyyyMmDd}
-                    className="mt-1 w-full rounded-md border bg-white px-2 py-1.5 text-sm"
-                  />
-                </label>
+            {isChecking && workoutActivityData.length === 0 ? (
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <p className="text-sm text-zinc-500">Loading workouts...</p>
+                {pastRangeControls}
               </div>
-              <ActionButton
-                type="button"
-                onClick={() => {
-                  setDateFrom(defaultDateRange.from);
-                  setDateTo(defaultDateRange.to);
-                }}
-                disabled={dateFrom === defaultDateRange.from && dateTo === defaultDateRange.to}
-                variant="secondary"
-                size="sm"
-                className="self-end text-sm font-normal text-amber-800 hover:text-amber-900"
-                iconColor="amber"
-              >
-                <FilterX className="h-3.5 w-3.5" />
-                Clear filters
-              </ActionButton>
-            </div>
-            <WorkoutActivityChart
-              data={workoutActivityData}
-              isCompactView={isSmallPhone}
-              highlightedDates={highlightedActivityDates}
-              onHighlightDatesChange={setHighlightedActivityDates}
-              goalReachedByDate={goalReachedByDate}
-              onDayClick={openActivityDay}
-            />
+            ) : (
+              <WorkoutActivityChart
+                data={workoutActivityData}
+                isCompactView={isSmallPhone}
+                highlightedDates={highlightedActivityDates}
+                onHighlightDatesChange={setHighlightedActivityDates}
+                goalReachedByDate={goalReachedByDate}
+                onDayClick={openActivityDay}
+                headerAside={pastRangeControls}
+              />
+            )}
             {isChecking ? (
               <ContentPlaceholder
                 label="Loading workouts..."
