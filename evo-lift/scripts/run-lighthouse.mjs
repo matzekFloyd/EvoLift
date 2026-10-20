@@ -3,23 +3,24 @@
  * Expects `npm run build` (and a seeded local demo user for the app suite) already done.
  */
 import { spawn, spawnSync } from "node:child_process";
-import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import { setTimeout as sleep } from "node:timers/promises";
+
+import { installedChromePath } from "./lighthouse-chrome.mjs";
 
 const require = createRequire(import.meta.url);
 if (!process.env.CHROME_PATH) {
   let chromePath;
   try {
     const puppeteer = require("puppeteer");
-    chromePath = puppeteer.executablePath();
+    chromePath = await installedChromePath(() => puppeteer.executablePath());
   } catch (error) {
-    console.error("Could not load puppeteer to locate Chrome.");
+    console.error("Could not resolve Puppeteer's Chrome path.");
     console.error(error);
     process.exit(1);
   }
-  if (!existsSync(chromePath)) {
-    console.error(`Chrome was not found at ${chromePath}.`);
+  if (!chromePath) {
+    console.error("Chrome was not found.");
     console.error("Run `npx puppeteer browsers install chrome` from evo-lift/.");
     process.exit(1);
   }
