@@ -26,6 +26,8 @@ When the user’s message is **only** or **primarily** one of the phrases below,
 
 If the branch name has no such match, omit the prefix. The **≤72 character** limit applies to the **entire** subject line **including** the bracket prefix.
 
+**Version bumps in the subject:** do **not** put `app-version.json`, product version numbers, or “bump version” in the **subject line**. Lead with the product/security/behavior change. Mention a version bump only as a secondary body bullet if useful.
+
 **Output:** One **markdown code block** containing a **proposed git commit message**. If there is nothing to commit for that scope, say so and do not fabricate a message.
 
 ### When the current branch **is** the default trunk (`master` / `main`)
