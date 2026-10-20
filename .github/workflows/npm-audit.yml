@@ -1,0 +1,42 @@
+name: npm audit
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+
+permissions:
+  contents: read
+
+jobs:
+  audit:
+    name: Production dependency advisories
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            evo-lift/package-lock.json
+            mcp/evo-api/package-lock.json
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install evo-lift dependencies
+        working-directory: evo-lift
+        run: npm ci
+
+      - name: Install mcp/evo-api dependencies
+        working-directory: mcp/evo-api
+        run: npm ci
+
+      - name: Fail on high/critical production advisories
+        run: node scripts/npm-audit-ci.mjs

@@ -4,13 +4,9 @@ When Cursor auto-generates a Git commit message for this repository:
 
 ## Subject line
 
-1. **Ticket prefix from the branch name:** Look at the current git branch. Find the first substring matching the regex `EVO-` + one or more digits (example: branch `EVO-255--add-http-security-headers` → ticket `EVO-255`). Prefix the subject with that exact ticket in square brackets and a space, e.g. `[EVO-255] Add HTTP security headers`.
-   - Copy the digits from the branch. Never invent a number.
-   - Never write the placeholder text `XXX`, `EVO-XXX`, or `[EVO-XXX]`.
-   - If the branch has no `EVO-<digits>` match, omit the prefix entirely.
-2. **Do not put version bumps in the subject.** Never lead with or highlight `app-version.json`, product version numbers, or “bump version” in the headline. Focus the subject on the product/security/behavior change. A version bump may appear only as a secondary bullet in the body if needed.
-3. Keep the full subject line (including any `[EVO-…]` prefix) concise — prefer ≤72 characters.
-4. Imperative mood; no trailing period on the subject.
+1. **Do not put version bumps in the subject.** Never lead with or highlight `app-version.json`, product version numbers, or “bump version” in the headline. Focus the subject on the product/security/behavior change. A version bump may appear only as a secondary bullet in the body if needed.
+2. Keep the subject concise — prefer ≤72 characters.
+3. Imperative mood; no trailing period on the subject.
 
 ## Body (optional)
 
