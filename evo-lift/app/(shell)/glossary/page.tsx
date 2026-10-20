@@ -68,6 +68,11 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
       "A strength target for one exercise. Progress uses working sets you have already logged. You can aim for a Total (kg) or a multiple of your bodyweight, with a minimum number of reps. New accounts start with bodyweight goals on Barbell Back Squat, Barbell Bench Press, Barbell Deadlift, and Barbell Overhead Press. You can edit or delete them. Progress on a bodyweight goal needs a bodyweight entry on Account.",
   },
   {
+    term: "In progress",
+    definition:
+      "A workout session you have not finished. Home shows Continue for it, including before the first set. Logging a set starts it. You can have 3 sessions with logged sets open at a time.",
+  },
+  {
     term: "Insights",
     definition:
       "Charts and notes for a date range: training volume, working sets, Lift comparison, and personal bests.",
@@ -90,7 +95,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Plan",
     definition:
-      "An ordered cycle of days. One plan can be active. Starting a day copies its exercises and targets into a new workout session. Later edits do not change sessions you already started.",
+      "An ordered cycle of days. One plan can be active. Starting a day copies its exercises and targets into a new workout session. Only one of those sessions can stay unfinished. Finish it before starting another day. Later edits do not change sessions you already started.",
   },
   {
     term: "Reps",
@@ -104,7 +109,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Skipped",
     definition:
-      "A mark on an exercise in a session when you did not do it, such as when you ran out of time. Targets, sets, and history stay on screen under a cover until you clear the mark.",
+      "A mark on an exercise in a session when you did not do it, such as when you ran out of time. Finish session sets Skipped on every exercise that has no sets. Targets, sets, and history stay on screen under a cover until you clear the mark.",
   },
   {
     term: "Suggested target",
@@ -143,7 +148,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Upcoming session",
     definition:
-      "A workout session dated after today. It stays under Upcoming workouts until that day. A template or a plan day can prefill one.",
+      "A workout session dated after today. On Home it is the date on its plan day. A session that is not part of the active plan is listed under the plan. You cannot log sets until that day.",
   },
   {
     term: "Warmup",
@@ -163,7 +168,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Workout session",
     definition:
-      "A record of one workout: the date, the exercises, and the sets you log.",
+      "A record of one workout: the date, the exercises, and the sets you log. Logging the first set starts it (In progress). Finish session when you are done so it leaves Continue on Home and stays read-only. Reopen session to edit it again.",
   },
 ];
 

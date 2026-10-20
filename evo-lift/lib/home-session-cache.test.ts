@@ -14,6 +14,8 @@ function row(overrides: Partial<HomeSessionSummaryRow> = {}): HomeSessionSummary
     performed_on: "2020-01-01",
     notes: null,
     created_at: "2020-01-01T10:00:00Z",
+    started_at: "2020-01-01T10:00:00Z",
+    completed_at: "2020-01-01T10:00:00Z",
     set_count: 4,
     exercise_badges: [{ slug: "deadlift", has_logged_set: true }],
     ...overrides,

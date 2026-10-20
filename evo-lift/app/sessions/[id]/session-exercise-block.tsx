@@ -71,6 +71,8 @@ type SessionExerciseBlockProps = {
   onSaveEdit: (setId: string) => void;
   onCancelEdit: () => void;
   onDeleteSet: (setId: string) => void;
+  onMarkCompleted?: () => void;
+  isMarkingCompleted?: boolean;
   onNextExercise: () => void;
   onAddExercise: () => void;
   onShowExtraSets: () => void;
@@ -121,6 +123,8 @@ export function SessionExerciseBlock({
   onSaveEdit,
   onCancelEdit,
   onDeleteSet,
+  onMarkCompleted,
+  isMarkingCompleted = false,
   onNextExercise,
   onAddExercise,
   onShowExtraSets,
@@ -357,6 +361,8 @@ export function SessionExerciseBlock({
         onSaveEdit={onSaveEdit}
         onCancelEdit={onCancelEdit}
         onDeleteSet={onDeleteSet}
+        onMarkCompleted={onMarkCompleted}
+        isMarkingCompleted={isMarkingCompleted}
         onNextExercise={onNextExercise}
         onAddExercise={onAddExercise}
         onShowExtraSets={onShowExtraSets}

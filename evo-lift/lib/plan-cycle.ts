@@ -7,6 +7,8 @@ export type PlanCycleSession = {
   planDayId: string | null;
   performedOn: string;
   createdAt: string;
+  /** Null when the session is not finished. Omitted sessions are treated as open. */
+  completedAt?: string | null;
 };
 
 function sessionDate(value: string): string {
@@ -54,6 +56,35 @@ export function nextPlanDayId(
     return ordered[0].id;
   }
   return ordered[(index + 1) % ordered.length].id;
+}
+
+export const PLAN_ALREADY_OPEN_MESSAGE =
+  "Finish the open plan session before starting another day.";
+
+/**
+ * The one unfinished plan session that can be continued.
+ * When several are unfinished, this is the earliest performed date.
+ * Sessions with an unknown completedAt are ignored.
+ */
+export function continuablePlanSession<T extends PlanCycleSession>(sessions: T[]): T | null {
+  const open = sessions.filter(
+    (session) => session.planDayId != null && session.completedAt === null,
+  );
+  if (open.length === 0) {
+    return null;
+  }
+  return [...open].sort((a, b) => {
+    const byDate = sessionDate(a.performedOn).localeCompare(sessionDate(b.performedOn));
+    if (byDate !== 0) {
+      return byDate;
+    }
+    return a.createdAt.localeCompare(b.createdAt);
+  })[0];
+}
+
+/** Latest unfinished session for each plan day. Finished sessions do not count. */
+export function openSessionByPlanDay<T extends PlanCycleSession>(sessions: T[]): Map<string, T> {
+  return latestSessionByPlanDay(sessions.filter((session) => session.completedAt == null));
 }
 
 export function latestSessionByPlanDay<T extends PlanCycleSession>(sessions: T[]): Map<string, T> {

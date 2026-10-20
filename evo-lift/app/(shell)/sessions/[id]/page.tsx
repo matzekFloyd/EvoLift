@@ -1,17 +1,15 @@
 "use client";
 
 import {
-  ArrowLeft,
   CalendarDays,
   Check,
   ChevronDown,
   ChevronUp,
   CircleOff,
   ListChecks,
-  Lock,
-  LockOpen,
   Pencil,
   Plus,
+  RotateCcw,
   Trash2,
   X,
 } from "lucide-react";
@@ -58,6 +56,13 @@ import { formatPlanSessionSource } from "@/lib/plan-cycle";
 import { workoutSessionPageTitle } from "@/lib/page-title";
 import { toExerciseBadge } from "@/lib/exercise-badge";
 import { exerciseOptionsForPicker } from "@/lib/exercise-picker-options";
+import {
+  canMarkSessionCompleted,
+  canUndoSessionCompleted,
+  sessionLifecycleBadgeLabel,
+  sessionLifecycleStatus,
+  sessionIsReadOnly,
+} from "@/lib/session-lifecycle";
 import {
   getExerciseMetadataCacheStatus,
   loadExerciseMetadata,
@@ -133,8 +138,6 @@ export default function SessionDetailPage() {
   const [isSavingSet, setIsSavingSet] = useState(false);
   const [isDeletingSession, setIsDeletingSession] = useState(false);
   const [isDeleteSessionConfirmOpen, setIsDeleteSessionConfirmOpen] = useState(false);
-  const [isReadOnly, setIsReadOnly] = useState(false);
-  const [hasHydratedReadOnly, setHasHydratedReadOnly] = useState(false);
   const [exerciseOptions, setExerciseOptions] = useState<Array<{ id: string; label: string; slug: string }>>(
     openedSession?.exerciseOptions ?? [],
   );
@@ -155,8 +158,6 @@ export default function SessionDetailPage() {
   const activeExerciseIndexChangeSourceRef = useRef<"user" | "url">("user");
   /** Tracks `workout_session_exercises.id` for the active row to clear global notices on exercise change (#72). */
   const lastActiveSessionExerciseIdRef = useRef<string | null>(null);
-  /** Compact add-exercise jumps to the new row in the same tick as success; keep that toast once. */
-  const skipNextClearMessageOnExerciseIdChangeRef = useRef(false);
   const lastSessionExerciseIdsKeyRef = useRef<string>("");
   const [hiddenExerciseIds, setHiddenExerciseIds] = useState<Set<string>>(
     () => new Set(openedSession?.hiddenExerciseIds ?? []),
@@ -184,6 +185,7 @@ export default function SessionDetailPage() {
   const [sessionDetailsNotesError, setSessionDetailsNotesError] = useState<string | null>(null);
   const [isSavingSessionDetails, setIsSavingSessionDetails] = useState(false);
   const [isEditingSessionDetails, setIsEditingSessionDetails] = useState(false);
+  const [isMarkingCompleted, setIsMarkingCompleted] = useState(false);
   const skipSessionRefreshRef = useRef(false);
   skipSessionRefreshRef.current =
     editingSetId != null ||
@@ -191,7 +193,8 @@ export default function SessionDetailPage() {
     isSavingSet ||
     isAddingExercise ||
     isSavingTargets ||
-    isSavingSessionDetails;
+    isSavingSessionDetails ||
+    isMarkingCompleted;
 
   function applyOpenedSession(snapshot: OpenedSessionSnapshot, keepDrafts = false) {
     setSession(snapshot.session);
@@ -283,11 +286,6 @@ export default function SessionDetailPage() {
     setMessage(messageText);
   }
 
-  function showSuccess(messageText: string) {
-    setMessageTone("success");
-    setMessage(messageText);
-  }
-
   const clearMessage = useCallback(() => {
     setMessage(null);
   }, []);
@@ -327,10 +325,6 @@ export default function SessionDetailPage() {
     };
   }, [session?.user_id]);
 
-  function getReadOnlyStorageKey(currentSessionId: string) {
-    return `evolift:session-readonly:${currentSessionId}`;
-  }
-
   useEffect(() => {
     let isMounted = true;
     const startedEpoch = openedSessionEpoch();
@@ -366,7 +360,7 @@ export default function SessionDetailPage() {
           supabaseBrowserClient
             .from("workout_sessions")
             .select(
-              "id, user_id, performed_on, notes, created_at, updated_at, source_template_id, plan_id, plan_day_id, workout_templates(name), workout_plans(name), workout_plan_days(name)",
+              "id, user_id, performed_on, notes, created_at, updated_at, source_template_id, plan_id, plan_day_id, started_at, completed_at, workout_templates(name), workout_plans(name), workout_plan_days(name)",
             )
             .eq("id", sessionId)
             .single(),
@@ -535,6 +529,8 @@ export default function SessionDetailPage() {
           source_template_id: sessionRow.source_template_id,
           plan_id: sessionRow.plan_id,
           plan_day_id: sessionRow.plan_day_id,
+          started_at: sessionRow.started_at ?? null,
+          completed_at: sessionRow.completed_at ?? null,
           created_at: sessionRow.created_at,
           updated_at: sessionRow.updated_at,
         },
@@ -569,6 +565,8 @@ export default function SessionDetailPage() {
     };
   }, [router, sessionId]);
 
+  const isReadOnly = sessionIsReadOnly(session?.completed_at ?? null);
+
   useEffect(() => {
     if (isReadOnly) {
       setEditingSetId(null);
@@ -576,22 +574,6 @@ export default function SessionDetailPage() {
       setIsEditingSessionDetails(false);
     }
   }, [isReadOnly]);
-
-  useEffect(() => {
-    if (!sessionId) {
-      return;
-    }
-    const stored = window.localStorage.getItem(getReadOnlyStorageKey(sessionId));
-    setIsReadOnly(stored === "1");
-    setHasHydratedReadOnly(true);
-  }, [sessionId]);
-
-  useEffect(() => {
-    if (!sessionId || !hasHydratedReadOnly) {
-      return;
-    }
-    window.localStorage.setItem(getReadOnlyStorageKey(sessionId), isReadOnly ? "1" : "0");
-  }, [hasHydratedReadOnly, isReadOnly, sessionId]);
 
   useEffect(() => {
     lastSessionExerciseIdsKeyRef.current = "";
@@ -664,7 +646,6 @@ export default function SessionDetailPage() {
 
   useEffect(() => {
     lastActiveSessionExerciseIdRef.current = null;
-    skipNextClearMessageOnExerciseIdChangeRef.current = false;
   }, [sessionId]);
 
   /** Global StatusNotice (message): clear when the active session exercise changes (#72). Session header field errors stay on their controls. */
@@ -680,11 +661,6 @@ export default function SessionDetailPage() {
       return;
     }
     const prev = lastActiveSessionExerciseIdRef.current;
-    if (skipNextClearMessageOnExerciseIdChangeRef.current) {
-      skipNextClearMessageOnExerciseIdChangeRef.current = false;
-      lastActiveSessionExerciseIdRef.current = id;
-      return;
-    }
     if (prev !== null && id !== prev) {
       clearMessage();
     }
@@ -849,8 +825,8 @@ export default function SessionDetailPage() {
     beginEditingSessionDetails,
     cancelEditingSessionDetails,
     saveSessionDetails,
-    // Writes the ref only after a compact add succeeds. The helper does not read it while building actions.
-    // eslint-disable-next-line react-hooks/refs
+    markSessionCompleted,
+    undoSessionCompleted,
   } = createSessionDetailActions({
     session,
     sessionId,
@@ -870,7 +846,6 @@ export default function SessionDetailPage() {
     exerciseSlugById,
     showError,
     showWarning,
-    showSuccess,
     clearMessage,
     router,
     setIsSavingSet,
@@ -887,9 +862,6 @@ export default function SessionDetailPage() {
     setIsAddExerciseSheetOpen,
     setAddExerciseDraft,
     setIsAddingExercise,
-    markSkipNextExerciseMessageClear: () => {
-      skipNextClearMessageOnExerciseIdChangeRef.current = true;
-    },
     setTargetsSessionExerciseId,
     setTargetsSets,
     setTargetsReps,
@@ -903,18 +875,10 @@ export default function SessionDetailPage() {
     setIsEditingSessionDetails,
     setIsSavingSessionDetails,
     setSession,
+    setIsMarkingCompleted,
     warmupSuggestionsDisabledExerciseIds,
     maxWarmupSetsByExerciseId,
   });
-
-  function goBack() {
-    clearMessage();
-    if (window.history.length > 1) {
-      router.back();
-      return;
-    }
-    router.push("/");
-  }
 
   useEffect(() => {
     const exerciseRow = sessionExercises[activeExerciseIndex];
@@ -986,6 +950,30 @@ export default function SessionDetailPage() {
 
   const formattedPerformedOn = formatDateOnlyForLocale(session.performed_on);
   const isPlannedSession = isFutureSessionDate(session.performed_on);
+  const lifecycleStatus = sessionLifecycleStatus({
+    performedOn: session.performed_on,
+    startedAt: session.started_at,
+    completedAt: session.completed_at,
+  });
+  const lifecycleBadge = sessionLifecycleBadgeLabel(lifecycleStatus);
+  const lifecycleBadgeClass =
+    lifecycleStatus === "completed"
+      ? "rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-sky-800"
+      : "rounded-full border border-zinc-300 bg-zinc-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-700";
+  const createdFromBadgeClass =
+    "rounded-full border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600";
+  const showUndoCompleted = canUndoSessionCompleted({
+    performedOn: session.performed_on,
+    startedAt: session.started_at,
+    completedAt: session.completed_at,
+  });
+  const showMarkCompleted =
+    !isReadOnly &&
+    canMarkSessionCompleted({
+      performedOn: session.performed_on,
+      startedAt: session.started_at,
+      completedAt: session.completed_at,
+    });
   const canManageSets = !isReadOnly && !isPlannedSession;
 
   const isCompactView = isSmallPhone;
@@ -1061,15 +1049,11 @@ export default function SessionDetailPage() {
             </h1>
             <p className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-zinc-500">
               <span>{formattedPerformedOn}</span>
-              {isPlannedSession ? (
-                <span className="rounded-full border border-zinc-300 bg-zinc-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-700">
-                  Upcoming
-                </span>
+              {lifecycleBadge ? (
+                <span className={lifecycleBadgeClass}>{lifecycleBadge}</span>
               ) : null}
               {createdFromLabel ? (
-                <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-800">
-                  Created from: {createdFromLabel}
-                </span>
+                <span className={createdFromBadgeClass}>Created from: {createdFromLabel}</span>
               ) : null}
             </p>
           </div>
@@ -1078,15 +1062,11 @@ export default function SessionDetailPage() {
             <h1 className="text-2xl font-semibold tracking-tight">Workout session #{sessionNumber ?? "-"}</h1>
             <p className="mt-0.5 flex flex-wrap items-center gap-2 text-sm text-zinc-500">
               <span>{formattedPerformedOn}</span>
-              {isPlannedSession ? (
-                <span className="rounded-full border border-zinc-300 bg-zinc-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-700">
-                  Upcoming
-                </span>
+              {lifecycleBadge ? (
+                <span className={lifecycleBadgeClass}>{lifecycleBadge}</span>
               ) : null}
               {createdFromLabel ? (
-                <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-800">
-                  Created from: {createdFromLabel}
-                </span>
+                <span className={createdFromBadgeClass}>Created from: {createdFromLabel}</span>
               ) : null}
             </p>
           </div>
@@ -1101,7 +1081,7 @@ export default function SessionDetailPage() {
               <button
                 type="button"
                 onClick={() => setIsDeleteSessionConfirmOpen(true)}
-                disabled={isDeletingSession || isSavingSet}
+                disabled={isDeletingSession || isSavingSet || isMarkingCompleted}
                 className={`inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-sm text-zinc-800 hover:border-sky-400 hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-60 ${
                   isCompactView ? "h-10 flex-1 justify-center" : "w-fit"
                 }`}
@@ -1138,25 +1118,32 @@ export default function SessionDetailPage() {
               ) : null}
             </>
           ) : null}
-          <button
-            type="button"
-              onClick={() => {
-                clearMessage();
-                setIsReadOnly((prev) => !prev);
-              }}
-            className={
-              isCompactView
-                ? "inline-flex h-10 flex-1 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-sm text-zinc-800 hover:border-sky-400 hover:bg-zinc-100 hover:text-zinc-900"
-                : "inline-flex w-fit items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-sm text-zinc-800 hover:border-sky-400 hover:bg-zinc-100 hover:text-zinc-900"
-            }
-          >
-            {isReadOnly ? (
-              <LockOpen className="h-4 w-4 text-sky-700" />
-            ) : (
-              <Lock className="h-4 w-4 text-sky-700" />
-            )}
-            {isReadOnly ? "Unlock" : "Lock"}
-          </button>
+          {showUndoCompleted ? (
+            <button
+              type="button"
+              onClick={() => void undoSessionCompleted()}
+              disabled={isMarkingCompleted || isSavingSet || isDeletingSession}
+              className={`inline-flex items-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-3 py-1.5 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60 ${
+                isCompactView ? "h-10 flex-1 justify-center" : "w-fit"
+              }`}
+            >
+              <RotateCcw className="h-4 w-4 text-white" />
+              {isMarkingCompleted ? "Saving..." : "Reopen session"}
+            </button>
+          ) : null}
+          {!isReadOnly && showMarkCompleted ? (
+            <button
+              type="button"
+              onClick={markSessionCompleted}
+              disabled={isMarkingCompleted || isSavingSet || isDeletingSession}
+              className={`inline-flex items-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-3 py-1.5 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60 ${
+                isCompactView ? "h-10 flex-1 justify-center" : "w-fit"
+              }`}
+            >
+              <Check className="h-4 w-4 text-white" />
+              {isMarkingCompleted ? "Saving..." : "Finish session"}
+            </button>
+          ) : null}
           {isCompactView && !isReadOnly ? (
             <button
               type="button"
@@ -1165,16 +1152,6 @@ export default function SessionDetailPage() {
             >
               <Plus className="h-4 w-4 text-sky-700" />
               Add exercise
-            </button>
-          ) : null}
-          {!isCompactView ? (
-            <button
-              type="button"
-              onClick={goBack}
-              className="inline-flex w-fit items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-sm text-zinc-800 hover:border-sky-400 hover:bg-zinc-100 hover:text-zinc-900"
-            >
-              <ArrowLeft className="h-4 w-4 text-sky-700" />
-              Back
             </button>
           ) : null}
         </div>
@@ -1396,6 +1373,8 @@ export default function SessionDetailPage() {
                 onDeleteSet={(setId) => {
                   void deleteSet(setId);
                 }}
+                onMarkCompleted={showMarkCompleted ? () => void markSessionCompleted() : undefined}
+                isMarkingCompleted={isMarkingCompleted}
                 onNextExercise={() =>
                   setActiveExerciseIndex((prev) => Math.min(sessionExercises.length - 1, prev + 1))
                 }

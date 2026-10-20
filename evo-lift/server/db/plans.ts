@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Json } from "@/lib/supabase/database.types";
 import { duplicatePlanName, validatePlanSave, type PlanSaveInput } from "@/lib/plan-draft";
+import { PLAN_ALREADY_OPEN_MESSAGE } from "@/lib/plan-cycle";
 import type { Database } from "@/lib/supabase/database.types";
 import { ApiHttpError, MAX_SESSION_NOTES_LENGTH } from "@/server/api/http";
 import { createWorkoutSession, requireWorkoutSessionDetail } from "@/server/db/workouts";
@@ -20,6 +21,7 @@ const PLAN_ERROR_MESSAGES = [
   "Another plan is already active. Try again.",
   "Plan not found.",
   "Add at least one exercise to this day.",
+  PLAN_ALREADY_OPEN_MESSAGE,
 ] as const;
 
 export type WorkoutPlanListItem = {
@@ -325,13 +327,34 @@ export async function instantiatePlanDay(
     throw new ApiHttpError(400, "Add at least one exercise to this day.");
   }
 
-  const session = await createWorkoutSession(client, {
-    userId: input.userId,
-    performedOn: input.performedOn,
-    notes,
-    planId: plan.id,
-    planDayId: day.id,
-  });
+  const { count: openPlanSessions, error: openPlanError } = await client
+    .from("workout_sessions")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", input.userId)
+    .eq("plan_id", input.planId)
+    .is("completed_at", null);
+  if (openPlanError) {
+    throw new Error("Could not check the plan.");
+  }
+  if ((openPlanSessions ?? 0) >= 1) {
+    throw new ApiHttpError(409, PLAN_ALREADY_OPEN_MESSAGE);
+  }
+
+  let session;
+  try {
+    session = await createWorkoutSession(client, {
+      userId: input.userId,
+      performedOn: input.performedOn,
+      notes,
+      planId: plan.id,
+      planDayId: day.id,
+    });
+  } catch (err) {
+    if (err instanceof Error && err.message.includes("open plan session limit")) {
+      throw new ApiHttpError(409, PLAN_ALREADY_OPEN_MESSAGE);
+    }
+    throw err;
+  }
 
   const exerciseRows: Database["public"]["Tables"]["workout_session_exercises"]["Insert"][] =
     day.exercises.map((row) => ({

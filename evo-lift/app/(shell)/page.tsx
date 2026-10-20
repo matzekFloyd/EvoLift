@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarClock, ClipboardList, FilterX, History } from "lucide-react";
+import { ClipboardList, FilterX, History, Play } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
@@ -14,6 +14,7 @@ import { NewSessionDraftCallout } from "@/app/components/new-session-draft-callo
 import { SessionsTable, type SessionsTableRow } from "@/app/components/sessions-table";
 import { ActivityDaySessionDialog } from "@/app/components/activity-day-session-dialog";
 import { WorkoutActivityChart } from "@/app/components/workout-activity-chart";
+import { ExerciseBadgeChip } from "@/app/components/exercise-badge-chip";
 import { activityDayOpen, activityDaySessionIds } from "@/app/home-activity-day";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { loadGoalReachedSessionDates } from "@/lib/goal-reached-dates";
@@ -25,23 +26,24 @@ import {
 import { confirmSignedInUser } from "@/lib/confirm-signed-in-user";
 import { rememberedUserId } from "@/lib/signed-in-memory";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
-import { homeExerciseBadges, homeSetCount } from "@/app/home-sessions";
+import { homeExerciseBadgeTone, homeExerciseBadges, homeSetCount } from "@/app/home-sessions";
 import { getDefaultHomeDateRange } from "@/app/home-date-range";
-import {
-  HOME_PAST_WORKOUT_PLACEHOLDER_ROWS,
-  HOME_UPCOMING_PLACEHOLDER_ROWS,
-} from "@/app/home-loading-layout";
+import { HOME_PAST_WORKOUT_PLACEHOLDER_ROWS } from "@/app/home-loading-layout";
+import type { ScheduledHomeSession } from "@/app/home-scheduled-sessions";
 import {
   formatDateToYyyyMmDd,
   getTodayYyyyMmDd,
   normalizeSessionDateOnly,
 } from "@/lib/session-date";
+import { partitionHomeSessions } from "@/lib/session-lifecycle";
 
 type WorkoutSessionRow = {
   id: string;
   performed_on: string;
   notes: string | null;
   created_at: string;
+  started_at: string | null;
+  completed_at: string | null;
 };
 
 type SessionExerciseBadge = {
@@ -56,6 +58,8 @@ function homeView(loadedSessions: HomeSessionSummaryRow[]) {
     performed_on: row.performed_on,
     notes: row.notes,
     created_at: row.created_at,
+    started_at: row.started_at ?? null,
+    completed_at: row.completed_at ?? null,
   }));
   const setCountBySessionId = new Map<string, number>();
   const exerciseBadgesBySessionId = new Map<string, SessionExerciseBadge[]>();
@@ -206,22 +210,31 @@ export default function Home() {
     };
   }, []);
 
-  const completedSessions = useMemo(
-    () => sessions.filter((session) => normalizeSessionDateOnly(session.performed_on) <= todayYyyyMmDd),
-    [sessions, todayYyyyMmDd],
-  );
+  const { inProgressSessions, plannedSessions, historySessions } = useMemo(() => {
+    const partitioned = partitionHomeSessions(
+      sessions.map((session) => ({
+        id: session.id,
+        performedOn: session.performed_on,
+        startedAt: session.started_at,
+        completedAt: session.completed_at,
+        row: session,
+      })),
+      todayYyyyMmDd,
+    );
+    return {
+      inProgressSessions: partitioned.inProgress.map((item) => item.row),
+      plannedSessions: partitioned.planned.map((item) => item.row),
+      historySessions: partitioned.history.map((item) => item.row),
+    };
+  }, [sessions, todayYyyyMmDd]);
 
-  const plannedSessions = useMemo(
-    () =>
-      sessions
-        .filter((session) => normalizeSessionDateOnly(session.performed_on) > todayYyyyMmDd)
-        .sort((a, b) => a.performed_on.localeCompare(b.performed_on)),
-    [sessions, todayYyyyMmDd],
-  );
-
+  /** History plus open sessions for activity chart / day picker (not planned). */
+  const activitySessions = useMemo(() => {
+    return [...historySessions, ...inProgressSessions];
+  }, [historySessions, inProgressSessions]);
 
   const filteredSessions = useMemo(() => {
-    return completedSessions.filter((session) => {
+    return activitySessions.filter((session) => {
       const performedOn = normalizeSessionDateOnly(session.performed_on);
       if (dateFrom && performedOn < dateFrom) {
         return false;
@@ -231,13 +244,26 @@ export default function Home() {
       }
       return true;
     });
-  }, [completedSessions, dateFrom, dateTo]);
+  }, [activitySessions, dateFrom, dateTo]);
+
+  const filteredHistorySessions = useMemo(() => {
+    return historySessions.filter((session) => {
+      const performedOn = normalizeSessionDateOnly(session.performed_on);
+      if (dateFrom && performedOn < dateFrom) {
+        return false;
+      }
+      if (dateTo && performedOn > dateTo) {
+        return false;
+      }
+      return true;
+    });
+  }, [historySessions, dateFrom, dateTo]);
 
   const workoutActivityData = useMemo(() => {
-    const completedSessions = filteredSessions.filter(
+    const chartSessions = filteredSessions.filter(
       (session) => normalizeSessionDateOnly(session.performed_on) <= todayYyyyMmDd,
     );
-    const sortedCompletedDates = completedSessions
+    const sortedCompletedDates = chartSessions
       .map((session) => normalizeSessionDateOnly(session.performed_on))
       .sort();
     const fallbackTo = todayYyyyMmDd;
@@ -256,7 +282,7 @@ export default function Home() {
     const end = new Date(`${effectiveTo}T00:00:00`);
     const workoutsByDate = new Map<string, number>();
     const setsByDate = new Map<string, number>();
-    for (const session of completedSessions) {
+    for (const session of chartSessions) {
       const day = normalizeSessionDateOnly(session.performed_on);
       workoutsByDate.set(day, (workoutsByDate.get(day) ?? 0) + 1);
       setsByDate.set(day, (setsByDate.get(day) ?? 0) + (setCountBySessionId.get(session.id) ?? 0));
@@ -282,16 +308,16 @@ export default function Home() {
     return () => mediaQuery.removeEventListener("change", onChange);
   }, []);
 
-  const completedTableRows: SessionsTableRow[] = useMemo(
+  const historyTableRows: SessionsTableRow[] = useMemo(
     () =>
-      filteredSessions.map((session) => ({
+      filteredHistorySessions.map((session) => ({
         id: session.id,
         performedOn: session.performed_on,
         notes: session.notes ?? "",
         isPlanned: false,
         badges: exerciseBadgesBySessionId.get(session.id) ?? [],
       })),
-    [exerciseBadgesBySessionId, filteredSessions],
+    [exerciseBadgesBySessionId, filteredHistorySessions],
   );
 
   function openSession(sessionId: string) {
@@ -326,25 +352,70 @@ export default function Home() {
     if (!dayChoiceIds) {
       return [];
     }
-    const rowById = new Map(completedTableRows.map((row) => [row.id, row]));
+    const rowById = new Map(
+      filteredSessions.map((session) => [
+        session.id,
+        {
+          id: session.id,
+          notes: session.notes ?? "",
+          badges: exerciseBadgesBySessionId.get(session.id) ?? [],
+          performedOn: session.performed_on,
+        },
+      ]),
+    );
     return dayChoiceIds.flatMap((id) => {
       const row = rowById.get(id);
-      return row
-        ? [{ id: row.id, notes: row.notes, badges: row.badges, performedOn: row.performedOn }]
-        : [];
+      return row ? [row] : [];
     });
-  }, [completedTableRows, dayChoiceIds]);
+  }, [dayChoiceIds, exerciseBadgesBySessionId, filteredSessions]);
 
-  const plannedTableRows: SessionsTableRow[] = useMemo(
+  const scheduledSessions: ScheduledHomeSession[] = useMemo(
     () =>
       plannedSessions.map((session) => ({
         id: session.id,
         performedOn: session.performed_on,
         notes: session.notes ?? "",
-        isPlanned: true,
         badges: exerciseBadgesBySessionId.get(session.id) ?? [],
       })),
     [exerciseBadgesBySessionId, plannedSessions],
+  );
+
+  const pastRangeControls = (
+    <div className="flex flex-wrap items-end gap-2">
+      <label className="text-xs font-medium text-zinc-600">
+        From
+        <DateInput
+          value={dateFrom}
+          onChange={(event) => setDateFrom(event.target.value)}
+          max={todayYyyyMmDd}
+          className="mt-1 w-[9.5rem] rounded-md border bg-white px-2 py-1 text-sm"
+        />
+      </label>
+      <label className="text-xs font-medium text-zinc-600">
+        To
+        <DateInput
+          value={dateTo}
+          onChange={(event) => setDateTo(event.target.value)}
+          max={todayYyyyMmDd}
+          className="mt-1 w-[9.5rem] rounded-md border bg-white px-2 py-1 text-sm"
+        />
+      </label>
+      <ActionButton
+        type="button"
+        onClick={() => {
+          setDateFrom(defaultDateRange.from);
+          setDateTo(defaultDateRange.to);
+        }}
+        disabled={dateFrom === defaultDateRange.from && dateTo === defaultDateRange.to}
+        variant="secondary"
+        size="sm"
+        className="text-sm font-normal text-amber-800 hover:text-amber-900"
+        iconColor="amber"
+      >
+        <FilterX className="h-3.5 w-3.5" />
+        Clear filters
+      </ActionButton>
+    </div>
   );
 
   return (
@@ -357,31 +428,57 @@ export default function Home() {
         <PageAddAction href="/sessions/new" label="Create session" />
       </div>
       {userId ? <NewSessionDraftCallout userId={userId} /> : null}
-      <ActivePlanPanel />
-      <section className="panel p-5">
-        <div className="mb-2 flex items-center justify-between gap-2">
-          <SectionHeading className="inline-flex items-center gap-1">
-            <CalendarClock className="h-3.5 w-3.5 text-zinc-500" />
-            Upcoming workouts
-          </SectionHeading>
-        </div>
-        {isChecking ? (
-          <ContentPlaceholder label="Loading workouts..." rows={HOME_UPCOMING_PLACEHOLDER_ROWS} />
-        ) : plannedSessions.length === 0 ? (
-          <p className="text-sm text-zinc-500">No upcoming workouts.</p>
-        ) : (
-          <SessionsTable
-            rows={plannedTableRows}
-            dateHeaderLabel="Upcoming on"
-            emptyMessage="No upcoming workouts."
-            showNotesColumn={!isSmallPhone}
-            compactMode={isSmallPhone}
-            openingRowId={openingSessionId}
-            highlightedPerformedOnDates={highlightedActivityDates}
-            onOpenRow={openSession}
-          />
-        )}
-      </section>
+      {inProgressSessions.length > 0 ? (
+        <section className="panel divide-y divide-zinc-200" aria-label="In progress">
+          {inProgressSessions.map((session) => {
+            const badges = exerciseBadgesBySessionId.get(session.id) ?? [];
+            return (
+              <div
+                key={session.id}
+                className="flex items-center justify-between gap-2 px-3 py-2"
+              >
+                <div className="min-w-0 space-y-1">
+                  <p className="text-sm font-medium text-zinc-900">
+                    {formatDateOnlyForLocale(session.performed_on)}
+                  </p>
+                  {session.notes?.trim() ? (
+                    <p className="truncate text-xs text-zinc-600">{session.notes.trim()}</p>
+                  ) : null}
+                  {badges.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {badges.map((badge) => (
+                        <ExerciseBadgeChip
+                          key={`${session.id}-${badge.slug}`}
+                          slug={badge.slug}
+                          variant={homeExerciseBadgeTone(badge)}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-zinc-500">No exercises yet.</p>
+                  )}
+                </div>
+                <ActionButton
+                  type="button"
+                  variant="primary"
+                  size="sm"
+                  className="shrink-0"
+                  disabled={openingSessionId === session.id}
+                  onClick={() => openSession(session.id)}
+                >
+                  <Play className="h-3.5 w-3.5 text-white" />
+                  {openingSessionId === session.id ? "Opening..." : "Continue"}
+                </ActionButton>
+              </div>
+            );
+          })}
+        </section>
+      ) : null}
+      <ActivePlanPanel
+        scheduledSessions={scheduledSessions}
+        openingSessionId={openingSessionId}
+        onOpenSession={openSession}
+      />
       <section className="panel p-5" aria-busy={isChecking}>
         {sessionsError ? (
           <p className="text-sm text-red-600">{sessionsError}</p>
@@ -391,51 +488,22 @@ export default function Home() {
               <History className="h-3.5 w-3.5 text-zinc-500" />
               Past workouts
             </SectionHeading>
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-              <div className="grid gap-2 sm:grid-cols-2">
-                <label className="block text-xs font-medium text-zinc-600">
-                  From
-                  <DateInput
-                    value={dateFrom}
-                    onChange={(event) => setDateFrom(event.target.value)}
-                    max={todayYyyyMmDd}
-                    className="mt-1 w-full rounded-md border bg-white px-2 py-1.5 text-sm"
-                  />
-                </label>
-                <label className="block text-xs font-medium text-zinc-600">
-                  To
-                  <DateInput
-                    value={dateTo}
-                    onChange={(event) => setDateTo(event.target.value)}
-                    max={todayYyyyMmDd}
-                    className="mt-1 w-full rounded-md border bg-white px-2 py-1.5 text-sm"
-                  />
-                </label>
+            {isChecking && workoutActivityData.length === 0 ? (
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+                <p className="text-sm text-zinc-500">Loading workouts...</p>
+                {pastRangeControls}
               </div>
-              <ActionButton
-                type="button"
-                onClick={() => {
-                  setDateFrom(defaultDateRange.from);
-                  setDateTo(defaultDateRange.to);
-                }}
-                disabled={dateFrom === defaultDateRange.from && dateTo === defaultDateRange.to}
-                variant="secondary"
-                size="sm"
-                className="self-end text-sm font-normal text-amber-800 hover:text-amber-900"
-                iconColor="amber"
-              >
-                <FilterX className="h-3.5 w-3.5" />
-                Clear filters
-              </ActionButton>
-            </div>
-            <WorkoutActivityChart
-              data={workoutActivityData}
-              isCompactView={isSmallPhone}
-              highlightedDates={highlightedActivityDates}
-              onHighlightDatesChange={setHighlightedActivityDates}
-              goalReachedByDate={goalReachedByDate}
-              onDayClick={openActivityDay}
-            />
+            ) : (
+              <WorkoutActivityChart
+                data={workoutActivityData}
+                isCompactView={isSmallPhone}
+                highlightedDates={highlightedActivityDates}
+                onHighlightDatesChange={setHighlightedActivityDates}
+                goalReachedByDate={goalReachedByDate}
+                onDayClick={openActivityDay}
+                headerAside={pastRangeControls}
+              />
+            )}
             {isChecking ? (
               <ContentPlaceholder
                 label="Loading workouts..."
@@ -443,9 +511,9 @@ export default function Home() {
               />
             ) : (
               <SessionsTable
-                rows={completedTableRows}
+                rows={historyTableRows}
                 dateHeaderLabel="Performed on"
-                emptyMessage="No completed workout sessions in the selected timeframe."
+                emptyMessage="No workout sessions in the selected timeframe."
                 showNotesColumn={!isSmallPhone}
                 compactMode={isSmallPhone}
                 openingRowId={openingSessionId}

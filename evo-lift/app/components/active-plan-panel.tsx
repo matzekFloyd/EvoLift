@@ -8,12 +8,24 @@ import { ActionButton } from "@/app/components/action-button";
 import { ContentPlaceholder } from "@/app/components/content-placeholder";
 import { AppDialog } from "@/app/components/app-dialog";
 import { DateInput } from "@/app/components/date-input";
+import { ExerciseBadgeChip } from "@/app/components/exercise-badge-chip";
 import { PanelInset } from "@/app/components/panel-inset";
 import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
+import { homeExerciseBadgeTone } from "@/app/home-sessions";
+import {
+  scheduledSessionsBesidePlan,
+  type ScheduledHomeSession,
+} from "@/app/home-scheduled-sessions";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
-import { latestSessionByPlanDay, nextPlanDayId } from "@/lib/plan-cycle";
+import {
+  PLAN_ALREADY_OPEN_MESSAGE,
+  continuablePlanSession,
+  latestSessionByPlanDay,
+  nextPlanDayId,
+  openSessionByPlanDay,
+} from "@/lib/plan-cycle";
 import { getTodayYyyyMmDd } from "@/lib/session-date";
 import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
@@ -32,6 +44,7 @@ type PlanSessionView = {
   planDayId: string | null;
   performedOn: string;
   createdAt: string;
+  completedAt: string | null;
 };
 
 type ActivePlanView = {
@@ -40,7 +53,17 @@ type ActivePlanView = {
   days: PlanDayView[];
 };
 
-export function ActivePlanPanel() {
+type ActivePlanPanelProps = {
+  scheduledSessions?: ScheduledHomeSession[];
+  openingSessionId?: string | null;
+  onOpenSession?: (sessionId: string) => void;
+};
+
+export function ActivePlanPanel({
+  scheduledSessions = [],
+  openingSessionId = null,
+  onOpenSession,
+}: ActivePlanPanelProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -89,7 +112,7 @@ export function ActivePlanPanel() {
 
       const { data: sessionRows, error: sessionsError } = await supabaseBrowserClient
         .from("workout_sessions")
-        .select("id, plan_day_id, performed_on, created_at")
+        .select("id, plan_day_id, performed_on, created_at, completed_at")
         .eq("plan_id", data.id);
 
       if (!isMounted) {
@@ -108,6 +131,7 @@ export function ActivePlanPanel() {
           planDayId: row.plan_day_id,
           performedOn: row.performed_on,
           createdAt: row.created_at,
+          completedAt: row.completed_at,
         })),
       );
       setLoadError(null);
@@ -120,12 +144,44 @@ export function ActivePlanPanel() {
     };
   }, []);
 
-  const nextDayId = plan ? nextPlanDayId(plan.days, sessions) : null;
+  const continuable = continuablePlanSession(sessions);
+  const nextDayId =
+    continuable?.planDayId ?? (plan ? nextPlanDayId(plan.days, sessions) : null);
   const latestByDay = latestSessionByPlanDay(sessions);
+  const openByDay = openSessionByPlanDay(sessions);
   const nextDay = plan?.days.find((day) => day.id === nextDayId) ?? null;
+  const nextOpenSession = continuable ?? undefined;
+  const continuableDayName =
+    plan?.days.find((day) => day.id === continuable?.planDayId)?.name ?? null;
+  const besidePlan = isLoading
+    ? []
+    : scheduledSessionsBesidePlan(
+        scheduledSessions,
+        [...latestByDay.values()].map((session) => session.id),
+      );
+  const scheduledLabel = plan ? "Also scheduled" : "Scheduled";
   const startDay = plan?.days.find((day) => day.id === startDayId) ?? null;
 
+  function openExistingSession(sessionId: string) {
+    if (openingSessionId) {
+      return;
+    }
+    if (onOpenSession) {
+      onOpenSession(sessionId);
+      return;
+    }
+    router.push(`/sessions/${sessionId}`);
+  }
+
   function openStart(dayId: string) {
+    if (continuable && continuable.planDayId !== dayId) {
+      setMessage(
+        continuableDayName
+          ? `Finish ${continuableDayName} before starting another day.`
+          : PLAN_ALREADY_OPEN_MESSAGE,
+      );
+      return;
+    }
     setStartDayId(dayId);
     setPerformedOn(getTodayYyyyMmDd());
     setSessionNotes("");
@@ -209,25 +265,46 @@ export function ActivePlanPanel() {
               variant="primary"
               size="md"
               className="shrink-0"
-              disabled={!nextDay || nextDay.exerciseCount === 0}
+              disabled={
+                nextOpenSession
+                  ? openingSessionId === nextOpenSession.id
+                  : !nextDay || nextDay.exerciseCount === 0
+              }
               title={
-                !nextDay
-                  ? "Add a day before starting a session."
-                  : nextDay.exerciseCount === 0
-                    ? `Add at least one exercise to ${nextDay.name} before starting a session.`
-                    : undefined
+                nextOpenSession
+                  ? undefined
+                  : !nextDay
+                    ? "Add a day before starting a session."
+                    : nextDay.exerciseCount === 0
+                      ? `Add at least one exercise to ${nextDay.name} before starting a session.`
+                      : undefined
               }
               onClick={() => {
+                if (nextOpenSession) {
+                  openExistingSession(nextOpenSession.id);
+                  return;
+                }
                 if (nextDay) {
                   openStart(nextDay.id);
                 }
               }}
             >
-              <ChevronRight className="h-4 w-4 text-white" aria-hidden />
-              Start session
+              {nextOpenSession ? (
+                <Play className="h-4 w-4 text-white" aria-hidden />
+              ) : (
+                <ChevronRight className="h-4 w-4 text-white" aria-hidden />
+              )}
+              {nextOpenSession
+                ? openingSessionId === nextOpenSession.id
+                  ? "Opening..."
+                  : "Continue session"
+                : "Start session"}
             </ActionButton>
           </div>
-          {nextDay && nextDay.exerciseCount === 0 ? (
+          {message && !startDay ? (
+            <StatusNotice message={message} tone="warning" onDismiss={() => setMessage(null)} />
+          ) : null}
+          {nextDay && !nextOpenSession && nextDay.exerciseCount === 0 ? (
             <p className="text-sm text-zinc-600">
               Add at least one exercise to {nextDay.name} before starting a session.
             </p>
@@ -236,7 +313,11 @@ export function ActivePlanPanel() {
             <ul className="space-y-2">
               {plan.days.map((day) => {
                 const latest = latestByDay.get(day.id);
+                const openSession = openByDay.get(day.id);
+                const isContinuable = continuable?.planDayId === day.id;
+                const linked = isContinuable ? continuable : (openSession ?? latest);
                 const isNext = day.id === nextDayId;
+                const isOpening = isContinuable && openingSessionId === continuable?.id;
                 return (
                   <PanelInset
                     as="li"
@@ -253,12 +334,12 @@ export function ActivePlanPanel() {
                           </span>
                         ) : null}
                       </p>
-                      {latest ? (
+                      {linked ? (
                         <Link
-                          href={`/sessions/${latest.id}`}
+                          href={`/sessions/${linked.id}`}
                           className="text-xs font-medium text-sky-800 underline-offset-2 hover:underline"
                         >
-                          {formatDateOnlyForLocale(latest.performedOn)}
+                          {formatDateOnlyForLocale(linked.performedOn)}
                         </Link>
                       ) : (
                         <p className="text-xs text-zinc-500">Not logged yet.</p>
@@ -269,16 +350,30 @@ export function ActivePlanPanel() {
                       variant="secondary"
                       size="sm"
                       className="shrink-0"
-                      disabled={day.exerciseCount === 0}
-                      title={
-                        day.exerciseCount === 0
-                          ? "Add at least one exercise to this day."
-                          : undefined
+                      disabled={
+                        isContinuable
+                          ? isOpening
+                          : continuable != null || day.exerciseCount === 0
                       }
-                      onClick={() => openStart(day.id)}
+                      title={
+                        !isContinuable && continuable != null
+                          ? continuableDayName
+                            ? `Finish ${continuableDayName} before starting another day.`
+                            : PLAN_ALREADY_OPEN_MESSAGE
+                          : !isContinuable && day.exerciseCount === 0
+                            ? "Add at least one exercise to this day."
+                            : undefined
+                      }
+                      onClick={() => {
+                        if (isContinuable && continuable) {
+                          openExistingSession(continuable.id);
+                          return;
+                        }
+                        openStart(day.id);
+                      }}
                     >
                       <Play className="h-3.5 w-3.5" aria-hidden />
-                      Start
+                      {isOpening ? "Opening..." : isContinuable ? "Continue" : "Start"}
                     </ActionButton>
                   </PanelInset>
                 );
@@ -287,6 +382,53 @@ export function ActivePlanPanel() {
           ) : null}
         </div>
       )}
+
+      {besidePlan.length > 0 ? (
+        <div className="mt-3 space-y-2">
+          <p className="text-xs font-medium text-zinc-600">{scheduledLabel}</p>
+          <ul className="space-y-2">
+            {besidePlan.map((session) => (
+              <PanelInset
+                as="li"
+                key={session.id}
+                className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between"
+              >
+                <div className="min-w-0 space-y-1">
+                  <p className="text-sm font-medium text-zinc-900">
+                    {formatDateOnlyForLocale(session.performedOn)}
+                  </p>
+                  {session.notes.trim() ? (
+                    <p className="truncate text-xs text-zinc-600">{session.notes.trim()}</p>
+                  ) : null}
+                  {session.badges.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {session.badges.map((badge) => (
+                        <ExerciseBadgeChip
+                          key={`${session.id}-${badge.slug}`}
+                          slug={badge.slug}
+                          variant={homeExerciseBadgeTone(badge)}
+                        />
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-zinc-500">No exercises yet.</p>
+                  )}
+                </div>
+                <ActionButton
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="shrink-0"
+                  disabled={!onOpenSession || openingSessionId === session.id}
+                  onClick={() => onOpenSession?.(session.id)}
+                >
+                  {openingSessionId === session.id ? "Opening..." : "Open"}
+                </ActionButton>
+              </PanelInset>
+            ))}
+          </ul>
+        </div>
+      ) : null}
 
       {startDay && plan ? (
         <AppDialog titleId="start-plan-day-title">

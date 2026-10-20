@@ -215,6 +215,8 @@ export type Database = {
           source_template_id: string | null;
           plan_id: string | null;
           plan_day_id: string | null;
+          started_at: string | null;
+          completed_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -226,6 +228,8 @@ export type Database = {
           source_template_id?: string | null;
           plan_id?: string | null;
           plan_day_id?: string | null;
+          started_at?: string | null;
+          completed_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -237,6 +241,8 @@ export type Database = {
           source_template_id?: string | null;
           plan_id?: string | null;
           plan_day_id?: string | null;
+          started_at?: string | null;
+          completed_at?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -611,6 +617,8 @@ export type Database = {
           performed_on: string;
           notes: string | null;
           created_at: string;
+          started_at: string | null;
+          completed_at: string | null;
           set_count: number;
           exercise_badges: Array<{
             slug: string;

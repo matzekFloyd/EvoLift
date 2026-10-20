@@ -8,6 +8,8 @@ export type HomeSessionSummaryRow = {
   performed_on: string;
   notes: string | null;
   created_at: string;
+  started_at: string | null;
+  completed_at: string | null;
   set_count: number;
   exercise_badges: Array<{
     slug: string;
@@ -58,7 +60,7 @@ async function fetchHomeSessionSummaries(
   const { data, error } = await fetchAllPages((from, to) =>
     client
       .from("home_session_summaries")
-      .select("id, performed_on, notes, created_at, set_count, exercise_badges")
+      .select("id, performed_on, notes, created_at, started_at, completed_at, set_count, exercise_badges")
       .order("id", { ascending: true })
       .range(from, to),
   );
@@ -67,6 +69,8 @@ async function fetchHomeSessionSummaries(
   }
   const rows = ((data ?? []) as HomeSessionSummaryRow[]).map((row) => ({
     ...row,
+    started_at: row.started_at ?? null,
+    completed_at: row.completed_at ?? null,
     set_count: Number.isFinite(Number(row.set_count)) ? Number(row.set_count) : 0,
     exercise_badges: Array.isArray(row.exercise_badges) ? row.exercise_badges : null,
   }));

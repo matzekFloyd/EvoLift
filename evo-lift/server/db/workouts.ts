@@ -120,7 +120,7 @@ export async function listWorkoutSessions(
   let query = client
     .from("workout_sessions")
     .select(
-      "id, user_id, performed_on, notes, source_template_id, plan_id, plan_day_id, created_at, updated_at, workout_session_exercises(id)",
+      "id, user_id, performed_on, notes, source_template_id, plan_id, plan_day_id, started_at, completed_at, created_at, updated_at, workout_session_exercises(id)",
     )
     .eq("user_id", userId)
     .order("performed_on", { ascending: false })
@@ -146,6 +146,8 @@ export async function listWorkoutSessions(
     source_template_id: row.source_template_id,
     plan_id: row.plan_id,
     plan_day_id: row.plan_day_id,
+    started_at: row.started_at,
+    completed_at: row.completed_at,
     created_at: row.created_at,
     updated_at: row.updated_at,
     exercise_count: row.workout_session_exercises?.length ?? 0,

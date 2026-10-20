@@ -39,24 +39,21 @@ export type CompactActivityWeek = {
   weekLabel: string;
 };
 
-function weekRangeLabel(weekStart: string): string {
+function weekRangeLabel(weekStart: string, locale: string): string {
   const start = activityDateToLocalDate(weekStart);
   const end = new Date(start);
   end.setDate(start.getDate() + 6);
-  const startText = new Intl.DateTimeFormat(undefined, {
+  const format = new Intl.DateTimeFormat(locale, {
     month: "short",
     day: "numeric",
-  }).format(start);
-  const endText = new Intl.DateTimeFormat(undefined, {
-    month: "short",
-    day: "numeric",
-  }).format(end);
-  return `${startText}-${endText}`;
+  });
+  return `${format.format(start)}-${format.format(end)}`;
 }
 
 export function buildCompactActivityWeeks(
   data: ActivityDayPoint[],
   today: Date,
+  locale = "en",
 ): CompactActivityWeek[] {
   const currentWeekStart = currentWeekStartKey(today);
   const countsByWeek = new Map<string, number>();
@@ -71,7 +68,7 @@ export function buildCompactActivityWeeks(
       weekStart,
       sets,
       isCurrentWeek: weekStart === currentWeekStart,
-      weekLabel: weekStart === currentWeekStart ? "This week" : weekRangeLabel(weekStart),
+      weekLabel: weekStart === currentWeekStart ? "This week" : weekRangeLabel(weekStart, locale),
     }));
 }
 

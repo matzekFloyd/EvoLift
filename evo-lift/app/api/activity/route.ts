@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
     const { from, to } = parseActivityQuery(request.nextUrl.searchParams);
     let sessionQuery = auth.client
       .from("home_session_summaries")
-      .select("id, performed_on, notes, created_at, set_count, exercise_badges")
+      .select("id, performed_on, notes, created_at, started_at, completed_at, set_count, exercise_badges")
       .eq("user_id", auth.userId)
       .order("performed_on", { ascending: false });
     if (from) {
