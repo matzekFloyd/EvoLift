@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatMilestoneTarget } from "@/lib/milestone-progress";
 import { fetchAllPages, fetchInChunks } from "@/lib/supabase/chunked-query";
 import type { Database } from "@/lib/supabase/database.types";
+import { fetchWorkoutSessionsByIds } from "@/lib/workout-sessions-by-ids";
 
 type Client = SupabaseClient<Database>;
 
@@ -62,15 +63,7 @@ export async function loadExerciseHistory(
   const sessionsResult =
     sessionIds.length === 0
       ? { data: [], error: null }
-      : await fetchInChunks(sessionIds, (chunk, from, to) =>
-          client
-            .from("workout_sessions")
-            .select("id, performed_on, created_at")
-            .eq("user_id", userId)
-            .in("id", chunk)
-            .order("id", { ascending: true })
-            .range(from, to),
-        );
+      : await fetchWorkoutSessionsByIds(client, sessionIds, userId);
   if (sessionsResult.error) {
     throw new Error("Could not load your workout sessions.");
   }
