@@ -33,11 +33,11 @@ jobs:
         run: npm ci
 
       - name: Start local Supabase
-        run: supabase start
+        run: node scripts/ci-supabase-start.mjs
 
       - name: Apply migrations and catalog seeds
         run: |
-          supabase db reset --no-seed --yes
+          # Migrations already ran inside supabase start. Load the catalog only.
           supabase db query --local --file supabase/seeds/001_exercises.sql
           supabase db query --local --file supabase/seeds/002_exercise_translations.sql
 
