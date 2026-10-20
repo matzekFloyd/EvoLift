@@ -49,15 +49,48 @@ function jsonResult(payload, isError = false) {
   };
 }
 
+const MCP_API_PATH_ERROR = "path must be a relative /api/... route";
+
+function looksUnsafeApiPath(value) {
+  return (
+    value.includes("..") ||
+    value.includes("://") ||
+    value.includes("\\") ||
+    value.includes("\0") ||
+    value.includes("//")
+  );
+}
+
+function isBlockedMcpPath(pathname) {
+  const normalized = pathname.replace(/\/+$/, "") || "/";
+  return normalized === "/api/mcp" || normalized.startsWith("/api/mcp/");
+}
+
+/** Fail-closed; keep in sync with evo-lift/server/mcp/api-path.ts */
 function normalizeApiPath(path) {
   const trimmed = path.trim();
   if (!trimmed.startsWith("/api/")) {
-    throw new Error("path must start with /api/");
+    throw new Error(MCP_API_PATH_ERROR);
   }
-  if (trimmed.includes("://") || trimmed.includes("..") || trimmed.includes("\\")) {
-    throw new Error("path must be a relative /api/... route");
+  const withoutQuery = trimmed.split("?")[0] ?? "";
+  if (!withoutQuery.startsWith("/api/") || looksUnsafeApiPath(withoutQuery)) {
+    throw new Error(MCP_API_PATH_ERROR);
   }
-  return trimmed.split("?")[0];
+  let decoded;
+  try {
+    decoded = decodeURIComponent(withoutQuery);
+  } catch {
+    throw new Error(MCP_API_PATH_ERROR);
+  }
+  if (
+    !decoded.startsWith("/api/") ||
+    looksUnsafeApiPath(decoded) ||
+    isBlockedMcpPath(decoded) ||
+    isBlockedMcpPath(withoutQuery)
+  ) {
+    throw new Error(MCP_API_PATH_ERROR);
+  }
+  return withoutQuery;
 }
 
 async function evoFetch(
@@ -69,7 +102,23 @@ async function evoFetch(
     return jsonResult(resolved.error, true);
   }
 
-  const url = new URL(normalizeApiPath(path), `${resolved.base}/`);
+  const pathname = normalizeApiPath(path);
+  const base = `${resolved.base}/`;
+  let expectedOrigin;
+  try {
+    expectedOrigin = new URL(base).origin;
+  } catch {
+    return jsonResult({ error: MCP_API_PATH_ERROR }, true);
+  }
+  const url = new URL(pathname, base);
+  if (
+    url.origin !== expectedOrigin ||
+    !url.pathname.startsWith("/api/") ||
+    looksUnsafeApiPath(url.pathname) ||
+    isBlockedMcpPath(url.pathname)
+  ) {
+    return jsonResult({ error: MCP_API_PATH_ERROR }, true);
+  }
   for (const [key, value] of Object.entries(query)) {
     if (value === undefined || value === null || value === "") {
       continue;

@@ -7,6 +7,7 @@ import {
   getBearerCredential,
 } from "@/server/auth/api-request";
 import { listExercisesWithTranslations } from "@/server/db/exercises";
+import { MCP_API_PATH_ERROR, buildMcpApiUrl } from "@/server/mcp/api-path";
 import {
   clientIpFromHeaders,
   consumeRateLimit,
@@ -112,17 +113,11 @@ const handler = createMcpHandler(
         if ("error" in auth) {
           return jsonResult({ error: auth.error }, true);
         }
-        const trimmed = path.trim();
-        if (!trimmed.startsWith("/api/") || trimmed.includes("..") || trimmed.includes("://")) {
-          return jsonResult({ error: "path must be a relative /api/... route" }, true);
+        const built = buildMcpApiUrl(path, deploymentOrigin(), query);
+        if ("error" in built) {
+          return jsonResult({ error: MCP_API_PATH_ERROR }, true);
         }
-        const url = new URL(trimmed.split("?")[0], `${deploymentOrigin()}/`);
-        for (const [key, value] of Object.entries(query ?? {})) {
-          if (value) {
-            url.searchParams.set(key, String(value));
-          }
-        }
-        const response = await fetch(url, {
+        const response = await fetch(built.url, {
           headers: {
             Accept: "application/json",
             Authorization: `Bearer ${extra.authInfo?.token ?? ""}`,
@@ -139,7 +134,7 @@ const handler = createMcpHandler(
           {
             target: "deployment",
             status: response.status,
-            url: url.toString(),
+            url: built.url.toString(),
             body,
           },
           !response.ok,
@@ -166,15 +161,9 @@ const handler = createMcpHandler(
         if ("error" in auth) {
           return jsonResult({ error: auth.error }, true);
         }
-        const trimmed = path.trim();
-        if (!trimmed.startsWith("/api/") || trimmed.includes("..") || trimmed.includes("://")) {
-          return jsonResult({ error: "path must be a relative /api/... route" }, true);
-        }
-        const url = new URL(trimmed.split("?")[0], `${deploymentOrigin()}/`);
-        for (const [key, value] of Object.entries(query ?? {})) {
-          if (value) {
-            url.searchParams.set(key, String(value));
-          }
+        const built = buildMcpApiUrl(path, deploymentOrigin(), query);
+        if ("error" in built) {
+          return jsonResult({ error: MCP_API_PATH_ERROR }, true);
         }
         const headers: Record<string, string> = {
           Accept: "application/json",
@@ -185,7 +174,7 @@ const handler = createMcpHandler(
           headers["Content-Type"] = "application/json";
           init.body = JSON.stringify(body);
         }
-        const response = await fetch(url, init);
+        const response = await fetch(built.url, init);
         const text = await response.text();
         let parsed: unknown = text;
         try {
@@ -197,7 +186,7 @@ const handler = createMcpHandler(
           {
             target: "deployment",
             status: response.status,
-            url: url.toString(),
+            url: built.url.toString(),
             body: parsed,
           },
           !response.ok,
