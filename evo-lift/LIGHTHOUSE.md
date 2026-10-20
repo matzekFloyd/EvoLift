@@ -33,10 +33,13 @@ From the repository root, with local Supabase already running and env set in `ev
 ```bash
 cd evo-lift
 npm ci
+npx puppeteer browsers install chrome
 npm run seed:local
 npm run build
 npm run lighthouse
 ```
+
+`npm ci` does not leave a Chrome binary that Lighthouse CI can launch. The `browsers install` command downloads the Chrome build Puppeteer expects.
 
 `npm run lighthouse` starts `next start` on `http://127.0.0.1:3000`, runs the public suite, then the authenticated suite, then stops the server.
 
@@ -48,7 +51,7 @@ Optional env:
 
 ## CI
 
-The **Lighthouse** workflow (`.github/workflows/lighthouse.yml`) starts local Supabase, seeds the demo user, builds the app, and runs the same `npm run lighthouse` command on pushes to `master`.
+The **Lighthouse** workflow (`.github/workflows/lighthouse.yml`) runs on Node 22 (22.12 or newer, which Puppeteer 25 requires), installs Chrome with `npx puppeteer browsers install chrome`, starts local Supabase, seeds the demo user, builds the app, and runs the same `npm run lighthouse` command on pushes to `master`.
 
 The job fails when a score is below the thresholds above. HTML/JSON reports under `.lighthouseci/` are uploaded as the `lighthouse-reports` workflow artifact (including on failure) so you can inspect a run in the Actions UI.
 

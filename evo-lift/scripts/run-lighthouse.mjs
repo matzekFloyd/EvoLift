@@ -3,18 +3,29 @@
  * Expects `npm run build` (and a seeded local demo user for the app suite) already done.
  */
 import { spawn, spawnSync } from "node:child_process";
+import { existsSync } from "node:fs";
 import { createRequire } from "node:module";
 import { setTimeout as sleep } from "node:timers/promises";
 
 const require = createRequire(import.meta.url);
 if (!process.env.CHROME_PATH) {
+  let chromePath;
   try {
     const puppeteer = require("puppeteer");
-    process.env.CHROME_PATH = puppeteer.executablePath();
-  } catch {
-    // LHCI will look for a system Chrome if Puppeteer is unavailable.
+    chromePath = puppeteer.executablePath();
+  } catch (error) {
+    console.error("Could not load puppeteer to locate Chrome.");
+    console.error(error);
+    process.exit(1);
   }
+  if (!existsSync(chromePath)) {
+    console.error(`Chrome was not found at ${chromePath}.`);
+    console.error("Run `npx puppeteer browsers install chrome` from evo-lift/.");
+    process.exit(1);
+  }
+  process.env.CHROME_PATH = chromePath;
 }
+console.log(`Using Chrome at ${process.env.CHROME_PATH}`);
 
 const baseUrl = process.env.LHCI_BASE_URL || "http://127.0.0.1:3000";
 const port = Number(new URL(baseUrl).port || 3000);

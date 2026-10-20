@@ -85,6 +85,12 @@ test("CI starts Postgres, Auth, and the API only", () => {
   assert.equal(CI_IMAGE_REGISTRY, "ghcr.io");
 });
 
+test("Lighthouse installs Puppeteer Chrome on Node 22", () => {
+  const yml = readFileSync(".github/workflows/lighthouse.yml", "utf8");
+  assert.match(yml, /node-version: 22/);
+  assert.match(yml, /npx puppeteer browsers install chrome/);
+});
+
 test("API integration and Lighthouse share the slim start and catalog seeds", () => {
   for (const file of [".github/workflows/test.yml", ".github/workflows/lighthouse.yml"]) {
     const yml = readFileSync(file, "utf8");
