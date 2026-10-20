@@ -26,6 +26,11 @@ import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { homeExerciseBadges, homeSetCount } from "@/app/home-sessions";
 import { getDefaultHomeDateRange } from "@/app/home-date-range";
 import {
+  HOME_PAST_WORKOUT_PLACEHOLDER_ROWS,
+  HOME_UPCOMING_PLACEHOLDER_ROWS,
+  homePlaceholderIndexes,
+} from "@/app/home-loading-layout";
+import {
   formatDateToYyyyMmDd,
   getTodayYyyyMmDd,
   normalizeSessionDateOnly,
@@ -43,6 +48,16 @@ type SessionExerciseBadge = {
   hasLoggedSet: boolean;
   skipped: boolean;
 };
+
+function SessionPlaceholderRows({ count }: { count: number }) {
+  return (
+    <div aria-hidden className="space-y-2">
+      {homePlaceholderIndexes(count).map((index) => (
+        <div key={index} className="h-10 rounded-md border border-zinc-200 bg-zinc-50/80" />
+      ))}
+    </div>
+  );
+}
 
 export default function Home() {
   const router = useRouter();
@@ -316,14 +331,6 @@ export default function Home() {
     [exerciseBadgesBySessionId, plannedSessions],
   );
 
-  if (isChecking) {
-    return (
-      <PageShell className="items-center justify-center">
-        <p className="text-sm text-zinc-600">Checking session...</p>
-      </PageShell>
-    );
-  }
-
   return (
     <PageShell>
       <div className="flex items-center justify-between gap-3">
@@ -342,7 +349,9 @@ export default function Home() {
             Upcoming workouts
           </SectionHeading>
         </div>
-        {plannedSessions.length === 0 ? (
+        {isChecking ? (
+          <SessionPlaceholderRows count={HOME_UPCOMING_PLACEHOLDER_ROWS} />
+        ) : plannedSessions.length === 0 ? (
           <p className="text-sm text-zinc-500">No upcoming workouts.</p>
         ) : (
           <SessionsTable
@@ -357,7 +366,7 @@ export default function Home() {
           />
         )}
       </section>
-      <section className="panel p-5">
+      <section className="panel p-5" aria-busy={isChecking}>
         {sessionsError ? (
           <p className="text-sm text-red-600">{sessionsError}</p>
         ) : (
@@ -411,17 +420,21 @@ export default function Home() {
               goalReachedByDate={goalReachedByDate}
               onDayClick={openActivityDay}
             />
-            <SessionsTable
-              rows={completedTableRows}
-              dateHeaderLabel="Performed on"
-              emptyMessage="No completed workout sessions in the selected timeframe."
-              showNotesColumn={!isSmallPhone}
-              compactMode={isSmallPhone}
-              openingRowId={openingSessionId}
-              highlightedPerformedOnDates={highlightedActivityDates}
-              goalReachedByDate={goalReachedByDate}
-              onOpenRow={openSession}
-            />
+            {isChecking ? (
+              <SessionPlaceholderRows count={HOME_PAST_WORKOUT_PLACEHOLDER_ROWS} />
+            ) : (
+              <SessionsTable
+                rows={completedTableRows}
+                dateHeaderLabel="Performed on"
+                emptyMessage="No completed workout sessions in the selected timeframe."
+                showNotesColumn={!isSmallPhone}
+                compactMode={isSmallPhone}
+                openingRowId={openingSessionId}
+                highlightedPerformedOnDates={highlightedActivityDates}
+                goalReachedByDate={goalReachedByDate}
+                onOpenRow={openSession}
+              />
+            )}
           </div>
         )}
       </section>
