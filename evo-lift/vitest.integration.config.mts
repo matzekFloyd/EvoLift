@@ -48,6 +48,7 @@ export default defineConfig({
     exclude: ["node_modules/**", ".next/**"],
     testTimeout: 30_000,
     hookTimeout: 30_000,
-    fileParallelism: false,
+    // Each file creates its own users with unique emails; parallel files are safe.
+    fileParallelism: true,
   },
 });
