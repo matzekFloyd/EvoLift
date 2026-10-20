@@ -31,6 +31,10 @@ jobs:
         working-directory: evo-lift
         run: npm ci
 
+      - name: Typecheck
+        working-directory: evo-lift
+        run: npm run typecheck
+
       - name: Run tests
         working-directory: evo-lift
         run: npm test
