@@ -61,6 +61,7 @@ Short map of what is already enforced. Details in the sections below.
 | **CI/CD** | Hash-pinned Actions, least-privilege workflow tokens, `master` ruleset ([CI/CD trust boundaries](#cicd-trust-boundaries)) |
 | **Security events** | Structured `channel":"security"` logs (no passwords or raw tokens) |
 | **Rate limits** | App budgets on `/api` + MCP; Auth login/signup via Supabase ([Rate limiting](#rate-limiting)) |
+| **MCP bridge** | Own trust boundary: bearer-scoped tools, fail-closed `/api` paths, rate limits ([MCP bridge](#mcp-bridge)) |
 
 ## Rate limiting
 
@@ -127,10 +128,42 @@ For personal tokens, every user-owned read or write must filter by the authentic
 
 ## MCP bridge
 
-- **Hosted:** `GET/POST https://<deployment>/api/mcp` — Streamable HTTP MCP for Cursor Cloud Agents. Auth: `Authorization: Bearer` with a **personal API token** (same resolver as `/api/*`).
-- **Laptop stdio:** `mcp/evo-api` proxies the HTTP API; it does not hold the service-role key or talk to Supabase directly.
+MCP is a **separate trust boundary** from the HTML app: tool calls can read/write the same data as the REST API for whoever holds the bearer token. It is not an LLM product — only an HTTP/MCP tool bridge ([#265](https://github.com/matzekFloyd/EvoLift/issues/265)).
 
-Treat a leaked personal token as full API access for that user (including MCP). Further hardening of this boundary is tracked in [#265](https://github.com/matzekFloyd/EvoLift/issues/265).
+### Surfaces
+
+| Surface | What it is |
+| --- | --- |
+| **Hosted** | `GET/POST/DELETE https://<deployment>/api/mcp` — Streamable HTTP MCP (Cursor Cloud Agents). Implementation: `evo-lift/app/api/mcp/route.ts`. |
+| **Laptop stdio** | `mcp/evo-api` — local process that proxies the HTTP API (`local` or `prod` base URL). No service-role key; no direct Supabase. |
+
+### Threat notes (short)
+
+| Question | Answer |
+| --- | --- |
+| **Who can call it?** | Anyone who can present a valid **Bearer** credential to `/api/mcp` (or who runs the stdio proxy with a token in env). Unauthenticated requests fail `withMcpAuth` (`required: true`). |
+| **What tokens?** | Same resolver as `/api/*`: personal API token (`evo_…`, service-role client / RLS bypassed) or session access JWT (user client / RLS). Cloud Agents should use a personal token. |
+| **What can tools reach?** | Only **this deployment’s** `/api/*` (hosted always uses the deployment origin). Tools: `get_targets`, `get_openapi`, `list_exercises`, `evo_api_get`, `evo_api_request`. No arbitrary hosts, no Supabase Admin API, no filesystem. |
+| **Spoofing** | Identity is the bearer token only. A stolen `evo_…` token is full API access for that user (including MCP). |
+| **Elevation of privilege** | Tools never take a target `userId`. Every proxied call reuses the caller’s Bearer token (or `auth.client` for `list_exercises`). There is no cross-user tool. Authorization stays in `/api/*` + RLS / `requireOwned*`. |
+| **Information disclosure** | Path allowlist is fail-closed (see below). OpenAPI and public catalog routes remain reachable with a valid token like the REST API. |
+
+### Path allowlist (fail-closed)
+
+Shared rules live in `evo-lift/server/mcp/api-path.ts` (stdio mirrors the same checks). Rejected inputs include:
+
+- Paths that do not start with `/api/`
+- `..`, `://`, `\`, null bytes, `//`, and percent-encoded `..` variants
+- Recursive `/api/mcp` (and `/api/mcp/…`) to avoid tool→MCP amplification
+- Resolved URLs whose **origin** is not the configured deployment / `EVO_API_*` base
+
+Regression tests: `evo-lift/server/mcp/api-path.test.ts`.
+
+### Rate / abuse limits
+
+Hosted MCP uses the budgets from [#263](https://github.com/matzekFloyd/EvoLift/issues/263) / [Rate limiting](#rate-limiting): **60**/minute per authenticated user id, and the same budget per IP when the bearer is missing/invalid (before auth failure). Proxied `/api/*` calls also consume the normal `handleApi` limits. Stdio has no local rate limiter — the hosted API enforces limits when `target=prod`.
+
+Treat a leaked personal token as full API access for that user (including MCP). Revoke on Account → Login.
 
 ## Android shell
 
@@ -355,7 +388,7 @@ OWASP Top 10:2025 / STRIDE tracking: [#254](https://github.com/matzekFloyd/EvoLi
 | This guide (`SECURITY.md`) | [#262](https://github.com/matzekFloyd/EvoLift/issues/262) | This file |
 | Rate limiting / DoS | [#263](https://github.com/matzekFloyd/EvoLift/issues/263) | Done (app budgets + Auth docs; not global CDN) |
 | CI/CD trust boundaries | [#264](https://github.com/matzekFloyd/EvoLift/issues/264) | Done (SHA-pinned Actions, least-privilege tokens, `master` ruleset documented) |
-| MCP bridge hardening | [#265](https://github.com/matzekFloyd/EvoLift/issues/265) | Open |
+| MCP bridge hardening | [#265](https://github.com/matzekFloyd/EvoLift/issues/265) | Done (threat notes, path allowlist + tests, rate-limit docs) |
 | Living STRIDE model | [#266](https://github.com/matzekFloyd/EvoLift/issues/266) | Open |
 | MFA (product) | [#297](https://github.com/matzekFloyd/EvoLift/issues/297) | Deferred |
 
