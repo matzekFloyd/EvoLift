@@ -19,6 +19,7 @@ import {
   skippedExerciseLabel,
 } from "./session-exercise-status";
 import { SessionExerciseHistoryDialog } from "./session-exercise-history-dialog";
+import { SetTargetsFields } from "./set-targets-fields";
 import { SessionExerciseSets } from "./session-set-form";
 import type { SessionSetDraft } from "./session-set-draft";
 import type { SessionExerciseRow, WorkoutSetRow } from "./session-detail-actions";
@@ -267,42 +268,15 @@ export function SessionExerciseBlock({
           <p className="mb-3 text-xs text-zinc-600">
             Values apply to working sets only; warmups do not count.
           </p>
-          <div className="grid grid-cols-3 gap-3">
-            <label className="block text-sm font-medium">
-              Target working sets
-              <input
-                type="number"
-                min={1}
-                value={targetsSets}
-                onChange={(event) => onTargetsSetsChange(event.target.value)}
-                className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
-                placeholder="e.g. 3"
-              />
-            </label>
-            <label className="block text-sm font-medium">
-              {targetWeightFieldLabel(exerciseSlug)}
-              <input
-                type="number"
-                min={0}
-                step="0.25"
-                value={targetsWeightKg}
-                onChange={(event) => onTargetsWeightChange(event.target.value)}
-                className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
-                placeholder="e.g. 60"
-              />
-            </label>
-            <label className="block text-sm font-medium">
-              Target reps (working sets)
-              <input
-                type="number"
-                min={1}
-                value={targetsReps}
-                onChange={(event) => onTargetsRepsChange(event.target.value)}
-                className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
-                placeholder="e.g. 8"
-              />
-            </label>
-          </div>
+          <SetTargetsFields
+            sets={targetsSets}
+            weightKg={targetsWeightKg}
+            reps={targetsReps}
+            weightLabel={targetWeightFieldLabel(exerciseSlug)}
+            onSetsChange={onTargetsSetsChange}
+            onWeightChange={onTargetsWeightChange}
+            onRepsChange={onTargetsRepsChange}
+          />
           <TargetWeightSuggestion
             exerciseId={sessionExercise.exercise_id}
             plannedReps={targetsReps}
