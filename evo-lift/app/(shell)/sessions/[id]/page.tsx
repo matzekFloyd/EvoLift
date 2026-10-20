@@ -36,6 +36,7 @@ import { panelInsetClass } from "@/app/components/panel-inset";
 import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
 import { TargetWeightSuggestion } from "@/app/components/target-weight-suggestion";
+import { SetTargetsFields } from "@/app/sessions/[id]/set-targets-fields";
 import { isAssistanceExercise, targetWeightFieldLabel } from "@/lib/assistance-exercise";
 import { targetSuggestionsEnabled } from "@/lib/target-weight-suggestion";
 import { isCompoundExercise } from "@/lib/compound-exercise";
@@ -1573,42 +1574,15 @@ export default function SessionDetailPage() {
               <p className="mb-3 text-xs text-zinc-600">
                 Values apply to working sets only; warmups do not count.
               </p>
-              <div className="grid grid-cols-3 gap-3">
-                <label className="block text-sm font-medium">
-                  Target working sets
-                  <input
-                    type="number"
-                    min={1}
-                    value={targetsSets}
-                    onChange={(event) => setTargetsSets(event.target.value)}
-                    className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
-                    placeholder="e.g. 3"
-                  />
-                </label>
-                <label className="block text-sm font-medium">
-                  {targetWeightFieldLabel(targetsExerciseSlug)}
-                  <input
-                    type="number"
-                    min={0}
-                    step="0.25"
-                    value={targetsWeightKg}
-                    onChange={(event) => setTargetsWeightKg(event.target.value)}
-                    className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
-                    placeholder="e.g. 60"
-                  />
-                </label>
-                <label className="block text-sm font-medium">
-                  Target reps (working sets)
-                  <input
-                    type="number"
-                    min={1}
-                    value={targetsReps}
-                    onChange={(event) => setTargetsReps(event.target.value)}
-                    className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
-                    placeholder="e.g. 8"
-                  />
-                </label>
-              </div>
+              <SetTargetsFields
+                sets={targetsSets}
+                weightKg={targetsWeightKg}
+                reps={targetsReps}
+                weightLabel={targetWeightFieldLabel(targetsExerciseSlug)}
+                onSetsChange={setTargetsSets}
+                onWeightChange={setTargetsWeightKg}
+                onRepsChange={setTargetsReps}
+              />
               {targetsExerciseId ? (
                 <TargetWeightSuggestion
                   exerciseId={targetsExerciseId}
