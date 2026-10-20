@@ -2,7 +2,13 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-import { CI_IMAGE_REGISTRY, CI_SUPABASE_EXCLUDE, prepareCiConfig } from "./ci-supabase-start.mjs";
+import {
+  CI_IMAGE_REGISTRY,
+  CI_RESERVED_HOST_PORTS,
+  CI_SUPABASE_EXCLUDE,
+  hostPortIsReserved,
+  prepareCiConfig,
+} from "./ci-supabase-start.mjs";
 
 const seedBlock = `[db.seed]
 # If enabled, seeds the database after migrations during a db reset.
@@ -83,6 +89,10 @@ test("CI starts Postgres, Auth, and the API only", () => {
     assert.equal(CI_SUPABASE_EXCLUDE.includes(kept), false, kept);
   }
   assert.equal(CI_IMAGE_REGISTRY, "ghcr.io");
+  assert.equal(hostPortIsReserved(54322), true);
+  assert.equal(hostPortIsReserved(54319), false);
+  const startScript = readFileSync("scripts/ci-supabase-start.mjs", "utf8");
+  assert.match(startScript, /"stop", "--no-backup"/);
 });
 
 test("Lighthouse installs Puppeteer Chrome on Node 22", () => {
@@ -95,6 +105,7 @@ test("API integration and Lighthouse share the slim start and catalog seeds", ()
   for (const file of [".github/workflows/test.yml", ".github/workflows/lighthouse.yml"]) {
     const yml = readFileSync(file, "utf8");
     assert.match(yml, /node scripts\/ci-supabase-start\.mjs/);
+    assert.match(yml, new RegExp(`ip_local_reserved_ports=${CI_RESERVED_HOST_PORTS}`));
     assert.doesNotMatch(yml, /db reset/);
     assert.match(yml, /supabase\/seeds\/001_exercises\.sql/);
     assert.match(yml, /supabase\/seeds\/002_exercise_translations\.sql/);

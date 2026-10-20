@@ -27,6 +27,18 @@ export const CI_SUPABASE_EXCLUDE = [
 export const CI_IMAGE_REGISTRY = "ghcr.io";
 
 /**
+ * Host ports Supabase publishes. On GitHub runners these sit inside the ephemeral
+ * range, so an image pull can occupy 54322 and the database container then fails
+ * to bind it.
+ */
+export const CI_RESERVED_HOST_PORTS = "54320-54329";
+
+export function hostPortIsReserved(port, spec = CI_RESERVED_HOST_PORTS) {
+  const [start, end] = spec.split("-").map((part) => Number(part));
+  return Number.isInteger(port) && start <= port && port <= end;
+}
+
+/**
  * Sections turned off in the CI working copy only. `--exclude` still downloads the
  * Realtime and Storage images when those services stay enabled, because the CLI uses
  * them to migrate a fresh database. Auth, the API, and migrations stay enabled.
@@ -60,15 +72,42 @@ export function prepareCiConfig(toml) {
   return next;
 }
 
-function main() {
-  const configPath = "supabase/config.toml";
-  writeFileSync(configPath, prepareCiConfig(readFileSync(configPath, "utf8")));
-  const args = ["start", ...CI_SUPABASE_EXCLUDE.flatMap((name) => ["--exclude", name])];
-  const result = spawnSync("supabase", args, {
+function exitCode(result) {
+  return result.status === null ? 1 : result.status;
+}
+
+function supabase(args) {
+  return spawnSync("supabase", args, {
     stdio: "inherit",
     env: { ...process.env, SUPABASE_INTERNAL_IMAGE_REGISTRY: CI_IMAGE_REGISTRY },
   });
-  process.exit(result.status === null ? 1 : result.status);
+}
+
+function reserveCiHostPorts() {
+  if (process.env.GITHUB_ACTIONS !== "true") {
+    return;
+  }
+  const result = spawnSync(
+    "sudo",
+    ["sysctl", "-w", `net.ipv4.ip_local_reserved_ports=${CI_RESERVED_HOST_PORTS}`],
+    { stdio: "inherit" },
+  );
+  if (exitCode(result) !== 0) {
+    process.exit(exitCode(result));
+  }
+}
+
+function main() {
+  const configPath = "supabase/config.toml";
+  writeFileSync(configPath, prepareCiConfig(readFileSync(configPath, "utf8")));
+  reserveCiHostPorts();
+  const startArgs = ["start", ...CI_SUPABASE_EXCLUDE.flatMap((name) => ["--exclude", name])];
+  let result = supabase(startArgs);
+  if (exitCode(result) !== 0) {
+    supabase(["stop", "--no-backup"]);
+    result = supabase(startArgs);
+  }
+  process.exit(exitCode(result));
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
