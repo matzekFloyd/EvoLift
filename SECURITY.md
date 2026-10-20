@@ -43,7 +43,7 @@ Also in scope: Supabase Auth configuration that this repo documents (password po
 - Theoretical issues with no realistic path on the surfaces above
 - Full pen-test write-ups as a substitute for a concrete, reproducible finding (summaries with repro are welcome)
 
-A living STRIDE table is tracked separately ([#266](https://github.com/matzekFloyd/EvoLift/issues/266)); this file is the reporter/maintainer map, not that model.
+Living STRIDE model (DFD + threat table + re-review checklist): [`docs/threat-model.md`](docs/threat-model.md) ([#266](https://github.com/matzekFloyd/EvoLift/issues/266)). This file remains the reporter/maintainer map and control deep-dive, not that model.
 
 ## Key controls
 
@@ -389,10 +389,11 @@ OWASP Top 10:2025 / STRIDE tracking: [#254](https://github.com/matzekFloyd/EvoLi
 | Rate limiting / DoS | [#263](https://github.com/matzekFloyd/EvoLift/issues/263) | Done (app budgets + Auth docs; not global CDN) |
 | CI/CD trust boundaries | [#264](https://github.com/matzekFloyd/EvoLift/issues/264) | Done (SHA-pinned Actions, least-privilege tokens, `master` ruleset documented) |
 | MCP bridge hardening | [#265](https://github.com/matzekFloyd/EvoLift/issues/265) | Done (threat notes, path allowlist + tests, rate-limit docs) |
-| Living STRIDE model | [#266](https://github.com/matzekFloyd/EvoLift/issues/266) | Open |
+| Living STRIDE model | [#266](https://github.com/matzekFloyd/EvoLift/issues/266) | Done ([`docs/threat-model.md`](docs/threat-model.md)) |
 | MFA (product) | [#297](https://github.com/matzekFloyd/EvoLift/issues/297) | Deferred |
 
 ## References
 
 - [OWASP Top 10:2025](https://top10.owasp.org/2025/)
 - [STRIDE overview](https://www.practical-devsecops.com/what-is-stride-threat-model/)
+- [EvoLift STRIDE threat model](docs/threat-model.md)
