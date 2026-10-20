@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import type { NextRequest } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { afterEach, describe, it, vi } from "vitest";
 import {
   API_UNEXPECTED_ERROR_MESSAGE,
@@ -17,6 +17,11 @@ import {
   readJsonObject,
   requireUuid,
 } from "./http";
+import {
+  API_USER_LIMIT_PER_WINDOW,
+  RATE_LIMIT_MESSAGE,
+  resetRateLimitStore,
+} from "@/server/rate-limit";
 
 const authenticateApiRequest = vi.fn();
 
@@ -26,6 +31,7 @@ vi.mock("@/server/auth/api-request", () => ({
 
 afterEach(() => {
   authenticateApiRequest.mockReset();
+  resetRateLimitStore();
 });
 
 const EXERCISE_ID = "123e4567-e89b-12d3-a456-426614174000";
@@ -140,6 +146,7 @@ describe("API auth failures", () => {
       const request = {
         method: "GET",
         nextUrl: { pathname: "/api/sessions" },
+        headers: new Headers(),
       } as NextRequest;
       const response = await handleApi(request, async () => {
         throw new Error("handler should not run");
@@ -157,6 +164,33 @@ describe("API auth failures", () => {
     } finally {
       consoleInfo.mockRestore();
     }
+  });
+});
+
+describe("API rate limits", () => {
+  it("returns 429 with Retry-After after the per-user budget is spent", async () => {
+    authenticateApiRequest.mockResolvedValue({
+      userId: "user-rate",
+      client: {},
+      bypassesRls: false,
+    });
+    const request = {
+      method: "GET",
+      nextUrl: { pathname: "/api/sessions" },
+      headers: new Headers({ "x-forwarded-for": "203.0.113.10" }),
+    } as NextRequest;
+
+    for (let i = 0; i < API_USER_LIMIT_PER_WINDOW; i += 1) {
+      const ok = await handleApi(request, async () => new NextResponse(null, { status: 204 }));
+      assert.equal(ok.status, 204);
+    }
+
+    const limited = await handleApi(request, async () => {
+      throw new Error("handler should not run when rate limited");
+    });
+    assert.equal(limited.status, 429);
+    assert.deepEqual(await limited.json(), { error: RATE_LIMIT_MESSAGE });
+    assert.ok(Number(limited.headers.get("Retry-After")) >= 1);
   });
 });
 
@@ -185,7 +219,11 @@ describe("unexpected API errors", () => {
       bypassesRls: false,
     });
 
-    const okRequest = {} as NextRequest;
+    const okRequest = {
+      method: "GET",
+      nextUrl: { pathname: "/api/sessions" },
+      headers: new Headers(),
+    } as NextRequest;
     const validation = await handleApi(okRequest, async () => {
       throw new ApiHttpError(400, "Please enter a valid reps.");
     });

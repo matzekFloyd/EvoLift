@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatMilestoneTarget, type MilestoneType } from "@/lib/milestone-progress";
 import { fetchInChunks } from "@/lib/supabase/chunked-query";
 import type { Database } from "@/lib/supabase/database.types";
+import { fetchWorkoutSessionsByIds } from "@/lib/workout-sessions-by-ids";
 
 type Client = SupabaseClient<Database>;
 
@@ -183,14 +184,10 @@ export async function loadGoalReachedSessionDates(
   }
 
   const sessionIds = [...new Set(sessionExerciseRows.map((row) => row.session_id))];
-  const { data: sessionRows, error: sessionsError } = await fetchInChunks(sessionIds, (chunk, from, to) =>
-    client
-      .from("workout_sessions")
-      .select("id, performed_on")
-      .in("id", chunk)
-      .eq("user_id", userId)
-      .order("id", { ascending: true })
-      .range(from, to),
+  const { data: sessionRows, error: sessionsError } = await fetchWorkoutSessionsByIds(
+    client,
+    sessionIds,
+    userId,
   );
   if (sessionsError) {
     return reachedGoalLabelsBySessionDate(goals, []);

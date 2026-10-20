@@ -1,6 +1,4 @@
 import assert from "node:assert/strict";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { NextRequest } from "next/server";
 import { afterAll, beforeAll, describe, it } from "vitest";
 import { POST as createToken } from "@/app/api/account/tokens/route";
 import { DELETE as deleteBodyweight } from "@/app/api/account/bodyweight/[id]/route";
@@ -13,85 +11,22 @@ import { GET as getSession, PATCH as patchSession } from "@/app/api/sessions/[id
 import { POST as createSession } from "@/app/api/sessions/route";
 import { GET as getTemplate } from "@/app/api/templates/[id]/route";
 import { POST as createTemplate } from "@/app/api/templates/route";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
-
-function assertLocalSupabase() {
-  if (!supabaseUrl || !anonKey || !serviceRoleKey) {
-    throw new Error(
-      "Integration tests need NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY from local `supabase status`.",
-    );
-  }
-  let host = "";
-  try {
-    host = new URL(supabaseUrl).hostname;
-  } catch {
-    host = "";
-  }
-  if (host !== "127.0.0.1" && host !== "localhost") {
-    throw new Error("Integration tests only run against local Supabase at 127.0.0.1 or localhost.");
-  }
-}
+import {
+  adminClient,
+  assertHttpStatus,
+  assertLocalSupabase,
+  buildRequest,
+  catalogId,
+  createTestUser,
+  deleteTestUsers,
+  mintPersonalToken,
+  readJson,
+  type CatalogExercise,
+} from "./integration-helpers";
 
 assertLocalSupabase();
 
-type ApiBody = {
-  data?: unknown;
-  error?: string;
-};
-
-const PASSWORD = "test-pass-1";
 const SESSION_DATE = "2020-02-01";
-
-function adminClient(): SupabaseClient {
-  return createClient(supabaseUrl, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-}
-
-function buildRequest(pathname: string, method: string, token: string | null, body?: unknown): NextRequest {
-  const headers = new Headers();
-  if (token) {
-    headers.set("authorization", `Bearer ${token}`);
-  }
-  if (body !== undefined) {
-    headers.set("content-type", "application/json");
-  }
-  return new NextRequest(`http://127.0.0.1${pathname}`, {
-    method,
-    headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
-}
-
-async function readJson(response: Response): Promise<{ status: number; body: ApiBody }> {
-  const text = await response.text();
-  const body = text ? (JSON.parse(text) as ApiBody) : {};
-  return { status: response.status, body };
-}
-
-async function signIn(email: string): Promise<string> {
-  const client = createClient(supabaseUrl, anonKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-  const { data, error } = await client.auth.signInWithPassword({ email, password: PASSWORD });
-  if (error || !data.session?.access_token) {
-    throw new Error(error?.message ?? "Could not sign in the test user.");
-  }
-  return data.session.access_token;
-}
-
-async function mintPersonalToken(sessionJwt: string, name: string): Promise<string> {
-  const created = await readJson(
-    await createToken(buildRequest("/api/account/tokens", "POST", sessionJwt, { name })),
-  );
-  assert.equal(created.status, 201, created.body.error ?? "Could not create a personal API token.");
-  const token = (created.body.data as { token: string }).token;
-  assert.match(token, /^evo_/);
-  return token;
-}
 
 /**
  * Personal tokens use the service-role client (RLS bypassed). These checks assert
@@ -105,44 +40,21 @@ describe("personal API token IDOR on local Supabase", () => {
   let squatId = "";
 
   beforeAll(async () => {
-    const suffix = crypto.randomUUID();
-    const emails: Record<"owner" | "other", string> = {
-      owner: `evo-token-owner-${suffix}@example.com`,
-      other: `evo-token-other-${suffix}@example.com`,
-    };
-    for (const name of ["owner", "other"] as const) {
-      const { data, error } = await admin.auth.admin.createUser({
-        email: emails[name],
-        password: PASSWORD,
-        email_confirm: true,
-      });
-      if (error || !data.user) {
-        throw new Error(error?.message ?? "Could not create a test user.");
-      }
-      userIds.push(data.user.id);
-      const sessionJwt = await signIn(emails[name]);
-      const personal = await mintPersonalToken(sessionJwt, `${name}-cli`);
-      if (name === "owner") {
-        ownerPersonalToken = personal;
-      } else {
-        otherPersonalToken = personal;
-      }
-    }
+    const owner = await createTestUser(admin, "evo-token-owner");
+    const other = await createTestUser(admin, "evo-token-other");
+    userIds.push(owner.id, other.id);
+    ownerPersonalToken = await mintPersonalToken(createToken, owner.token, "owner-cli");
+    otherPersonalToken = await mintPersonalToken(createToken, other.token, "other-cli");
 
     const catalog = await readJson(
       await getExercises(buildRequest("/api/exercises", "GET", ownerPersonalToken)),
     );
     assert.equal(catalog.status, 200);
-    const rows = catalog.body.data as Array<{ id: string; slug: string }>;
-    const squat = rows.find((row) => row.slug === "back-squat");
-    assert.ok(squat, "The exercise catalog is missing back-squat.");
-    squatId = squat.id;
+    squatId = catalogId(catalog.body.data as CatalogExercise[], "back-squat");
   });
 
   afterAll(async () => {
-    for (const userId of userIds) {
-      await admin.auth.admin.deleteUser(userId);
-    }
+    await deleteTestUsers(admin, userIds);
   });
 
   it("hides another user’s session, template, plan, goal, and bodyweight behind 404", async () => {
@@ -155,7 +67,7 @@ describe("personal API token IDOR on local Supabase", () => {
         }),
       ),
     );
-    assert.equal(session.status, 201, session.body.error);
+    assertHttpStatus(session.status, 201, session.body.error);
     const sessionId = (session.body.data as { id: string }).id;
 
     const otherSessionGet = await readJson(
@@ -184,7 +96,7 @@ describe("personal API token IDOR on local Supabase", () => {
         }),
       ),
     );
-    assert.equal(template.status, 201, template.body.error);
+    assertHttpStatus(template.status, 201, template.body.error);
     const templateId = (template.body.data as { id: string }).id;
     const otherTemplate = await readJson(
       await getTemplate(buildRequest(`/api/templates/${templateId}`, "GET", otherPersonalToken), {
@@ -240,7 +152,7 @@ describe("personal API token IDOR on local Supabase", () => {
         }),
       ),
     );
-    assert.equal(goal.status, 201, goal.body.error);
+    assertHttpStatus(goal.status, 201, goal.body.error);
     const goalId = (goal.body.data as { id: string }).id;
     const otherGoal = await readJson(
       await getGoal(buildRequest(`/api/goals/${goalId}`, "GET", otherPersonalToken), {

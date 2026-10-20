@@ -8,6 +8,15 @@ import {
   API_UNEXPECTED_ERROR_MESSAGE,
   ApiHttpError,
 } from "@/server/api/errors";
+import {
+  API_IP_LIMIT_PER_WINDOW,
+  API_TOKEN_LIMIT_PER_WINDOW,
+  API_USER_LIMIT_PER_WINDOW,
+  clientIpFromHeaders,
+  consumeRateLimit,
+  RATE_LIMIT_MESSAGE,
+  type RateLimitResult,
+} from "@/server/rate-limit";
 import { logSecurityEvent } from "@/server/security/log-security-event";
 
 const UUID_RE =
@@ -26,6 +35,16 @@ export function jsonError(message: string, status: number): NextResponse {
   return NextResponse.json({ error: message }, { status });
 }
 
+export function jsonRateLimited(result: Extract<RateLimitResult, { ok: false }>): NextResponse {
+  return NextResponse.json(
+    { error: RATE_LIMIT_MESSAGE },
+    {
+      status: 429,
+      headers: { "Retry-After": String(result.retryAfterSec) },
+    },
+  );
+}
+
 /** Log the real error server-side; return a generic 500 body to the client. */
 export function jsonUnexpectedError(error: unknown): NextResponse {
   console.error("[api] unexpected error", error);
@@ -37,6 +56,12 @@ export async function handleApi(
   handler: (auth: ApiRequestAuth) => Promise<NextResponse>,
 ): Promise<NextResponse> {
   try {
+    const ip = clientIpFromHeaders(request.headers);
+    const ipLimit = consumeRateLimit(`api:ip:${ip}`, API_IP_LIMIT_PER_WINDOW);
+    if (!ipLimit.ok) {
+      return jsonRateLimited(ipLimit);
+    }
+
     const auth = await authenticateApiRequest(request);
     if ("error" in auth) {
       logSecurityEvent({
@@ -48,6 +73,18 @@ export async function handleApi(
       });
       return jsonError(auth.error, auth.status);
     }
+
+    const userKey = auth.bypassesRls
+      ? `api:token:${auth.userId}`
+      : `api:user:${auth.userId}`;
+    const userBudget = auth.bypassesRls
+      ? API_TOKEN_LIMIT_PER_WINDOW
+      : API_USER_LIMIT_PER_WINDOW;
+    const userLimit = consumeRateLimit(userKey, userBudget);
+    if (!userLimit.ok) {
+      return jsonRateLimited(userLimit);
+    }
+
     return await handler(auth);
   } catch (error) {
     if (error instanceof ApiHttpError) {
