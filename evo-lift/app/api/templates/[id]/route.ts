@@ -9,6 +9,7 @@ import {
   requireUuid,
 } from "@/server/api/http";
 import { parseTemplateExerciseList } from "@/server/api/session-body";
+import { requireOwnedTemplateId } from "@/server/db/owned";
 import { deleteTemplate, getTemplateById, updateTemplate } from "@/server/db/templates";
 
 type TemplateParams = { id: string };
@@ -19,7 +20,11 @@ export async function GET(
 ) {
   return handleApi(request, async (auth) => {
     const { id } = await readRouteParams(context.params);
-    const templateId = requireUuid(id, "template id");
+    const templateId = await requireOwnedTemplateId(
+      auth.client,
+      auth.userId,
+      requireUuid(id, "template id"),
+    );
     const template = await getTemplateById(auth.client, auth.userId, templateId);
     if (!template) {
       throw new ApiHttpError(404, "Template not found.");

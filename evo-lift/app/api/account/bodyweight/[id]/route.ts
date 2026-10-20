@@ -1,7 +1,6 @@
 import { NextRequest } from "next/server";
 import { getTodayYyyyMmDd } from "@/lib/session-date";
 import {
-  ApiHttpError,
   handleApi,
   jsonData,
   readJsonObject,
@@ -9,6 +8,7 @@ import {
   requireUuid,
 } from "@/server/api/http";
 import { parseBodyweightWrite } from "@/server/api/account-body";
+import { requireOwnedBodyweightEntryId } from "@/server/db/owned";
 import { deleteBodyweightEntry, listBodyweightEntries, updateBodyweightEntry } from "@/server/db/profile";
 
 type EntryParams = { id: string };
@@ -19,11 +19,12 @@ export async function PATCH(
 ) {
   return handleApi(request, async (auth) => {
     const { id } = await readRouteParams(context.params);
-    const entryId = requireUuid(id, "bodyweight id");
+    const entryId = await requireOwnedBodyweightEntryId(
+      auth.client,
+      auth.userId,
+      requireUuid(id, "bodyweight id"),
+    );
     const existing = await listBodyweightEntries(auth.client, auth.userId);
-    if (!existing.some((entry) => entry.id === entryId)) {
-      throw new ApiHttpError(404, "Bodyweight entry not found.");
-    }
     const body = await readJsonObject(request);
     const input = parseBodyweightWrite(
       body,
@@ -40,7 +41,12 @@ export async function DELETE(
 ) {
   return handleApi(request, async (auth) => {
     const { id } = await readRouteParams(context.params);
-    await deleteBodyweightEntry(auth.client, auth.userId, requireUuid(id, "bodyweight id"));
+    const entryId = await requireOwnedBodyweightEntryId(
+      auth.client,
+      auth.userId,
+      requireUuid(id, "bodyweight id"),
+    );
+    await deleteBodyweightEntry(auth.client, auth.userId, entryId);
     return jsonData({ deleted: true });
   });
 }

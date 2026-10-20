@@ -47,7 +47,7 @@ describe("coerceKg", () => {
 
 describe("loadMilestoneWorkingSets", () => {
   it("returns nothing when no exercises are requested", async () => {
-    assert.deepEqual(await loadMilestoneWorkingSets(setsClient({}) as never, ["", ""]), []);
+    assert.deepEqual(await loadMilestoneWorkingSets(setsClient({}) as never, ["", ""], "user-1"), []);
   });
 
   it("adds the session base weight and skips a set with no load", async () => {
@@ -73,6 +73,7 @@ describe("loadMilestoneWorkingSets", () => {
         ],
       }) as never,
       ["squat"],
+      "user-1",
     );
     assert.deepEqual(sets, [
       {
@@ -88,7 +89,8 @@ describe("loadMilestoneWorkingSets", () => {
 
   it("reports a failed read", async () => {
     await assert.rejects(
-      () => loadMilestoneWorkingSets(setsClient({ exercisesError: "down" }) as never, ["squat"]),
+      () =>
+        loadMilestoneWorkingSets(setsClient({ exercisesError: "down" }) as never, ["squat"], "user-1"),
       /Could not load workout sets\./,
     );
   });

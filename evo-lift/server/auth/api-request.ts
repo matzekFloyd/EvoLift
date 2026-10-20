@@ -31,6 +31,11 @@ export function getBearerCredential(request: NextRequest): string | undefined {
 export type ApiRequestAuth = {
   userId: string;
   client: SupabaseClient<Database>;
+  /**
+   * Personal API tokens use the service-role client, so Postgres RLS does not
+   * apply. Every user-owned query must filter by `userId` (see `server/db/owned.ts`).
+   */
+  bypassesRls: boolean;
 };
 
 export async function authenticateBearer(
@@ -59,6 +64,7 @@ export async function authenticateBearer(
     return {
       userId: match.userId,
       client: admin,
+      bypassesRls: true,
     };
   }
 
@@ -82,13 +88,14 @@ export async function authenticateBearer(
     };
   }
 
-  return { userId: user.id, client };
+  return { userId: user.id, client, bypassesRls: false };
 }
 
 /**
  * Authenticate an `/api/*` request.
- * Personal API tokens are resolved with the service role (RLS bypassed).
- * User-owned queries must filter by `userId`.
+ * Personal API tokens are resolved with the service role (`bypassesRls: true`).
+ * Session JWTs use the user-scoped client with RLS. Either way, user-owned
+ * queries must filter by `userId` (helpers in `server/db/owned.ts`).
  */
 export async function authenticateApiRequest(
   request: NextRequest,
