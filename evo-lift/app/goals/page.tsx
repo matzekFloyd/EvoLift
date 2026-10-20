@@ -33,6 +33,7 @@ import { loadMilestoneWorkingSets } from "@/lib/milestone-sets";
 import { type BodyweightLogEntry } from "@/lib/bodyweight-log";
 import { getTodayYyyyMmDd } from "@/lib/session-date";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
+import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import type { Database } from "@/lib/supabase/database.types";
 
 type MilestoneRow = Database["public"]["Tables"]["strength_milestones"]["Row"];
@@ -165,9 +166,7 @@ export default function GoalsPage() {
   useEffect(() => {
     let isMounted = true;
     async function init() {
-      const {
-        data: { session },
-      } = await supabaseBrowserClient.auth.getSession();
+      const session = await getBrowserAuthSession();
       if (!isMounted) {
         return;
       }

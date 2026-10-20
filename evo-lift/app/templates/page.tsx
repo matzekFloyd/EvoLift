@@ -31,6 +31,7 @@ import {
 } from "@/lib/named-list-sort";
 import { getTodayYyyyMmDd } from "@/lib/session-date";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
+import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { deleteUserTemplate, instantiateUserTemplate } from "@/server/actions/templates";
 import type { WorkoutTemplateListItem } from "@/server/db/templates";
 
@@ -91,9 +92,7 @@ export default function TemplatesPage() {
     let isMounted = true;
 
     async function init() {
-      const {
-        data: { session },
-      } = await supabaseBrowserClient.auth.getSession();
+      const session = await getBrowserAuthSession();
       if (!isMounted) {
         return;
       }
@@ -124,9 +123,7 @@ export default function TemplatesPage() {
       showError("Please choose a performed date.");
       return;
     }
-    const {
-      data: { session },
-    } = await supabaseBrowserClient.auth.getSession();
+    const session = await getBrowserAuthSession();
     if (!session?.access_token) {
       showError("You must be logged in.");
       return;
@@ -154,9 +151,7 @@ export default function TemplatesPage() {
     if (!deleteTargetId) {
       return;
     }
-    const {
-      data: { session },
-    } = await supabaseBrowserClient.auth.getSession();
+    const session = await getBrowserAuthSession();
     if (!session?.access_token) {
       showError("You must be logged in.");
       return;

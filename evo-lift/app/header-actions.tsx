@@ -25,6 +25,7 @@ import {
 import { EvoLiftMark } from "@/app/components/evo-lift-logo";
 import { prefetchHomeSessionSummaries } from "@/lib/home-session-cache";
 import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
+import { getBrowserUser } from "@/lib/supabase/browser-auth";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 
 type CompactNavItem = {
@@ -97,16 +98,14 @@ export function HeaderActions() {
     let isMounted = true;
 
     async function loadSession() {
-      const {
-        data: { session },
-      } = await supabaseBrowserClient.auth.getSession();
+      const user = await getBrowserUser();
 
       if (!isMounted) {
         return;
       }
 
-      setIsLoggedIn(Boolean(session));
-      setUserEmail(session?.user.email ?? null);
+      setIsLoggedIn(Boolean(user));
+      setUserEmail(user?.email ?? null);
       setIsReady(true);
     }
 
