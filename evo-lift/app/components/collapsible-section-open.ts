@@ -11,3 +11,11 @@ export function initialCollapsibleSectionOpen(input: {
 export function collapsibleSectionCanToggle(alwaysOpen: boolean): boolean {
   return !alwaysOpen;
 }
+
+/**
+ * Closed sections leave their body unmounted. Insights charts sit in those
+ * bodies, and Recharts reads layout as soon as a chart mounts.
+ */
+export function shouldRenderCollapsibleBody(isOpen: boolean): boolean {
+  return isOpen;
+}
