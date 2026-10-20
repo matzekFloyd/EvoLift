@@ -32,3 +32,24 @@ Authenticated `/api/*` routes accept either:
 For personal tokens, every user-owned read or write must filter by the authenticated `userId` (or use ownership helpers in `evo-lift/server/db/owned.ts`). A missing `user_id` filter is an IDOR risk unique to the token path.
 
 `ApiRequestAuth.bypassesRls` is `true` for personal tokens and `false` for session JWTs. Prefer `requireOwned*` helpers over ad-hoc selects when loading a resource by id.
+
+## HTTP security headers
+
+The Next app sets security headers in `evo-lift/next.config.ts` via `evo-lift/lib/security-headers.ts`:
+
+| Header | Intent |
+| --- | --- |
+| `Content-Security-Policy` | Default self; Supabase `connect-src`; no framing; Swagger/`next/font` stay self-hosted |
+| `Strict-Transport-Security` | HTTPS only on Vercel production |
+| `X-Content-Type-Options` | `nosniff` |
+| `X-Frame-Options` | `DENY` (with CSP `frame-ancestors 'none'`) |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` |
+| `Permissions-Policy` | Disables camera, microphone, geolocation, payment |
+
+### CSP allowlists
+
+- **connect-src:** `'self'`, `https://*.supabase.co`, `wss://*.supabase.co`
+- **Local Supabase** (`http(s)://127.0.0.1:54321` / `localhost:54321` and matching `ws:`) is included outside Vercel production so `supabase start` works
+- **script-src / style-src:** `'unsafe-inline'` (and script `'unsafe-eval'`) remain for Next.js and Swagger UI until nonce-based CSP is wired
+
+Swagger UI on `/docs` loads from `swagger-ui-dist` (bundled), not a CDN. Geist fonts use `next/font` (self-hosted).
