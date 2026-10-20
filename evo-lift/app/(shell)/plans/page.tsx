@@ -28,6 +28,9 @@ import {
   toggleNamedListSortDirection,
   type NamedListSortDirection,
 } from "@/lib/named-list-sort";
+import { invalidatePlansList, loadPlansList, peekPlansList, plansListEpoch } from "@/lib/plans-list-cache";
+import { confirmSignedInUser } from "@/lib/confirm-signed-in-user";
+import { rememberedUserId } from "@/lib/signed-in-memory";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { deleteUserPlan, duplicateUserPlan, setUserPlanActive } from "@/server/actions/plans";
@@ -41,8 +44,12 @@ type PlanListRow = {
 
 export default function PlansPage() {
   const router = useRouter();
-  const [isChecking, setIsChecking] = useState(true);
-  const [plans, setPlans] = useState<PlanListRow[]>([]);
+  const [cachedPlans] = useState(() => {
+    const userId = rememberedUserId();
+    return userId ? peekPlansList(userId) : null;
+  });
+  const [isChecking, setIsChecking] = useState(cachedPlans == null);
+  const [plans, setPlans] = useState<PlanListRow[]>(cachedPlans ?? []);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
@@ -56,24 +63,22 @@ export default function PlansPage() {
   );
 
   async function reloadPlans() {
-    const { data, error } = await supabaseBrowserClient
-      .from("workout_plans")
-      .select("id, name, is_active, workout_plan_days(id)")
-      .order("updated_at", { ascending: false });
-
-    if (error) {
-      setLoadError("Could not load plans.");
+    const currentUserId = rememberedUserId();
+    if (!currentUserId) {
+      setLoadError("You must be logged in.");
       return;
     }
-
-    setPlans(
-      (data ?? []).map((row) => ({
-        id: row.id,
-        name: row.name,
-        isActive: row.is_active,
-        dayCount: row.workout_plan_days?.length ?? 0,
-      })),
-    );
+    invalidatePlansList();
+    const started = plansListEpoch();
+    const result = await loadPlansList(supabaseBrowserClient, currentUserId, { fresh: true });
+    if (started !== plansListEpoch()) {
+      return;
+    }
+    if (result.error) {
+      setLoadError(result.error);
+      return;
+    }
+    setPlans(result.rows);
     setLoadError(null);
   }
 
@@ -81,15 +86,34 @@ export default function PlansPage() {
     let isMounted = true;
 
     async function init() {
-      const session = await getBrowserAuthSession();
-      if (!isMounted) {
+      const started = plansListEpoch();
+      const visit = await confirmSignedInUser();
+      if (!isMounted || started !== plansListEpoch()) {
         return;
       }
-      if (!session) {
+      if (visit.status === "signed-out") {
         router.replace("/login");
         return;
       }
-      await reloadPlans();
+      if (!visit.showCached) {
+        setPlans([]);
+        setIsChecking(true);
+      }
+      const result = await loadPlansList(supabaseBrowserClient, visit.userId, {
+        fresh: visit.showCached,
+      });
+      if (!isMounted || started !== plansListEpoch()) {
+        return;
+      }
+      if (result.error) {
+        if (!visit.showCached) {
+          setLoadError(result.error);
+        }
+        setIsChecking(false);
+        return;
+      }
+      setPlans(result.rows);
+      setLoadError(null);
       setIsChecking(false);
     }
 

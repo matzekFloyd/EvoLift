@@ -22,7 +22,8 @@ import {
   peekHomeSessionSummaries,
   type HomeSessionSummaryRow,
 } from "@/lib/home-session-cache";
-import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
+import { confirmSignedInUser } from "@/lib/confirm-signed-in-user";
+import { rememberedUserId } from "@/lib/signed-in-memory";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { homeExerciseBadges, homeSetCount } from "@/app/home-sessions";
 import { getDefaultHomeDateRange } from "@/app/home-date-range";
@@ -49,13 +50,42 @@ type SessionExerciseBadge = {
   skipped: boolean;
 };
 
+function homeView(loadedSessions: HomeSessionSummaryRow[]) {
+  const sessions = loadedSessions.map((row) => ({
+    id: row.id,
+    performed_on: row.performed_on,
+    notes: row.notes,
+    created_at: row.created_at,
+  }));
+  const setCountBySessionId = new Map<string, number>();
+  const exerciseBadgesBySessionId = new Map<string, SessionExerciseBadge[]>();
+  for (const row of loadedSessions) {
+    setCountBySessionId.set(row.id, homeSetCount(row.set_count));
+    exerciseBadgesBySessionId.set(row.id, homeExerciseBadges(row.exercise_badges));
+  }
+  return { sessions, setCountBySessionId, exerciseBadgesBySessionId };
+}
+
+function initialHomeView() {
+  const userId = rememberedUserId();
+  if (!userId) {
+    return null;
+  }
+  const cached = peekHomeSessionSummaries(userId);
+  if (!cached) {
+    return null;
+  }
+  return { userId, ...homeView(cached.rows) };
+}
+
 export default function Home() {
   const router = useRouter();
   const todayYyyyMmDd = getTodayYyyyMmDd();
   const defaultDateRange = useMemo(() => getDefaultHomeDateRange(new Date()), []);
+  const [cachedHome] = useState(initialHomeView);
   const [isSmallPhone, setIsSmallPhone] = useState(false);
-  const [isChecking, setIsChecking] = useState(true);
-  const [sessions, setSessions] = useState<WorkoutSessionRow[]>([]);
+  const [isChecking, setIsChecking] = useState(cachedHome == null);
+  const [sessions, setSessions] = useState<WorkoutSessionRow[]>(cachedHome?.sessions ?? []);
   const [sessionsError, setSessionsError] = useState<string | null>(null);
   const [dateFrom, setDateFrom] = useState(defaultDateRange.from);
   const [dateTo, setDateTo] = useState(defaultDateRange.to);
@@ -64,9 +94,11 @@ export default function Home() {
   const [dayChoiceIds, setDayChoiceIds] = useState<string[] | null>(null);
   const [exerciseBadgesBySessionId, setExerciseBadgesBySessionId] = useState<
     Map<string, SessionExerciseBadge[]>
-  >(new Map());
-  const [setCountBySessionId, setSetCountBySessionId] = useState<Map<string, number>>(new Map());
-  const [userId, setUserId] = useState<string | null>(null);
+  >(cachedHome?.exerciseBadgesBySessionId ?? new Map());
+  const [setCountBySessionId, setSetCountBySessionId] = useState<Map<string, number>>(
+    cachedHome?.setCountBySessionId ?? new Map(),
+  );
+  const [userId, setUserId] = useState<string | null>(cachedHome?.userId ?? null);
   const [goalReachedByDate, setGoalReachedByDate] = useState<Record<string, string>>({});
   const reloadHomeSessionsRef = useRef<() => void>(() => {});
 
@@ -74,46 +106,40 @@ export default function Home() {
     let isMounted = true;
 
     async function checkSession() {
-      const session = await getBrowserAuthSession();
+      const visit = await confirmSignedInUser();
 
       if (!isMounted) {
         return;
       }
 
-      if (!session) {
+      if (visit.status === "signed-out") {
         router.replace("/login");
         return;
       }
 
-      setUserId(session.user.id);
+      setUserId(visit.userId);
 
       function applyHomeSummaries(loadedSessions: HomeSessionSummaryRow[]) {
-        setSessions(
-          loadedSessions.map((row) => ({
-            id: row.id,
-            performed_on: row.performed_on,
-            notes: row.notes,
-            created_at: row.created_at,
-          })),
-        );
-
-        const nextSetCountBySessionId = new Map<string, number>();
-        const nextBadges = new Map<string, SessionExerciseBadge[]>();
-        for (const row of loadedSessions) {
-          nextSetCountBySessionId.set(row.id, homeSetCount(row.set_count));
-          nextBadges.set(row.id, homeExerciseBadges(row.exercise_badges));
-        }
-        setSetCountBySessionId(nextSetCountBySessionId);
-        setExerciseBadgesBySessionId(nextBadges);
+        const view = homeView(loadedSessions);
+        setSessions(view.sessions);
+        setSetCountBySessionId(view.setCountBySessionId);
+        setExerciseBadgesBySessionId(view.exerciseBadgesBySessionId);
         setSessionsError(null);
+      }
+
+      if (!visit.showCached) {
+        setSessions([]);
+        setSetCountBySessionId(new Map());
+        setExerciseBadgesBySessionId(new Map());
+        setIsChecking(true);
       }
 
       const goalDatesPromise = loadGoalReachedSessionDates(
         supabaseBrowserClient,
-        session.user.id,
+        visit.userId,
       ).catch(() => ({}));
-      const cached = peekHomeSessionSummaries(session.user.id);
-      if (cached) {
+      const cached = peekHomeSessionSummaries(visit.userId);
+      if (cached && visit.showCached) {
         applyHomeSummaries(cached.rows);
         setIsChecking(false);
         if (cached.fresh) {
@@ -126,8 +152,8 @@ export default function Home() {
       }
 
       const [{ rows, error }, goalDates] = await Promise.all([
-        loadHomeSessionSummaries(supabaseBrowserClient, session.user.id, {
-          fresh: cached != null,
+        loadHomeSessionSummaries(supabaseBrowserClient, visit.userId, {
+          fresh: cached != null && visit.showCached,
         }),
         goalDatesPromise,
       ]);

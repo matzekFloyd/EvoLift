@@ -26,6 +26,9 @@ import {
   tableRowActionLinkClassName,
 } from "@/app/components/table-row-actions";
 import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
+import { confirmSignedInUser } from "@/lib/confirm-signed-in-user";
+import { rememberedUserId } from "@/lib/signed-in-memory";
+import { invalidateTemplatesList, loadTemplatesList, peekTemplatesList, templatesListEpoch } from "@/lib/templates-list-cache";
 import {
   sortRowsByName,
   toggleNamedListSortDirection,
@@ -39,13 +42,17 @@ import type { WorkoutTemplateListItem } from "@/server/db/templates";
 
 export default function TemplatesPage() {
   const router = useRouter();
-  const [isChecking, setIsChecking] = useState(true);
-  const [templates, setTemplates] = useState<WorkoutTemplateListItem[]>([]);
+  const [cachedTemplates] = useState(() => {
+    const userId = rememberedUserId();
+    return userId ? peekTemplatesList(userId) : null;
+  });
+  const [isChecking, setIsChecking] = useState(cachedTemplates == null);
+  const [templates, setTemplates] = useState<WorkoutTemplateListItem[]>(cachedTemplates ?? []);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [messageTone, setMessageTone] = useState<"error" | "success">("error");
   const [useDialogTemplateId, setUseDialogTemplateId] = useState<string | null>(null);
-  const [usePerformedOn, setUsePerformedOn] = useState("");
+  const [usePerformedOn, setUsePerformedOn] = useState(getTodayYyyyMmDd);
   const [useSessionNotes, setUseSessionNotes] = useState("");
   const [isStartingSession, setIsStartingSession] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
@@ -67,26 +74,22 @@ export default function TemplatesPage() {
   }
 
   async function reloadTemplates() {
-    const { data, error } = await supabaseBrowserClient
-      .from("workout_templates")
-      .select("id, name, notes, created_at, updated_at, workout_template_exercises(id)")
-      .order("updated_at", { ascending: false });
-
-    if (error) {
-      setLoadError("Could not load templates.");
+    const currentUserId = rememberedUserId();
+    if (!currentUserId) {
+      setLoadError("You must be logged in.");
       return;
     }
-
-    setTemplates(
-      (data ?? []).map((row) => ({
-        id: row.id,
-        name: row.name,
-        notes: row.notes,
-        created_at: row.created_at,
-        updated_at: row.updated_at,
-        exerciseCount: row.workout_template_exercises?.length ?? 0,
-      })),
-    );
+    invalidateTemplatesList();
+    const started = templatesListEpoch();
+    const result = await loadTemplatesList(supabaseBrowserClient, currentUserId, { fresh: true });
+    if (started !== templatesListEpoch()) {
+      return;
+    }
+    if (result.error) {
+      setLoadError(result.error);
+      return;
+    }
+    setTemplates(result.rows);
     setLoadError(null);
   }
 
@@ -94,16 +97,34 @@ export default function TemplatesPage() {
     let isMounted = true;
 
     async function init() {
-      const session = await getBrowserAuthSession();
-      if (!isMounted) {
+      const started = templatesListEpoch();
+      const visit = await confirmSignedInUser();
+      if (!isMounted || started !== templatesListEpoch()) {
         return;
       }
-      if (!session) {
+      if (visit.status === "signed-out") {
         router.replace("/login");
         return;
       }
-      await reloadTemplates();
-      setUsePerformedOn(getTodayYyyyMmDd());
+      if (!visit.showCached) {
+        setTemplates([]);
+        setIsChecking(true);
+      }
+      const result = await loadTemplatesList(supabaseBrowserClient, visit.userId, {
+        fresh: visit.showCached,
+      });
+      if (!isMounted || started !== templatesListEpoch()) {
+        return;
+      }
+      if (result.error) {
+        if (!visit.showCached) {
+          setLoadError(result.error);
+        }
+        setIsChecking(false);
+        return;
+      }
+      setTemplates(result.rows);
+      setLoadError(null);
       setIsChecking(false);
     }
 
