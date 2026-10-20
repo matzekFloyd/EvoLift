@@ -10,6 +10,7 @@ import {
   revokeApiToken,
   type ApiTokenListItem,
 } from "@/server/db/api-tokens";
+import { logSecurityEvent } from "@/server/security/log-security-event";
 
 async function userClient(accessToken: string) {
   const client = createPublicServerClient(accessToken);
@@ -56,6 +57,13 @@ export async function createUserApiToken(input: {
     tokenPrefix: generated.tokenPrefix,
   });
 
+  logSecurityEvent({
+    type: "token_created",
+    outcome: "success",
+    userId: user.id,
+    tokenId: item.id,
+  });
+
   return { token: generated.token, item };
 }
 
@@ -68,4 +76,10 @@ export async function revokeUserApiToken(input: {
   if (!revoked) {
     throw new Error("Could not revoke that API token. It may already be revoked.");
   }
+  logSecurityEvent({
+    type: "token_revoked",
+    outcome: "success",
+    userId: user.id,
+    tokenId: input.tokenId,
+  });
 }

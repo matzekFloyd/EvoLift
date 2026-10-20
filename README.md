@@ -334,6 +334,8 @@ Returns OpenAPI 3.0 JSON for documented endpoints.
 
 ## Security Notes
 
+Reporting, scope, and control map: [SECURITY.md](SECURITY.md).
+
 - Never commit `.env.local`
 - Never expose `SUPABASE_SERVICE_ROLE_KEY` in client-side code
 - Rotate credentials immediately if leaked

@@ -19,6 +19,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
+import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { CompactStickyBar } from "@/app/components/compact-sticky-bar";
 import { compactLogScrollDelta } from "./compact-log-scroll";
 import {
@@ -228,12 +229,13 @@ export default function SessionDetailPage() {
     if (!userId) {
       return;
     }
+    const scopedUserId: string = userId;
     let cancelled = false;
     async function loadSuggestionSettings() {
       const { data: defaults } = await supabaseBrowserClient
         .from("user_exercise_defaults")
         .select("exercise_id, suggest_warmups, suggest_target, max_suggested_warmup_sets")
-        .eq("user_id", userId);
+        .eq("user_id", scopedUserId);
       if (cancelled) {
         return;
       }
@@ -266,9 +268,7 @@ export default function SessionDetailPage() {
     const perf = createPageLoadPerfTracker("/sessions/[id]");
 
     async function loadData() {
-      const {
-        data: { session: authSession },
-      } = await perf.trackQuery("auth.getSession", () => supabaseBrowserClient.auth.getSession());
+      const authSession = await perf.trackQuery("auth.getUser", () => getBrowserAuthSession());
 
       if (!isMounted) {
         return;

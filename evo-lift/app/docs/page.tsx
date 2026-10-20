@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ApiDocsExplorer } from "@/app/docs/api-docs-explorer";
 import { PageShell } from "@/app/components/page-shell";
+import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 
 export default function ApiDocsPage() {
@@ -16,9 +17,7 @@ export default function ApiDocsPage() {
     let isMounted = true;
 
     async function checkSession() {
-      const {
-        data: { session },
-      } = await supabaseBrowserClient.auth.getSession();
+      const session = await getBrowserAuthSession();
 
       if (!isMounted) {
         return;

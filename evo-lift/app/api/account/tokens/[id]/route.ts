@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { ApiHttpError, handleApi, jsonData, readRouteParams, requireUuid } from "@/server/api/http";
 import { revokeApiToken } from "@/server/db/api-tokens";
 import { requireOwnedApiTokenId } from "@/server/db/owned";
+import { logSecurityEvent } from "@/server/security/log-security-event";
 
 type TokenParams = { id: string };
 
@@ -20,6 +21,12 @@ export async function DELETE(
     if (!revoked) {
       throw new ApiHttpError(400, "Could not revoke that API token. It may already be revoked.");
     }
+    logSecurityEvent({
+      type: "token_revoked",
+      outcome: "success",
+      userId: auth.userId,
+      tokenId,
+    });
     return jsonData({ deleted: true });
   });
 }

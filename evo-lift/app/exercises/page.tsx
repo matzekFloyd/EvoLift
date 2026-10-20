@@ -16,6 +16,7 @@ import {
 import { createPageLoadPerfTracker } from "@/lib/page-load-perf";
 import { pastSessionCountsBySlug } from "@/lib/home-session-cache";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
+import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { getTodayYyyyMmDd } from "@/lib/session-date";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
 
@@ -76,9 +77,7 @@ function ExercisesMain() {
     const perf = createPageLoadPerfTracker("/exercises");
 
     async function loadData() {
-      const {
-        data: { session },
-      } = await perf.trackQuery("auth.getSession", () => supabaseBrowserClient.auth.getSession());
+      const session = await perf.trackQuery("auth.getUser", () => getBrowserAuthSession());
 
       if (!isMounted) {
         return;

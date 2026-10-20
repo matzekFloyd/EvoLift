@@ -19,6 +19,8 @@ import {
   getExerciseMetadataCacheStatus,
   loadExerciseMetadata,
 } from "@/lib/exercise-metadata-cache";
+import { reportSecurityEvent } from "@/lib/report-security-event";
+import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -52,9 +54,7 @@ export default function LoginPage() {
     setIsVerifiedNotice(params.get("verified") === "1");
 
     async function loadSession() {
-      const {
-        data: { session },
-      } = await supabaseBrowserClient.auth.getSession();
+      const session = await getBrowserAuthSession();
 
       if (!isMounted) {
         return;
@@ -112,7 +112,8 @@ export default function LoginPage() {
     );
 
     if (error) {
-      setMessage(friendlyAuthError(error.message));
+      void reportSecurityEvent({ type: "login_failed", email: normalizedEmail });
+      setMessage(friendlyAuthError(error.message, "login"));
       setIsLoading(false);
       return;
     }
@@ -152,7 +153,7 @@ export default function LoginPage() {
     });
 
     if (error) {
-      setMessage(friendlyAuthError(error.message));
+      setMessage(friendlyAuthError(error.message, "register"));
       setIsLoading(false);
       return;
     }

@@ -13,6 +13,9 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authEmailRedirectUrl } from "@/lib/auth-email-redirect";
+import { friendlyAuthError } from "@/lib/friendly-auth-error";
+import { reportSecurityEvent } from "@/lib/report-security-event";
+import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import type { Database } from "@/lib/supabase/database.types";
 import { ExerciseBadgeChip } from "@/app/components/exercise-badge-chip";
@@ -93,9 +96,7 @@ export default function AccountPage() {
     let isMounted = true;
 
     async function checkSession() {
-      const {
-        data: { session },
-      } = await supabaseBrowserClient.auth.getSession();
+      const session = await getBrowserAuthSession();
 
       if (!isMounted) {
         return;
@@ -280,9 +281,16 @@ export default function AccountPage() {
 
     if (error) {
       setEmailMessageTone("error");
-      setEmailMessage(error.message);
+      setEmailMessage(friendlyAuthError(error.message, "account"));
       setIsSavingEmail(false);
       return;
+    }
+
+    if (accessToken) {
+      void reportSecurityEvent({
+        type: "email_change_requested",
+        accessToken,
+      });
     }
 
     setEmailMessageTone("success");
@@ -321,6 +329,12 @@ export default function AccountPage() {
     );
 
     if (reauthError) {
+      if (accessToken) {
+        void reportSecurityEvent({
+          type: "password_verify_failed",
+          accessToken,
+        });
+      }
       setPasswordMessageTone("error");
       setPasswordMessage(CURRENT_PASSWORD_INCORRECT);
       setIsSavingPassword(false);
@@ -333,9 +347,16 @@ export default function AccountPage() {
 
     if (error) {
       setPasswordMessageTone("error");
-      setPasswordMessage(error.message);
+      setPasswordMessage(friendlyAuthError(error.message, "account"));
       setIsSavingPassword(false);
       return;
+    }
+
+    if (accessToken) {
+      void reportSecurityEvent({
+        type: "password_changed",
+        accessToken,
+      });
     }
 
     setPasswordMessageTone("success");

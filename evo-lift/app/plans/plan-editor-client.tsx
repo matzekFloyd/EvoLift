@@ -12,6 +12,7 @@ import { WorkoutExerciseDraftList } from "@/app/components/workout-exercise-draf
 import { createDayDraft, daysFromPlan, type DayDraft } from "@/app/plans/plan-day-draft";
 import { normalizePlanDraft } from "@/lib/plan-draft";
 import type { Database } from "@/lib/supabase/database.types";
+import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { createUserPlan, updateUserPlan } from "@/server/actions/plans";
 import type { WorkoutPlanWithDays } from "@/server/db/plans";
@@ -63,9 +64,7 @@ export function PlanEditorClient(props: Props) {
     let isMounted = true;
 
     async function load() {
-      const {
-        data: { session },
-      } = await supabaseBrowserClient.auth.getSession();
+      const session = await getBrowserAuthSession();
       if (!isMounted) {
         return;
       }
@@ -177,9 +176,7 @@ export function PlanEditorClient(props: Props) {
       return;
     }
 
-    const {
-      data: { session },
-    } = await supabaseBrowserClient.auth.getSession();
+    const session = await getBrowserAuthSession();
     if (!session?.access_token) {
       showError("You must be logged in to save a plan.");
       return;

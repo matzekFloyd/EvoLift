@@ -2,8 +2,19 @@ import { createMcpHandler, withMcpAuth } from "mcp-handler";
 import { z } from "zod";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import type { LanguageCode } from "@/lib/supabase/database.types";
-import { authenticateBearer } from "@/server/auth/api-request";
+import {
+  authenticateBearer,
+  getBearerCredential,
+} from "@/server/auth/api-request";
 import { listExercisesWithTranslations } from "@/server/db/exercises";
+import { MCP_API_PATH_ERROR, buildMcpApiUrl } from "@/server/mcp/api-path";
+import {
+  clientIpFromHeaders,
+  consumeRateLimit,
+  MCP_USER_LIMIT_PER_WINDOW,
+  RATE_LIMIT_MESSAGE,
+} from "@/server/rate-limit";
+import type { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -102,17 +113,11 @@ const handler = createMcpHandler(
         if ("error" in auth) {
           return jsonResult({ error: auth.error }, true);
         }
-        const trimmed = path.trim();
-        if (!trimmed.startsWith("/api/") || trimmed.includes("..") || trimmed.includes("://")) {
-          return jsonResult({ error: "path must be a relative /api/... route" }, true);
+        const built = buildMcpApiUrl(path, deploymentOrigin(), query);
+        if ("error" in built) {
+          return jsonResult({ error: MCP_API_PATH_ERROR }, true);
         }
-        const url = new URL(trimmed.split("?")[0], `${deploymentOrigin()}/`);
-        for (const [key, value] of Object.entries(query ?? {})) {
-          if (value) {
-            url.searchParams.set(key, String(value));
-          }
-        }
-        const response = await fetch(url, {
+        const response = await fetch(built.url, {
           headers: {
             Accept: "application/json",
             Authorization: `Bearer ${extra.authInfo?.token ?? ""}`,
@@ -129,7 +134,7 @@ const handler = createMcpHandler(
           {
             target: "deployment",
             status: response.status,
-            url: url.toString(),
+            url: built.url.toString(),
             body,
           },
           !response.ok,
@@ -156,15 +161,9 @@ const handler = createMcpHandler(
         if ("error" in auth) {
           return jsonResult({ error: auth.error }, true);
         }
-        const trimmed = path.trim();
-        if (!trimmed.startsWith("/api/") || trimmed.includes("..") || trimmed.includes("://")) {
-          return jsonResult({ error: "path must be a relative /api/... route" }, true);
-        }
-        const url = new URL(trimmed.split("?")[0], `${deploymentOrigin()}/`);
-        for (const [key, value] of Object.entries(query ?? {})) {
-          if (value) {
-            url.searchParams.set(key, String(value));
-          }
+        const built = buildMcpApiUrl(path, deploymentOrigin(), query);
+        if ("error" in built) {
+          return jsonResult({ error: MCP_API_PATH_ERROR }, true);
         }
         const headers: Record<string, string> = {
           Accept: "application/json",
@@ -175,7 +174,7 @@ const handler = createMcpHandler(
           headers["Content-Type"] = "application/json";
           init.body = JSON.stringify(body);
         }
-        const response = await fetch(url, init);
+        const response = await fetch(built.url, init);
         const text = await response.text();
         let parsed: unknown = text;
         try {
@@ -187,7 +186,7 @@ const handler = createMcpHandler(
           {
             target: "deployment",
             status: response.status,
-            url: url.toString(),
+            url: built.url.toString(),
             body: parsed,
           },
           !response.ok,
@@ -217,4 +216,38 @@ const verifyToken = async (
 
 const authHandler = withMcpAuth(handler, verifyToken, { required: true });
 
-export { authHandler as GET, authHandler as POST, authHandler as DELETE };
+async function withMcpRateLimit(request: Request): Promise<Response> {
+  const credential = getBearerCredential(request as NextRequest);
+  const auth = await authenticateBearer(credential);
+  if (!("error" in auth)) {
+    const userLimit = consumeRateLimit(`mcp:user:${auth.userId}`, MCP_USER_LIMIT_PER_WINDOW);
+    if (!userLimit.ok) {
+      return new Response(JSON.stringify({ error: RATE_LIMIT_MESSAGE }), {
+        status: 429,
+        headers: {
+          "content-type": "application/json",
+          "Retry-After": String(userLimit.retryAfterSec),
+        },
+      });
+    }
+  } else {
+    const ip = clientIpFromHeaders(request.headers);
+    const ipLimit = consumeRateLimit(`mcp:ip:${ip}`, MCP_USER_LIMIT_PER_WINDOW);
+    if (!ipLimit.ok) {
+      return new Response(JSON.stringify({ error: RATE_LIMIT_MESSAGE }), {
+        status: 429,
+        headers: {
+          "content-type": "application/json",
+          "Retry-After": String(ipLimit.retryAfterSec),
+        },
+      });
+    }
+  }
+  return authHandler(request);
+}
+
+export {
+  withMcpRateLimit as GET,
+  withMcpRateLimit as POST,
+  withMcpRateLimit as DELETE,
+};

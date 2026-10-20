@@ -59,6 +59,7 @@ import {
   loadExerciseMetadata,
 } from "@/lib/exercise-metadata-cache";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
+import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { fetchAllPages, fetchInChunks } from "@/lib/supabase/chunked-query";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { formatMilestoneTarget } from "@/lib/milestone-progress";
@@ -244,9 +245,7 @@ export default function ExerciseDetailPage() {
         return;
       }
 
-      const {
-        data: { session },
-      } = await perf.trackQuery("auth.getSession", () => supabaseBrowserClient.auth.getSession());
+      const session = await perf.trackQuery("auth.getUser", () => getBrowserAuthSession());
       if (!isMounted) {
         return;
       }
@@ -451,9 +450,7 @@ export default function ExerciseDetailPage() {
       if (!slug) {
         return;
       }
-      const {
-        data: { session },
-      } = await supabaseBrowserClient.auth.getSession();
+      const session = await getBrowserAuthSession();
       if (!isMounted || !session) {
         return;
       }

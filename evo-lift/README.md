@@ -143,6 +143,10 @@ Notes:
 - `NEXT_PUBLIC_*` values are embedded at build time, so redeploy after changing them.
 - `SUPABASE_SERVICE_ROLE_KEY` is server-only and must never be exposed in client code.
 
+### Password policy (local + hosted)
+
+Register and password change require **8+ characters** with at least **one letter and one number** (`evo-lift/lib/password-policy.ts`). Local Auth matches that in `supabase/config.toml` (`minimum_password_length = 8`, `password_requirements = "letters_digits"`). Set the same values on the hosted project under **Authentication → Providers → Email**. Restart local Supabase after editing `config.toml`.
+
 ### Hosted Supabase Auth URLs (required for production email confirm)
 
 If Site URL stays at `http://localhost:3000`, confirmation emails fall back to localhost whenever the requested redirect is missing from the allow list.
@@ -177,8 +181,9 @@ Sign-up and email-change use `…/login?verified=1` as `emailRedirectTo`. That p
    - `supabase db query --linked --file supabase/seeds/002_exercise_translations.sql`
 3. Verify Vercel env vars are set for the target environment (including `NEXT_PUBLIC_APP_URL` for Production).
 4. Confirm hosted Supabase **Authentication → URL Configuration** Site URL and Redirect URLs (see above).
-5. Redeploy application.
-6. Smoke test:
+5. Confirm hosted email password strength matches the [password policy](#password-policy-local--hosted) (min 8, letters and digits).
+6. Redeploy application.
+7. Smoke test:
    - `/login`
    - register → confirm-email link opens the production host (not localhost)
    - `/docs`

@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { PageShell } from "@/app/components/page-shell";
 import { PlanEditorClient } from "@/app/plans/plan-editor-client";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
+import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { getUserPlanById } from "@/server/actions/plans";
 import type { WorkoutPlanWithDays } from "@/server/db/plans";
 
@@ -19,9 +20,7 @@ export default function EditPlanPage() {
     let isMounted = true;
 
     async function load() {
-      const {
-        data: { session },
-      } = await supabaseBrowserClient.auth.getSession();
+      const session = await getBrowserAuthSession();
       if (!isMounted) {
         return;
       }
