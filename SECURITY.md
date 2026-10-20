@@ -53,3 +53,41 @@ The Next app sets security headers in `evo-lift/next.config.ts` via `evo-lift/li
 - **script-src / style-src:** `'unsafe-inline'` (and script `'unsafe-eval'`) remain for Next.js and Swagger UI until nonce-based CSP is wired
 
 Swagger UI on `/docs` loads from `swagger-ui-dist` (bundled), not a CDN. Geist fonts use `next/font` (self-hosted).
+
+## Dependency updates (npm / Actions)
+
+Dependabot (`.github/dependabot.yml`) opens weekly PRs for:
+
+- npm lockfiles at `/`, `/evo-lift`, and `/mcp/evo-api`
+- GitHub Actions at the repo root
+
+### Reviewing Dependabot PRs
+
+1. Confirm CI is green (tests, npm audit, CodeQL as applicable).
+2. Skim the release notes for breaking changes; prefer grouped minor/patch bumps when Dependabot groups them.
+3. Merge when the bump is intentional; close or ignore only with a short reason (e.g. known break, superseded PR).
+4. Do not merge Dependabot PRs that skip or weaken the npm audit gate without an allowlist entry (below).
+
+Android/Play keystore and secret handling remain covered under [Secrets](#secrets); this section is npm/JS supply chain only.
+
+## Dependency advisories (npm audit)
+
+CI workflow **npm audit** (`.github/workflows/npm-audit.yml`) runs `scripts/npm-audit-ci.mjs` on every push/PR to `master`.
+
+| Policy | Detail |
+| --- | --- |
+| Scope | Production dependencies only (`npm audit --omit=dev`) |
+| Fail | **high** and **critical** advisories |
+| Warn / defer | low/moderate, and **devDependency** advisories (still updated via Dependabot; fix when practical) |
+
+### Temporary allowlist
+
+If a high/critical production advisory cannot be fixed immediately (no patched release, or a forced upgrade is unsafe):
+
+1. Add the advisory id (`GHSA-…`) to `.github/npm-audit-allowlist.json` under `advisories`.
+2. Document it in the table below: id, package, reason, and a review-by date.
+3. Remove the entry when the dependency is upgraded or the advisory is withdrawn.
+
+| Advisory | Package | Reason | Review by |
+| --- | --- | --- | --- |
+| _(none)_ | | | |

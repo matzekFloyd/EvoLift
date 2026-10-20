@@ -1,0 +1,4 @@
+{
+  "advisories": [],
+  "_comment": "List GHSA-… (or npm advisory numeric) IDs that are temporarily accepted. Document each entry in SECURITY.md under Dependency advisories."
+}

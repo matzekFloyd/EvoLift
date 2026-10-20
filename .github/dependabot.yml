@@ -1,0 +1,53 @@
+# Weekly dependency and Actions update PRs (OWASP A03 / A08 — supply chain).
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    labels:
+      - dependencies
+      - security
+    groups:
+      capacitor:
+        patterns:
+          - "@capacitor/*"
+
+  - package-ecosystem: npm
+    directory: /evo-lift
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 15
+    labels:
+      - dependencies
+      - security
+    groups:
+      next-eslint:
+        patterns:
+          - "eslint*"
+          - "eslint-config-next"
+      types:
+        patterns:
+          - "@types/*"
+
+  - package-ecosystem: npm
+    directory: /mcp/evo-api
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
+      - security
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    labels:
+      - dependencies
