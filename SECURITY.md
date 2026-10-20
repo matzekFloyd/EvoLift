@@ -1,26 +1,86 @@
 # Security Policy
 
-## Secrets
-
-Do not commit the Play upload keystore (`*.jks`, `*.keystore`) or `android/keystore.properties`. Those files hold the upload key and its passwords. Play App Signing keeps the app signing key with Google.
-
 ## Supported Versions
 
 EvoLift is in active development. Security fixes are applied to the latest code on the default branch.
 
 ## Reporting a Vulnerability
 
-Please do not open a public issue for security vulnerabilities.
+Please do **not** open a public GitHub issue for security vulnerabilities.
 
-- Report security concerns privately to the maintainer.
-- Include clear reproduction steps, impact, and affected components.
-- If applicable, include logs, screenshots, and a proof of concept.
+**Private contact:** use [GitHub private vulnerability reporting](https://github.com/matzekFloyd/EvoLift/security/advisories/new) so the report stays confidential. If that form is unavailable, message the repository owner on GitHub privately — still not via public issues or discussions.
 
-## Response Expectations
+Include:
 
-- Initial acknowledgement target: within 5 business days.
-- Confirmed issues are triaged and prioritized based on severity and exploitability.
-- When a fix is released, disclosure details may be shared publicly after users have time to update.
+- Clear reproduction steps
+- Impact and affected components (web, `/api`, MCP, Android shell, etc.)
+- Logs, screenshots, or a proof of concept when useful
+
+### Response expectations
+
+- Initial acknowledgement target: within **5 business days**
+- Confirmed issues are triaged by severity and exploitability
+- When a fix is released, disclosure details may be shared publicly after users have time to update
+
+## Scope
+
+### In scope
+
+| Surface | What it is |
+| --- | --- |
+| **Next.js web app** | UI on Vercel (`evo-lift/`), including login, account, and workout flows |
+| **REST `/api/*`** | Authenticated HTTP API (session JWT or personal token); OpenAPI at `/api/openapi` |
+| **Personal API tokens** | `evo_…` tokens from Account → Login; used by API clients and MCP |
+| **MCP bridge** | Hosted Streamable HTTP at `/api/mcp`; laptop stdio proxy under `mcp/evo-api` (HTTP API only, no direct Supabase) |
+| **Android shell** | Capacitor WebView (`android/`, `shell/`) that loads the production site (or a debug URL) |
+
+Also in scope: Supabase Auth configuration that this repo documents (password policy, Site URL / redirect allowlists), RLS policies in migrations, and CI supply-chain gates described below.
+
+### Out of scope (for reports aimed at us)
+
+- Third-party platforms themselves (Vercel, Supabase, Google Play) except misconfiguration **we** control
+- Social-engineering of individual user accounts without a product defect
+- Theoretical issues with no realistic path on the surfaces above
+- Full pen-test write-ups as a substitute for a concrete, reproducible finding (summaries with repro are welcome)
+
+A living STRIDE table is tracked separately ([#266](https://github.com/matzekFloyd/EvoLift/issues/266)); this file is the reporter/maintainer map, not that model.
+
+## Key controls
+
+Short map of what is already enforced. Details in the sections below.
+
+| Control | Summary |
+| --- | --- |
+| **Supabase RLS** | Session JWT path uses the user client; Postgres RLS scopes rows to the signed-in user |
+| **Personal tokens** | Stored as **SHA-256** hashes (`evo-lift/server/db/api-tokens.ts`); plaintext shown once. Token path uses the **service-role** client, so **RLS is bypassed** — every user-owned read/write must filter by `userId` / `requireOwned*` ([API authentication](#api-authentication-jwt-vs-personal-token)) |
+| **UI session gate** | `proxy.ts` + `getUser()` redirects anonymous browsers away from private pages ([App session gate](#app-session-gate-ui-shell)) |
+| **Auth UX** | Password strength aligned with local/hosted Auth; user-visible auth errors sanitized ([Authentication](#authentication-password-policy-redirects-mfa)) |
+| **HTTP headers / CSP** | Set in `evo-lift/lib/security-headers.ts` ([HTTP security headers](#http-security-headers)) |
+| **Secrets** | Service role and Play keystore never ship to the client or git ([Secrets and environment](#secrets-and-environment)) |
+| **Supply chain** | Dependabot + CI `npm audit` for high/critical production advisories |
+| **Security events** | Structured `channel":"security"` logs (no passwords or raw tokens) |
+
+## Secrets and environment
+
+### Must never ship client-side or to git
+
+| Secret | Notes |
+| --- | --- |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server-only. Bypasses RLS. Never prefix with `NEXT_PUBLIC_`. |
+| Play upload keystore (`*.jks`, `*.keystore`) | Gitignored. Play App Signing holds the app signing key. |
+| `android/keystore.properties` | Keystore passwords; gitignored. Copy from the `.example` file locally. |
+| `.env.local` | Local secrets; gitignored. |
+| Personal API token plaintext (`evo_…`) | Shown once at creation; revoke on Account if leaked. |
+
+### Safe to expose in the browser (`NEXT_PUBLIC_*`)
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY` (anon key is public by design; RLS still applies for end users)
+- `NEXT_PUBLIC_APP_URL` (canonical origin for auth email redirects in production)
+
+`NEXT_PUBLIC_*` values are embedded at **build** time — redeploy after changing them. Optional perf sampling flags are documented in `evo-lift/README.md`.
+
+Rotate any leaked key or token immediately.
 
 ## API authentication (JWT vs personal token)
 
@@ -32,6 +92,23 @@ Authenticated `/api/*` routes accept either:
 For personal tokens, every user-owned read or write must filter by the authenticated `userId` (or use ownership helpers in `evo-lift/server/db/owned.ts`). A missing `user_id` filter is an IDOR risk unique to the token path.
 
 `ApiRequestAuth.bypassesRls` is `true` for personal tokens and `false` for session JWTs. Prefer `requireOwned*` helpers over ad-hoc selects when loading a resource by id.
+
+## MCP bridge
+
+- **Hosted:** `GET/POST https://<deployment>/api/mcp` — Streamable HTTP MCP for Cursor Cloud Agents. Auth: `Authorization: Bearer` with a **personal API token** (same resolver as `/api/*`).
+- **Laptop stdio:** `mcp/evo-api` proxies the HTTP API; it does not hold the service-role key or talk to Supabase directly.
+
+Treat a leaked personal token as full API access for that user (including MCP). Further hardening of this boundary is tracked in [#265](https://github.com/matzekFloyd/EvoLift/issues/265).
+
+## Android shell
+
+The Capacitor shell is a **WebView** around the web app, not a separate backend.
+
+- Release builds load the production site; navigation is limited to that origin and its Supabase host. Other hosts open in the system browser.
+- Debug builds may point at a local/dev URL (`CAPACITOR_SERVER_URL` / allowlist). Cleartext HTTP is only enabled when the configured server URL is `http://`.
+- Session cookies live in the WebView (same cookie-based auth as the browser client after the session-gate work).
+
+Upload keystore handling: see [Secrets and environment](#secrets-and-environment).
 
 ## HTTP security headers
 
@@ -68,7 +145,7 @@ Dependabot (`.github/dependabot.yml`) opens weekly PRs for:
 3. Merge when the bump is intentional; close or ignore only with a short reason (e.g. known break, superseded PR).
 4. Do not merge Dependabot PRs that skip or weaken the npm audit gate without an allowlist entry (below).
 
-Android/Play keystore and secret handling remain covered under [Secrets](#secrets); this section is npm/JS supply chain only.
+Android/Play keystore and secret handling remain covered under [Secrets and environment](#secrets-and-environment); this section is npm/JS supply chain only.
 
 ## Dependency advisories (npm audit)
 
@@ -127,7 +204,7 @@ When the public host moves (e.g. to `evolift.at`), update Site URL, Redirect URL
 
 ### MFA decision
 
-**Deferred.** MFA (TOTP / WebAuthn) is not enabled (`[auth.mfa.totp]` enroll/verify remain false locally). Product intent is to add it later; track in GitHub issue #297. Do not treat missing MFA as an accidental omission—it is an explicit near-term out-of-scope choice.
+**Deferred.** MFA (TOTP / WebAuthn) is not enabled (`[auth.mfa.totp]` enroll/verify remain false locally). Product intent is to add it later; track in GitHub issue [#297](https://github.com/matzekFloyd/EvoLift/issues/297). Do not treat missing MFA as an accidental omission—it is an explicit near-term out-of-scope choice.
 
 ## App session gate (UI shell)
 
@@ -178,3 +255,28 @@ Automated paging on auth-failure spikes is **not** wired yet. Until a log drain 
 2. Prefer enabling a **Vercel log drain** (or equivalent) to an alerting tool and alert on elevated counts of those types.
 
 Document any chosen drain/alert target here when it is enabled.
+
+## Related hardening work
+
+OWASP Top 10:2025 / STRIDE tracking: [#254](https://github.com/matzekFloyd/EvoLift/issues/254).
+
+| Topic | Issue | Status |
+| --- | --- | --- |
+| HTTP headers / CSP | [#255](https://github.com/matzekFloyd/EvoLift/issues/255) | Done |
+| Personal-token access control | [#256](https://github.com/matzekFloyd/EvoLift/issues/256) | Done |
+| Session gate / `getUser` | [#257](https://github.com/matzekFloyd/EvoLift/issues/257) | Done |
+| API error disclosure | [#258](https://github.com/matzekFloyd/EvoLift/issues/258) | Done |
+| Security event logging | [#259](https://github.com/matzekFloyd/EvoLift/issues/259) | Done |
+| Dependabot / npm audit | [#260](https://github.com/matzekFloyd/EvoLift/issues/260) | Done |
+| Auth password policy / MFA decision | [#261](https://github.com/matzekFloyd/EvoLift/issues/261) | Done (MFA deferred → [#297](https://github.com/matzekFloyd/EvoLift/issues/297)) |
+| This guide (`SECURITY.md`) | [#262](https://github.com/matzekFloyd/EvoLift/issues/262) | This file |
+| Rate limiting / DoS | [#263](https://github.com/matzekFloyd/EvoLift/issues/263) | Open |
+| CI/CD trust boundaries | [#264](https://github.com/matzekFloyd/EvoLift/issues/264) | Open |
+| MCP bridge hardening | [#265](https://github.com/matzekFloyd/EvoLift/issues/265) | Open |
+| Living STRIDE model | [#266](https://github.com/matzekFloyd/EvoLift/issues/266) | Open |
+| MFA (product) | [#297](https://github.com/matzekFloyd/EvoLift/issues/297) | Deferred |
+
+## References
+
+- [OWASP Top 10:2025](https://top10.owasp.org/2025/)
+- [STRIDE overview](https://www.practical-devsecops.com/what-is-stride-threat-model/)
