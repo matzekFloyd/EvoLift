@@ -10,10 +10,10 @@ describe("auth-email-redirect", () => {
   it("prefers NEXT_PUBLIC_APP_URL over the window origin", () => {
     assert.equal(
       resolveAppOrigin({
-        envAppUrl: "https://evo-lift.vercel.app/",
+        envAppUrl: "https://evolift.at/",
         windowOrigin: "http://localhost:3000",
       }),
-      "https://evo-lift.vercel.app",
+      "https://evolift.at",
     );
   });
 
@@ -29,8 +29,8 @@ describe("auth-email-redirect", () => {
 
   it("adds https when the env value is host-only", () => {
     assert.equal(
-      resolveAppOrigin({ envAppUrl: "evo-lift.vercel.app", windowOrigin: null }),
-      "https://evo-lift.vercel.app",
+      resolveAppOrigin({ envAppUrl: "evolift.at", windowOrigin: null }),
+      "https://evolift.at",
     );
   });
 
@@ -38,10 +38,10 @@ describe("auth-email-redirect", () => {
     assert.equal(AUTH_EMAIL_VERIFIED_PATH, "/login?verified=1");
     assert.equal(
       authEmailRedirectUrl({
-        envAppUrl: "https://evo-lift.vercel.app",
+        envAppUrl: "https://evolift.at",
         windowOrigin: null,
       }),
-      "https://evo-lift.vercel.app/login?verified=1",
+      "https://evolift.at/login?verified=1",
     );
   });
 

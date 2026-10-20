@@ -2,7 +2,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 /** Production site. A debug setting must not replace this default. */
-const PRODUCTION_SITE_URL = "https://evo-lift.vercel.app";
+const PRODUCTION_SITE_URL = "https://evolift.at";
 
 /**
  * Public Supabase API host embedded in the production web app.

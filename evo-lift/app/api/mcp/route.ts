@@ -50,7 +50,7 @@ const handler = createMcpHandler(
       "get_targets",
       {
         description:
-          "Show this EvoLift deployment origin. Hosted MCP always queries this app (production on evo-lift.vercel.app).",
+          "Show this EvoLift deployment origin. Hosted MCP always queries this app (production on evolift.at).",
       },
       async () =>
         jsonResult({

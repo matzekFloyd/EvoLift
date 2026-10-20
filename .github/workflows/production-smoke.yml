@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 env:
-  SMOKE_BASE_URL: https://evo-lift.vercel.app
+  SMOKE_BASE_URL: https://evolift.at
 
 jobs:
   smoke:

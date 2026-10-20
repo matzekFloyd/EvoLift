@@ -161,7 +161,7 @@ SUPABASE_SERVICE_ROLE_KEY=<SERVICE_ROLE_KEY from the command above>
 NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
 SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
-NEXT_PUBLIC_APP_URL=https://evo-lift.vercel.app
+NEXT_PUBLIC_APP_URL=https://evolift.at
 ```
 
 Also set **Authentication → URL Configuration** on that hosted project: Site URL = the production app origin (not localhost), and Redirect URLs that allow that origin plus local `http://localhost:3000/**`. Details are in `evo-lift/README.md`.
@@ -212,7 +212,7 @@ The Android app is a Capacitor shell. It opens the existing site. Register, log 
 
 Back returns to the previous page opened in the app. On the home screen, Back leaves the app. While `/sessions/new` or a saved session is open, the shell holds the screen awake. Leaving that page, or sending the app to the background, lets the screen sleep on the system timeout again. The same pages in a browser still follow that timeout. A link whose host is not the configured site or its Supabase host opens in the system browser, and the app stays on the page that contained the link. The launcher name is EvoLift. The icon and splash use the EvoLift mark. The WebView is inset below the status bar and above the system gesture area, including a display cutout.
 
-By default the shell loads `https://evo-lift.vercel.app`. It may also navigate to that site's Supabase host (`tiivtvejwxzgzgkmojuj.supabase.co`). A page on any other host does not load inside the shell. The phone opens that link in the system browser instead. The site in a browser is unchanged.
+By default the shell loads `https://evolift.at`. It may also navigate to that site's Supabase host (`tiivtvejwxzgzgkmojuj.supabase.co`). A page on any other host does not load inside the shell. The phone opens that link in the system browser instead. The site in a browser is unchanged.
 
 ### Install a debug build
 
@@ -250,7 +250,7 @@ To allow a different host, set `CAPACITOR_ALLOW_NAVIGATION` to a comma-separated
 
 HTTP cleartext is turned on only when the configured server URL is `http://`. Run `npm run android` again with the variable unset to install a debug build that opens production.
 
-`npm run android` rewrites `android/app/src/main/assets/capacitor.config.json`. That committed file must keep `https://evo-lift.vercel.app`. Sync again without a debug URL before committing.
+`npm run android` rewrites `android/app/src/main/assets/capacitor.config.json`. That committed file must keep `https://evolift.at`. Sync again without a debug URL before committing.
 
 ### Ship a signed bundle to Play internal testing
 
@@ -270,7 +270,7 @@ Bump the product version when this upload should replace an earlier one ([VERSIO
 npm run android:bundle
 ```
 
-That command ignores a debug server URL and writes `android/app/build/outputs/bundle/release/app-release.aab`. The bundle loads `https://evo-lift.vercel.app`.
+That command ignores a debug server URL and writes `android/app/build/outputs/bundle/release/app-release.aab`. The bundle loads `https://evolift.at`. Ship that bundle only after `evolift.at` verifies on Vercel (see [Production domain](#production-domain)).
 
 In Play Console, use the app with package name `app.evolift`. Create the app first if it is not there yet. Enroll in Play App Signing and let Google manage the app signing key. The keystore above is only the upload key. Upload the `.aab` under **Test and release → Testing → Internal testing**. Add tester emails and install from the opt-in link. A tester should be able to log in and log a set.
 
@@ -312,7 +312,7 @@ supabase db query --linked --file supabase/seeds/003_user_exercise_defaults_barb
 
 Streamable HTTP MCP for Cursor Cloud Agents. Authenticate with `Authorization: Bearer <personal API token>`.
 
-The MCP URL is `https://evo-lift.vercel.app/api/mcp`, not the site origin.
+The MCP URL is `https://evolift.at/api/mcp`, not the site origin.
 
 ### `GET /api/exercises`
 
@@ -344,7 +344,7 @@ Reporting, scope, and control map: [SECURITY.md](SECURITY.md).
 
 ## Deployment Notes
 
-A pull request cannot merge to `master` until the Test workflow jobs `npm test` and `API integration` succeed. Vercel then deploys that commit to production (`https://evo-lift.vercel.app`).
+A pull request cannot merge to `master` until the Test workflow jobs `npm test` and `API integration` succeed. Vercel then deploys that commit to production (`https://evolift.at`). `https://evo-lift.vercel.app` redirects there.
 
 Before that deploy:
 
@@ -352,7 +352,37 @@ Before that deploy:
 2. Apply production-safe seed files as needed
 3. Ensure environment variables are set correctly in the hosting platform
 
-After a push to `master` (including a merged pull request), the Production smoke workflow checks public surfaces on `https://evo-lift.vercel.app`: login (with Terms/Privacy links), privacy, terms, glossary, OpenAPI JSON (including key paths), and that protected API routes return 401 without auth. It retries briefly so a Vercel deploy can finish first. It does not sign in, create a session, or call the database. Unit tests and API integration tests stay on the pull request and use local Supabase. You can also run it manually with workflow_dispatch.
+After a push to `master` (including a merged pull request), the Production smoke workflow checks public surfaces on `https://evolift.at`: login (with Terms/Privacy links), privacy, terms, glossary, OpenAPI JSON (including key paths), and that protected API routes return 401 without auth. It retries briefly so a Vercel deploy can finish first. It does not sign in, create a session, or call the database. Unit tests and API integration tests stay on the pull request and use local Supabase. You can also run it manually with workflow_dispatch.
+
+## Production domain
+
+The canonical origin is `https://evolift.at`. `https://www.evolift.at` and `https://evo-lift.vercel.app` redirect there with HTTP 308. An Android shell already installed still opens `evo-lift.vercel.app`, then sends `evolift.at` to the system browser. The next Play upload loads `https://evolift.at` directly.
+
+The domain is attached to the Vercel project `evo-lift`. DNS stays at world4you (`ns1.world4you.at` and `ns2.world4you.at`). Do not change those nameservers. Vercel issues the HTTPS certificate after the records below are in place.
+
+In the world4you customer area, open the DNS zone for `evolift.at`. Remove the A records for `@` and `www` that point at `81.19.154.98`, then add:
+
+| Type | Host | Value |
+| --- | --- | --- |
+| A | `@` | `216.198.79.1` |
+| A | `@` | `64.29.17.1` |
+| CNAME | `www` | `747d25b90ec2467c.vercel-dns-017.com` |
+
+Leave no other A or CNAME record on `@` or `www`. From `evo-lift/`:
+
+```bash
+npx vercel domains verify evolift.at --project evo-lift
+npx vercel domains verify www.evolift.at --project evo-lift
+```
+
+Both should report configured. HTTPS is ready when those checks pass.
+
+Auth and email links use the same origin:
+
+- Vercel Production `NEXT_PUBLIC_APP_URL` is `https://evolift.at`. It is applied on the next production deploy.
+- Hosted Supabase, Authentication → URL Configuration: Site URL `https://evolift.at`. Redirect URLs include `https://evolift.at/**`, `https://www.evolift.at/**`, `https://evo-lift.vercel.app/**`, `http://localhost:3000/**`, and `http://127.0.0.1:3000/**`.
+
+Merge to `master` only after the verify commands succeed. The production smoke workflow calls `https://evolift.at`.
 
 ## Branding and UX Consistency
 
