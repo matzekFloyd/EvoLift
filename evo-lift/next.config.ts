@@ -14,6 +14,7 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: appRoot,
   },
+  serverExternalPackages: ["ws"],
   devIndicators: false,
   async redirects() {
     return [{ source: "/api", destination: "/docs", permanent: false }];

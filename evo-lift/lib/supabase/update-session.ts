@@ -1,6 +1,7 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { sessionGateDecision } from "@/lib/auth-route-access";
+import { realtimeTransportOptions } from "@/lib/supabase/realtime-transport";
 
 function normalizeSupabaseUrl(url: string): string {
   return url.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
@@ -26,6 +27,7 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   }
 
   const supabase = createServerClient(normalizeSupabaseUrl(rawUrl), anonKey, {
+    ...realtimeTransportOptions(),
     cookies: {
       getAll() {
         return request.cookies.getAll();

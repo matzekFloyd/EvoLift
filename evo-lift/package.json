@@ -2,6 +2,9 @@
   "name": "evo-lift",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "node scripts/seed-local-demo.mjs && next dev",
     "seed:local": "node scripts/seed-local-demo.mjs",
@@ -24,6 +27,7 @@
     "react-dom": "19.3.1",
     "recharts": "^3.10.1",
     "swagger-ui-dist": "^5.33.3",
+    "ws": "^8.22.0",
     "zod": "^4.6.7"
   },
   "devDependencies": {
@@ -33,6 +37,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/swagger-ui-dist": "^3.30.6",
+    "@types/ws": "^8.18.2",
     "eslint": "^10",
     "eslint-config-next": "16.4.2",
     "happy-dom": "^21.0.3",

@@ -5,6 +5,7 @@ import { DELETE as deleteAccount } from "@/app/api/account/route";
 import { GET as getExercises } from "@/app/api/exercises/route";
 import { GET as listSessions, POST as createSession } from "@/app/api/sessions/route";
 import { POST as addSet } from "@/app/api/sessions/[id]/exercises/[sessionExerciseId]/sets/route";
+import { realtimeTransportOptions } from "@/lib/supabase/realtime-transport";
 import {
   adminClient,
   anonKey,
@@ -165,6 +166,7 @@ describe("account delete on local Supabase", () => {
     assert.equal(userData.user, null);
 
     const signInAgain = await createClient(supabaseUrl, anonKey, {
+      ...realtimeTransportOptions(),
       auth: { autoRefreshToken: false, persistSession: false },
     }).auth.signInWithPassword({ email: ownerEmail, password: TEST_PASSWORD });
     assert.ok(signInAgain.error);
