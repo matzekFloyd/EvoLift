@@ -5,6 +5,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { ActionButton } from "@/app/components/action-button";
+import { ContentPlaceholder } from "@/app/components/content-placeholder";
+import {
+  EDITOR_PLACEHOLDER_CLASS,
+  EDITOR_PLACEHOLDER_ROWS,
+} from "@/app/components/content-placeholder-layout";
 import { AppDialog } from "@/app/components/app-dialog";
 import { PageShell } from "@/app/components/page-shell";
 import { StatusNotice } from "@/app/components/status-notice";
@@ -12,6 +17,7 @@ import { WorkoutExerciseDraftList } from "@/app/components/workout-exercise-draf
 import { createDayDraft, daysFromPlan, type DayDraft } from "@/app/plans/plan-day-draft";
 import { normalizePlanDraft } from "@/lib/plan-draft";
 import type { Database } from "@/lib/supabase/database.types";
+import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { createUserPlan, updateUserPlan } from "@/server/actions/plans";
 import type { WorkoutPlanWithDays } from "@/server/db/plans";
@@ -63,9 +69,7 @@ export function PlanEditorClient(props: Props) {
     let isMounted = true;
 
     async function load() {
-      const {
-        data: { session },
-      } = await supabaseBrowserClient.auth.getSession();
+      const session = await getBrowserAuthSession();
       if (!isMounted) {
         return;
       }
@@ -177,9 +181,7 @@ export function PlanEditorClient(props: Props) {
       return;
     }
 
-    const {
-      data: { session },
-    } = await supabaseBrowserClient.auth.getSession();
+    const session = await getBrowserAuthSession();
     if (!session?.access_token) {
       showError("You must be logged in to save a plan.");
       return;
@@ -209,8 +211,30 @@ export function PlanEditorClient(props: Props) {
 
   if (isChecking) {
     return (
-      <PageShell className="items-center justify-center">
-        <p className="text-sm text-zinc-600">Checking session...</p>
+      <PageShell>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="inline-flex items-center gap-2 text-2xl font-semibold tracking-tight">
+            <ListOrdered className="h-6 w-6 text-sky-700" />
+            {title}
+          </h1>
+          <Link
+            href="/plans"
+            className="inline-flex h-10 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100 max-md:hidden"
+          >
+            <ArrowLeft className="h-4 w-4 text-sky-700" />
+            Back
+          </Link>
+        </div>
+        <p className="mt-2 text-sm text-zinc-600">
+          A plan is an ordered cycle of days. Each day keeps its own exercises and targets. Starting a
+          day copies them into a new workout session. Editing a template does not change this plan.
+        </p>
+        <ContentPlaceholder
+          label="Checking session..."
+          rows={EDITOR_PLACEHOLDER_ROWS}
+          rowClassName={EDITOR_PLACEHOLDER_CLASS}
+          className="mt-6"
+        />
       </PageShell>
     );
   }

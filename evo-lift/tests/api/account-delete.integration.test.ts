@@ -1,96 +1,39 @@
 import assert from "node:assert/strict";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import { NextRequest } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 import { afterAll, beforeAll, describe, it } from "vitest";
 import { DELETE as deleteAccount } from "@/app/api/account/route";
 import { GET as getExercises } from "@/app/api/exercises/route";
 import { GET as listSessions, POST as createSession } from "@/app/api/sessions/route";
 import { POST as addSet } from "@/app/api/sessions/[id]/exercises/[sessionExerciseId]/sets/route";
-
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
-const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
-const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
-
-function assertLocalSupabase() {
-  if (!supabaseUrl || !anonKey || !serviceRoleKey) {
-    throw new Error(
-      "Integration tests need NEXT_PUBLIC_SUPABASE_URL, NEXT_PUBLIC_SUPABASE_ANON_KEY, and SUPABASE_SERVICE_ROLE_KEY from local `supabase status`.",
-    );
-  }
-  let host = "";
-  try {
-    host = new URL(supabaseUrl).hostname;
-  } catch {
-    host = "";
-  }
-  if (host !== "127.0.0.1" && host !== "localhost") {
-    throw new Error("Integration tests only run against local Supabase at 127.0.0.1 or localhost.");
-  }
-}
+import { realtimeTransportOptions } from "@/lib/supabase/realtime-transport";
+import {
+  adminClient,
+  anonKey,
+  assertLocalSupabase,
+  buildRequest,
+  catalogId,
+  createTestUser,
+  deleteTestUsers,
+  readJson,
+  signIn,
+  supabaseUrl,
+  TEST_PASSWORD,
+  type CatalogExercise,
+} from "./integration-helpers";
 
 assertLocalSupabase();
 
-const PASSWORD = "test-pass-1";
 const WRONG_PASSWORD = "wrong-pass-1";
-
-type ApiBody = {
-  data?: unknown;
-  error?: string;
-};
-
-type CatalogExercise = {
-  id: string;
-  slug: string;
-};
 
 type SessionDetail = {
   id: string;
   exercises: Array<{ id: string; sets?: Array<{ id: string }> }>;
 };
 
-function adminClient(): SupabaseClient {
-  return createClient(supabaseUrl, serviceRoleKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-}
-
-function buildRequest(pathname: string, method: string, token: string | null, body?: unknown): NextRequest {
-  const headers = new Headers();
-  if (token) {
-    headers.set("authorization", `Bearer ${token}`);
-  }
-  if (body !== undefined) {
-    headers.set("content-type", "application/json");
-  }
-  return new NextRequest(`http://127.0.0.1${pathname}`, {
-    method,
-    headers,
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
-}
-
-async function readJson(response: Response): Promise<{ status: number; body: ApiBody }> {
-  const text = await response.text();
-  const body = text ? (JSON.parse(text) as ApiBody) : {};
-  return { status: response.status, body };
-}
-
-async function signIn(email: string, password = PASSWORD): Promise<string> {
-  const client = createClient(supabaseUrl, anonKey, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-  const { data, error } = await client.auth.signInWithPassword({ email, password });
-  if (error || !data.session?.access_token) {
-    throw new Error(error?.message ?? "Could not sign in the test user.");
-  }
-  return data.session.access_token;
-}
-
 describe("account delete on local Supabase", () => {
   const admin = adminClient();
-  const suffix = crypto.randomUUID();
-  const ownerEmail = `evo-delete-owner-${suffix}@example.com`;
-  const otherEmail = `evo-delete-other-${suffix}@example.com`;
+  let ownerEmail = "";
+  let otherEmail = "";
   let ownerId = "";
   let otherId = "";
   let ownerToken = "";
@@ -101,34 +44,19 @@ describe("account delete on local Supabase", () => {
   let catalogCount = 0;
 
   beforeAll(async () => {
-    for (const [email, assign] of [
-      [ownerEmail, (id: string, token: string) => {
-        ownerId = id;
-        ownerToken = token;
-      }],
-      [otherEmail, (id: string) => {
-        otherId = id;
-      }],
-    ] as const) {
-      const { data, error } = await admin.auth.admin.createUser({
-        email,
-        password: PASSWORD,
-        email_confirm: true,
-      });
-      if (error || !data.user) {
-        throw new Error(error?.message ?? "Could not create a test user.");
-      }
-      const token = await signIn(email);
-      assign(data.user.id, token);
-    }
+    const owner = await createTestUser(admin, "evo-delete-owner");
+    const other = await createTestUser(admin, "evo-delete-other");
+    ownerId = owner.id;
+    ownerEmail = owner.email;
+    ownerToken = owner.token;
+    otherId = other.id;
+    otherEmail = other.email;
 
     const catalog = await readJson(await getExercises(buildRequest("/api/exercises", "GET", ownerToken)));
     assert.equal(catalog.status, 200);
     const rows = catalog.body.data as CatalogExercise[];
     catalogCount = rows.length;
-    const squat = rows.find((row) => row.slug === "back-squat");
-    assert.ok(squat, "The exercise catalog is missing back-squat.");
-    squatId = squat.id;
+    squatId = catalogId(rows, "back-squat");
 
     const created = await readJson(
       await createSession(
@@ -211,11 +139,7 @@ describe("account delete on local Supabase", () => {
   });
 
   afterAll(async () => {
-    for (const userId of [ownerId, otherId]) {
-      if (userId) {
-        await admin.auth.admin.deleteUser(userId);
-      }
-    }
+    await deleteTestUsers(admin, [ownerId, otherId].filter(Boolean));
   });
 
   it("leaves the account in place when the current password is wrong", async () => {
@@ -233,7 +157,7 @@ describe("account delete on local Supabase", () => {
 
   it("deletes the auth user and that user's workout data only", async () => {
     const response = await readJson(
-      await deleteAccount(buildRequest("/api/account", "DELETE", ownerToken, { currentPassword: PASSWORD })),
+      await deleteAccount(buildRequest("/api/account", "DELETE", ownerToken, { currentPassword: TEST_PASSWORD })),
     );
     assert.equal(response.status, 200);
     assert.deepEqual(response.body.data, { deleted: true });
@@ -242,8 +166,9 @@ describe("account delete on local Supabase", () => {
     assert.equal(userData.user, null);
 
     const signInAgain = await createClient(supabaseUrl, anonKey, {
+      ...realtimeTransportOptions(),
       auth: { autoRefreshToken: false, persistSession: false },
-    }).auth.signInWithPassword({ email: ownerEmail, password: PASSWORD });
+    }).auth.signInWithPassword({ email: ownerEmail, password: TEST_PASSWORD });
     assert.ok(signInAgain.error);
 
     const oldSession = await readJson(await listSessions(buildRequest("/api/sessions", "GET", ownerToken)));

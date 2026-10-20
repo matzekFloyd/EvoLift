@@ -12,7 +12,7 @@ Answer from the **EvoLift HTTP API** via the **`evo-lift` MCP** only. Never quer
 
 1. Prefer MCP tools on **`evo-lift`**: `get_targets`, `get_openapi`, `list_exercises`, `evo_api_get`, `evo_api_request`.
 2. If the MCP is missing, say so. Do not fall back to database access.
-3. **Cloud Agents / remote MCP:** connect to `https://evo-lift.vercel.app/api/mcp` (Streamable HTTP). Put the production personal API token in `Authorization: Bearer evo_…`. Do **not** use `https://evo-lift.vercel.app` as the MCP URL — that is the app, not the MCP endpoint. Hosted MCP always queries that deployment (no local/prod switch).
+3. **Cloud Agents / remote MCP:** connect to `https://evolift.at/api/mcp` (Streamable HTTP). Put the production personal API token in `Authorization: Bearer evo_…`. Do **not** use `https://evolift.at` as the MCP URL — that is the app, not the MCP endpoint. Hosted MCP always queries that deployment (no local/prod switch).
 4. **Laptop stdio MCP:** default **`target: "prod"`**. Pass **`target: "local"`** only when the user asks for local.
 5. Prod (stdio) needs `EVO_API_PROD_URL` and `EVO_ACCESS_TOKEN_PROD`. Local needs `npm run dev` and `EVO_ACCESS_TOKEN`.
 6. Always state which target or deployment you queried.

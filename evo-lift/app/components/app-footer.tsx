@@ -27,6 +27,12 @@ export function AppFooter() {
             Glossary
           </Link>
           <Link
+            href="/terms"
+            className="font-medium text-zinc-700 underline-offset-2 hover:text-sky-800 hover:underline"
+          >
+            Terms of use
+          </Link>
+          <Link
             href="/privacy"
             className="font-medium text-zinc-700 underline-offset-2 hover:text-sky-800 hover:underline"
           >

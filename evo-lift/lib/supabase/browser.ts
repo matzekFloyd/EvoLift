@@ -1,4 +1,7 @@
-import { createClient } from "@supabase/supabase-js";
+import { createBrowserClient } from "@supabase/ssr";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/lib/supabase/database.types";
+import { realtimeTransportOptions } from "@/lib/supabase/realtime-transport";
 
 function normalizeSupabaseUrl(url: string): string {
   return url.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
@@ -19,4 +22,15 @@ if (!supabaseAnonKey) {
 
 const supabaseUrl = normalizeSupabaseUrl(rawSupabaseUrl);
 
-export const supabaseBrowserClient = createClient(supabaseUrl, supabaseAnonKey);
+/**
+ * Cookie-backed browser client so the Next.js proxy can verify the session.
+ * Prefer `auth.getUser()` for identity checks; use `getSession()` only for the access token.
+ *
+ * Cast restores `SupabaseClient<Database>` table typing; `@supabase/ssr` 0.6 +
+ * supabase-js otherwise collapses inserts/selects to `never`.
+ */
+export const supabaseBrowserClient: SupabaseClient<Database> = createBrowserClient(
+  supabaseUrl,
+  supabaseAnonKey,
+  realtimeTransportOptions(),
+) as unknown as SupabaseClient<Database>;

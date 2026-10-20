@@ -159,8 +159,8 @@ export function ExerciseWeightProgressChart({
             <XAxis
               dataKey="xTickLabel"
               tick={{ fill: "#52525b", fontSize: 11 }}
-              interval={isCompactView ? "preserveStartEnd" : 0}
-              minTickGap={isCompactView ? 28 : 12}
+              interval="preserveStartEnd"
+              minTickGap={isCompactView ? 36 : 48}
             />
             <YAxis
               domain={yDomain}

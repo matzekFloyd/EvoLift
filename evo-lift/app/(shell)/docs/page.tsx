@@ -1,0 +1,73 @@
+"use client";
+
+import { BookOpen } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { ApiDocsExplorer } from "@/app/docs/api-docs-explorer";
+import { ContentPlaceholder } from "@/app/components/content-placeholder";
+import { DOCS_PLACEHOLDER_CLASS } from "@/app/components/content-placeholder-layout";
+import { PageShell } from "@/app/components/page-shell";
+import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
+import { supabaseBrowserClient } from "@/lib/supabase/browser";
+
+export default function ApiDocsPage() {
+  const router = useRouter();
+  const [accessToken, setAccessToken] = useState<string | null>(null);
+  const [isChecking, setIsChecking] = useState(true);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function checkSession() {
+      const session = await getBrowserAuthSession();
+
+      if (!isMounted) {
+        return;
+      }
+
+      if (!session) {
+        router.replace("/login");
+        return;
+      }
+
+      setAccessToken(session.access_token);
+      setIsChecking(false);
+    }
+
+    void checkSession();
+
+    const {
+      data: { subscription },
+    } = supabaseBrowserClient.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        router.replace("/login");
+        return;
+      }
+      setAccessToken(session.access_token);
+      setIsChecking(false);
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [router]);
+
+  return (
+    <PageShell>
+      <h1 className="inline-flex items-center gap-2 text-2xl font-semibold tracking-tight">
+        <BookOpen className="h-6 w-6 text-sky-700" />
+        API docs
+      </h1>
+      <p className="max-w-prose text-sm text-zinc-600">
+        Requests use your current session. To try a personal API token instead, use
+        Authorize and paste the token value.
+      </p>
+      {isChecking || !accessToken ? (
+        <ContentPlaceholder label="Checking session..." rowClassName={DOCS_PLACEHOLDER_CLASS} />
+      ) : (
+        <ApiDocsExplorer accessToken={accessToken} />
+      )}
+    </PageShell>
+  );
+}

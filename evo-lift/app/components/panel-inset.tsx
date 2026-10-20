@@ -33,6 +33,13 @@ export function usePanelInsetSurface(): boolean {
   return useContext(PanelInsetSurfaceContext);
 }
 
+/** Mark a custom shell (e.g. `AppTable`) as an inset surface without forcing muted fill classes. */
+export function PanelInsetSurfaceProvider({ children }: { children: ReactNode }) {
+  return (
+    <PanelInsetSurfaceContext.Provider value={true}>{children}</PanelInsetSurfaceContext.Provider>
+  );
+}
+
 type PanelInsetOwnProps<T extends ElementType> = {
   as?: T;
   tone?: PanelInsetTone;

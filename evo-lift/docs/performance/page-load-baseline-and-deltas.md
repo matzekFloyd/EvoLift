@@ -2,9 +2,9 @@
 
 ## Scope
 
-- `app/sessions/[id]/page.tsx`
-- `app/exercises/[slug]/page.tsx`
-- `app/exercises/page.tsx`
+- `app/(shell)/sessions/[id]/page.tsx`
+- `app/(shell)/exercises/[slug]/page.tsx`
+- `app/(shell)/exercises/page.tsx`
 
 ## Instrumentation Added
 
@@ -62,7 +62,7 @@ Measured as query flow counts from previous page-load logic.
 
 - Added reusable exercise metadata cache and replaced duplicate metadata fetches in all three scoped pages.
 - Added query-level and total-load instrumentation wrappers for the scoped page loads.
-- Tightened one redundant page flow in `app/exercises/[slug]/page.tsx` by resolving exercise identity/label from cached metadata instead of separate queries.
+- Tightened one redundant page flow in `app/(shell)/exercises/[slug]/page.tsx` by resolving exercise identity/label from cached metadata instead of separate queries.
 
 ## Known Trade-offs
 
@@ -106,6 +106,12 @@ Local demo, time from click until set history was on screen:
 | Hover, then click | Barbell Bench Press | 140 ms |
 
 Bench press has the longer history and was still the faster of the two after the hover. The pages are different, so treat the gap as a hint, not a controlled benchmark.
+
+## Unauthenticated login requests
+
+Reported from a cold DevTools pass on production `/` (Disable cache), before this change: on the order of 70 network entries for the login card. That count includes the `/` → `/login` redirect, the Next chunk graph, the signed-in header module (it rendered nothing while logged out), RSC prefetches for Terms and Privacy, the Supabase session check, and a preloaded Geist Mono file. Geist Mono is only used for API token values on Account.
+
+This change leaves the session check and the redirect in place. The signed-in header lives in the shell layout, so `/login` does not load that chunk. Login also skips prefetch for Terms and Privacy, and it does not preload Geist Mono. Account still loads that font.
 
 ## Sampled page-load telemetry
 

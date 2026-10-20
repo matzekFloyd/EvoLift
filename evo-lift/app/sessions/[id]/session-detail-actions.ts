@@ -767,7 +767,7 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
       return;
     }
     if (!canMarkSessionCompleted(lifecycleFields(session))) {
-      showWarning("This workout session is already completed or still planned.");
+      showWarning("This workout session is already completed or still upcoming.");
       return;
     }
 

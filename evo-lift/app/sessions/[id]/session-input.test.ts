@@ -14,7 +14,7 @@ describe("session input", () => {
   it("blocks a planned session from logging sets", () => {
     assert.equal(
       PLANNED_SESSION_SETS_MESSAGE,
-      "Planned workouts cannot have sets yet. Log sets on or after the session date.",
+      "Upcoming workouts cannot have sets yet. Log sets on or after the session date.",
     );
     assert.equal(TARGETS_EXERCISE_MISSING, "Could not determine which exercise targets to update.");
   });

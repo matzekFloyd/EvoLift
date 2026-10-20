@@ -2,38 +2,48 @@
   "name": "evo-lift",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": ">=22.12.0"
+  },
   "scripts": {
     "dev": "node scripts/seed-local-demo.mjs && next dev",
     "seed:local": "node scripts/seed-local-demo.mjs",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
-    "test:integration": "vitest run --config vitest.integration.config.mts"
+    "test:integration": "vitest run --config vitest.integration.config.mts",
+    "lighthouse": "node scripts/run-lighthouse.mjs"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.26.0",
-    "@supabase/supabase-js": "^2.105.0",
-    "lucide-react": "^1.11.0",
-    "mcp-handler": "^1.1.0",
+    "@modelcontextprotocol/server": "^2.3.1",
+    "@supabase/ssr": "0.6.1",
+    "@supabase/supabase-js": "2.118.0",
+    "lucide-react": "^1.59.0",
+    "mcp-handler": "^2.3.0",
     "next": "16.4.0",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "recharts": "^3.8.1",
-    "swagger-ui-dist": "^5.32.14",
-    "zod": "^4.5.4"
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "recharts": "^3.10.1",
+    "swagger-ui-dist": "^5.33.3",
+    "ws": "^8.22.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@lhci/cli": "^0.15.1",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^26",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@types/swagger-ui-dist": "^3.30.6",
-    "eslint": "^9",
-    "eslint-config-next": "16.2.4",
-    "happy-dom": "^21.0.1",
+    "@types/ws": "^8.18.2",
+    "eslint": "^10",
+    "eslint-config-next": "16.4.2",
+    "happy-dom": "^21.0.3",
+    "puppeteer": "^25.14.0",
     "tailwindcss": "^4",
-    "typescript": "^5",
-    "vitest": "^4.1.11"
+    "typescript": "^7",
+    "vitest": "^5.0.5"
   }
 }

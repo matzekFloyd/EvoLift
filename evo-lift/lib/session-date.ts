@@ -50,7 +50,7 @@ export function coalesceNewSessionDraftPerformedOn(stored: string): string {
   return d < today ? today : d;
 }
 
-/** True when performed_on is after today (planned), consistent with session detail "Planned" and home. */
+/** True when performed_on is after today (upcoming), consistent with session detail and home. */
 export function isFutureSessionDate(performedOn: string): boolean {
   return normalizeSessionDateOnly(performedOn) > getTodayYyyyMmDd();
 }

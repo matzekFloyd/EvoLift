@@ -1,9 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { History, LayoutGrid } from "lucide-react";
-import { PanelInset } from "@/app/components/panel-inset";
-import { SectionHeading } from "@/app/components/section-heading";
+import { History, LayoutGrid, Trophy } from "lucide-react";
+import { CollapsibleSection } from "@/app/components/collapsible-section";
 import {
   formatPersonalBestDate,
   formatPersonalBestLoad,
@@ -15,12 +14,13 @@ type PersonalBestsPanelProps = {
   rows: PersonalBestRow[];
   hideEmpty: boolean;
   onHideEmptyChange: (hideEmpty: boolean) => void;
+  defaultOpen?: boolean;
 };
 
 const pillBase =
   "rounded-md border px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40";
 const pillActive = "border-sky-600 bg-sky-100 text-sky-950";
-const pillInactive = "border-zinc-300 bg-zinc-50 text-zinc-700 hover:border-zinc-400 hover:bg-zinc-100";
+const pillInactive = "border-zinc-300 bg-white text-zinc-700 hover:border-zinc-400 hover:bg-zinc-100";
 
 function rowDetail(row: PersonalBestRow): string {
   const best = formatPersonalBestSet(row.bestSet);
@@ -58,11 +58,15 @@ function MarkBlock({
   );
 }
 
-export function PersonalBestsPanel({ rows, hideEmpty, onHideEmptyChange }: PersonalBestsPanelProps) {
+export function PersonalBestsPanel({
+  rows,
+  hideEmpty,
+  onHideEmptyChange,
+  defaultOpen = false,
+}: PersonalBestsPanelProps) {
   return (
-    <PanelInset className="p-4">
-      <SectionHeading>Personal bests</SectionHeading>
-      <p className="mt-1 text-sm text-zinc-800">
+    <CollapsibleSection title="Personal bests" icon={<Trophy />} defaultOpen={defaultOpen}>
+      <p className="text-sm text-zinc-800">
         {hideEmpty
           ? `${rows.length} exercise${rows.length === 1 ? "" : "s"} with a logged best in this range.`
           : `${rows.length} exercise${rows.length === 1 ? "" : "s"} in the catalog.`}
@@ -153,6 +157,6 @@ export function PersonalBestsPanel({ rows, hideEmpty, onHideEmptyChange }: Perso
           ))}
         </ul>
       )}
-    </PanelInset>
+    </CollapsibleSection>
   );
 }

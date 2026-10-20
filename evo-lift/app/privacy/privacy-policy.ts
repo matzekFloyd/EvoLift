@@ -1,3 +1,5 @@
+import { PUBLIC_APP_ORIGIN } from "@/lib/public-app-origin";
+
 export const PRIVACY_POLICY_HREF = "/privacy";
 
 export type PrivacyPolicySection = {
@@ -9,7 +11,7 @@ export const privacyPolicySections: PrivacyPolicySection[] = [
   {
     heading: "What the account stores",
     paragraphs: [
-      "EvoLift at https://evo-lift.vercel.app stores the data needed to run your account.",
+      `EvoLift at ${PUBLIC_APP_ORIGIN} stores the data needed to run your account.`,
       "It stores your email, and the password held by Supabase Auth.",
       "It stores workout sessions and sets, templates, plans, and goals.",
       "It stores bodyweight, height, sex, and date of birth when you save them on Account.",

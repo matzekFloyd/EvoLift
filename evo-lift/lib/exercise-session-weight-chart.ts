@@ -1,4 +1,4 @@
-import { formatDateOnlyForLocale } from "@/lib/date-format";
+import { buildChartAxisTickLabel } from "@/lib/date-format";
 
 /** Minimal row shape for session weight chart aggregation (matches exercise history rows). */
 export type ExerciseSessionWeightSetRow = {
@@ -98,16 +98,17 @@ export function buildExerciseSessionWeightChartPoints(
     countsByPerformedOn.set(p.performedOn, (countsByPerformedOn.get(p.performedOn) ?? 0) + 1);
   }
 
+  const includeYear = new Set(rawPoints.map((p) => p.performedOn.slice(0, 4))).size > 1;
   const dayCounter = new Map<string, number>();
   const withLabels: ExerciseSessionWeightChartPoint[] = [];
   for (const p of rawPoints) {
     const next = (dayCounter.get(p.performedOn) ?? 0) + 1;
     dayCounter.set(p.performedOn, next);
     const totalOnDay = countsByPerformedOn.get(p.performedOn) ?? 1;
-    const baseLabel = formatDateOnlyForLocale(p.performedOn);
-    const xTickLabel =
-      totalOnDay === 1 ? baseLabel : next === 1 ? baseLabel : `${baseLabel} (${next})`;
-    withLabels.push({ ...p, xTickLabel });
+    withLabels.push({
+      ...p,
+      xTickLabel: buildChartAxisTickLabel(p.performedOn, next, totalOnDay, { includeYear }),
+    });
   }
 
   return withLabels;

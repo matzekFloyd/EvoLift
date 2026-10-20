@@ -396,6 +396,14 @@ export function formatGoalGap(gapKg: number): string {
   return `${formatKgAmount(gapKg)} to go`;
 }
 
+/** Remaining-distance copy for active goals only; achieved goals omit it. */
+export function goalGapLabel(progress: GoalProgress | null): string | null {
+  if (!progress || progress.kind !== "active") {
+    return null;
+  }
+  return formatGoalGap(progress.gapKg);
+}
+
 export function formatBestSet(totalKg: number, reps: number): string {
   return `Best set: ${formatKgAmount(totalKg)} × ${formatRepCount(reps)}`;
 }

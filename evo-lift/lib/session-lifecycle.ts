@@ -60,7 +60,7 @@ export function canStartOrContinueLogging(input: {
   otherInProgressSessionId: string | null;
 }): { ok: true } | { ok: false; message: string } {
   if (!canLogSetsOnSession(input.target)) {
-    return { ok: false, message: "Sets cannot be logged on a planned session yet." };
+    return { ok: false, message: "Sets cannot be logged on an upcoming session yet." };
   }
   if (!wouldStartSession(input.target)) {
     return { ok: true };
@@ -77,7 +77,7 @@ export function canStartOrContinueLogging(input: {
 export function sessionLifecycleBadgeLabel(status: SessionLifecycleStatus): string | null {
   switch (status) {
     case "planned":
-      return "Planned";
+      return "Upcoming";
     case "in_progress":
       return "In progress";
     case "completed":

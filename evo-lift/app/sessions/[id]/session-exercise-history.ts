@@ -28,6 +28,13 @@ export function shortExerciseHistorySetLine(loadedKg: number | null, reps: numbe
   return `${loaded} kg, ${reps} reps`;
 }
 
+/** One wrapping line for compact viewports (date card body). */
+export function shortExerciseHistoryWorkingSetsInline(
+  workingSets: Array<{ setNumber: number; line: string }>,
+): string {
+  return workingSets.map((set) => `${set.setNumber}: ${set.line}`).join(" · ");
+}
+
 export function warmupSetsLabel(count: number): string {
   return count === 1 ? "1 warmup set" : `${count} warmup sets`;
 }

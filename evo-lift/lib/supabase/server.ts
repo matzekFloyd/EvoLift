@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
+import { realtimeTransportOptions } from "@/lib/supabase/realtime-transport";
 
 function requireEnv(name: string): string {
   const value = process.env[name];
@@ -23,6 +24,7 @@ const supabaseAnonKey = requireEnv("NEXT_PUBLIC_SUPABASE_ANON_KEY");
 
 export function createServiceRoleClient() {
   return createClient<Database>(supabaseUrl, supabaseServiceRoleKey, {
+    ...realtimeTransportOptions(),
     auth: {
       autoRefreshToken: false,
       persistSession: false,
@@ -32,6 +34,7 @@ export function createServiceRoleClient() {
 
 export function createPublicServerClient(accessToken?: string) {
   return createClient<Database>(supabaseUrl, supabaseAnonKey, {
+    ...realtimeTransportOptions(),
     auth: {
       autoRefreshToken: false,
       persistSession: false,

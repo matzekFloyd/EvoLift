@@ -6,7 +6,7 @@
 		"adjustMarginsForEdgeToEdge": "force"
 	},
 	"server": {
-		"url": "https://evo-lift.vercel.app",
+		"url": "https://evolift.at",
 		"allowNavigation": [
 			"tiivtvejwxzgzgkmojuj.supabase.co"
 		]

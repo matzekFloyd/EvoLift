@@ -61,6 +61,17 @@ describe("buildInsightsComparisonSentence", () => {
       }),
       "18 working sets in this range, 8 more working sets than the previous period.",
     );
+    assert.equal(
+      buildInsightsComparisonSentence({
+        metric: "sessions",
+        currentWeeks: current.map((point) => ({ ...point, sessionCount: 3 })),
+        allWeeks: all.map((point) => ({ ...point, sessionCount: 2 })),
+        dateFrom: "2026-09-01",
+        dateTo: "2026-09-14",
+        periodName: "2 weeks",
+      }),
+      "6 sessions in this range, 4 more sessions than the previous 2 weeks.",
+    );
   });
 
   it("compares the latest week with the week before when the range is open", () => {

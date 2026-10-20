@@ -23,6 +23,10 @@ Minimum review checklist:
 
 Install, local Supabase, and scripts are in the repository [README](../README.md). From this folder, `npm run dev` starts the app at [http://localhost:3000](http://localhost:3000).
 
+## Lighthouse performance
+
+Surfaces, pass/fail scores, and how to re-run locally or in CI are in [`LIGHTHOUSE.md`](./LIGHTHOUSE.md).
+
 ## Supabase DB Workflow
 
 Use this workflow for all database schema changes so local and remote stay in sync.
@@ -38,6 +42,8 @@ This generates a new timestamped SQL file in `supabase/migrations`.
 ### 2) Edit the generated migration SQL
 
 Open the new migration file and add your schema changes (`create table`, `alter table`, indexes, RLS policies, etc.).
+
+Grant every new table, view, and Data API or trigger function in `public` in that same migration. Tables keep `GRANT ALL` to `anon`, `authenticated`, and `service_role`, plus row-level security. Trigger functions get `EXECUTE` for the roles that write the table. A missing grant fails with `permission denied` before row-level security runs. Do not turn on `auto_expose_new_tables`.
 
 ### 3) Validate locally
 
@@ -125,6 +131,10 @@ Set these in each environment:
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
 
+Production (and preview, if you use a fixed host) should also set:
+
+- `NEXT_PUBLIC_APP_URL` — public app origin used in confirm-email / email-change redirects (`https://evolift.at` in production). Do **not** set this for local `npm run dev`; the browser origin (`http://localhost:3000`) is used instead.
+
 Optional page-load sampling stays off unless `NEXT_PUBLIC_EVOLIFT_PERF_TELEMETRY` is exactly `1`. Restart the app after changing it, because `NEXT_PUBLIC_*` values are embedded at build time. When it is on, each instrumented load (`/exercises`, `/exercises/[slug]`, `/sessions/[id]`) has a chance to POST a summary to `/api/perf`. The default chance is 10%. Set `NEXT_PUBLIC_EVOLIFT_PERF_SAMPLE_RATE` to a number from 0 to 1 to change it (`1` sends every load, `0` sends none). A sample contains the route template, load duration, query count, up to five slowest query names and durations, and cache hit/miss notes when that load already knew them. It does not contain workout notes, set values, or account data. The server writes one log line and stores nothing.
 
 **Local Docker:** from the repo root, run `supabase start`, then `supabase status -o env --override-name api.url=NEXT_PUBLIC_SUPABASE_URL` and map `ANON_KEY` / `SERVICE_ROLE_KEY` into `evo-lift/.env.local` (see the root `README.md`).
@@ -134,6 +144,28 @@ Notes:
 - `NEXT_PUBLIC_SUPABASE_URL` must be the project base URL (local: `http://127.0.0.1:54321`; hosted: `https://<project-ref>.supabase.co`), not `/rest/v1`.
 - `NEXT_PUBLIC_*` values are embedded at build time, so redeploy after changing them.
 - `SUPABASE_SERVICE_ROLE_KEY` is server-only and must never be exposed in client code.
+
+### Password policy (local + hosted)
+
+Register and password change require **8+ characters** with at least **one letter and one number** (`evo-lift/lib/password-policy.ts`). Local Auth matches that in `supabase/config.toml` (`minimum_password_length = 8`, `password_requirements = "letters_digits"`). Set the same values on the hosted project under **Authentication → Providers → Email**. Restart local Supabase after editing `config.toml`.
+
+### Hosted Supabase Auth URLs (required for production email confirm)
+
+If Site URL stays at `http://localhost:3000`, confirmation emails fall back to localhost whenever the requested redirect is missing from the allow list.
+
+In the hosted project: **Authentication → URL Configuration**:
+
+1. **Site URL** — `https://evolift.at`. This is the fallback when a redirect is missing from the allow list. Not localhost.
+2. **Redirect URLs** — list every host users may land on (multiple is fine; they do not conflict):
+   - `https://evolift.at/**`
+   - `https://www.evolift.at/**` (`www` redirects to the apex; keep it allowed)
+   - `https://evo-lift.vercel.app/**` (308 redirect to the apex; keep it allowed)
+   - `http://localhost:3000/**` and `http://127.0.0.1:3000/**` for local register
+   - optionally `https://*-<team>.vercel.app/**` for Vercel previews
+
+Sign-up and email-change use `…/login?verified=1` as `emailRedirectTo`. That path must match the allow list (wildcards above cover it).
+
+`NEXT_PUBLIC_APP_URL` on Vercel Production is `https://evolift.at`. That is the single origin used in confirmation emails. Do not put two URLs in that env var. DNS records for the domain are in the root `README.md` under Production domain.
 
 ### Environment matrix
 
@@ -150,10 +182,13 @@ Notes:
 2. Run only production-safe seeds:
    - `supabase db query --linked --file supabase/seeds/001_exercises.sql`
    - `supabase db query --linked --file supabase/seeds/002_exercise_translations.sql`
-3. Verify Vercel env vars are set for the target environment.
-4. Redeploy application.
-5. Smoke test:
+3. Verify Vercel env vars are set for the target environment (including `NEXT_PUBLIC_APP_URL` for Production).
+4. Confirm hosted Supabase **Authentication → URL Configuration** Site URL and Redirect URLs (see above).
+5. Confirm hosted email password strength matches the [password policy](#password-policy-local--hosted) (min 8, letters and digits).
+6. Redeploy application.
+7. Smoke test:
    - `/login`
+   - register → confirm-email link opens the production host (not localhost)
    - `/docs`
    - authenticated `GET /api/exercises?lang=en`
 

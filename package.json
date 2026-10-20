@@ -10,13 +10,14 @@
     "android": "cap run android",
     "android:sync": "cap sync android",
     "android:bundle": "node shell/bundle-release.mjs",
-    "test": "node --test shell/bundle-release.test.mjs shell/github-release.test.mjs shell/server-config.test.mjs"
+    "test": "node --test shell/bundle-release.test.mjs shell/github-release.test.mjs shell/server-config.test.mjs scripts/npm-audit-ci.test.mjs scripts/ci-supabase-start.test.mjs evo-lift/scripts/lighthouse-chrome.test.mjs",
+    "audit:ci": "node scripts/npm-audit-ci.mjs"
   },
   "dependencies": {
-    "@capacitor/android": "7.6.9",
-    "@capacitor/core": "7.6.9"
+    "@capacitor/android": "8.5.3",
+    "@capacitor/core": "8.5.3"
   },
   "devDependencies": {
-    "@capacitor/cli": "7.6.9"
+    "@capacitor/cli": "8.5.3"
   }
 }

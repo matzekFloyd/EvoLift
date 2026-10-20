@@ -1,8 +1,7 @@
 name: Test
 
+# Required PR checks (ruleset). No push-to-master re-run — merges already passed these.
 on:
-  push:
-    branches: ["master"]
   pull_request:
     branches: ["master"]
 
@@ -15,12 +14,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: evo-lift/package-lock.json
 
@@ -30,6 +29,10 @@ jobs:
       - name: Install dependencies
         working-directory: evo-lift
         run: npm ci
+
+      - name: Typecheck
+        working-directory: evo-lift
+        run: npm run typecheck
 
       - name: Run tests
         working-directory: evo-lift
@@ -41,17 +44,20 @@ jobs:
     timeout-minutes: 30
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Reserve Supabase host ports
+        run: sudo sysctl -w net.ipv4.ip_local_reserved_ports=54320-54329
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
           cache-dependency-path: evo-lift/package-lock.json
 
       - name: Setup Supabase CLI
-        uses: supabase/setup-cli@v1
+        uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3
         with:
           version: 2.121.0
 
@@ -60,11 +66,11 @@ jobs:
         run: npm ci
 
       - name: Start local Supabase
-        run: supabase start
+        run: node scripts/ci-supabase-start.mjs
 
       - name: Apply migrations and catalog seeds
         run: |
-          supabase db reset --no-seed --yes
+          # Migrations already ran inside supabase start. Load the catalog only.
           supabase db query --local --file supabase/seeds/001_exercises.sql
           supabase db query --local --file supabase/seeds/002_exercise_translations.sql
 

@@ -4,6 +4,8 @@ import { Copy, KeyRound, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ActionButton } from "@/app/components/action-button";
+import { ContentPlaceholder } from "@/app/components/content-placeholder";
+import { API_TOKEN_PLACEHOLDER_ROWS } from "@/app/components/content-placeholder-layout";
 import {
   AppTable,
   AppTableActionsHeader,
@@ -16,6 +18,11 @@ import { TableRowActions } from "@/app/components/table-row-actions";
 import { SettingsSection, SettingsSectionBody } from "@/app/components/settings-section";
 import { SettingsSectionHeader } from "@/app/components/settings-section-header";
 import { StatusNotice } from "@/app/components/status-notice";
+import {
+  API_TOKEN_NAME_INITIAL,
+  API_TOKEN_NAME_MAX_LENGTH,
+  API_TOKEN_NAME_PLACEHOLDER,
+} from "@/app/account/api-token-form";
 import {
   createUserApiToken,
   listUserApiTokens,
@@ -39,7 +46,7 @@ function formatTimestamp(value: string): string {
 
 export function AccountApiTokensSection({ accessToken }: AccountApiTokensSectionProps) {
   const [tokens, setTokens] = useState<ApiTokenListItem[]>([]);
-  const [name, setName] = useState("Cursor");
+  const [name, setName] = useState(API_TOKEN_NAME_INITIAL);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [revokingId, setRevokingId] = useState<string | null>(null);
@@ -87,7 +94,7 @@ export function AccountApiTokensSection({ accessToken }: AccountApiTokensSection
       setPlaintextToken(created.token);
       setMessageTone("warning");
       setMessage("Copy this token now. It will not be shown again.");
-      setName("Cursor");
+      setName(API_TOKEN_NAME_INITIAL);
     } catch (error) {
       setPlaintextToken(null);
       setMessageTone("error");
@@ -131,7 +138,7 @@ export function AccountApiTokensSection({ accessToken }: AccountApiTokensSection
     <SettingsSection>
       <SettingsSectionHeader
         title="API tokens"
-        description="Long-lived tokens for Cursor and other tools. They do not expire. Revoke a token if it leaks. The full value is shown only once."
+        description="Long-lived tokens for apps and tools that call the API. They do not expire. Revoke a token if it leaks. The full value is shown only once."
         icon={<KeyRound className="h-4 w-4 text-zinc-500" />}
       />
       <p className="mt-1.5 text-sm text-zinc-600">
@@ -146,11 +153,11 @@ export function AccountApiTokensSection({ accessToken }: AccountApiTokensSection
             Token name
             <input
               type="text"
-              maxLength={40}
+              maxLength={API_TOKEN_NAME_MAX_LENGTH}
               value={name}
               onChange={(event) => setName(event.target.value)}
               className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
-              placeholder="Cursor"
+              placeholder={API_TOKEN_NAME_PLACEHOLDER}
             />
           </label>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
@@ -186,7 +193,7 @@ export function AccountApiTokensSection({ accessToken }: AccountApiTokensSection
 
         <div className="mt-4">
           {isLoading ? (
-            <p className="text-sm text-zinc-600">Loading API tokens...</p>
+            <ContentPlaceholder label="Loading API tokens..." rows={API_TOKEN_PLACEHOLDER_ROWS} />
           ) : tokens.length === 0 ? (
             <p className="text-sm text-zinc-600">No active API tokens.</p>
           ) : (

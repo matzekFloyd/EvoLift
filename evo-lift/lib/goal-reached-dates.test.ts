@@ -14,6 +14,11 @@ function queryClient(tables: Record<string, { data: unknown; error: { message: s
       builder.then = (onFulfilled: (value: unknown) => unknown) => Promise.resolve(result).then(onFulfilled);
       return builder;
     },
+    rpc(name: string) {
+      assert.equal(name, "workout_sessions_by_ids");
+      const result = tables.workout_sessions ?? { data: [], error: null };
+      return Promise.resolve(result);
+    },
   };
 }
 
@@ -56,9 +61,9 @@ describe("loadGoalReachedSessionDates", () => {
     const failed = queryClient({
       strength_milestones: { data: null, error: { message: "down" } },
     });
-    assert.deepEqual(await loadGoalReachedSessionDates(failed as never), {});
+    assert.deepEqual(await loadGoalReachedSessionDates(failed as never, "user-1"), {});
     const empty = queryClient({ strength_milestones: { data: [], error: null } });
-    assert.deepEqual(await loadGoalReachedSessionDates(empty as never), {});
+    assert.deepEqual(await loadGoalReachedSessionDates(empty as never, "user-1"), {});
   });
 
   it("labels the session date from the matching set", async () => {
@@ -97,7 +102,7 @@ describe("loadGoalReachedSessionDates", () => {
         error: null,
       },
     });
-    assert.deepEqual(await loadGoalReachedSessionDates(client as never), {
+    assert.deepEqual(await loadGoalReachedSessionDates(client as never, "user-1"), {
       "2026-10-13": "Barbell Back Squat (100 kg × 5 reps)",
     });
   });

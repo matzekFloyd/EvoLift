@@ -58,7 +58,7 @@ function sumWeek(days: ActivityDay[], weekStart: string): { sessions: number; se
   return { sessions, sets };
 }
 
-/** Rest, a planned workout with nothing logged, or a day a workout was done. */
+/** Rest, an upcoming workout with nothing logged, or a day a workout was done. */
 export function activityIntensity(sets: number, workouts: number): ActivityIntensity {
   if (sets <= 0) {
     return workouts > 0 ? "no-sets" : "rest";
@@ -93,7 +93,7 @@ export function activityIntensityPhrase(intensity: ActivityIntensity): string {
     case "rest":
       return "No workout.";
     case "no-sets":
-      return "A workout is planned, and no exercises are logged yet.";
+      return "An upcoming workout has no exercises logged yet.";
     case "workout":
       return "A workout was done.";
   }

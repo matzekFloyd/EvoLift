@@ -4,8 +4,9 @@ import { CircleCheck, Dumbbell, Lock, Mail } from "lucide-react";
 import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { authEmailRedirectUrl } from "@/lib/auth-email-redirect";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
-import { PageShell } from "@/app/components/page-shell";
+import { PageFrame } from "@/app/components/page-frame";
 import { SectionHeading } from "@/app/components/section-heading";
 import { SegmentedTabs } from "@/app/components/segmented-tabs";
 import {
@@ -14,10 +15,8 @@ import {
   loginPasswordError,
   normalizeLoginEmail,
 } from "@/app/login/login-form";
-import {
-  getExerciseMetadataCacheStatus,
-  loadExerciseMetadata,
-} from "@/lib/exercise-metadata-cache";
+import { reportSecurityEvent } from "@/lib/report-security-event";
+import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,20 +29,6 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifiedNotice, setIsVerifiedNotice] = useState(false);
 
-  async function warmExerciseMetadataCache() {
-    const startedAt = performance.now();
-    const cacheStatus = getExerciseMetadataCacheStatus(5 * 60 * 1000);
-    try {
-      await loadExerciseMetadata(supabaseBrowserClient, { ttlMs: 5 * 60 * 1000 });
-      const elapsedMs = Number((performance.now() - startedAt).toFixed(1));
-      console.info(`[Perf] login metadata warm-up ${cacheStatus} in ${elapsedMs}ms`);
-    } catch {
-      // Best-effort warm-up: login flow should not fail on cache preloading.
-      const elapsedMs = Number((performance.now() - startedAt).toFixed(1));
-      console.info(`[Perf] login metadata warm-up failed after ${elapsedMs}ms`);
-    }
-  }
-
   useEffect(() => {
     let isMounted = true;
 
@@ -51,16 +36,13 @@ export default function LoginPage() {
     setIsVerifiedNotice(params.get("verified") === "1");
 
     async function loadSession() {
-      const {
-        data: { session },
-      } = await supabaseBrowserClient.auth.getSession();
+      const session = await getBrowserAuthSession();
 
       if (!isMounted) {
         return;
       }
 
       if (session) {
-        void warmExerciseMetadataCache();
         router.replace("/");
         return;
       }
@@ -72,7 +54,6 @@ export default function LoginPage() {
       data: { subscription },
     } = supabaseBrowserClient.auth.onAuthStateChange((_event, session) => {
       if (session) {
-        void warmExerciseMetadataCache();
         router.replace("/");
         return;
       }
@@ -111,12 +92,12 @@ export default function LoginPage() {
     );
 
     if (error) {
-      setMessage(friendlyAuthError(error.message));
+      void reportSecurityEvent({ type: "login_failed", email: normalizedEmail });
+      setMessage(friendlyAuthError(error.message, "login"));
       setIsLoading(false);
       return;
     }
 
-    await warmExerciseMetadataCache();
     router.replace("/");
     setIsLoading(false);
   }
@@ -140,16 +121,18 @@ export default function LoginPage() {
     setMessage(null);
     setSuccessEmail(null);
 
+    const emailRedirectTo = authEmailRedirectUrl({
+      envAppUrl: process.env.NEXT_PUBLIC_APP_URL,
+      windowOrigin: window.location.origin,
+    });
     const { error } = await supabaseBrowserClient.auth.signUp({
       email: normalizedEmail,
       password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/login?verified=1`,
-      },
+      options: emailRedirectTo ? { emailRedirectTo } : undefined,
     });
 
     if (error) {
-      setMessage(friendlyAuthError(error.message));
+      setMessage(friendlyAuthError(error.message, "register"));
       setIsLoading(false);
       return;
     }
@@ -163,8 +146,10 @@ export default function LoginPage() {
   }
 
   return (
-    <PageShell className="max-w-md gap-6 pt-6 sm:pt-8">
-      <section className="panel p-4">
+    <div className="flex min-h-full flex-1 flex-col bg-gradient-to-b from-sky-100 via-sky-50 to-white">
+      <PageFrame className="max-w-md justify-start gap-6">
+        <div className="flex w-full flex-col gap-6 pt-[max(0px,8vh)]">
+        <section className="panel p-4">
         {isVerifiedNotice ? (
           <div className="mb-4 flex items-start gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
             <CircleCheck className="mt-0.5 h-4 w-4 shrink-0" />
@@ -184,7 +169,9 @@ export default function LoginPage() {
               setSuccessEmail(null);
             }}
             className="w-full sm:w-auto"
+            buttonLayout="equal-row"
             buttonMinWidthClassName="sm:min-w-0"
+            tabListAriaLabel="Log in or register"
             options={[
               { value: "login", label: "Log in" },
               { value: "register", label: "Register" },
@@ -242,22 +229,37 @@ export default function LoginPage() {
             </label>
           ) : null}
 
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-            {message ? <p className="text-sm text-red-600 sm:flex-1">{message}</p> : null}
+          {message ? <p className="text-sm text-red-600">{message}</p> : null}
+          <div className="flex w-full items-center gap-3">
+            <div className="mr-auto flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+              <Link
+                href="/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                prefetch={false}
+                className="shrink-0 text-sm font-medium text-sky-800 underline-offset-2 hover:underline"
+              >
+                Terms of use
+              </Link>
+              <Link
+                href="/privacy"
+                target="_blank"
+                rel="noopener noreferrer"
+                prefetch={false}
+                className="shrink-0 text-sm font-medium text-sky-800 underline-offset-2 hover:underline"
+              >
+                Privacy policy
+              </Link>
+            </div>
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full cursor-pointer rounded-md border border-sky-700 bg-sky-700 px-4 py-2 text-sm text-white shadow-sm hover:border-sky-600 hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-60 sm:ml-auto sm:w-24"
+              className="ml-auto shrink-0 cursor-pointer rounded-md border border-sky-700 bg-sky-700 px-4 py-2 text-sm text-white shadow-sm hover:border-sky-600 hover:bg-sky-600 disabled:cursor-not-allowed disabled:opacity-60"
             >
               {mode === "login" ? "Log in" : "Register"}
             </button>
           </div>
         </form>
-        <p className="mt-4 text-sm">
-          <Link href="/privacy" className="font-medium text-sky-800 underline-offset-2 hover:underline">
-            Privacy policy
-          </Link>
-        </p>
       </section>
 
       {successEmail ? (
@@ -272,6 +274,8 @@ export default function LoginPage() {
           </p>
         </section>
       ) : null}
-    </PageShell>
+        </div>
+      </PageFrame>
+    </div>
   );
 }

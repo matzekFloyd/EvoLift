@@ -126,7 +126,7 @@ describe("mark completed and badges", () => {
   });
 
   it("labels planned, in progress, and completed", () => {
-    assert.equal(sessionLifecycleBadgeLabel("planned"), "Planned");
+    assert.equal(sessionLifecycleBadgeLabel("planned"), "Upcoming");
     assert.equal(sessionLifecycleBadgeLabel("in_progress"), "In progress");
     assert.equal(sessionLifecycleBadgeLabel("completed"), "Completed");
     assert.equal(sessionLifecycleBadgeLabel("not_started"), null);

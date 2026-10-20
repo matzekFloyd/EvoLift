@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
+import { ContentPlaceholder } from "@/app/components/content-placeholder";
 import { AppDialog } from "@/app/components/app-dialog";
 import { DateInput } from "@/app/components/date-input";
 import { PanelInset } from "@/app/components/panel-inset";
@@ -14,7 +15,9 @@ import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
 import { latestSessionByPlanDay, nextPlanDayId } from "@/lib/plan-cycle";
 import { getTodayYyyyMmDd } from "@/lib/session-date";
+import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
+import { HOME_PLAN_LOADING_CLASSNAME } from "@/app/home-loading-layout";
 import { instantiateUserPlanDay } from "@/server/actions/plans";
 
 type PlanDayView = {
@@ -137,9 +140,7 @@ export function ActivePlanPanel() {
       setMessage("Please choose a performed date.");
       return;
     }
-    const {
-      data: { session },
-    } = await supabaseBrowserClient.auth.getSession();
+    const session = await getBrowserAuthSession();
     if (!session?.access_token) {
       setMessage("You must be logged in.");
       return;
@@ -174,7 +175,7 @@ export function ActivePlanPanel() {
       </div>
 
       {isLoading ? (
-        <p className="text-sm text-zinc-500">Loading plan...</p>
+        <ContentPlaceholder label="Loading plan..." rowClassName={HOME_PLAN_LOADING_CLASSNAME} />
       ) : loadError ? (
         <p className="text-sm text-red-600">{loadError}</p>
       ) : !plan ? (

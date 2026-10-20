@@ -1,7 +1,5 @@
-import Link from "next/link";
-import {
-  type ExerciseProgressReport,
-} from "@/lib/exercise-progress-insights";
+import { Scale } from "lucide-react";
+import { type ExerciseProgressReport } from "@/lib/exercise-progress-insights";
 import { isPublicStandardLift, exrxTableUrl } from "@/lib/strength-standards";
 import {
   comparisonInsightRow,
@@ -9,19 +7,27 @@ import {
   progressInsightRow,
   TextWithExRxTableLink,
 } from "@/app/components/insight-row-list";
+import { CollapsibleSection } from "@/app/components/collapsible-section";
 import { SectionHeading } from "@/app/components/section-heading";
-import { PanelInset, panelInsetClass } from "@/app/components/panel-inset";
+import { panelInsetClass } from "@/app/components/panel-inset";
 
 type LiftComparisonPanelProps = {
   report: ExerciseProgressReport;
+  defaultOpen?: boolean;
 };
 
-export function LiftComparisonPanel({ report }: LiftComparisonPanelProps) {
+export function LiftComparisonPanel({
+  report,
+  defaultOpen = false,
+}: LiftComparisonPanelProps) {
   const notes = [...report.publicNotes, ...report.balanceNotes];
   return (
-    <PanelInset className="p-4">
-      <SectionHeading>Lift comparison</SectionHeading>
-      <p className="mt-1 text-sm text-zinc-800">
+    <CollapsibleSection
+      title="Lift comparison"
+      icon={<Scale />}
+      defaultOpen={defaultOpen}
+    >
+      <p className="text-sm text-zinc-800">
         {notes.length > 0
           ? "How your compounds sit next to each other, and next to published standards."
           : "Log a compound on at least 3 sessions to compare it with your other lifts."}
@@ -78,7 +84,7 @@ export function LiftComparisonPanel({ report }: LiftComparisonPanelProps) {
           )}
         </p>
       ) : null}
-    </PanelInset>
+    </CollapsibleSection>
   );
 }
 
@@ -100,12 +106,7 @@ export function ExerciseInsightPanel({ report, slug }: ExerciseInsightPanelProps
       className={panelInsetClass("p-4")}
       aria-labelledby="exercise-insight-heading"
     >
-      <div className="flex items-start justify-between gap-3">
-        <SectionHeading id="exercise-insight-heading">Insight</SectionHeading>
-        <Link href="/insights" className="shrink-0 text-xs text-sky-800 underline-offset-2 hover:underline">
-          All lifts
-        </Link>
-      </div>
+      <SectionHeading id="exercise-insight-heading">Insight</SectionHeading>
       <p className="mt-1 text-xs text-zinc-500">
         Uses the date range on this page, and the same pace, balance, and published standards as Insights.
       </p>

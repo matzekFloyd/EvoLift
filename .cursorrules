@@ -1,0 +1,21 @@
+# Git commit message generation (Source Control sparkle)
+
+When Cursor auto-generates a Git commit message for this repository:
+
+## Output format (critical)
+
+- Output **only** the commit message text itself.
+- Do **not** wrap the message in XML or HTML tags.
+- Never emit tags such as `<message>`, `</message>`, `<commit>`, `</commit>`, or similar.
+- Do not prefix with labels like "Commit message:" or surround with markdown fences.
+
+## Subject line
+
+1. **Do not put version bumps in the subject.** Never lead with or highlight `app-version.json`, product version numbers, or “bump version” in the headline. Focus the subject on the product/security/behavior change. A version bump may appear only as a secondary bullet in the body if needed.
+2. Keep the subject concise — prefer ≤72 characters.
+3. Imperative mood; no trailing period on the subject.
+
+## Body (optional)
+
+- Short bullets for non-obvious details only.
+- Do not restate the diff line by line.

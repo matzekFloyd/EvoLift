@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import { isFutureSessionDate } from "@/lib/session-date";
 import { ApiHttpError } from "@/server/api/http";
+import { assertApiUserId } from "@/server/db/owned";
 
 export type WorkoutSessionRow = Database["public"]["Tables"]["workout_sessions"]["Row"];
 export type WorkoutSessionExerciseRow =
@@ -72,6 +73,11 @@ export async function createWorkoutSession(
   return data;
 }
 
+/**
+ * Updates a set by id only. Safe with a user-scoped (RLS) client.
+ * Do not call with the personal-token service-role client — use
+ * `updateOwnedWorkoutSet` so ownership is checked first.
+ */
 export async function updateWorkoutSet(
   client: SupabaseClient<Database>,
   input: UpdateWorkoutSetInput,
@@ -114,7 +120,7 @@ export async function listWorkoutSessions(
   let query = client
     .from("workout_sessions")
     .select(
-      "id, user_id, performed_on, notes, source_template_id, plan_id, plan_day_id, created_at, updated_at, workout_session_exercises(id)",
+      "id, user_id, performed_on, notes, source_template_id, plan_id, plan_day_id, started_at, completed_at, created_at, updated_at, workout_session_exercises(id)",
     )
     .eq("user_id", userId)
     .order("performed_on", { ascending: false })
@@ -140,6 +146,8 @@ export async function listWorkoutSessions(
     source_template_id: row.source_template_id,
     plan_id: row.plan_id,
     plan_day_id: row.plan_day_id,
+    started_at: row.started_at,
+    completed_at: row.completed_at,
     created_at: row.created_at,
     updated_at: row.updated_at,
     exercise_count: row.workout_session_exercises?.length ?? 0,
@@ -169,6 +177,7 @@ export async function requireOwnedWorkoutSession(
   userId: string,
   sessionId: string,
 ): Promise<WorkoutSessionRow> {
+  assertApiUserId(userId);
   const session = await getOwnedWorkoutSession(client, userId, sessionId);
   if (!session) {
     throw new ApiHttpError(404, "Workout session not found.");
@@ -498,7 +507,7 @@ export async function addWorkoutSet(
   if (isFutureSessionDate(session.performed_on)) {
     throw new ApiHttpError(
       400,
-      "Planned workouts cannot have sets yet. Log sets on or after the session date.",
+      "Upcoming workouts cannot have sets yet. Log sets on or after the session date.",
     );
   }
 

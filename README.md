@@ -1,6 +1,6 @@
 # EvoLift
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Test](https://github.com/matzekFloyd/EvoLift/actions/workflows/test.yml/badge.svg)](https://github.com/matzekFloyd/EvoLift/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Test](https://github.com/matzekFloyd/EvoLift/actions/workflows/test.yml/badge.svg)](https://github.com/matzekFloyd/EvoLift/actions/workflows/test.yml) [![Lighthouse](https://github.com/matzekFloyd/EvoLift/actions/workflows/lighthouse.yml/badge.svg)](https://github.com/matzekFloyd/EvoLift/actions/workflows/lighthouse.yml)
 
 EvoLift is a mobile-first workout logging application built with Next.js and Supabase.
 
@@ -161,13 +161,17 @@ SUPABASE_SERVICE_ROLE_KEY=<SERVICE_ROLE_KEY from the command above>
 NEXT_PUBLIC_SUPABASE_URL=https://<project-ref>.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon-key>
 SUPABASE_SERVICE_ROLE_KEY=<service-role-key>
+NEXT_PUBLIC_APP_URL=https://evolift.at
 ```
+
+Also set **Authentication → URL Configuration** on that hosted project: Site URL = the production app origin (not localhost), and Redirect URLs that allow that origin plus local `http://localhost:3000/**`. Details are in `evo-lift/README.md`.
 
 Notes:
 
 - `NEXT_PUBLIC_SUPABASE_URL` must be the base URL (not `/rest/v1`)
 - `NEXT_PUBLIC_*` variables are embedded at build time
 - `SUPABASE_SERVICE_ROLE_KEY` must remain server-side only
+- Omit `NEXT_PUBLIC_APP_URL` for local Docker so confirm links use `http://localhost:3000`
 
 ### 4) Run the app
 
@@ -185,7 +189,7 @@ App runs at:
 - Email: `demo@example.com`
 - Password: `demo1234`
 
-The account gets about 16 weeks of sessions (a missed week, a deload, and a heavier week) so the home chart, Insights, and exercise charts have data. It does not run against a hosted Supabase project. `npm run seed:local` runs the same step on its own.
+The account gets about 24 weeks of plan sessions (missed, deload, and heavy weeks), two plans (`3-Day Strength` active, `Upper Lower` inactive), three templates (`Upper Power`, `Lower Strength`, `Push Focus`), a few template-started sessions, and two planned workouts in March 2028 (targets only, no sets). That feeds Home, Insights, Plans, and Templates. It does not run against a hosted Supabase project. `npm run seed:local` runs the same step on its own. Re-running adds any missing plans, templates, or sessions without wiping existing history.
 
 ### 5) Quality checks
 
@@ -195,9 +199,12 @@ npm run lint
 npm test
 npm run test:integration
 npm run build
+npm run lighthouse
 ```
 
-`npm run test:integration` calls the workout API against local Supabase. Start it with `supabase start` from the repository root first. The URL must be `127.0.0.1` or `localhost`.
+`npm run test:integration` calls API route handlers against local Supabase (shared helpers in `evo-lift/tests/api/integration-helpers.ts`; files may run in parallel). Start Supabase with `supabase start` from the repository root first. The URL must be `127.0.0.1` or `localhost`. See [`evo-lift/tests/api/README.md`](evo-lift/tests/api/README.md) for coverage notes.
+
+`npm run lighthouse` builds on a production `next start` server and fails if performance scores drop below the thresholds in [`evo-lift/LIGHTHOUSE.md`](evo-lift/LIGHTHOUSE.md). Seed the local demo user first (`npm run seed:local`) so Home and Insights run logged in.
 
 ## Android app
 
@@ -205,7 +212,7 @@ The Android app is a Capacitor shell. It opens the existing site. Register, log 
 
 Back returns to the previous page opened in the app. On the home screen, Back leaves the app. While `/sessions/new` or a saved session is open, the shell holds the screen awake. Leaving that page, or sending the app to the background, lets the screen sleep on the system timeout again. The same pages in a browser still follow that timeout. A link whose host is not the configured site or its Supabase host opens in the system browser, and the app stays on the page that contained the link. The launcher name is EvoLift. The icon and splash use the EvoLift mark. The WebView is inset below the status bar and above the system gesture area, including a display cutout.
 
-By default the shell loads `https://evo-lift.vercel.app`. It may also navigate to that site's Supabase host (`tiivtvejwxzgzgkmojuj.supabase.co`). A page on any other host does not load inside the shell. The phone opens that link in the system browser instead. The site in a browser is unchanged.
+By default the shell loads `https://evolift.at`. It may also navigate to that site's Supabase host (`tiivtvejwxzgzgkmojuj.supabase.co`). A page on any other host does not load inside the shell. The phone opens that link in the system browser instead. The site in a browser is unchanged.
 
 ### Install a debug build
 
@@ -243,7 +250,7 @@ To allow a different host, set `CAPACITOR_ALLOW_NAVIGATION` to a comma-separated
 
 HTTP cleartext is turned on only when the configured server URL is `http://`. Run `npm run android` again with the variable unset to install a debug build that opens production.
 
-`npm run android` rewrites `android/app/src/main/assets/capacitor.config.json`. That committed file must keep `https://evo-lift.vercel.app`. Sync again without a debug URL before committing.
+`npm run android` rewrites `android/app/src/main/assets/capacitor.config.json`. That committed file must keep `https://evolift.at`. Sync again without a debug URL before committing.
 
 ### Ship a signed bundle to Play internal testing
 
@@ -263,7 +270,7 @@ Bump the product version when this upload should replace an earlier one ([VERSIO
 npm run android:bundle
 ```
 
-That command ignores a debug server URL and writes `android/app/build/outputs/bundle/release/app-release.aab`. The bundle loads `https://evo-lift.vercel.app`.
+That command ignores a debug server URL and writes `android/app/build/outputs/bundle/release/app-release.aab`. The bundle loads `https://evolift.at`. Ship that bundle only after `evolift.at` verifies on Vercel (see [Production domain](#production-domain)).
 
 In Play Console, use the app with package name `app.evolift`. Create the app first if it is not there yet. Enroll in Play App Signing and let Google manage the app signing key. The keystore above is only the upload key. Upload the `.aab` under **Test and release → Testing → Internal testing**. Add tester emails and install from the opt-in link. A tester should be able to log in and log a set.
 
@@ -272,6 +279,8 @@ The next upload needs a higher product version than the build already on that tr
 ## Supabase Workflow
 
 Use migrations for all schema changes instead of ad-hoc dashboard edits.
+
+Grant every new table, view, and Data API or trigger function in `public` in that same migration. Tables keep `GRANT ALL` to `anon`, `authenticated`, and `service_role`, plus row-level security. Trigger functions get `EXECUTE` for the roles that write the table. A missing grant fails with `permission denied` before row-level security runs. Do not turn on `auto_expose_new_tables`.
 
 ### Create migration
 
@@ -305,7 +314,7 @@ supabase db query --linked --file supabase/seeds/003_user_exercise_defaults_barb
 
 Streamable HTTP MCP for Cursor Cloud Agents. Authenticate with `Authorization: Bearer <personal API token>`.
 
-The MCP URL is `https://evo-lift.vercel.app/api/mcp`, not the site origin.
+The MCP URL is `https://evolift.at/api/mcp`, not the site origin.
 
 ### `GET /api/exercises`
 
@@ -327,6 +336,8 @@ Returns OpenAPI 3.0 JSON for documented endpoints.
 
 ## Security Notes
 
+Reporting, scope, and control map: [SECURITY.md](SECURITY.md).
+
 - Never commit `.env.local`
 - Never expose `SUPABASE_SERVICE_ROLE_KEY` in client-side code
 - Rotate credentials immediately if leaked
@@ -335,7 +346,7 @@ Returns OpenAPI 3.0 JSON for documented endpoints.
 
 ## Deployment Notes
 
-A pull request cannot merge to `master` until the Test workflow jobs `npm test` and `API integration` succeed. Vercel then deploys that commit to production (`https://evo-lift.vercel.app`).
+A pull request cannot merge to `master` until the Test workflow jobs `npm test` and `API integration` succeed. Vercel then deploys that commit to production (`https://evolift.at`). `https://evo-lift.vercel.app` redirects there.
 
 Before that deploy:
 
@@ -343,7 +354,37 @@ Before that deploy:
 2. Apply production-safe seed files as needed
 3. Ensure environment variables are set correctly in the hosting platform
 
-After a successful production deploy, the Production smoke workflow checks that the login page loads and that `GET /api/openapi` returns OpenAPI JSON. It does not sign in, create a session, or call the database. Unit tests and API integration tests stay on the pull request and use local Supabase.
+After a push to `master` (including a merged pull request), the Production smoke workflow checks public surfaces on `https://evolift.at`: login (with Terms/Privacy links), privacy, terms, glossary, OpenAPI JSON (including key paths), and that protected API routes return 401 without auth. It retries briefly so a Vercel deploy can finish first. It does not sign in, create a session, or call the database. Unit tests and API integration tests stay on the pull request and use local Supabase. You can also run it manually with workflow_dispatch.
+
+## Production domain
+
+The canonical origin is `https://evolift.at`. `https://www.evolift.at` and `https://evo-lift.vercel.app` redirect there with HTTP 308. An Android shell already installed still opens `evo-lift.vercel.app`, then sends `evolift.at` to the system browser. The next Play upload loads `https://evolift.at` directly.
+
+The domain is attached to the Vercel project `evo-lift`. DNS stays at world4you (`ns1.world4you.at` and `ns2.world4you.at`). Do not change those nameservers. Vercel issues the HTTPS certificate after the records below are in place.
+
+In the world4you customer area, open the DNS zone for `evolift.at`. Remove the A records for `@` and `www` that point at `81.19.154.98`, then add:
+
+| Type | Host | Value |
+| --- | --- | --- |
+| A | `@` | `216.198.79.1` |
+| A | `@` | `64.29.17.1` |
+| CNAME | `www` | `747d25b90ec2467c.vercel-dns-017.com` |
+
+Leave no other A or CNAME record on `@` or `www`. From `evo-lift/`:
+
+```bash
+npx vercel domains verify evolift.at --project evo-lift
+npx vercel domains verify www.evolift.at --project evo-lift
+```
+
+Both should report configured. HTTPS is ready when those checks pass.
+
+Auth and email links use the same origin:
+
+- Vercel Production `NEXT_PUBLIC_APP_URL` is `https://evolift.at`. It is applied on the next production deploy.
+- Hosted Supabase, Authentication → URL Configuration: Site URL `https://evolift.at`. Redirect URLs include `https://evolift.at/**`, `https://www.evolift.at/**`, `https://evo-lift.vercel.app/**`, `http://localhost:3000/**`, and `http://127.0.0.1:3000/**`.
+
+Merge to `master` only after the verify commands succeed. The production smoke workflow calls `https://evolift.at`.
 
 ## Branding and UX Consistency
 
@@ -360,7 +401,7 @@ From `evo-lift/`:
 - `npm run start` - Start production server
 - `npm run lint` - Run ESLint
 - `npm test` - Run unit tests
-- `npm run test:integration` - Run workout API tests against local Supabase
+- `npm run test:integration` - Run API integration tests against local Supabase
 
 ## License
 

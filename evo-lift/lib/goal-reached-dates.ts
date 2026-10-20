@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { formatMilestoneTarget, type MilestoneType } from "@/lib/milestone-progress";
 import { fetchInChunks } from "@/lib/supabase/chunked-query";
 import type { Database } from "@/lib/supabase/database.types";
+import { fetchWorkoutSessionsByIds } from "@/lib/workout-sessions-by-ids";
 
 type Client = SupabaseClient<Database>;
 
@@ -111,19 +112,19 @@ async function loadExerciseNames(client: Client, exerciseIds: string[]): Promise
   return names;
 }
 
-/** Dates in `YYYY-MM-DD` form, with each reached goal named by its exercise. */
+/**
+ * Dates in `YYYY-MM-DD` form, with each reached goal named by its exercise.
+ * `userId` is required so service-role (personal token) callers cannot omit ownership.
+ */
 export async function loadGoalReachedSessionDates(
   client: Client,
-  userId?: string,
+  userId: string,
 ): Promise<Record<string, string>> {
-  let milestoneQuery = client
+  const { data, error } = await client
     .from("strength_milestones")
     .select("exercise_id, milestone_type, target_weight_kg, bodyweight_multiple, min_reps, achieved_at")
+    .eq("user_id", userId)
     .not("achieved_at", "is", null);
-  if (userId) {
-    milestoneQuery = milestoneQuery.eq("user_id", userId);
-  }
-  const { data, error } = await milestoneQuery;
   if (error || !data || data.length === 0) {
     return {};
   }
@@ -183,17 +184,11 @@ export async function loadGoalReachedSessionDates(
   }
 
   const sessionIds = [...new Set(sessionExerciseRows.map((row) => row.session_id))];
-  const { data: sessionRows, error: sessionsError } = await fetchInChunks(sessionIds, (chunk, from, to) => {
-    let sessionQuery = client
-      .from("workout_sessions")
-      .select("id, performed_on")
-      .in("id", chunk)
-      .order("id", { ascending: true });
-    if (userId) {
-      sessionQuery = sessionQuery.eq("user_id", userId);
-    }
-    return sessionQuery.range(from, to);
-  });
+  const { data: sessionRows, error: sessionsError } = await fetchWorkoutSessionsByIds(
+    client,
+    sessionIds,
+    userId,
+  );
   if (sessionsError) {
     return reachedGoalLabelsBySessionDate(goals, []);
   }

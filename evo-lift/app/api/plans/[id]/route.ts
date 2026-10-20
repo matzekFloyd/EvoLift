@@ -8,6 +8,7 @@ import {
   requireUuid,
 } from "@/server/api/http";
 import { parsePlanSaveBody } from "@/server/api/plan-body";
+import { requireOwnedPlanId } from "@/server/db/owned";
 import { deletePlan, getPlanById, updatePlan } from "@/server/db/plans";
 
 type PlanParams = { id: string };
@@ -18,7 +19,8 @@ export async function GET(
 ) {
   return handleApi(request, async (auth) => {
     const { id } = await readRouteParams(context.params);
-    const plan = await getPlanById(auth.client, auth.userId, requireUuid(id, "plan id"));
+    const planId = await requireOwnedPlanId(auth.client, auth.userId, requireUuid(id, "plan id"));
+    const plan = await getPlanById(auth.client, auth.userId, planId);
     if (!plan) {
       throw new ApiHttpError(404, "Plan not found.");
     }

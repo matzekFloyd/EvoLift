@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { TargetWeightHistorySet } from "@/lib/target-weight-suggestion";
 import { fetchAllPages, fetchInChunks } from "@/lib/supabase/chunked-query";
 import type { Database } from "@/lib/supabase/database.types";
+import { fetchWorkoutSessionsByIds } from "@/lib/workout-sessions-by-ids";
 
 type Client = SupabaseClient<Database>;
 
@@ -9,12 +10,6 @@ type SessionExerciseHistoryRow = {
   id: string;
   session_id: string;
   target_weight_kg: number | null;
-};
-
-type SessionHistoryRow = {
-  id: string;
-  performed_on: string;
-  created_at: string;
 };
 
 type SetHistoryRow = {
@@ -37,8 +32,8 @@ export async function loadTargetWeightHistory(
     return [];
   }
 
-  const { data: authData, error: authError } = await client.auth.getSession();
-  const userId = authData.session?.user.id;
+  const { data: authData, error: authError } = await client.auth.getUser();
+  const userId = authData.user?.id;
   if (authError || !userId) {
     throw new Error("Could not load recent working sets.");
   }
@@ -60,16 +55,10 @@ export async function loadTargetWeightHistory(
   }
 
   const sessionIds = [...new Set(sessionExerciseRows.map((row) => row.session_id))];
-  const { data: sessionRows, error: sessionsError } = await fetchInChunks<SessionHistoryRow>(
+  const { data: sessionRows, error: sessionsError } = await fetchWorkoutSessionsByIds(
+    client,
     sessionIds,
-    (chunk, from, to) =>
-      client
-        .from("workout_sessions")
-        .select("id, performed_on, created_at")
-        .in("id", chunk)
-        .eq("user_id", userId)
-        .order("id", { ascending: true })
-        .range(from, to),
+    userId,
   );
   if (sessionsError) {
     throw new Error("Could not load recent working sets.");

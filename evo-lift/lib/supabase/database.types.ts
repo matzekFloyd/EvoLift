@@ -639,6 +639,17 @@ export type Database = {
           session_count: number;
         }>;
       };
+      workout_sessions_by_ids: {
+        Args: {
+          p_ids: string[];
+          p_user_id: string;
+        };
+        Returns: Array<{
+          id: string;
+          performed_on: string;
+          created_at: string;
+        }>;
+      };
       instantiate_workout_template: {
         Args: {
           p_notes?: string | null;

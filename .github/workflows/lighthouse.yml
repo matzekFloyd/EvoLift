@@ -1,0 +1,83 @@
+name: Lighthouse
+
+on:
+  push:
+    branches: ["master"]
+
+permissions:
+  contents: read
+
+jobs:
+  lighthouse:
+    name: Performance
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Reserve Supabase host ports
+        run: sudo sysctl -w net.ipv4.ip_local_reserved_ports=54320-54329
+
+      - name: Setup Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          # Puppeteer 25 needs Node >= 22.12. `22` is the current 22.x on the runner.
+          node-version: 22
+          cache: npm
+          cache-dependency-path: evo-lift/package-lock.json
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@45a513f8c64c0bc8e0e3dfe572b5c95be85f6359 # v3
+        with:
+          version: 2.121.0
+
+      - name: Install dependencies
+        working-directory: evo-lift
+        run: npm ci
+
+      - name: Install Chrome for Lighthouse
+        working-directory: evo-lift
+        run: npx puppeteer browsers install chrome
+
+      - name: Start local Supabase
+        run: node scripts/ci-supabase-start.mjs
+
+      - name: Apply migrations and catalog seeds
+        run: |
+          # Migrations already ran inside supabase start. Load the catalog only.
+          supabase db query --local --file supabase/seeds/001_exercises.sql
+          supabase db query --local --file supabase/seeds/002_exercise_translations.sql
+
+      - name: Export local Supabase env
+        run: |
+          set -euo pipefail
+          supabase status -o env | grep -E '^(API_URL|ANON_KEY|SERVICE_ROLE_KEY)=' > /tmp/supabase.env
+          set -a
+          source /tmp/supabase.env
+          set +a
+          echo "NEXT_PUBLIC_SUPABASE_URL=${API_URL}" >> "$GITHUB_ENV"
+          echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=${ANON_KEY}" >> "$GITHUB_ENV"
+          echo "SUPABASE_SERVICE_ROLE_KEY=${SERVICE_ROLE_KEY}" >> "$GITHUB_ENV"
+
+      - name: Seed local demo user
+        working-directory: evo-lift
+        run: npm run seed:local
+
+      - name: Build app
+        working-directory: evo-lift
+        run: npm run build
+
+      - name: Run Lighthouse performance checks
+        working-directory: evo-lift
+        run: npm run lighthouse
+
+      - name: Upload Lighthouse reports
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
+        with:
+          name: lighthouse-reports
+          path: evo-lift/.lighthouseci/
+          # Dot-directories are skipped unless this is true.
+          include-hidden-files: true
+          if-no-files-found: warn

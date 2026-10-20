@@ -1,6 +1,6 @@
 import type { WeeklyVolumePoint } from "@/lib/insights-data";
 
-type InsightTrendMetric = "volume" | "workingSets";
+type InsightTrendMetric = "volume" | "workingSets" | "sessions";
 
 function parseDate(value: string): Date {
   const [yearText, monthText, dayText] = value.split("-");
@@ -26,7 +26,13 @@ function inclusiveDayCount(from: string, to: string): number {
 }
 
 function metricValue(point: WeeklyVolumePoint, metric: InsightTrendMetric): number {
-  return metric === "volume" ? point.volumeKg : point.workingSets;
+  if (metric === "volume") {
+    return point.volumeKg;
+  }
+  if (metric === "workingSets") {
+    return point.workingSets;
+  }
+  return point.sessionCount;
 }
 
 function sumMetric(points: WeeklyVolumePoint[], metric: InsightTrendMetric): number {
@@ -46,10 +52,18 @@ function formatCurrent(value: number, metric: InsightTrendMetric): string {
   if (metric === "volume") {
     return formatKg(value);
   }
-  return formatCount(value, "working set");
+  if (metric === "workingSets") {
+    return formatCount(value, "working set");
+  }
+  return formatCount(value, "session");
 }
 
-function changeClause(current: number, previous: number, metric: InsightTrendMetric, comparedWith: string): string {
+function changeClause(
+  current: number,
+  previous: number,
+  metric: InsightTrendMetric,
+  comparedWith: string,
+): string {
   const delta = current - previous;
   const unchanged = metric === "volume" ? Math.abs(delta) < 0.05 : Math.abs(delta) < 0.5;
   if (unchanged) {
@@ -65,7 +79,11 @@ function changeClause(current: number, previous: number, metric: InsightTrendMet
     return `${formatKg(Math.abs(delta))} ${delta > 0 ? "more" : "less"} than ${comparedWith}`;
   }
   const amount = Math.abs(Math.round(delta));
-  const noun = amount === 1 ? "working set" : "working sets";
+  if (metric === "workingSets") {
+    const noun = amount === 1 ? "working set" : "working sets";
+    return `${amount} ${delta > 0 ? "more" : "fewer"} ${noun} than ${comparedWith}`;
+  }
+  const noun = amount === 1 ? "session" : "sessions";
   return `${amount} ${delta > 0 ? "more" : "fewer"} ${noun} than ${comparedWith}`;
 }
 
