@@ -23,6 +23,7 @@ import {
 import { POST as createTemplate } from "@/app/api/templates/route";
 import {
   adminClient,
+  assertHttpStatus,
   assertLocalSupabase,
   buildRequest,
   catalogId,
@@ -81,7 +82,7 @@ describe("session mutations, plan duplicate, openapi, security events", () => {
         }),
       ),
     );
-    assert.equal(created.status, 201, created.body.error);
+    assertHttpStatus(created.status, 201, created.body.error);
     const session = created.body.data as SessionDetail;
     const squatExercise = session.exercises.find((row) => row.exercise_id === squatId);
     const deadliftExercise = session.exercises.find((row) => row.exercise_id === deadliftId);
@@ -98,7 +99,7 @@ describe("session mutations, plan duplicate, openapi, security events", () => {
         { params: Promise.resolve({ id: session.id, sessionExerciseId: squatExercise.id }) },
       ),
     );
-    assert.equal(logged.status, 201, logged.body.error);
+    assertHttpStatus(logged.status, 201, logged.body.error);
     const setId = (logged.body.data as SessionDetail).exercises
       .flatMap((exercise) => exercise.sets)
       .find((set) => set.reps === 5)?.id;
@@ -121,7 +122,7 @@ describe("session mutations, plan duplicate, openapi, security events", () => {
         },
       ),
     );
-    assert.equal(patchedSet.status, 200, patchedSet.body.error);
+    assertHttpStatus(patchedSet.status, 200, patchedSet.body.error);
     const afterPatch = patchedSet.body.data as SessionDetail;
     const updated = afterPatch.exercises
       .flatMap((exercise) => exercise.sets)
@@ -184,7 +185,7 @@ describe("session mutations, plan duplicate, openapi, security events", () => {
         },
       ),
     );
-    assert.equal(deletedSet.status, 200, deletedSet.body.error);
+    assertHttpStatus(deletedSet.status, 200, deletedSet.body.error);
     const afterDeleteSet = deletedSet.body.data as SessionDetail;
     assert.equal(
       afterDeleteSet.exercises.flatMap((exercise) => exercise.sets).some((set) => set.id === setId),
@@ -202,7 +203,7 @@ describe("session mutations, plan duplicate, openapi, security events", () => {
         { params: Promise.resolve({ id: session.id, sessionExerciseId: deadliftExercise.id }) },
       ),
     );
-    assert.equal(patchedExercise.status, 200, patchedExercise.body.error);
+    assertHttpStatus(patchedExercise.status, 200, patchedExercise.body.error);
     const afterExercisePatch = patchedExercise.body.data as SessionDetail;
     const patchedRow = afterExercisePatch.exercises.find((row) => row.id === deadliftExercise.id);
     assert.equal(patchedRow?.target_reps, 8);
@@ -218,7 +219,7 @@ describe("session mutations, plan duplicate, openapi, security events", () => {
         { params: Promise.resolve({ id: session.id, sessionExerciseId: deadliftExercise.id }) },
       ),
     );
-    assert.equal(deletedExercise.status, 200, deletedExercise.body.error);
+    assertHttpStatus(deletedExercise.status, 200, deletedExercise.body.error);
     const afterExerciseDelete = deletedExercise.body.data as SessionDetail;
     assert.equal(
       afterExerciseDelete.exercises.some((row) => row.id === deadliftExercise.id),
@@ -243,7 +244,7 @@ describe("session mutations, plan duplicate, openapi, security events", () => {
         }),
       ),
     );
-    assert.equal(plan.status, 201, plan.body.error);
+    assertHttpStatus(plan.status, 201, plan.body.error);
     const planId = (plan.body.data as { id: string }).id;
 
     const duplicated = await readJson(
@@ -251,7 +252,7 @@ describe("session mutations, plan duplicate, openapi, security events", () => {
         params: Promise.resolve({ id: planId }),
       }),
     );
-    assert.equal(duplicated.status, 201, duplicated.body.error);
+    assertHttpStatus(duplicated.status, 201, duplicated.body.error);
     const copy = duplicated.body.data as { id: string; name: string };
     assert.ok(copy.id);
     assert.notEqual(copy.id, planId);
@@ -272,7 +273,7 @@ describe("session mutations, plan duplicate, openapi, security events", () => {
         }),
       ),
     );
-    assert.equal(template.status, 201, template.body.error);
+    assertHttpStatus(template.status, 201, template.body.error);
     const templateId = (template.body.data as { id: string }).id;
 
     const updated = await readJson(
@@ -284,7 +285,7 @@ describe("session mutations, plan duplicate, openapi, security events", () => {
         { params: Promise.resolve({ id: templateId }) },
       ),
     );
-    assert.equal(updated.status, 200, updated.body.error);
+    assertHttpStatus(updated.status, 200, updated.body.error);
     assert.equal((updated.body.data as { name: string }).name, "Mutable renamed");
 
     const removed = await readJson(
@@ -292,7 +293,7 @@ describe("session mutations, plan duplicate, openapi, security events", () => {
         params: Promise.resolve({ id: templateId }),
       }),
     );
-    assert.equal(removed.status, 200, removed.body.error);
+    assertHttpStatus(removed.status, 200, removed.body.error);
     assert.deepEqual(removed.body.data, { deleted: true });
 
     const otherDelete = await readJson(
@@ -332,7 +333,7 @@ describe("session mutations, plan duplicate, openapi, security events", () => {
         }),
       ),
     );
-    assert.equal(recorded.status, 200, recorded.body.error);
+    assertHttpStatus(recorded.status, 200, recorded.body.error);
     assert.deepEqual(recorded.body.data, { recorded: true });
   });
 });

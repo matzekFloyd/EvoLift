@@ -21,6 +21,18 @@ export type CatalogExercise = {
 };
 
 /**
+ * Assert an HTTP status and surface an optional API error string on failure.
+ * Node 26 `assert.equal` message params are `string`, not `string | undefined`.
+ */
+export function assertHttpStatus(
+  actual: number,
+  expected: number,
+  errorMessage?: string,
+): void {
+  assert.equal(actual, expected, errorMessage ?? `expected HTTP ${expected}`);
+}
+
+/**
  * Fail fast unless env points at local Supabase.
  * Call once at module load in every API integration file.
  */
