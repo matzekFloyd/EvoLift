@@ -16,6 +16,7 @@ import { latestSessionByPlanDay, nextPlanDayId } from "@/lib/plan-cycle";
 import { getTodayYyyyMmDd } from "@/lib/session-date";
 import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
+import { HOME_PLAN_LOADING_CLASSNAME } from "@/app/home-loading-layout";
 import { instantiateUserPlanDay } from "@/server/actions/plans";
 
 type PlanDayView = {
@@ -172,6 +173,7 @@ export function ActivePlanPanel() {
         </SectionHeading>
       </div>
 
+      <div className={isLoading ? HOME_PLAN_LOADING_CLASSNAME : undefined}>
       {isLoading ? (
         <p className="text-sm text-zinc-500">Loading plan...</p>
       ) : loadError ? (
@@ -285,6 +287,7 @@ export function ActivePlanPanel() {
           ) : null}
         </div>
       )}
+      </div>
 
       {startDay && plan ? (
         <AppDialog titleId="start-plan-day-title">
