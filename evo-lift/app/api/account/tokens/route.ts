@@ -8,6 +8,7 @@ import {
   MAX_API_TOKENS_PER_USER,
   type ApiTokenListItem,
 } from "@/server/db/api-tokens";
+import { logSecurityEvent } from "@/server/security/log-security-event";
 
 function tokenItem(item: ApiTokenListItem) {
   return {
@@ -53,6 +54,12 @@ export async function POST(request: NextRequest) {
       name: tokenName(body.name),
       tokenHash: generated.tokenHash,
       tokenPrefix: generated.tokenPrefix,
+    });
+    logSecurityEvent({
+      type: "token_created",
+      outcome: "success",
+      userId: auth.userId,
+      tokenId: item.id,
     });
     return jsonData({ token: generated.token, ...tokenItem(item) }, 201);
   });

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { classifyApiAuthFailure } from "@/lib/security-event";
 import {
   authenticateApiRequest,
   type ApiRequestAuth,
@@ -7,6 +8,7 @@ import {
   API_UNEXPECTED_ERROR_MESSAGE,
   ApiHttpError,
 } from "@/server/api/errors";
+import { logSecurityEvent } from "@/server/security/log-security-event";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -37,6 +39,13 @@ export async function handleApi(
   try {
     const auth = await authenticateApiRequest(request);
     if ("error" in auth) {
+      logSecurityEvent({
+        type: "api_auth_failed",
+        outcome: "failure",
+        reason: classifyApiAuthFailure(auth.error),
+        method: request.method,
+        path: request.nextUrl.pathname,
+      });
       return jsonError(auth.error, auth.status);
     }
     return await handler(auth);

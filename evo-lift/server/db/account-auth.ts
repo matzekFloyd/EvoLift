@@ -5,6 +5,7 @@ import {
 } from "@/app/account/account-form";
 import { createPublicServerClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { ApiHttpError } from "@/server/api/http";
+import { logSecurityEvent } from "@/server/security/log-security-event";
 
 export async function requireCurrentPassword(
   userId: string,
@@ -27,6 +28,11 @@ export async function requireCurrentPassword(
     if ((passwordError.status ?? 400) >= 500) {
       throw new ApiHttpError(500, "Could not verify the current password. Try again.");
     }
+    logSecurityEvent({
+      type: "password_verify_failed",
+      outcome: "failure",
+      userId,
+    });
     throw new ApiHttpError(400, CURRENT_PASSWORD_INCORRECT);
   }
   return { email };

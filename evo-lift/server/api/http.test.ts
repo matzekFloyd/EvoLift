@@ -129,6 +129,37 @@ describe("API reps, loaded weight, and notes", () => {
   });
 });
 
+describe("API auth failures", () => {
+  it("logs a structured security event without echoing credentials", async () => {
+    authenticateApiRequest.mockResolvedValue({
+      status: 401,
+      error: "Missing bearer token. Use a personal API token from Account or a session access token.",
+    });
+    const consoleInfo = vi.spyOn(console, "info").mockImplementation(() => {});
+    try {
+      const request = {
+        method: "GET",
+        nextUrl: { pathname: "/api/sessions" },
+      } as NextRequest;
+      const response = await handleApi(request, async () => {
+        throw new Error("handler should not run");
+      });
+      assert.equal(response.status, 401);
+      assert.equal(consoleInfo.mock.calls.length, 1);
+      const line = String(consoleInfo.mock.calls[0]?.[0] ?? "");
+      const parsed = JSON.parse(line) as Record<string, unknown>;
+      assert.equal(parsed.channel, "security");
+      assert.equal(parsed.type, "api_auth_failed");
+      assert.equal(parsed.reason, "missing_bearer");
+      assert.equal(parsed.path, "/api/sessions");
+      assert.equal(line.includes("Bearer"), false);
+      assert.equal(line.includes("evo_"), false);
+    } finally {
+      consoleInfo.mockRestore();
+    }
+  });
+});
+
 describe("unexpected API errors", () => {
   it("returns a generic 500 body and logs the real error", async () => {
     const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
