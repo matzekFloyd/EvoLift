@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
+import { ContentPlaceholder } from "@/app/components/content-placeholder";
 import { AppDialog } from "@/app/components/app-dialog";
 import { DateInput } from "@/app/components/date-input";
 import { PanelInset } from "@/app/components/panel-inset";
@@ -173,9 +174,8 @@ export function ActivePlanPanel() {
         </SectionHeading>
       </div>
 
-      <div className={isLoading ? HOME_PLAN_LOADING_CLASSNAME : undefined}>
       {isLoading ? (
-        <p className="text-sm text-zinc-500">Loading plan...</p>
+        <ContentPlaceholder label="Loading plan..." rowClassName={HOME_PLAN_LOADING_CLASSNAME} />
       ) : loadError ? (
         <p className="text-sm text-red-600">{loadError}</p>
       ) : !plan ? (
@@ -287,7 +287,6 @@ export function ActivePlanPanel() {
           ) : null}
         </div>
       )}
-      </div>
 
       {startDay && plan ? (
         <AppDialog titleId="start-plan-day-title">

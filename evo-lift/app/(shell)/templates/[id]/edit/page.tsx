@@ -1,7 +1,13 @@
 "use client";
 
+import { FileStack } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { ContentPlaceholder } from "@/app/components/content-placeholder";
+import {
+  EDITOR_PLACEHOLDER_CLASS,
+  EDITOR_PLACEHOLDER_ROWS,
+} from "@/app/components/content-placeholder-layout";
 import { PageShell } from "@/app/components/page-shell";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
@@ -62,8 +68,16 @@ export default function EditTemplatePage() {
 
   if (!initial) {
     return (
-      <PageShell className="items-center justify-center">
-        <p className="text-sm text-zinc-600">Loading template...</p>
+      <PageShell>
+        <h1 className="inline-flex items-center gap-2 text-2xl font-semibold tracking-tight">
+          <FileStack className="h-6 w-6 text-sky-700" />
+          Edit template
+        </h1>
+        <ContentPlaceholder
+          label="Loading template..."
+          rows={EDITOR_PLACEHOLDER_ROWS}
+          rowClassName={EDITOR_PLACEHOLDER_CLASS}
+        />
       </PageShell>
     );
   }

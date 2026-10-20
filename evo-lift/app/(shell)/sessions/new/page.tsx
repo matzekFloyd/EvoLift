@@ -7,6 +7,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { ActionButton } from "@/app/components/action-button";
+import { ContentPlaceholder } from "@/app/components/content-placeholder";
+import { NEW_SESSION_PLACEHOLDER_ROWS } from "@/app/components/content-placeholder-layout";
 import { DateInput } from "@/app/components/date-input";
 import { PageShell } from "@/app/components/page-shell";
 import { StatusNotice } from "@/app/components/status-notice";
@@ -468,11 +470,7 @@ function NewSessionPageContent() {
   }
 
   if (isChecking || (userId != null && draftGate === "pending-check")) {
-    return (
-      <PageShell className="items-center justify-center">
-        <p className="text-sm text-zinc-600">Checking session...</p>
-      </PageShell>
-    );
+    return <NewSessionLoadingShell label="Checking session..." />;
   }
 
   const isCompactView = isSmallPhone;
@@ -746,14 +744,22 @@ function NewSessionPageContent() {
   );
 }
 
+function NewSessionLoadingShell({ label }: { label: string }) {
+  return (
+    <PageShell>
+      <h1 className="inline-flex items-center gap-2 text-2xl font-semibold tracking-tight">
+        <CalendarPlus className="h-6 w-6 text-sky-700" />
+        New workout session
+      </h1>
+      <ContentPlaceholder label={label} rows={NEW_SESSION_PLACEHOLDER_ROWS} />
+    </PageShell>
+  );
+}
+
 export default function NewSessionPage() {
   return (
     <Suspense
-      fallback={
-        <PageShell className="items-center justify-center">
-          <p className="text-sm text-zinc-600">Loading...</p>
-        </PageShell>
-      }
+      fallback={<NewSessionLoadingShell label="Loading..." />}
     >
       <NewSessionPageContent />
     </Suspense>

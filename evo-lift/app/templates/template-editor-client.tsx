@@ -5,6 +5,11 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
+import { ContentPlaceholder } from "@/app/components/content-placeholder";
+import {
+  EDITOR_PLACEHOLDER_CLASS,
+  EDITOR_PLACEHOLDER_ROWS,
+} from "@/app/components/content-placeholder-layout";
 import { PageShell } from "@/app/components/page-shell";
 import { StatusNotice } from "@/app/components/status-notice";
 import { WorkoutExerciseDraftList } from "@/app/components/workout-exercise-draft-list";
@@ -267,8 +272,32 @@ export function TemplateEditorClient(props: Props) {
 
   if (isChecking) {
     return (
-      <PageShell className="items-center justify-center">
-        <p className="text-sm text-zinc-600">Checking session...</p>
+      <PageShell>
+        <div className="flex items-center justify-between gap-3">
+          <h1 className="inline-flex items-center gap-2 text-2xl font-semibold tracking-tight">
+            <FileStack className="h-6 w-6 text-sky-700" />
+            {title}
+          </h1>
+          <ActionButton type="button" onClick={goBack} variant="secondary" size="md" className="max-md:hidden">
+            <ArrowLeft className="h-4 w-4 text-sky-700" />
+            Back
+          </ActionButton>
+        </div>
+        <p className="mt-2 text-sm text-zinc-600">
+          Templates save exercise order, targets, and notes so you can start a workout session quickly.
+          <Link
+            href="/sessions/new"
+            className="ml-1 font-medium text-sky-800 underline-offset-2 hover:underline"
+          >
+            Plan a session
+          </Link>
+        </p>
+        <ContentPlaceholder
+          label="Checking session..."
+          rows={EDITOR_PLACEHOLDER_ROWS}
+          rowClassName={EDITOR_PLACEHOLDER_CLASS}
+          className="mt-6"
+        />
       </PageShell>
     );
   }

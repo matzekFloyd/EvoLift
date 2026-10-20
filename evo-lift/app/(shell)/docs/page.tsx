@@ -4,6 +4,8 @@ import { BookOpen } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ApiDocsExplorer } from "@/app/docs/api-docs-explorer";
+import { ContentPlaceholder } from "@/app/components/content-placeholder";
+import { DOCS_PLACEHOLDER_CLASS } from "@/app/components/content-placeholder-layout";
 import { PageShell } from "@/app/components/page-shell";
 import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
@@ -51,14 +53,6 @@ export default function ApiDocsPage() {
     };
   }, [router]);
 
-  if (isChecking || !accessToken) {
-    return (
-      <PageShell className="items-center justify-center">
-        <p className="text-sm text-zinc-600">Checking session...</p>
-      </PageShell>
-    );
-  }
-
   return (
     <PageShell>
       <h1 className="inline-flex items-center gap-2 text-2xl font-semibold tracking-tight">
@@ -69,7 +63,11 @@ export default function ApiDocsPage() {
         Requests use your current session. To try a personal API token instead, use
         Authorize and paste the token value.
       </p>
-      <ApiDocsExplorer accessToken={accessToken} />
+      {isChecking || !accessToken ? (
+        <ContentPlaceholder label="Checking session..." rowClassName={DOCS_PLACEHOLDER_CLASS} />
+      ) : (
+        <ApiDocsExplorer accessToken={accessToken} />
+      )}
     </PageShell>
   );
 }

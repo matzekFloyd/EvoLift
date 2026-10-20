@@ -14,6 +14,8 @@ import {
   appTableTdClassName,
   appTableThClassName,
 } from "@/app/components/app-table";
+import { ContentPlaceholder } from "@/app/components/content-placeholder";
+import { NAMED_LIST_PLACEHOLDER_ROWS } from "@/app/components/content-placeholder-layout";
 import { PageAddAction } from "@/app/components/page-add-action";
 import { DateInput } from "@/app/components/date-input";
 import { PageShell } from "@/app/components/page-shell";
@@ -169,14 +171,6 @@ export default function TemplatesPage() {
     }
   }
 
-  if (isChecking) {
-    return (
-      <PageShell className="items-center justify-center">
-        <p className="text-sm text-zinc-600">Checking session...</p>
-      </PageShell>
-    );
-  }
-
   return (
     <PageShell>
       <div className="flex items-center justify-between gap-3">
@@ -206,7 +200,13 @@ export default function TemplatesPage() {
           />
         ) : null}
 
-        {loadError ? (
+        {isChecking ? (
+          <ContentPlaceholder
+            label="Checking session..."
+            rows={NAMED_LIST_PLACEHOLDER_ROWS}
+            className="mt-4"
+          />
+        ) : loadError ? (
           <p className="mt-4 text-sm text-red-600">{loadError}</p>
         ) : templates.length === 0 ? (
           <p className="mt-4 text-center text-sm text-zinc-600">No templates yet.</p>
