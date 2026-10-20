@@ -5,8 +5,19 @@ import {
   emailFingerprint,
   type SecurityEventType,
 } from "@/lib/security-event";
-import { ApiHttpError, jsonData, jsonError, readJsonObject } from "@/server/api/http";
+import {
+  ApiHttpError,
+  jsonData,
+  jsonError,
+  jsonRateLimited,
+  readJsonObject,
+} from "@/server/api/http";
 import { authenticateApiRequest } from "@/server/auth/api-request";
+import {
+  clientIpFromHeaders,
+  consumeRateLimit,
+  SECURITY_EVENT_IP_LIMIT_PER_WINDOW,
+} from "@/server/rate-limit";
 import { logSecurityEvent } from "@/server/security/log-security-event";
 
 const PUBLIC_TYPES = new Set<SecurityEventType>(["login_failed"]);
@@ -34,6 +45,15 @@ function readEventType(body: Record<string, unknown>): SecurityEventType {
  */
 export async function POST(request: NextRequest) {
   try {
+    const ip = clientIpFromHeaders(request.headers);
+    const ipLimit = consumeRateLimit(
+      `security-events:ip:${ip}`,
+      SECURITY_EVENT_IP_LIMIT_PER_WINDOW,
+    );
+    if (!ipLimit.ok) {
+      return jsonRateLimited(ipLimit);
+    }
+
     const body = await readJsonObject(request);
     const type = readEventType(body);
 
