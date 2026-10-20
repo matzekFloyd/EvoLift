@@ -1,8 +1,11 @@
 import assert from "node:assert/strict";
 import type { NextRequest } from "next/server";
-import { describe, it, vi } from "vitest";
+import { afterEach, describe, it, vi } from "vitest";
 import {
+  API_UNEXPECTED_ERROR_MESSAGE,
   ApiHttpError,
+  handleApi,
+  jsonUnexpectedError,
   MAX_SESSION_NOTES_LENGTH,
   parseOptionalDateQuery,
   parseOptionalNonNegativeNumber,
@@ -15,9 +18,15 @@ import {
   requireUuid,
 } from "./http";
 
+const authenticateApiRequest = vi.fn();
+
 vi.mock("@/server/auth/api-request", () => ({
-  authenticateApiRequest: async () => ({ error: "Unauthorized", status: 401 }),
+  authenticateApiRequest: (...args: unknown[]) => authenticateApiRequest(...args),
 }));
+
+afterEach(() => {
+  authenticateApiRequest.mockReset();
+});
 
 const EXERCISE_ID = "123e4567-e89b-12d3-a456-426614174000";
 
@@ -117,6 +126,53 @@ describe("API reps, loaded weight, and notes", () => {
       "notes cannot be longer than 500 characters.",
     );
     assert.equal(messageOf(() => parseOptionalNotes(12, "notes")), "notes must be a string or null.");
+  });
+});
+
+describe("unexpected API errors", () => {
+  it("returns a generic 500 body and logs the real error", async () => {
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const leaked = new Error(
+        'Failed to list workout sessions: relation "workout_sessions" does not exist',
+      );
+      const response = jsonUnexpectedError(leaked);
+      assert.equal(response.status, 500);
+      assert.deepEqual(await response.json(), { error: API_UNEXPECTED_ERROR_MESSAGE });
+      assert.match(API_UNEXPECTED_ERROR_MESSAGE, /try again/i);
+      assert.equal(API_UNEXPECTED_ERROR_MESSAGE.includes("relation"), false);
+      assert.equal(consoleError.mock.calls.length, 1);
+    } finally {
+      consoleError.mockRestore();
+    }
+  });
+
+  it("keeps ApiHttpError copy and hides unexpected handler failures", async () => {
+    authenticateApiRequest.mockResolvedValue({
+      userId: "user-1",
+      client: {},
+    });
+
+    const okRequest = {} as NextRequest;
+    const validation = await handleApi(okRequest, async () => {
+      throw new ApiHttpError(400, "Please enter a valid reps.");
+    });
+    assert.equal(validation.status, 400);
+    assert.deepEqual(await validation.json(), { error: "Please enter a valid reps." });
+
+    const consoleError = vi.spyOn(console, "error").mockImplementation(() => {});
+    try {
+      const unexpected = await handleApi(okRequest, async () => {
+        throw new Error('duplicate key value violates unique constraint "workout_sets_pkey"');
+      });
+      assert.equal(unexpected.status, 500);
+      const body = await unexpected.json();
+      assert.deepEqual(body, { error: API_UNEXPECTED_ERROR_MESSAGE });
+      assert.equal(String(body.error).includes("duplicate key"), false);
+      assert.equal(consoleError.mock.calls.length, 1);
+    } finally {
+      consoleError.mockRestore();
+    }
   });
 });
 

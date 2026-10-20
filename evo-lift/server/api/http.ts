@@ -20,12 +20,22 @@ export class ApiHttpError extends Error {
   }
 }
 
+/** Stable client copy for unexpected failures. Do not put Postgres or stack text here. */
+export const API_UNEXPECTED_ERROR_MESSAGE =
+  "Something went wrong. Please try again.";
+
 export function jsonData(data: unknown, status = 200): NextResponse {
   return NextResponse.json({ data }, { status });
 }
 
 export function jsonError(message: string, status: number): NextResponse {
   return NextResponse.json({ error: message }, { status });
+}
+
+/** Log the real error server-side; return a generic 500 body to the client. */
+export function jsonUnexpectedError(error: unknown): NextResponse {
+  console.error("[api] unexpected error", error);
+  return jsonError(API_UNEXPECTED_ERROR_MESSAGE, 500);
 }
 
 export async function handleApi(
@@ -42,9 +52,7 @@ export async function handleApi(
     if (error instanceof ApiHttpError) {
       return jsonError(error.message, error.status);
     }
-    const message =
-      error instanceof Error ? error.message : "Unexpected server error";
-    return jsonError(message, 500);
+    return jsonUnexpectedError(error);
   }
 }
 
