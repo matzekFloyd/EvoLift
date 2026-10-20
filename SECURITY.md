@@ -58,6 +58,7 @@ Short map of what is already enforced. Details in the sections below.
 | **HTTP headers / CSP** | Set in `evo-lift/lib/security-headers.ts` ([HTTP security headers](#http-security-headers)) |
 | **Secrets** | Service role and Play keystore never ship to the client or git ([Secrets and environment](#secrets-and-environment)) |
 | **Supply chain** | Dependabot + CI `npm audit` for high/critical production advisories |
+| **CI/CD** | Hash-pinned Actions, least-privilege workflow tokens, `master` ruleset ([CI/CD trust boundaries](#cicd-trust-boundaries)) |
 | **Security events** | Structured `channel":"security"` logs (no passwords or raw tokens) |
 | **Rate limits** | App budgets on `/api` + MCP; Auth login/signup via Supabase ([Rate limiting](#rate-limiting)) |
 
@@ -177,6 +178,54 @@ Dependabot (`.github/dependabot.yml`) opens weekly PRs for:
 4. Do not merge Dependabot PRs that skip or weaken the npm audit gate without an allowlist entry (below).
 
 Android/Play keystore and secret handling remain covered under [Secrets and environment](#secrets-and-environment); this section is npm/JS supply chain only.
+
+## CI/CD trust boundaries
+
+Hardens the path workstation → git → Actions → artifacts / deploy against **Tampering** and **Elevation of Privilege** (STRIDE on CI/CD). Complements Dependabot / npm audit above ([#264](https://github.com/matzekFloyd/EvoLift/issues/264)).
+
+### GitHub Actions workflows
+
+| Control | Practice |
+| --- | --- |
+| **Action pins** | Third-party and first-party Actions are **commit-SHA pinned** in `.github/workflows/*` (with a `# vN` comment). The repository setting **Require actions to be pinned to a full-length commit SHA** is on. Dependabot’s `github-actions` ecosystem opens PRs when pins should move. |
+| **Token permissions** | Every workflow sets explicit `permissions:`. Default is `contents: read`. **Release** is the only write path (`contents: write` to publish `vMAJOR.MINOR.PATCH`). CodeQL denies all at the workflow level and elevates only `security-events` / read scopes on the analyze job. |
+| **Repo default** | Repository Actions setting **Workflow permissions** is **Read repository contents and packages permissions** (not read/write). Workflows that need write declare it explicitly. |
+| **No untrusted write paths** | No `pull_request_target` or `workflow_run` workflows. Jobs do not read repository secrets on pull requests from forks (and current workflows use no repository secrets at all — only `github.token` where needed). |
+
+### Branch protection (`master`)
+
+Default branch protection is a **repository ruleset** named `master` (Settings → Rules → Rulesets), not classic branch protection.
+
+| Rule | Intent |
+| --- | --- |
+| Block deletions | Default branch cannot be deleted |
+| Block force pushes (`non_fast_forward`) | No history rewrite on `master` |
+| Require a pull request | Direct pushes to `master` are blocked; changes go through PR |
+| Required checks | **npm test**, **API integration**, **Production dependency advisories** must pass before merge |
+| Require branch up to date | Status checks use the latest `master` tip (`strict` policy) |
+
+**Who can bypass:** the ruleset has **no bypass actors**. Maintainers (including the repository owner) should not bypass required checks or force-push; fix failures and merge normally. If an emergency bypass is ever added in the GitHub UI, document the actor and reason here the same day.
+
+Classic “Branch protection rules” for `master` may show as inactive; the ruleset is the source of truth.
+
+### Secrets in CI and deploy
+
+| Surface | Handling |
+| --- | --- |
+| **GitHub Actions** | Workflows do not hold `SUPABASE_SERVICE_ROLE_KEY`, Play keystores, or Vercel tokens. Local Supabase keys used in Test / Lighthouse jobs are generated on the runner by `supabase start` and never stored as repo secrets. |
+| **Play / Android upload** | Keystore and `keystore.properties` stay on the maintainer machine (gitignored). CI does not upload to Play; see [Secrets and environment](#secrets-and-environment). |
+| **Fork PRs** | GitHub does not expose repository secrets to workflows from forks on `pull_request`. Do not add `pull_request_target` that checks out untrusted code with secrets. |
+| **Production deploy** | Vercel deploys via the **Vercel ↔ GitHub** integration (GitHub App), not long-lived deploy keys in this repo’s Actions. OIDC-to-cloud from Actions is **not** used today; revisit only if deploy moves into a workflow that needs cloud credentials. |
+
+### Related workflows (reference)
+
+| Workflow | Role |
+| --- | --- |
+| `test.yml` | Unit/typecheck + API integration (required on PR) |
+| `npm-audit.yml` | High/critical production advisories (required on PR) |
+| `codeql.yml` | Code scanning (scheduled + PR); not a merge gate |
+| `release.yml` | GitHub Release when `app-version.json` changes on `master` |
+| `production-smoke.yml` / `lighthouse.yml` | Post-merge / push on `master` only |
 
 ## Dependency advisories (npm audit)
 
@@ -302,7 +351,7 @@ OWASP Top 10:2025 / STRIDE tracking: [#254](https://github.com/matzekFloyd/EvoLi
 | Auth password policy / MFA decision | [#261](https://github.com/matzekFloyd/EvoLift/issues/261) | Done (MFA deferred → [#297](https://github.com/matzekFloyd/EvoLift/issues/297)) |
 | This guide (`SECURITY.md`) | [#262](https://github.com/matzekFloyd/EvoLift/issues/262) | This file |
 | Rate limiting / DoS | [#263](https://github.com/matzekFloyd/EvoLift/issues/263) | Done (app budgets + Auth docs; not global CDN) |
-| CI/CD trust boundaries | [#264](https://github.com/matzekFloyd/EvoLift/issues/264) | Open |
+| CI/CD trust boundaries | [#264](https://github.com/matzekFloyd/EvoLift/issues/264) | Done (SHA-pinned Actions, least-privilege tokens, `master` ruleset documented) |
 | MCP bridge hardening | [#265](https://github.com/matzekFloyd/EvoLift/issues/265) | Open |
 | Living STRIDE model | [#266](https://github.com/matzekFloyd/EvoLift/issues/266) | Open |
 | MFA (product) | [#297](https://github.com/matzekFloyd/EvoLift/issues/297) | Deferred |
