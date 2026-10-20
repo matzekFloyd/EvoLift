@@ -13,6 +13,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authEmailRedirectUrl } from "@/lib/auth-email-redirect";
+import { friendlyAuthError } from "@/lib/friendly-auth-error";
 import { reportSecurityEvent } from "@/lib/report-security-event";
 import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
@@ -280,7 +281,7 @@ export default function AccountPage() {
 
     if (error) {
       setEmailMessageTone("error");
-      setEmailMessage(error.message);
+      setEmailMessage(friendlyAuthError(error.message, "account"));
       setIsSavingEmail(false);
       return;
     }
@@ -346,7 +347,7 @@ export default function AccountPage() {
 
     if (error) {
       setPasswordMessageTone("error");
-      setPasswordMessage(error.message);
+      setPasswordMessage(friendlyAuthError(error.message, "account"));
       setIsSavingPassword(false);
       return;
     }

@@ -14,17 +14,32 @@ describe("login form", () => {
     assert.equal(loginEmailError("not-an-email"), "Please enter a valid email address.");
   });
 
-  it("requires a letter, a number, and eight characters", () => {
+  it("requires a password on login without strength rules", () => {
     assert.equal(
-      loginPasswordError({ password: "short1", confirmPassword: "", mode: "login" }),
+      loginPasswordError({ password: "", confirmPassword: "", mode: "login" }),
+      "Please enter your password.",
+    );
+    assert.equal(
+      loginPasswordError({ password: "short", confirmPassword: "", mode: "login" }),
+      null,
+    );
+  });
+
+  it("requires a letter, a number, and eight characters when registering", () => {
+    assert.equal(
+      loginPasswordError({ password: "short1", confirmPassword: "short1", mode: "register" }),
       "Password must be at least 8 characters.",
     );
     assert.equal(
-      loginPasswordError({ password: "longpassword", confirmPassword: "", mode: "login" }),
+      loginPasswordError({
+        password: "longpassword",
+        confirmPassword: "longpassword",
+        mode: "register",
+      }),
       "Password must include at least one letter and one number.",
     );
     assert.equal(
-      loginPasswordError({ password: "longpass1", confirmPassword: "", mode: "login" }),
+      loginPasswordError({ password: "longpass1", confirmPassword: "longpass1", mode: "register" }),
       null,
     );
   });
@@ -48,16 +63,19 @@ describe("login form", () => {
     );
   });
 
-  it("rewrites known auth failures and keeps other messages", () => {
+  it("rewrites known auth failures and never returns raw provider text", () => {
     assert.equal(
       friendlyAuthError("User already registered"),
       "This email is already registered. Try logging in instead.",
     );
-    assert.equal(
-      friendlyAuthError("This email has already been registered"),
-      "This email is already registered. Try logging in instead.",
-    );
     assert.equal(friendlyAuthError("Invalid login credentials"), "Invalid email or password.");
-    assert.equal(friendlyAuthError("Email rate limit exceeded"), "Email rate limit exceeded");
+    assert.equal(
+      friendlyAuthError("Email rate limit exceeded"),
+      "Too many attempts. Wait a few minutes, then try again.",
+    );
+    assert.equal(
+      friendlyAuthError("Database error querying schema"),
+      "Could not sign in. Check your email and password, then try again.",
+    );
   });
 });
