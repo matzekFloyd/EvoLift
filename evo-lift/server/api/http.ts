@@ -3,6 +3,10 @@ import {
   authenticateApiRequest,
   type ApiRequestAuth,
 } from "@/server/auth/api-request";
+import {
+  API_UNEXPECTED_ERROR_MESSAGE,
+  ApiHttpError,
+} from "@/server/api/errors";
 
 const UUID_RE =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -10,19 +14,7 @@ const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 
 export const MAX_SESSION_NOTES_LENGTH = 500;
 
-export class ApiHttpError extends Error {
-  readonly status: number;
-
-  constructor(status: number, message: string) {
-    super(message);
-    this.name = "ApiHttpError";
-    this.status = status;
-  }
-}
-
-/** Stable client copy for unexpected failures. Do not put Postgres or stack text here. */
-export const API_UNEXPECTED_ERROR_MESSAGE =
-  "Something went wrong. Please try again.";
+export { API_UNEXPECTED_ERROR_MESSAGE, ApiHttpError };
 
 export function jsonData(data: unknown, status = 200): NextResponse {
   return NextResponse.json({ data }, { status });

@@ -151,6 +151,7 @@ describe("unexpected API errors", () => {
     authenticateApiRequest.mockResolvedValue({
       userId: "user-1",
       client: {},
+      bypassesRls: false,
     });
 
     const okRequest = {} as NextRequest;

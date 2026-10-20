@@ -115,6 +115,7 @@ export default function GoalsPage() {
     const sets = await loadMilestoneWorkingSets(
       supabaseBrowserClient,
       milestones.map((row) => row.exercise_id),
+      currentUserId,
     );
 
     const progress = new Map<string, GoalProgress>();
@@ -279,7 +280,11 @@ export default function GoalsPage() {
       };
 
       if (definitionChanged) {
-        const sets = await loadMilestoneWorkingSets(supabaseBrowserClient, [parsed.definition.exerciseId]);
+        const sets = await loadMilestoneWorkingSets(
+          supabaseBrowserClient,
+          [parsed.definition.exerciseId],
+          userId,
+        );
         const resolved = resolveMilestone({
           definition: parsed.definition,
           stored: existing ? storedFromRow(existing) : { achievedAt: null, achievedBodyweightKg: null, achievedThresholdKg: null },

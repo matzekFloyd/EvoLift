@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import { isFutureSessionDate } from "@/lib/session-date";
 import { ApiHttpError } from "@/server/api/http";
+import { assertApiUserId } from "@/server/db/owned";
 
 export type WorkoutSessionRow = Database["public"]["Tables"]["workout_sessions"]["Row"];
 export type WorkoutSessionExerciseRow =
@@ -72,6 +73,11 @@ export async function createWorkoutSession(
   return data;
 }
 
+/**
+ * Updates a set by id only. Safe with a user-scoped (RLS) client.
+ * Do not call with the personal-token service-role client — use
+ * `updateOwnedWorkoutSet` so ownership is checked first.
+ */
 export async function updateWorkoutSet(
   client: SupabaseClient<Database>,
   input: UpdateWorkoutSetInput,
@@ -169,6 +175,7 @@ export async function requireOwnedWorkoutSession(
   userId: string,
   sessionId: string,
 ): Promise<WorkoutSessionRow> {
+  assertApiUserId(userId);
   const session = await getOwnedWorkoutSession(client, userId, sessionId);
   if (!session) {
     throw new ApiHttpError(404, "Workout session not found.");

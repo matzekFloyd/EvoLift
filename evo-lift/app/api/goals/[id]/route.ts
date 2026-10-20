@@ -9,6 +9,7 @@ import {
 } from "@/server/api/http";
 import { parseGoalBody } from "@/server/api/goal-body";
 import { deleteGoal, getGoal, updateGoal } from "@/server/db/goals";
+import { requireOwnedGoalId } from "@/server/db/owned";
 
 type GoalParams = { id: string };
 
@@ -18,7 +19,8 @@ export async function GET(
 ) {
   return handleApi(request, async (auth) => {
     const { id } = await readRouteParams(context.params);
-    const goal = await getGoal(auth.client, auth.userId, requireUuid(id, "goal id"));
+    const goalId = await requireOwnedGoalId(auth.client, auth.userId, requireUuid(id, "goal id"));
+    const goal = await getGoal(auth.client, auth.userId, goalId);
     if (!goal) {
       throw new ApiHttpError(404, "Goal not found.");
     }

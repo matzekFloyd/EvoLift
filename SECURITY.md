@@ -21,3 +21,14 @@ Please do not open a public issue for security vulnerabilities.
 - Initial acknowledgement target: within 5 business days.
 - Confirmed issues are triaged and prioritized based on severity and exploitability.
 - When a fix is released, disclosure details may be shared publicly after users have time to update.
+
+## API authentication (JWT vs personal token)
+
+Authenticated `/api/*` routes accept either:
+
+1. **Session access token (JWT)** — Supabase user client. Row Level Security (RLS) applies.
+2. **Personal API token (`evo_…`)** — resolved with the **service-role** client. RLS is **bypassed**.
+
+For personal tokens, every user-owned read or write must filter by the authenticated `userId` (or use ownership helpers in `evo-lift/server/db/owned.ts`). A missing `user_id` filter is an IDOR risk unique to the token path.
+
+`ApiRequestAuth.bypassesRls` is `true` for personal tokens and `false` for session JWTs. Prefer `requireOwned*` helpers over ad-hoc selects when loading a resource by id.
