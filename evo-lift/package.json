@@ -14,7 +14,7 @@
     "lighthouse": "node scripts/run-lighthouse.mjs"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "1.32.1",
+    "@modelcontextprotocol/server": "^2.3.1",
     "@supabase/ssr": "0.6.1",
     "@supabase/supabase-js": "2.105.0",
     "lucide-react": "^1.59.0",
@@ -40,8 +40,5 @@
     "tailwindcss": "^4",
     "typescript": "^7",
     "vitest": "^5.0.5"
-  },
-  "overrides": {
-    "@modelcontextprotocol/sdk": "$@modelcontextprotocol/sdk"
   }
 }
