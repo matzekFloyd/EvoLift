@@ -27,16 +27,16 @@ test("default shell opens production EvoLift and its Supabase host", () => {
   assert.equal(config.appId, "app.evolift");
   assert.equal(config.appName, "EvoLift");
   assert.equal(config.server.url, PRODUCTION_SITE_URL);
-  assert.equal(config.server.url, "https://evo-lift.vercel.app");
+  assert.equal(config.server.url, "https://evolift.at");
   assert.equal(config.server.cleartext, undefined);
   assert.equal(config.android.adjustMarginsForEdgeToEdge, "force");
   assert.deepEqual(config.server.allowNavigation, [PRODUCTION_SUPABASE_HOST]);
   assert.equal(
-    mayLoadInShell(config.server.url, config.server.allowNavigation, "https://evo-lift.vercel.app/login"),
+    mayLoadInShell(config.server.url, config.server.allowNavigation, "https://evolift.at/login"),
     true,
   );
   assert.equal(
-    mayLoadInShell(config.server.url, config.server.allowNavigation, "https://evo-lift.vercel.app/register"),
+    mayLoadInShell(config.server.url, config.server.allowNavigation, "https://evolift.at/register"),
     true,
   );
   assert.equal(
@@ -55,8 +55,8 @@ test("pages outside the site and its Supabase host stay out of the shell", () =>
     "https://exrx.net/Lists/ExList/ChestWt",
     "https://example.com",
     "https://evil.supabase.co",
-    "https://evo-lift.vercel.app.evil.com",
-    "http://evo-lift.vercel.app",
+    "https://evolift.at.evil.com",
+    "http://evolift.at",
     "https://not-tiivtvejwxzgzgkmojuj.supabase.co",
   ];
 
@@ -79,7 +79,7 @@ test("a release build ignores the debug server and loads production", () => {
   });
 
   assert.equal(config.server.url, PRODUCTION_SITE_URL);
-  assert.equal(config.server.url, "https://evo-lift.vercel.app");
+  assert.equal(config.server.url, "https://evolift.at");
   assert.equal(config.server.cleartext, undefined);
   assert.deepEqual(config.server.allowNavigation, [PRODUCTION_SUPABASE_HOST]);
 });
@@ -90,7 +90,7 @@ test("debug server URL overrides the loaded site and leaves the production defau
     debugServer: null,
   });
 
-  assert.equal(PRODUCTION_SITE_URL, "https://evo-lift.vercel.app");
+  assert.equal(PRODUCTION_SITE_URL, "https://evolift.at");
   assert.equal(config.server.url, "http://10.0.2.2:3000");
   assert.equal(config.server.cleartext, true);
   assert.equal(mayLoadInShell(config.server.url, config.server.allowNavigation, "http://10.0.2.2:3000/login"), true);
@@ -179,28 +179,28 @@ test("committed Android project opens production without cleartext", () => {
 });
 
 test("Android Back leaves home and returns from a session", () => {
-  assert.equal(backLeavesTheApp("https://evo-lift.vercel.app/", true), true);
-  assert.equal(backLeavesTheApp("https://evo-lift.vercel.app", false), true);
+  assert.equal(backLeavesTheApp("https://evolift.at/", true), true);
+  assert.equal(backLeavesTheApp("https://evolift.at", false), true);
   assert.equal(backLeavesTheApp("http://10.0.2.2:3000/", true), true);
   assert.equal(
-    backLeavesTheApp("https://evo-lift.vercel.app/sessions/session-1", true),
+    backLeavesTheApp("https://evolift.at/sessions/session-1", true),
     false,
   );
-  assert.equal(backLeavesTheApp("https://evo-lift.vercel.app/sessions/session-1", false), true);
+  assert.equal(backLeavesTheApp("https://evolift.at/sessions/session-1", false), true);
 });
 
 test("the screen stays awake only on an open session", () => {
-  assert.equal(screenStaysAwake("https://evo-lift.vercel.app/sessions/new"), true);
-  assert.equal(screenStaysAwake("https://evo-lift.vercel.app/sessions/session-1"), true);
-  assert.equal(screenStaysAwake("https://evo-lift.vercel.app/sessions/session-1/"), true);
-  assert.equal(screenStaysAwake("https://evo-lift.vercel.app/sessions/session-1?set=2"), true);
+  assert.equal(screenStaysAwake("https://evolift.at/sessions/new"), true);
+  assert.equal(screenStaysAwake("https://evolift.at/sessions/session-1"), true);
+  assert.equal(screenStaysAwake("https://evolift.at/sessions/session-1/"), true);
+  assert.equal(screenStaysAwake("https://evolift.at/sessions/session-1?set=2"), true);
   assert.equal(screenStaysAwake("http://10.0.2.2:3000/sessions/session-1"), true);
-  assert.equal(screenStaysAwake("https://evo-lift.vercel.app/"), false);
-  assert.equal(screenStaysAwake("https://evo-lift.vercel.app/sessions"), false);
-  assert.equal(screenStaysAwake("https://evo-lift.vercel.app/sessions/session-1/edit"), false);
-  assert.equal(screenStaysAwake("https://evo-lift.vercel.app/insights"), false);
-  assert.equal(screenStaysAwake("https://evo-lift.vercel.app/goals"), false);
-  assert.equal(screenStaysAwake("https://evo-lift.vercel.app/account"), false);
+  assert.equal(screenStaysAwake("https://evolift.at/"), false);
+  assert.equal(screenStaysAwake("https://evolift.at/sessions"), false);
+  assert.equal(screenStaysAwake("https://evolift.at/sessions/session-1/edit"), false);
+  assert.equal(screenStaysAwake("https://evolift.at/insights"), false);
+  assert.equal(screenStaysAwake("https://evolift.at/goals"), false);
+  assert.equal(screenStaysAwake("https://evolift.at/account"), false);
   assert.equal(screenStaysAwake(""), false);
   assert.equal(screenStaysAwake("not a url"), false);
 });

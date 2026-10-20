@@ -131,7 +131,7 @@ Set these in each environment:
 
 Production (and preview, if you use a fixed host) should also set:
 
-- `NEXT_PUBLIC_APP_URL` — public app origin used in confirm-email / email-change redirects (example: `https://evo-lift.vercel.app`). Do **not** set this for local `npm run dev`; the browser origin (`http://localhost:3000`) is used instead.
+- `NEXT_PUBLIC_APP_URL` — public app origin used in confirm-email / email-change redirects (`https://evolift.at` in production). Do **not** set this for local `npm run dev`; the browser origin (`http://localhost:3000`) is used instead.
 
 Optional page-load sampling stays off unless `NEXT_PUBLIC_EVOLIFT_PERF_TELEMETRY` is exactly `1`. Restart the app after changing it, because `NEXT_PUBLIC_*` values are embedded at build time. When it is on, each instrumented load (`/exercises`, `/exercises/[slug]`, `/sessions/[id]`) has a chance to POST a summary to `/api/perf`. The default chance is 10%. Set `NEXT_PUBLIC_EVOLIFT_PERF_SAMPLE_RATE` to a number from 0 to 1 to change it (`1` sends every load, `0` sends none). A sample contains the route template, load duration, query count, up to five slowest query names and durations, and cache hit/miss notes when that load already knew them. It does not contain workout notes, set values, or account data. The server writes one log line and stores nothing.
 
@@ -153,16 +153,17 @@ If Site URL stays at `http://localhost:3000`, confirmation emails fall back to l
 
 In the hosted project: **Authentication → URL Configuration**:
 
-1. **Site URL** — one default origin (fallback when a redirect is missing from the allow list). Use the live Vercel host until `evolift.at` is ready, then switch Site URL to `https://evolift.at`. Not localhost.
+1. **Site URL** — `https://evolift.at`. This is the fallback when a redirect is missing from the allow list. Not localhost.
 2. **Redirect URLs** — list every host users may land on (multiple is fine; they do not conflict):
-   - `https://evo-lift.vercel.app/**`
-   - `https://evolift.at/**` and `https://www.evolift.at/**` once DNS points at the app (safe to add early)
+   - `https://evolift.at/**`
+   - `https://www.evolift.at/**` (`www` redirects to the apex; keep it allowed)
+   - `https://evo-lift.vercel.app/**` (308 redirect to the apex; keep it allowed)
    - `http://localhost:3000/**` and `http://127.0.0.1:3000/**` for local register
    - optionally `https://*-<team>.vercel.app/**` for Vercel previews
 
 Sign-up and email-change use `…/login?verified=1` as `emailRedirectTo`. That path must match the allow list (wildcards above cover it).
 
-`NEXT_PUBLIC_APP_URL` should be a **single** canonical origin (the one you want in confirmation emails). Keep it on the Vercel host until `evolift.at` serves the app, then change it to `https://evolift.at` and redeploy. Do not put two URLs in that env var.
+`NEXT_PUBLIC_APP_URL` on Vercel Production is `https://evolift.at`. That is the single origin used in confirmation emails. Do not put two URLs in that env var. DNS records for the domain are in the root `README.md` under Production domain.
 
 ### Environment matrix
 

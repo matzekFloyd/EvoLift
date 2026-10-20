@@ -313,10 +313,10 @@ Production confirm / email-change links use `NEXT_PUBLIC_APP_URL` via `evo-lift/
 
 | Setting | Expected |
 | --- | --- |
-| Site URL | Canonical production origin (e.g. `https://evo-lift.vercel.app`; not localhost) |
-| Redirect URLs | Production `/**`, local `http://localhost:3000/**` and `http://127.0.0.1:3000/**`, plus future custom domain / preview wildcards as needed |
+| Site URL | `https://evolift.at` (not localhost) |
+| Redirect URLs | `https://evolift.at/**`, `https://www.evolift.at/**`, `https://evo-lift.vercel.app/**`, local `http://localhost:3000/**` and `http://127.0.0.1:3000/**` |
 
-When the public host moves (e.g. to `evolift.at`), update Site URL, Redirect URLs, `NEXT_PUBLIC_APP_URL`, and `PUBLIC_APP_ORIGIN` together.
+Keep Site URL, Redirect URLs, `NEXT_PUBLIC_APP_URL`, and `PUBLIC_APP_ORIGIN` on `https://evolift.at`. DNS for that host is in the root `README.md` (Production domain). `www.evolift.at` and `evo-lift.vercel.app` redirect to the apex.
 
 ### MFA decision
 

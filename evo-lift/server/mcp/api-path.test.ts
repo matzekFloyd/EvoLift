@@ -37,7 +37,7 @@ describe("parseMcpApiPath", () => {
 });
 
 describe("buildMcpApiUrl", () => {
-  const origin = "https://evo-lift.vercel.app";
+  const origin = "https://evolift.at";
 
   it("builds a same-origin URL and applies query params", () => {
     const built = buildMcpApiUrl("/api/exercises", origin, { lang: "de" });
@@ -61,11 +61,11 @@ describe("buildMcpApiUrl", () => {
   });
 
   it("keeps the resolved path on the deployment origin", () => {
-    const built = buildMcpApiUrl("/api/sessions", "https://evo-lift.vercel.app/");
+    const built = buildMcpApiUrl("/api/sessions", "https://evolift.at/");
     assert.ok(!("error" in built));
     if ("error" in built) {
       return;
     }
-    assert.equal(built.url.href, "https://evo-lift.vercel.app/api/sessions");
+    assert.equal(built.url.href, "https://evolift.at/api/sessions");
   });
 });
