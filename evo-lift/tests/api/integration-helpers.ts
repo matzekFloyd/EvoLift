@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { NextRequest } from "next/server";
+import { realtimeTransportOptions } from "@/lib/supabase/realtime-transport";
 
 /** Exposed for rare cases that need the raw env (e.g. ad-hoc auth clients). */
 export const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? "";
@@ -55,12 +56,14 @@ export function assertLocalSupabase(): void {
 
 export function adminClient(): SupabaseClient {
   return createClient(supabaseUrl, serviceRoleKey, {
+    ...realtimeTransportOptions(),
     auth: { autoRefreshToken: false, persistSession: false },
   });
 }
 
 export function anonClient(): SupabaseClient {
   return createClient(supabaseUrl, anonKey, {
+    ...realtimeTransportOptions(),
     auth: { autoRefreshToken: false, persistSession: false },
   });
 }
