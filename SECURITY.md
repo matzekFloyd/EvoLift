@@ -59,6 +59,37 @@ Short map of what is already enforced. Details in the sections below.
 | **Secrets** | Service role and Play keystore never ship to the client or git ([Secrets and environment](#secrets-and-environment)) |
 | **Supply chain** | Dependabot + CI `npm audit` for high/critical production advisories |
 | **Security events** | Structured `channel":"security"` logs (no passwords or raw tokens) |
+| **Rate limits** | App budgets on `/api` + MCP; Auth login/signup via Supabase ([Rate limiting](#rate-limiting)) |
+
+## Rate limiting
+
+### App-enforced (best-effort)
+
+In-memory sliding windows in `evo-lift/server/rate-limit.ts` (per serverless isolate — not a global cluster quota). Exceeded calls get **429** with `Retry-After` and the message “Too many requests. Wait a minute, then try again.”
+
+| Surface | Key | Budget (per 60s) |
+| --- | --- | --- |
+| Authenticated `/api/*` via `handleApi` | Session user id | 180 |
+| Same, personal token (`evo_…`) | User id | 90 |
+| Same | Client IP (`x-forwarded-for`) | 240 |
+| `/api/mcp` | User id (or IP if unauthenticated) | 60 |
+| `/api/security/events` | Client IP | 30 |
+
+Normal gym logging (web/Android) stays well under these budgets. Automation and MCP share the token/MCP rows and can hit 429 if scripted aggressively.
+
+### Provider-enforced (Auth)
+
+Browser login, signup, and email confirmation go to **Supabase Auth**, not our `/api` handlers. Limits live in `supabase/config.toml` under `[auth.rate_limit]` (and the hosted Auth dashboard), including:
+
+- `sign_in_sign_ups` — sign-in / sign-up attempts per IP (5-minute window)
+- `email_sent` / `max_frequency` — confirmation and recovery email volume
+- `token_refresh` — session refresh per IP
+
+User-visible Auth rate-limit errors are sanitized in `friendly-auth-error.ts`. Confirm hosted project Auth rate limits match local intent after dashboard changes.
+
+### Not covered here
+
+Edge / CDN DDoS scrubbing (Vercel platform). CAPTCHA on login only if abuse warrants it later.
 
 ## Secrets and environment
 
@@ -270,7 +301,7 @@ OWASP Top 10:2025 / STRIDE tracking: [#254](https://github.com/matzekFloyd/EvoLi
 | Dependabot / npm audit | [#260](https://github.com/matzekFloyd/EvoLift/issues/260) | Done |
 | Auth password policy / MFA decision | [#261](https://github.com/matzekFloyd/EvoLift/issues/261) | Done (MFA deferred → [#297](https://github.com/matzekFloyd/EvoLift/issues/297)) |
 | This guide (`SECURITY.md`) | [#262](https://github.com/matzekFloyd/EvoLift/issues/262) | This file |
-| Rate limiting / DoS | [#263](https://github.com/matzekFloyd/EvoLift/issues/263) | Open |
+| Rate limiting / DoS | [#263](https://github.com/matzekFloyd/EvoLift/issues/263) | Done (app budgets + Auth docs; not global CDN) |
 | CI/CD trust boundaries | [#264](https://github.com/matzekFloyd/EvoLift/issues/264) | Open |
 | MCP bridge hardening | [#265](https://github.com/matzekFloyd/EvoLift/issues/265) | Open |
 | Living STRIDE model | [#266](https://github.com/matzekFloyd/EvoLift/issues/266) | Open |

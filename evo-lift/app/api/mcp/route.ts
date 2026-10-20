@@ -2,8 +2,18 @@ import { createMcpHandler, withMcpAuth } from "mcp-handler";
 import { z } from "zod";
 import type { AuthInfo } from "@modelcontextprotocol/sdk/server/auth/types.js";
 import type { LanguageCode } from "@/lib/supabase/database.types";
-import { authenticateBearer } from "@/server/auth/api-request";
+import {
+  authenticateBearer,
+  getBearerCredential,
+} from "@/server/auth/api-request";
 import { listExercisesWithTranslations } from "@/server/db/exercises";
+import {
+  clientIpFromHeaders,
+  consumeRateLimit,
+  MCP_USER_LIMIT_PER_WINDOW,
+  RATE_LIMIT_MESSAGE,
+} from "@/server/rate-limit";
+import type { NextRequest } from "next/server";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -217,4 +227,38 @@ const verifyToken = async (
 
 const authHandler = withMcpAuth(handler, verifyToken, { required: true });
 
-export { authHandler as GET, authHandler as POST, authHandler as DELETE };
+async function withMcpRateLimit(request: Request): Promise<Response> {
+  const credential = getBearerCredential(request as NextRequest);
+  const auth = await authenticateBearer(credential);
+  if (!("error" in auth)) {
+    const userLimit = consumeRateLimit(`mcp:user:${auth.userId}`, MCP_USER_LIMIT_PER_WINDOW);
+    if (!userLimit.ok) {
+      return new Response(JSON.stringify({ error: RATE_LIMIT_MESSAGE }), {
+        status: 429,
+        headers: {
+          "content-type": "application/json",
+          "Retry-After": String(userLimit.retryAfterSec),
+        },
+      });
+    }
+  } else {
+    const ip = clientIpFromHeaders(request.headers);
+    const ipLimit = consumeRateLimit(`mcp:ip:${ip}`, MCP_USER_LIMIT_PER_WINDOW);
+    if (!ipLimit.ok) {
+      return new Response(JSON.stringify({ error: RATE_LIMIT_MESSAGE }), {
+        status: 429,
+        headers: {
+          "content-type": "application/json",
+          "Retry-After": String(ipLimit.retryAfterSec),
+        },
+      });
+    }
+  }
+  return authHandler(request);
+}
+
+export {
+  withMcpRateLimit as GET,
+  withMcpRateLimit as POST,
+  withMcpRateLimit as DELETE,
+};
