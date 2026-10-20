@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
 import { ApiHttpError, handleApi, jsonData, readJsonObject } from "@/server/api/http";
 import { readAccount, requireCurrentPassword } from "@/server/db/account-auth";
+import { logSecurityEvent } from "@/server/security/log-security-event";
 
 export async function GET(request: NextRequest) {
   return handleApi(request, async (auth) => {
@@ -22,6 +23,11 @@ export async function DELETE(request: NextRequest) {
     if (deleteError) {
       throw new ApiHttpError(500, "Could not delete the account. Try again.");
     }
+    logSecurityEvent({
+      type: "account_deleted",
+      outcome: "success",
+      userId: auth.userId,
+    });
     return jsonData({ deleted: true });
   });
 }

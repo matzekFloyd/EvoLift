@@ -13,6 +13,7 @@ import {
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { authEmailRedirectUrl } from "@/lib/auth-email-redirect";
+import { reportSecurityEvent } from "@/lib/report-security-event";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import type { Database } from "@/lib/supabase/database.types";
 import { ExerciseBadgeChip } from "@/app/components/exercise-badge-chip";
@@ -285,6 +286,13 @@ export default function AccountPage() {
       return;
     }
 
+    if (accessToken) {
+      void reportSecurityEvent({
+        type: "email_change_requested",
+        accessToken,
+      });
+    }
+
     setEmailMessageTone("success");
     setEmailMessage(
       "Email update requested. Please check your inbox to confirm the change.",
@@ -321,6 +329,12 @@ export default function AccountPage() {
     );
 
     if (reauthError) {
+      if (accessToken) {
+        void reportSecurityEvent({
+          type: "password_verify_failed",
+          accessToken,
+        });
+      }
       setPasswordMessageTone("error");
       setPasswordMessage(CURRENT_PASSWORD_INCORRECT);
       setIsSavingPassword(false);
@@ -336,6 +350,13 @@ export default function AccountPage() {
       setPasswordMessage(error.message);
       setIsSavingPassword(false);
       return;
+    }
+
+    if (accessToken) {
+      void reportSecurityEvent({
+        type: "password_changed",
+        accessToken,
+      });
     }
 
     setPasswordMessageTone("success");

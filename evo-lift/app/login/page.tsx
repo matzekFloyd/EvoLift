@@ -19,6 +19,7 @@ import {
   getExerciseMetadataCacheStatus,
   loadExerciseMetadata,
 } from "@/lib/exercise-metadata-cache";
+import { reportSecurityEvent } from "@/lib/report-security-event";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -112,6 +113,7 @@ export default function LoginPage() {
     );
 
     if (error) {
+      void reportSecurityEvent({ type: "login_failed", email: normalizedEmail });
       setMessage(friendlyAuthError(error.message));
       setIsLoading(false);
       return;

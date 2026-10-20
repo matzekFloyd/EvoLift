@@ -91,3 +91,36 @@ If a high/critical production advisory cannot be fixed immediately (no patched r
 | Advisory | Package | Reason | Review by |
 | --- | --- | --- | --- |
 | _(none)_ | | | |
+
+## Security event logging
+
+Server routes and a small client reporter emit **one JSON object per line** on stdout with `"channel":"security"`. On Vercel, open the deployment **Logs** and filter for `channel":"security"` (or the event `type`).
+
+| `type` | When |
+| --- | --- |
+| `api_auth_failed` | `/api/*` request failed bearer auth (401) |
+| `login_failed` | Browser password login failed (email fingerprint + domain only) |
+| `token_created` / `token_revoked` | Personal API token create or revoke |
+| `password_changed` | Password update succeeded |
+| `email_change_requested` | Email change requested (confirmation still required) |
+| `password_verify_failed` | Current-password check failed for a sensitive action |
+| `account_deleted` | Account deletion succeeded |
+
+### What is never logged
+
+Passwords, full session JWTs, personal API token secrets (`evo_…`), or request bodies that carry credentials.
+
+Login failures store a short **email fingerprint** (truncated SHA-256 of the normalized address) and the **email domain**, not the raw address.
+
+### Retention
+
+Retention follows the host log product (Vercel log retention for the project plan). There is no separate long-term SIEM store in-app.
+
+### Alerting (minimal / deferred)
+
+Automated paging on auth-failure spikes is **not** wired yet. Until a log drain or platform alert exists:
+
+1. In Vercel Logs, watch for bursts of `"type":"api_auth_failed"` or `"type":"login_failed"`.
+2. Prefer enabling a **Vercel log drain** (or equivalent) to an alerting tool and alert on elevated counts of those types.
+
+Document any chosen drain/alert target here when it is enabled.
