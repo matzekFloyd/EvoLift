@@ -257,6 +257,7 @@ export default function LoginPage() {
                 href="/terms"
                 target="_blank"
                 rel="noopener noreferrer"
+                prefetch={false}
                 className="shrink-0 text-sm font-medium text-sky-800 underline-offset-2 hover:underline"
               >
                 Terms of use
@@ -265,6 +266,7 @@ export default function LoginPage() {
                 href="/privacy"
                 target="_blank"
                 rel="noopener noreferrer"
+                prefetch={false}
                 className="shrink-0 text-sm font-medium text-sky-800 underline-offset-2 hover:underline"
               >
                 Privacy policy
