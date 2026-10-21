@@ -8,7 +8,8 @@ import {
 } from "./auth-route-access";
 
 describe("auth-route-access", () => {
-  it("treats login and legal pages as public", () => {
+  it("treats the marketing page, login, and legal pages as public", () => {
+    assert.equal(isPublicAppPath("/"), true);
     assert.equal(isPublicAppPath("/login"), true);
     assert.equal(isPublicAppPath("/privacy"), true);
     assert.equal(isPublicAppPath("/terms"), true);
@@ -34,10 +35,10 @@ describe("auth-route-access", () => {
     }
   });
 
-  it("redirects anonymous users away from /app and sends / to login or home", () => {
+  it("keeps signed-out visitors on / and sends signed-in visitors to /app", () => {
     assert.equal(sessionGateDecision({ pathname: "/app/account", hasUser: false }), "redirect_login");
     assert.equal(sessionGateDecision({ pathname: "/app", hasUser: true }), "allow");
-    assert.equal(sessionGateDecision({ pathname: "/", hasUser: false }), "redirect_login");
+    assert.equal(sessionGateDecision({ pathname: "/", hasUser: false }), "allow");
     assert.equal(sessionGateDecision({ pathname: "/", hasUser: true }), "redirect_home");
     assert.equal(sessionGateDecision({ pathname: "/login", hasUser: false }), "allow");
     assert.equal(sessionGateDecision({ pathname: "/login", hasUser: true }), "redirect_home");
