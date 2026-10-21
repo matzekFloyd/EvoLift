@@ -33,11 +33,11 @@ export function CompactRowActions({
     return (
       <TableRowActions>
         <ActionButton type="button" size="sm" variant="secondary" onClick={onSave}>
-          <Check className="h-3 w-3" />
+          <Check className="h-3 w-3" aria-hidden />
           {saveLabel}
         </ActionButton>
         <ActionButton type="button" size="sm" variant="secondary" onClick={onCancel}>
-          <X className="h-3 w-3" />
+          <X className="h-3 w-3" aria-hidden />
           {cancelLabel}
         </ActionButton>
       </TableRowActions>
@@ -48,12 +48,12 @@ export function CompactRowActions({
     <TableRowActions>
       {showSecondary && onSecondary ? (
         <ActionButton type="button" size="sm" variant="danger" onClick={onSecondary}>
-          <Trash2 className="h-3 w-3" />
+          <Trash2 className="h-3 w-3" aria-hidden />
           {secondaryLabel}
         </ActionButton>
       ) : null}
       <ActionButton type="button" size="sm" variant="secondary" onClick={onEdit}>
-        <Pencil className="h-3 w-3" />
+        <Pencil className="h-3 w-3" aria-hidden />
         {editLabel}
       </ActionButton>
     </TableRowActions>

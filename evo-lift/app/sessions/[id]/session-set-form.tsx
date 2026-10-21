@@ -285,7 +285,7 @@ export function SessionExerciseSets({
                         disabled={isSavingSet}
                         className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-50"
                       >
-                        <Trash2 className="h-3 w-3 text-red-600" />
+                        <Trash2 className="h-3 w-3 text-red-600" aria-hidden />
                         Delete
                       </button>
                       <button
@@ -294,7 +294,7 @@ export function SessionExerciseSets({
                         disabled={isSavingSet}
                         className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-50"
                       >
-                        <Pencil className="h-3 w-3 text-sky-700" />
+                        <Pencil className="h-3 w-3 text-sky-700" aria-hidden />
                         Edit
                       </button>
                     </div>
@@ -425,6 +425,7 @@ export function SessionExerciseSets({
                           ),
                         )
                       }
+                      aria-label={`Decrease ${loadFieldLabel} by 2.5`}
                       className="rounded border border-zinc-300 bg-white px-2 py-0.5 text-xs text-zinc-800"
                     >
                       -2.5
@@ -437,6 +438,7 @@ export function SessionExerciseSets({
                           String(Number((Number(addDraft.weightKg || "0") + 2.5).toFixed(1))),
                         )
                       }
+                      aria-label={`Increase ${loadFieldLabel} by 2.5`}
                       className="rounded border border-zinc-300 bg-white px-2 py-0.5 text-xs text-zinc-800"
                     >
                       +2.5
@@ -462,6 +464,7 @@ export function SessionExerciseSets({
                           String(Math.max(1, Number(addDraft.reps || "1") - 1)),
                         )
                       }
+                      aria-label="Decrease reps by 1"
                       className="rounded border border-zinc-300 bg-white px-2 py-0.5 text-xs text-zinc-800"
                     >
                       -1
@@ -474,6 +477,7 @@ export function SessionExerciseSets({
                           String(Math.max(1, Number(addDraft.reps || "0") + 1)),
                         )
                       }
+                      aria-label="Increase reps by 1"
                       className="rounded border border-zinc-300 bg-white px-2 py-0.5 text-xs text-zinc-800"
                     >
                       +1
@@ -488,7 +492,7 @@ export function SessionExerciseSets({
                   disabled={isSavingSet || isPlannedSession}
                   className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-800"
                 >
-                  <Plus className="h-3.5 w-3.5 text-sky-700" />
+                  <Plus className="h-3.5 w-3.5 text-sky-700" aria-hidden />
                   Add set
                 </button>
               </div>
@@ -538,6 +542,7 @@ export function SessionExerciseSets({
                         onChange={(event) =>
                           onEditDraftChange((prev) => ({ ...prev, weightKg: event.target.value }))
                         }
+                        aria-label={loadFieldLabel}
                         className="w-24 rounded-md border bg-white px-2 py-1"
                       />
                     </td>
@@ -549,6 +554,7 @@ export function SessionExerciseSets({
                         onChange={(event) =>
                           onEditDraftChange((prev) => ({ ...prev, reps: event.target.value }))
                         }
+                        aria-label="Reps"
                         className="w-20 rounded-md border bg-white px-2 py-1"
                       />
                     </td>
@@ -561,7 +567,7 @@ export function SessionExerciseSets({
                             disabled={isSavingSet}
                             className="inline-flex w-24 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
                           >
-                            <Check className="h-3 w-3 text-emerald-600" />
+                            <Check className="h-3 w-3 text-emerald-600" aria-hidden />
                             Save
                           </button>
                           <button
@@ -570,7 +576,7 @@ export function SessionExerciseSets({
                             disabled={isSavingSet}
                             className="inline-flex w-24 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
                           >
-                            <X className="h-3 w-3 text-zinc-500" />
+                            <X className="h-3 w-3 text-zinc-500" aria-hidden />
                             Cancel
                           </button>
                         </div>
@@ -610,7 +616,7 @@ export function SessionExerciseSets({
                             disabled={isSavingSet}
                             className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
                           >
-                            <Trash2 className="h-3 w-3 text-red-600" />
+                            <Trash2 className="h-3 w-3 text-red-600" aria-hidden />
                             Delete
                           </button>
                           <button
@@ -619,7 +625,7 @@ export function SessionExerciseSets({
                             disabled={isSavingSet}
                             className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
                           >
-                            <Pencil className="h-3 w-3 text-sky-700" />
+                            <Pencil className="h-3 w-3 text-sky-700" aria-hidden />
                             Edit
                           </button>
                         </div>
@@ -667,7 +673,7 @@ export function SessionExerciseSets({
                   </td>
                   <td className="px-2 py-2">
                     <span className="inline-flex items-center gap-1 text-xs text-zinc-600">
-                      <Plus className="h-3 w-3 text-sky-700" />
+                      <Plus className="h-3 w-3 text-sky-700" aria-hidden />
                       New
                     </span>
                   </td>
@@ -678,6 +684,7 @@ export function SessionExerciseSets({
                       step="0.25"
                       value={addDraft.weightKg}
                       onChange={(event) => onUpdateAddDraft("weightKg", event.target.value)}
+                      aria-label={loadFieldLabel}
                       className="w-24 rounded-md border bg-white px-2 py-1"
                       placeholder={assistance ? "Assistance" : "Weight"}
                     />
@@ -688,6 +695,7 @@ export function SessionExerciseSets({
                       min={1}
                       value={addDraft.reps}
                       onChange={(event) => onUpdateAddDraft("reps", event.target.value)}
+                      aria-label="Reps"
                       className="w-20 rounded-md border bg-white px-2 py-1"
                       placeholder="Reps"
                     />
@@ -700,7 +708,7 @@ export function SessionExerciseSets({
                         disabled={isSavingSet || isPlannedSession}
                         className="inline-flex w-24 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-2 py-1 text-xs text-white hover:border-sky-600 hover:bg-sky-600"
                       >
-                        <Plus className="h-3.5 w-3.5 text-white" />
+                        <Plus className="h-3.5 w-3.5 text-white" aria-hidden />
                         Add set
                       </button>
                     </div>

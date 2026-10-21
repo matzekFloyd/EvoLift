@@ -5,6 +5,8 @@ import type { ReactNode } from "react";
 type CompactStickyBarProps = {
   actions: ReactNode;
   progressLabel: string;
+  /** Spoken name for the progress text (e.g. "Exercise 1 of 3"). Defaults to `progressLabel`. */
+  progressAriaLabel?: string;
   onPrevious: () => void;
   onNext: () => void;
   isPreviousDisabled: boolean;
@@ -16,6 +18,7 @@ type CompactStickyBarProps = {
 export function CompactStickyBar({
   actions,
   progressLabel,
+  progressAriaLabel,
   onPrevious,
   onNext,
   isPreviousDisabled,
@@ -38,7 +41,9 @@ export function CompactStickyBar({
           >
             Previous
           </button>
-          <span className="text-xs text-zinc-600">{progressLabel}</span>
+          <span className="text-xs text-zinc-600" aria-label={progressAriaLabel ?? progressLabel}>
+            {progressLabel}
+          </span>
           <button
             type="button"
             onClick={onNext}

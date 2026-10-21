@@ -99,17 +99,19 @@ export function SessionAddExercisePanel(props: SessionAddExercisePanelProps) {
           type="button"
           onClick={onToggleExpanded}
           className="inline-flex h-7 w-7 items-center justify-center rounded-md hover:bg-zinc-100 hover:text-zinc-900"
+          aria-expanded={isExpanded}
           aria-label={isExpanded ? "Collapse add exercise section" : "Expand add exercise section"}
         >
           {isExpanded ? (
-            <ChevronUp className="h-3.5 w-3.5 text-zinc-500" />
+            <ChevronUp className="h-3.5 w-3.5 text-zinc-500" aria-hidden />
           ) : (
-            <ChevronDown className="h-3.5 w-3.5 text-zinc-500" />
+            <ChevronDown className="h-3.5 w-3.5 text-zinc-500" aria-hidden />
           )}
         </button>
         <button
           type="button"
           onClick={onToggleExpanded}
+          aria-expanded={isExpanded}
           className="text-base font-medium hover:text-zinc-900"
         >
           Add exercise to this session
@@ -207,7 +209,7 @@ export function SessionAddExercisePanel(props: SessionAddExercisePanelProps) {
               disabled={isAdding}
               className="inline-flex h-10 items-center justify-center gap-1 rounded-md border px-3 py-2 text-sm hover:border-sky-400 hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-60"
             >
-              <Plus className="h-3.5 w-3.5 text-sky-700" />
+              <Plus className="h-3.5 w-3.5 text-sky-700" aria-hidden />
               {isAdding ? "Adding..." : "Add exercise"}
             </button>
           </div>
@@ -227,12 +229,7 @@ export function SessionAddExerciseSheet(props: SessionAddExerciseSheetProps) {
   const { slug, usesAssistance, selectExercise, setField } = addExerciseFormModel(props);
 
   return (
-    <SessionBottomSheet
-      title="Add exercise"
-      backdropLabel="Close add exercise form"
-      onClose={onClose}
-      className="md:hidden"
-    >
+    <SessionBottomSheet title="Add exercise" onClose={onClose} className="md:hidden">
       <div className="grid gap-3">
         <label className="block text-sm font-medium">
           Exercise
@@ -312,7 +309,7 @@ export function SessionAddExerciseSheet(props: SessionAddExerciseSheetProps) {
             disabled={isAdding}
             className="inline-flex h-10 flex-1 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-3 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60"
           >
-            <Plus className="h-3.5 w-3.5 text-white" />
+            <Plus className="h-3.5 w-3.5 text-white" aria-hidden />
             {isAdding ? "Adding..." : "Add"}
           </button>
         </div>
