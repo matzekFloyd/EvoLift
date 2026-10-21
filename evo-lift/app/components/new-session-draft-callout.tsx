@@ -101,7 +101,7 @@ export function NewSessionDraftCallout({ userId }: NewSessionDraftCalloutProps) 
 
   return (
     <div
-      className="mb-4 rounded-lg border border-sky-200 bg-sky-50/90 px-3 py-3 text-sm text-sky-950 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+      className="rounded-md border border-sky-200 bg-sky-50 px-3 py-3 text-sm text-sky-950"
       role="status"
     >
       <div

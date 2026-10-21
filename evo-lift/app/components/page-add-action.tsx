@@ -1,15 +1,24 @@
 import Link from "next/link";
 import { Plus } from "lucide-react";
 
-const className =
+const primaryClassName =
   "page-add-action inline-flex h-10 w-10 shrink-0 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 text-sm font-medium text-white sm:w-auto sm:px-3 sm:py-2 [&_svg]:text-white";
 
-type PageAddActionProps =
-  | { label: string; href: string }
-  | { label: string; onClick: () => void; disabled?: boolean };
+const secondaryClassName =
+  "page-add-action inline-flex h-10 w-10 shrink-0 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 text-sm font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100 sm:w-auto sm:px-3 sm:py-2 [&_svg]:text-sky-700";
 
-/** Page-header primary action. Label hides below the `sm` breakpoint; the accessible name stays. */
+type PageAddActionProps = (
+  | { label: string; href: string }
+  | { label: string; onClick: () => void; disabled?: boolean }
+) & {
+  /** Defaults to primary. Use secondary when another filled sky CTA owns the focal area. */
+  variant?: "primary" | "secondary";
+};
+
+/** Page-header add action. Label hides below the `sm` breakpoint; the accessible name stays. */
 export function PageAddAction(props: PageAddActionProps) {
+  const variant = props.variant ?? "primary";
+  const className = variant === "secondary" ? secondaryClassName : primaryClassName;
   const content = (
     <>
       <Plus className="h-3.5 w-3.5" aria-hidden />

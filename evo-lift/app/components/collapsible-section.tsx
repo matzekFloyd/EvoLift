@@ -39,6 +39,11 @@ type CollapsibleSectionProps = {
    * or grey KPI tiles that already provide the inset surface).
    */
   inset?: boolean;
+  /**
+   * `section` matches page SectionHeading weight.
+   * `chrome` is quieter for nested toggles under a real section (Days, Sessions).
+   */
+  titleTone?: "section" | "chrome";
   className?: string;
   titleId?: string;
 };
@@ -53,6 +58,7 @@ export function CollapsibleSection({
   headerAside,
   titleAside,
   inset = true,
+  titleTone = "section",
   className,
   titleId,
 }: CollapsibleSectionProps) {
@@ -62,6 +68,7 @@ export function CollapsibleSection({
   const [open, setOpen] = useState(() =>
     initialCollapsibleSectionOpen({ alwaysOpen, defaultOpen }),
   );
+  const isChromeTitle = titleTone === "chrome";
 
   function handleToggle(event: SyntheticEvent<HTMLDetailsElement>) {
     setOpen(event.currentTarget.open);
@@ -81,6 +88,20 @@ export function CollapsibleSection({
     </>
   );
 
+  const titleClassName = isChromeTitle
+    ? "inline-flex min-w-0 items-center gap-1.5 text-sm font-medium text-zinc-600"
+    : "inline-flex min-w-0 items-center gap-1.5";
+
+  const titleNode = isChromeTitle ? (
+    <h3 id={headingId} className={titleClassName}>
+      {titleRow}
+    </h3>
+  ) : (
+    <SectionHeading id={headingId} className={titleClassName}>
+      {titleRow}
+    </SectionHeading>
+  );
+
   const body = (
     <>
       {headerAside ? <div className="mt-3">{headerAside}</div> : null}
@@ -92,9 +113,7 @@ export function CollapsibleSection({
     const staticContent = (
       <>
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1.5">
-          <SectionHeading id={headingId} className="inline-flex min-w-0 items-center gap-1.5">
-            {titleRow}
-          </SectionHeading>
+          {titleNode}
           {titleAside}
         </div>
         {body}
@@ -124,13 +143,23 @@ export function CollapsibleSection({
   const details = (
     <details className="group" open={open} onToggle={handleToggle}>
       <summary className={summaryClassName}>
-        <SectionHeading id={headingId} className="inline-flex min-w-0 items-center gap-1.5">
-          <ChevronRight
-            className="h-4 w-4 shrink-0 text-zinc-500 transition-transform group-open:rotate-90"
-            aria-hidden
-          />
-          {titleRow}
-        </SectionHeading>
+        {isChromeTitle ? (
+          <h3 id={headingId} className={titleClassName}>
+            <ChevronRight
+              className="h-4 w-4 shrink-0 text-zinc-500 transition-transform group-open:rotate-90"
+              aria-hidden
+            />
+            {titleRow}
+          </h3>
+        ) : (
+          <SectionHeading id={headingId} className={titleClassName}>
+            <ChevronRight
+              className="h-4 w-4 shrink-0 text-zinc-500 transition-transform group-open:rotate-90"
+              aria-hidden
+            />
+            {titleRow}
+          </SectionHeading>
+        )}
         {titleAside ? <span className="contents group-open:hidden">{titleAside}</span> : null}
       </summary>
       {detailsBody}

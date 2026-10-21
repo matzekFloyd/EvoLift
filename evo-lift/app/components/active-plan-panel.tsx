@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
+import { CollapsibleSection } from "@/app/components/collapsible-section";
 import { ContentPlaceholder } from "@/app/components/content-placeholder";
 import { AppDialog } from "@/app/components/app-dialog";
 import { DateInput } from "@/app/components/date-input";
@@ -12,6 +13,11 @@ import { ExerciseBadgeChip } from "@/app/components/exercise-badge-chip";
 import { PanelInset } from "@/app/components/panel-inset";
 import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
+import {
+  homeCompetingCtaVariant,
+  homePlanDayShowsRowAction,
+  homePlanDaysStartsOpen,
+} from "@/app/home-next-action-layout";
 import { homeExerciseBadgeTone } from "@/app/home-sessions";
 import {
   scheduledSessionsBesidePlan,
@@ -55,14 +61,20 @@ type ActivePlanView = {
 
 type ActivePlanPanelProps = {
   scheduledSessions?: ScheduledHomeSession[];
+  /** True when Home shows a non-plan in-progress strip above this panel. */
+  hasStandaloneInProgress?: boolean;
   openingSessionId?: string | null;
   onOpenSession?: (sessionId: string) => void;
+  /** Open plan session ids so Home can keep them out of the standalone strip. */
+  onPlanOpenSessionIdsChange?: (sessionIds: string[]) => void;
 };
 
 export function ActivePlanPanel({
   scheduledSessions = [],
+  hasStandaloneInProgress = false,
   openingSessionId = null,
   onOpenSession,
+  onPlanOpenSessionIdsChange,
 }: ActivePlanPanelProps) {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(true);
@@ -161,6 +173,25 @@ export function ActivePlanPanel({
       );
   const scheduledLabel = plan ? "Also scheduled" : "Scheduled";
   const startDay = plan?.days.find((day) => day.id === startDayId) ?? null;
+  const planHeaderCtaVariant = homeCompetingCtaVariant(hasStandaloneInProgress);
+
+  useEffect(() => {
+    if (!onPlanOpenSessionIdsChange) {
+      return;
+    }
+    if (isLoading) {
+      return;
+    }
+    const ids = new Set<string>();
+    for (const session of openSessionByPlanDay(sessions).values()) {
+      ids.add(session.id);
+    }
+    const openPlanSession = continuablePlanSession(sessions);
+    if (openPlanSession) {
+      ids.add(openPlanSession.id);
+    }
+    onPlanOpenSessionIdsChange([...ids]);
+  }, [isLoading, onPlanOpenSessionIdsChange, sessions]);
 
   function openExistingSession(sessionId: string) {
     if (openingSessionId) {
@@ -221,6 +252,75 @@ export function ActivePlanPanel({
     }
   }
 
+  const dayList =
+    plan && plan.days.length > 0 ? (
+      <ul className="space-y-2">
+        {plan.days.map((day) => {
+          const latest = latestByDay.get(day.id);
+          const openSession = openByDay.get(day.id);
+          const isContinuable = continuable?.planDayId === day.id;
+          const linked = isContinuable ? continuable : (openSession ?? latest);
+          const isNext = day.id === nextDayId;
+          const showRowAction = homePlanDayShowsRowAction({
+            isContinuable,
+            isNext,
+            hasContinuable: continuable != null,
+          });
+          return (
+            <PanelInset
+              as="li"
+              key={day.id}
+              tone={isNext ? "accent" : "muted"}
+              className="flex items-center justify-between gap-2 px-3 py-2"
+            >
+              <div className="min-w-0">
+                <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-zinc-900">
+                  {day.name}
+                  {isNext ? (
+                    <span className="rounded-full border border-sky-200 bg-white px-2 py-0.5 text-[10px] font-medium text-sky-800">
+                      Next
+                    </span>
+                  ) : null}
+                </p>
+                {linked ? (
+                  <Link
+                    href={`/sessions/${linked.id}`}
+                    className="text-xs font-medium text-sky-800 underline-offset-2 hover:underline"
+                  >
+                    {formatDateOnlyForLocale(linked.performedOn)}
+                  </Link>
+                ) : (
+                  <p className="text-xs text-zinc-500">Not logged yet.</p>
+                )}
+              </div>
+              {showRowAction ? (
+                <ActionButton
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="shrink-0"
+                  disabled={continuable != null || day.exerciseCount === 0}
+                  title={
+                    continuable != null
+                      ? continuableDayName
+                        ? `Finish ${continuableDayName} before starting another day.`
+                        : PLAN_ALREADY_OPEN_MESSAGE
+                      : day.exerciseCount === 0
+                        ? "Add at least one exercise to this day."
+                        : undefined
+                  }
+                  onClick={() => openStart(day.id)}
+                >
+                  <Play className="h-3.5 w-3.5" aria-hidden />
+                  Start
+                </ActionButton>
+              ) : null}
+            </PanelInset>
+          );
+        })}
+      </ul>
+    ) : null;
+
   return (
     <section className="panel p-5">
       <div className="mb-2">
@@ -259,7 +359,7 @@ export function ActivePlanPanel({
             </div>
             <ActionButton
               type="button"
-              variant="primary"
+              variant={planHeaderCtaVariant}
               size="md"
               className="shrink-0"
               disabled={
@@ -287,9 +387,19 @@ export function ActivePlanPanel({
               }}
             >
               {nextOpenSession ? (
-                <Play className="h-4 w-4 text-white" aria-hidden />
+                <Play
+                  className={
+                    planHeaderCtaVariant === "primary" ? "h-4 w-4 text-white" : "h-4 w-4"
+                  }
+                  aria-hidden
+                />
               ) : (
-                <ChevronRight className="h-4 w-4 text-white" aria-hidden />
+                <ChevronRight
+                  className={
+                    planHeaderCtaVariant === "primary" ? "h-4 w-4 text-white" : "h-4 w-4"
+                  }
+                  aria-hidden
+                />
               )}
               {nextOpenSession
                 ? openingSessionId === nextOpenSession.id
@@ -306,76 +416,15 @@ export function ActivePlanPanel({
               Add at least one exercise to {nextDay.name} before starting a session.
             </p>
           ) : null}
-          {plan.days.length > 0 ? (
-            <ul className="space-y-2">
-              {plan.days.map((day) => {
-                const latest = latestByDay.get(day.id);
-                const openSession = openByDay.get(day.id);
-                const isContinuable = continuable?.planDayId === day.id;
-                const linked = isContinuable ? continuable : (openSession ?? latest);
-                const isNext = day.id === nextDayId;
-                const isOpening = isContinuable && openingSessionId === continuable?.id;
-                return (
-                  <PanelInset
-                    as="li"
-                    key={day.id}
-                    tone={isNext ? "accent" : "muted"}
-                    className="flex items-center justify-between gap-2 px-3 py-2"
-                  >
-                    <div className="min-w-0">
-                      <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-zinc-900">
-                        {day.name}
-                        {isNext ? (
-                          <span className="rounded-full border border-sky-200 bg-white px-2 py-0.5 text-[10px] font-medium text-sky-800">
-                            Next
-                          </span>
-                        ) : null}
-                      </p>
-                      {linked ? (
-                        <Link
-                          href={`/sessions/${linked.id}`}
-                          className="text-xs font-medium text-sky-800 underline-offset-2 hover:underline"
-                        >
-                          {formatDateOnlyForLocale(linked.performedOn)}
-                        </Link>
-                      ) : (
-                        <p className="text-xs text-zinc-500">Not logged yet.</p>
-                      )}
-                    </div>
-                    <ActionButton
-                      type="button"
-                      variant="secondary"
-                      size="sm"
-                      className="shrink-0"
-                      disabled={
-                        isContinuable
-                          ? isOpening
-                          : continuable != null || day.exerciseCount === 0
-                      }
-                      title={
-                        !isContinuable && continuable != null
-                          ? continuableDayName
-                            ? `Finish ${continuableDayName} before starting another day.`
-                            : PLAN_ALREADY_OPEN_MESSAGE
-                          : !isContinuable && day.exerciseCount === 0
-                            ? "Add at least one exercise to this day."
-                            : undefined
-                      }
-                      onClick={() => {
-                        if (isContinuable && continuable) {
-                          openExistingSession(continuable.id);
-                          return;
-                        }
-                        openStart(day.id);
-                      }}
-                    >
-                      <Play className="h-3.5 w-3.5" aria-hidden />
-                      {isOpening ? "Opening..." : isContinuable ? "Continue" : "Start"}
-                    </ActionButton>
-                  </PanelInset>
-                );
-              })}
-            </ul>
+          {dayList ? (
+            <CollapsibleSection
+              title="Days"
+              inset={false}
+              titleTone="chrome"
+              defaultOpen={homePlanDaysStartsOpen()}
+            >
+              {dayList}
+            </CollapsibleSection>
           ) : null}
         </div>
       )}
