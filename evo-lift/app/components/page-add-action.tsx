@@ -2,10 +2,10 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 
 const primaryClassName =
-  "page-add-action inline-flex h-10 w-10 shrink-0 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 text-sm font-medium text-white sm:w-auto sm:px-3 sm:py-2 [&_svg]:text-white";
+  "page-add-action inline-flex h-10 w-10 shrink-0 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600 hover:text-white sm:w-auto sm:px-3 sm:py-2 [&_svg]:text-white hover:[&_svg]:text-white";
 
 const secondaryClassName =
-  "page-add-action inline-flex h-10 w-10 shrink-0 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 text-sm font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100 sm:w-auto sm:px-3 sm:py-2 [&_svg]:text-sky-700";
+  "page-add-action inline-flex h-10 w-10 shrink-0 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 text-sm font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100 hover:text-zinc-800 sm:w-auto sm:px-3 sm:py-2 [&_svg]:text-sky-700";
 
 type PageAddActionProps = (
   | { label: string; href: string }
