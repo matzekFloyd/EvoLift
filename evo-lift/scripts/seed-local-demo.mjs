@@ -103,8 +103,9 @@ const TEMPLATE_SESSION_SPECS = [
 ];
 
 /**
- * Future-dated sessions with targets but no logged sets (Home “Upcoming workouts”).
- * Monday / Wednesday in March 2028 match the active 3-Day Strength days.
+ * Future-dated session with targets but no logged sets (Home “Upcoming”).
+ * One only: a plan may have a single unfinished session.
+ * Monday in March 2028 matches the active 3-Day Strength squat/bench day.
  */
 const PLANNED_SESSION_SPECS = [
   {
@@ -112,12 +113,26 @@ const PLANNED_SESSION_SPECS = [
     planDayNote: "Squat and bench",
     note: "Planned: Squat Bench",
   },
-  {
-    performedOn: "2028-03-08",
-    planDayNote: "Deadlift and row",
-    note: "Planned: Deadlift Row",
-  },
 ];
+
+/** Finished-session timestamps for a performed calendar day (local noon / evening). */
+function finishedTimestamps(performed) {
+  const started = new Date(
+    performed.getFullYear(),
+    performed.getMonth(),
+    performed.getDate(),
+    12,
+    0,
+  );
+  const completed = new Date(
+    performed.getFullYear(),
+    performed.getMonth(),
+    performed.getDate(),
+    13,
+    0,
+  );
+  return { started_at: started.toISOString(), completed_at: completed.toISOString() };
+}
 
 function loadEnvFile(filePath) {
   let text = "";
@@ -252,6 +267,7 @@ function buildPlanHistory(exerciseIdBySlug, planId, planDayIdByNote, planDays) {
         plan_id: planId,
         plan_day_id: planDayIdByNote.get(day.note) ?? null,
         source_template_id: null,
+        ...finishedTimestamps(performed),
       });
       day.lifts.forEach((liftKey, index) => {
         const lift = LIFTS[liftKey];
@@ -311,6 +327,7 @@ function buildTemplateSession(
       plan_id: null,
       plan_day_id: null,
       source_template_id: templateId,
+      ...finishedTimestamps(performed),
     },
   ];
   const sessionExercises = [];
@@ -624,6 +641,19 @@ function buildPlannedSession(exerciseIdBySlug, activePlan, planDay, performedOn,
 }
 
 async function seedMissingPlannedSessions(supabase, userId, exerciseIdBySlug, activePlan) {
+  const { count: openPlanCount, error: openError } = await supabase
+    .from("workout_sessions")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .eq("plan_id", activePlan.planId)
+    .is("completed_at", null);
+  if (openError) {
+    throw new Error(`Could not read open plan sessions: ${openError.message}`);
+  }
+  if ((openPlanCount ?? 0) >= 1) {
+    return 0;
+  }
+
   const notes = PLANNED_SESSION_SPECS.map((spec) => spec.note);
   const { data: existing, error } = await supabase
     .from("workout_sessions")
@@ -637,7 +667,7 @@ async function seedMissingPlannedSessions(supabase, userId, exerciseIdBySlug, ac
 
   let added = 0;
   for (const spec of PLANNED_SESSION_SPECS) {
-    if (have.has(spec.note)) {
+    if (have.has(spec.note) || added >= 1) {
       continue;
     }
     const planDay = STRENGTH_PLAN.days.find((day) => day.note === spec.planDayNote);
