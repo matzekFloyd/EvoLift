@@ -1,6 +1,6 @@
 "use client";
 
-import { ClipboardList, FilterX, History, Play } from "lucide-react";
+import { FilterX, Play } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
@@ -421,10 +421,7 @@ export default function Home() {
   return (
     <PageShell>
       <div className="flex items-center justify-between gap-3">
-        <h1 className="inline-flex items-center gap-2 text-2xl font-semibold tracking-tight">
-          <ClipboardList className="h-6 w-6 text-sky-700" />
-          Workout sessions
-        </h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Workout sessions</h1>
         <PageAddAction href="/sessions/new" label="Create session" />
       </div>
       {userId ? <NewSessionDraftCallout userId={userId} /> : null}
@@ -484,10 +481,7 @@ export default function Home() {
           <p className="text-sm text-red-600">{sessionsError}</p>
         ) : (
           <div className="space-y-3">
-            <SectionHeading className="inline-flex items-center gap-1">
-              <History className="h-3.5 w-3.5 text-zinc-500" />
-              Past workouts
-            </SectionHeading>
+            <SectionHeading>Past workouts</SectionHeading>
             {isChecking && workoutActivityData.length === 0 ? (
               <div className="flex flex-col gap-2">
                 <p className="text-sm text-zinc-500">Loading workouts...</p>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { History, LayoutGrid, Trophy } from "lucide-react";
+import { History, LayoutGrid } from "lucide-react";
 import { CollapsibleSection } from "@/app/components/collapsible-section";
 import {
   formatPersonalBestDate,
@@ -51,7 +51,7 @@ function MarkBlock({
   const empty = value === "—";
   return (
     <div>
-      <p className="text-[11px] font-medium uppercase tracking-wide text-zinc-500">{label}</p>
+      <p className="text-[11px] font-medium text-zinc-500">{label}</p>
       <p className="text-sm font-medium text-zinc-900">{value}</p>
       {empty ? null : <p className="text-xs text-zinc-500">{date}</p>}
     </div>
@@ -65,7 +65,7 @@ export function PersonalBestsPanel({
   defaultOpen = false,
 }: PersonalBestsPanelProps) {
   return (
-    <CollapsibleSection title="Personal bests" icon={<Trophy />} defaultOpen={defaultOpen}>
+    <CollapsibleSection title="Personal bests" defaultOpen={defaultOpen}>
       <p className="text-sm text-zinc-800">
         {hideEmpty
           ? `${rows.length} exercise${rows.length === 1 ? "" : "s"} with a logged best in this range.`

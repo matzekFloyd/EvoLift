@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronRight, ListOrdered, Play } from "lucide-react";
+import { ChevronRight, Play } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -224,10 +224,7 @@ export function ActivePlanPanel({
   return (
     <section className="panel p-5">
       <div className="mb-2">
-        <SectionHeading className="inline-flex items-center gap-1">
-          <ListOrdered className="h-3.5 w-3.5 text-zinc-500" />
-          Plan
-        </SectionHeading>
+        <SectionHeading>Plan</SectionHeading>
       </div>
 
       {isLoading ? (
@@ -329,7 +326,7 @@ export function ActivePlanPanel({
                       <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-zinc-900">
                         {day.name}
                         {isNext ? (
-                          <span className="rounded-full border border-sky-200 bg-white px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-sky-800">
+                          <span className="rounded-full border border-sky-200 bg-white px-2 py-0.5 text-[10px] font-medium text-sky-800">
                             Next
                           </span>
                         ) : null}

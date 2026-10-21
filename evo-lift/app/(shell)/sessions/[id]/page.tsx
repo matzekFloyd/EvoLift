@@ -958,8 +958,8 @@ export default function SessionDetailPage() {
   const lifecycleBadge = sessionLifecycleBadgeLabel(lifecycleStatus);
   const lifecycleBadgeClass =
     lifecycleStatus === "completed"
-      ? "rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-sky-800"
-      : "rounded-full border border-zinc-300 bg-zinc-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-700";
+      ? "rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-800"
+      : "rounded-full border border-zinc-300 bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-700";
   const createdFromBadgeClass =
     "rounded-full border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600";
   const showUndoCompleted = canUndoSessionCompleted({

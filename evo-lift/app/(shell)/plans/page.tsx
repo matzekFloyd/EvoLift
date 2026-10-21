@@ -243,11 +243,11 @@ export default function PlansPage() {
                     <span className="inline-flex flex-wrap items-center gap-2">
                       {row.name}
                       {row.isActive ? (
-                        <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-sky-800 sm:hidden">
+                        <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-800 sm:hidden">
                           Active
                         </span>
                       ) : (
-                        <span className="rounded-full border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-600 sm:hidden">
+                        <span className="rounded-full border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600 sm:hidden">
                           Inactive
                         </span>
                       )}
@@ -256,11 +256,11 @@ export default function PlansPage() {
                   <td className={`${appTableTdClassName} text-zinc-600`}>{row.dayCount}</td>
                   <td className={`${appTableTdClassName} hidden text-zinc-600 sm:table-cell`}>
                     {row.isActive ? (
-                      <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-sky-800">
+                      <span className="rounded-full border border-sky-200 bg-sky-50 px-2 py-0.5 text-[10px] font-medium text-sky-800">
                         Active
                       </span>
                     ) : (
-                      <span className="rounded-full border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide text-zinc-600">
+                      <span className="rounded-full border border-zinc-200 bg-zinc-100 px-2 py-0.5 text-[10px] font-medium text-zinc-600">
                         Inactive
                       </span>
                     )}
@@ -281,6 +281,10 @@ export default function PlansPage() {
                         )}
                         {row.isActive ? "Deactivate" : "Set active"}
                       </ActionButton>
+                      <Link href={`/plans/${row.id}/edit`} className={tableRowActionLinkClassName}>
+                        <Pencil className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        Edit
+                      </Link>
                       <ActionButton
                         type="button"
                         size="sm"
@@ -291,10 +295,6 @@ export default function PlansPage() {
                         <Copy className="h-3.5 w-3.5 shrink-0" aria-hidden />
                         Duplicate
                       </ActionButton>
-                      <Link href={`/plans/${row.id}/edit`} className={tableRowActionLinkClassName}>
-                        <Pencil className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                        Edit
-                      </Link>
                       <ActionButton
                         type="button"
                         size="sm"
