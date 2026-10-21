@@ -17,4 +17,13 @@ describe("login client graph", () => {
     assert.match(login, /PageFrame/);
     assert.match(shell, /ExerciseMetadataWarmup/);
   });
+
+  it("uses the plate brand lockup and shared primary ActionButton", () => {
+    const login = readFileSync(join(appDir, "login", "page.tsx"), "utf8");
+
+    assert.match(login, /EvoLiftBrand/);
+    assert.match(login, /ActionButton/);
+    assert.match(login, /variant="primary"/);
+    assert.doesNotMatch(login, /Dumbbell/);
+  });
 });

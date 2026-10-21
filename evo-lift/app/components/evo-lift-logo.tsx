@@ -22,3 +22,23 @@ export function EvoLiftMark({ className }: EvoLiftMarkProps) {
     </svg>
   );
 }
+
+type EvoLiftBrandProps = {
+  className?: string;
+  markClassName?: string;
+  titleClassName?: string;
+};
+
+/** Plate mark + wordmark. Use when the name should sit with the mark. */
+export function EvoLiftBrand({
+  className = "",
+  markClassName = "h-8 w-8",
+  titleClassName = "text-lg leading-none font-bold tracking-[-0.04em] text-sky-900",
+}: EvoLiftBrandProps) {
+  return (
+    <div className={`inline-flex items-center gap-2 ${className}`.trim()}>
+      <EvoLiftMark className={`shrink-0 ${markClassName}`.trim()} />
+      <span className={titleClassName}>EvoLift</span>
+    </div>
+  );
+}
