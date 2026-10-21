@@ -17,6 +17,7 @@ import { PasswordField } from "@/app/components/password-field";
 import { SectionHeading } from "@/app/components/section-heading";
 import { SegmentedTabs } from "@/app/components/segmented-tabs";
 import { StatusNotice } from "@/app/components/status-notice";
+import { actionLinkClassName, quietLinkClassName } from "@/app/components/inline-link-class";
 import {
   friendlyAuthError,
   loginEmailError,
@@ -31,12 +32,6 @@ import { reportSecurityEvent } from "@/lib/report-security-event";
 import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 
 const LOGIN_A11Y_PREFIX = "login-auth";
-
-const actionLinkClassName =
-  "text-sm font-medium text-sky-800 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60 rounded-sm";
-
-const quietLinkClassName =
-  "text-sm font-medium text-zinc-600 underline-offset-2 hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60 focus-visible:text-sky-800 rounded-sm";
 
 const emailInputClassName =
   "mt-1 w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60";

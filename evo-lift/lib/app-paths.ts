@@ -46,7 +46,7 @@ export type LegacySignedInRedirect = {
   permanent: false;
 };
 
-/** Old signed-in URLs, plus the bare `/api` bookmark, before the marketing page exists. */
+/** Old signed-in URLs, plus the bare `/api` bookmark. `/` stays the public page. */
 export function legacySignedInRedirects(): LegacySignedInRedirect[] {
   return [
     ...LEGACY_SIGNED_IN_TAILS.map((source) => ({

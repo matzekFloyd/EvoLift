@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { usePanelInsetSurface } from "@/app/components/panel-inset";
 
@@ -52,6 +53,43 @@ const autoIconColorByVariant: Record<ActionButtonVariant, Exclude<ActionButtonIc
   danger: "red",
 };
 
+/**
+ * Global `a:hover` recolors every link. A filled control must keep its own text color.
+ */
+const linkTextClassByVariant: Record<ActionButtonVariant, string> = {
+  primary: "!text-white hover:!text-white",
+  secondary: "!text-zinc-800 hover:!text-zinc-800",
+  danger: "!text-red-700 hover:!text-red-700",
+};
+
+function actionControlClassName(input: {
+  variant: ActionButtonVariant;
+  size: ActionButtonSize;
+  fullWidth: boolean;
+  raised: boolean | undefined;
+  onPanelInset: boolean;
+  iconColor: ActionButtonIconColor;
+  className: string;
+}): string {
+  const resolvedIconColor =
+    input.iconColor === "auto" ? autoIconColorByVariant[input.variant] : input.iconColor;
+  const widthClass = input.fullWidth ? "w-full" : "w-fit";
+  const useRaised =
+    input.variant === "secondary" &&
+    (input.raised === true || (input.raised !== false && input.onPanelInset));
+  const variantClass = useRaised ? raisedSecondaryClass : variantClassByType[input.variant];
+
+  return [
+    "inline-flex items-center justify-center gap-1 rounded-md border font-medium leading-none",
+    variantClass,
+    sizeClassByType[input.size],
+    widthClass,
+    iconClassByType[resolvedIconColor],
+    "[&_svg]:shrink-0 [&_svg]:self-center",
+    input.className,
+  ].join(" ");
+}
+
 export function ActionButton({
   variant = "secondary",
   size = "md",
@@ -64,27 +102,66 @@ export function ActionButton({
   ...rest
 }: ActionButtonProps) {
   const onPanelInset = usePanelInsetSurface();
-  const resolvedIconColor = iconColor === "auto" ? autoIconColorByVariant[variant] : iconColor;
-  const widthClass = fullWidth ? "w-full" : "w-fit";
-  const useRaised =
-    variant === "secondary" && (raised === true || (raised !== false && onPanelInset));
-  const variantClass = useRaised ? raisedSecondaryClass : variantClassByType[variant];
 
   return (
     <button
       type={type}
-      className={[
-        "inline-flex items-center justify-center gap-1 rounded-md border font-medium leading-none",
-        variantClass,
-        sizeClassByType[size],
-        widthClass,
-        iconClassByType[resolvedIconColor],
-        "[&_svg]:shrink-0 [&_svg]:self-center",
+      className={actionControlClassName({
+        variant,
+        size,
+        fullWidth,
+        raised,
+        onPanelInset,
+        iconColor,
         className,
-      ].join(" ")}
+      })}
       {...rest}
     >
       {children}
     </button>
+  );
+}
+
+type ActionLinkProps = {
+  href: string;
+  variant?: ActionButtonVariant;
+  size?: ActionButtonSize;
+  fullWidth?: boolean;
+  raised?: boolean;
+  iconColor?: ActionButtonIconColor;
+  className?: string;
+  children: ReactNode;
+};
+
+/** Same control as `ActionButton`, as a link. */
+export function ActionLink({
+  href,
+  variant = "primary",
+  size = "md",
+  fullWidth = false,
+  raised,
+  iconColor = "auto",
+  className = "",
+  children,
+}: ActionLinkProps) {
+  const onPanelInset = usePanelInsetSurface();
+
+  return (
+    <Link
+      href={href}
+      className={actionControlClassName({
+        variant,
+        size,
+        fullWidth,
+        raised,
+        onPanelInset,
+        iconColor,
+        className: [linkTextClassByVariant[variant], "no-underline hover:no-underline", className]
+          .filter(Boolean)
+          .join(" "),
+      })}
+    >
+      {children}
+    </Link>
   );
 }

@@ -15,7 +15,7 @@ type CookieToSet = {
 
 /**
  * Refresh the auth cookie and gate `/app` with `getUser()`.
- * `/` sends a signed-out visitor to `/login` and a signed-in visitor to `/app`.
+ * `/` stays public for a signed-out visitor and sends a signed-in visitor to `/app`.
  * Does not gate `/api/*` (API bearer auth stays the control plane).
  */
 export async function updateSession(request: NextRequest): Promise<NextResponse> {

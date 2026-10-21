@@ -1,14 +1,15 @@
 /**
  * Session gate for the UI proxy.
  * Paths under `/app` require a verified user. `/api/*` stays open for bearer auth.
- * `/login`, `/privacy`, `/terms`, and `/glossary` stay public at the site root.
- * `/` is not a second home until the marketing page exists.
+ * `/`, `/login`, `/privacy`, `/terms`, and `/glossary` stay public at the site root.
+ * A signed-in visitor on `/` goes to `/app`.
  */
 
 import { isAuthEmailRecoverySearch } from "@/lib/auth-email-redirect";
 import { APP_HOME_PATH } from "@/lib/app-paths";
 
 const PUBLIC_EXACT = new Set([
+  "/",
   "/login",
   "/privacy",
   "/terms",
@@ -38,8 +39,8 @@ export function sessionGateDecision(input: {
   hasUser: boolean;
   search?: string | URLSearchParams | null;
 }): SessionGateDecision {
-  if (input.pathname === "/") {
-    return input.hasUser ? "redirect_home" : "redirect_login";
+  if (input.pathname === "/" && input.hasUser) {
+    return "redirect_home";
   }
   if (!input.hasUser && requiresAppSession(input.pathname)) {
     return "redirect_login";
