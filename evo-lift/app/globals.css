@@ -44,8 +44,9 @@ input[type="number"] {
 }
 
 ::selection {
-  background: var(--accent-soft);
-  color: #1f2937;
+  /* Light sky tint — primary intent, not zinc soft fill */
+  background: #e0f2fe;
+  color: #0c4a6e;
 }
 
 :focus-visible {

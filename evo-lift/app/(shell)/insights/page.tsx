@@ -1,17 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  Activity,
-  BarChart3,
-  CalendarRange,
-  ChartLine,
-  Dumbbell,
-  FilterX,
-  Gauge,
-  Hash,
-  Weight,
-} from "lucide-react";
+import { Dumbbell, FilterX, Hash, Weight } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
 import { ContentPlaceholder } from "@/app/components/content-placeholder";
@@ -346,17 +336,14 @@ export default function InsightsPage() {
   return (
     <PageShell>
       <section>
-        <h1 className="inline-flex items-center gap-2 text-2xl font-semibold tracking-tight">
-          <BarChart3 className="h-6 w-6 text-sky-700" />
-          Insights
-        </h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Insights</h1>
         <p className="mt-1 text-sm text-zinc-600">
           See which lifts are moving, and which ones have more room than a steady rate.
         </p>
       </section>
 
       <section className="panel space-y-3 p-5">
-        <CollapsibleSection title="Date filter" icon={<CalendarRange />} alwaysOpen>
+        <CollapsibleSection title="Date filter" alwaysOpen>
           <div className="flex flex-col gap-2">
             <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
               <label className="block text-xs font-medium text-zinc-600">
@@ -423,10 +410,7 @@ export default function InsightsPage() {
       </section>
 
       <section className="panel p-5">
-        <SectionHeading className="inline-flex items-center gap-1.5">
-          <Activity className="h-3.5 w-3.5 text-zinc-500" aria-hidden />
-          Workouts, sets & volume
-        </SectionHeading>
+        <SectionHeading>Workouts, sets & volume</SectionHeading>
         {errorMessage ? (
           <StatusNotice message={errorMessage} tone="error" className="mt-3" />
         ) : isLoading ? (
@@ -472,11 +456,7 @@ export default function InsightsPage() {
               />
             </div>
             <ExerciseProgressPanel report={exerciseProgress} />
-            <CollapsibleSection
-              title="Estimated one-rep max (1RM)"
-              icon={<Gauge />}
-              defaultOpen={false}
-            >
+            <CollapsibleSection title="Estimated one-rep max (1RM)" defaultOpen={false}>
               <p className="text-sm text-zinc-800">
                 Best estimated 1RM per session for Barbell Back Squat, Bench Press, Deadlift, and
                 Overhead Press.
@@ -495,11 +475,7 @@ export default function InsightsPage() {
               hideEmpty={hideEmptyPersonalBests}
               onHideEmptyChange={setHideEmptyPersonalBests}
             />
-            <CollapsibleSection
-              title="Weekly sessions, volume & sets"
-              icon={<ChartLine />}
-              defaultOpen={false}
-            >
+            <CollapsibleSection title="Weekly sessions, volume & sets" defaultOpen={false}>
               {!hasTrendChartData ? (
                 <p className="text-xs text-zinc-500">
                   No qualifying session, volume, or working set data for the current filters yet.

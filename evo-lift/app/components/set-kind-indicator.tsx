@@ -28,7 +28,7 @@ export function SetKindIndicator({
     if (isWarmup) {
       return (
         <span className={`inline-flex shrink-0 items-center ${className}`} title="Warmup set">
-          <Flame className={`shrink-0 fill-orange-500 text-orange-600 ${iconClass}`} aria-hidden />
+          <Flame className={`shrink-0 fill-amber-500 text-amber-600 ${iconClass}`} aria-hidden />
           <span className="sr-only">Warmup set</span>
         </span>
       );
@@ -51,7 +51,7 @@ export function SetKindIndicator({
         className={`${box} border-zinc-200 bg-white text-zinc-800 ${className}`}
         title="Warmup set"
       >
-        <Flame className={`shrink-0 fill-orange-500 text-orange-600 ${iconClass}`} aria-hidden />
+        <Flame className={`shrink-0 fill-amber-500 text-amber-600 ${iconClass}`} aria-hidden />
         <span>Warmup</span>
       </span>
     );

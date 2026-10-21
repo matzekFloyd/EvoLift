@@ -1,4 +1,3 @@
-import { Scale } from "lucide-react";
 import { type ExerciseProgressReport } from "@/lib/exercise-progress-insights";
 import { isPublicStandardLift, exrxTableUrl } from "@/lib/strength-standards";
 import {
@@ -22,11 +21,7 @@ export function LiftComparisonPanel({
 }: LiftComparisonPanelProps) {
   const notes = [...report.publicNotes, ...report.balanceNotes];
   return (
-    <CollapsibleSection
-      title="Lift comparison"
-      icon={<Scale />}
-      defaultOpen={defaultOpen}
-    >
+    <CollapsibleSection title="Lift comparison" defaultOpen={defaultOpen}>
       <p className="text-sm text-zinc-800">
         {notes.length > 0
           ? "How your compounds sit next to each other, and next to published standards."

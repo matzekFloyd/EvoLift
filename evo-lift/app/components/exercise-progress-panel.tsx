@@ -1,4 +1,3 @@
-import { TrendingUp } from "lucide-react";
 import { type ExerciseProgressReport } from "@/lib/exercise-progress-insights";
 import { CollapsibleSection } from "@/app/components/collapsible-section";
 import { ExerciseProgressPaceChart } from "@/app/components/exercise-progress-pace-chart";
@@ -17,11 +16,7 @@ export function ExerciseProgressPanel({
   const paceBuckets = exerciseProgressPaceBuckets(report.rows);
 
   return (
-    <CollapsibleSection
-      title="Exercise progress"
-      icon={<TrendingUp />}
-      defaultOpen={defaultOpen}
-    >
+    <CollapsibleSection title="Exercise progress" defaultOpen={defaultOpen}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-sm text-zinc-800">{report.summary}</p>
