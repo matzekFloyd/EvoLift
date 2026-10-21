@@ -3,6 +3,8 @@
  * `/api/*` stays open here so bearer/personal-token API auth is unchanged.
  */
 
+import { isAuthEmailRecoverySearch } from "@/lib/auth-email-redirect";
+
 const PUBLIC_EXACT = new Set([
   "/login",
   "/privacy",
@@ -31,11 +33,16 @@ export type SessionGateDecision = "allow" | "redirect_login" | "redirect_home";
 export function sessionGateDecision(input: {
   pathname: string;
   hasUser: boolean;
+  search?: string | URLSearchParams | null;
 }): SessionGateDecision {
   if (!input.hasUser && requiresAppSession(input.pathname)) {
     return "redirect_login";
   }
   if (input.hasUser && input.pathname === "/login") {
+    // Recovery email lands with a session; keep `/login?recovery=1` so the user can set a password.
+    if (isAuthEmailRecoverySearch(input.search)) {
+      return "allow";
+    }
     return "redirect_home";
   }
   return "allow";

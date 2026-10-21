@@ -50,7 +50,11 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
   } = await supabase.auth.getUser();
 
   const pathname = request.nextUrl.pathname;
-  const decision = sessionGateDecision({ pathname, hasUser: Boolean(user) });
+  const decision = sessionGateDecision({
+    pathname,
+    hasUser: Boolean(user),
+    search: request.nextUrl.search,
+  });
 
   if (decision === "redirect_login" || decision === "redirect_home") {
     const url = request.nextUrl.clone();

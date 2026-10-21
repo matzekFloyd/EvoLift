@@ -4,7 +4,7 @@
  */
 export function friendlyAuthError(
   rawMessage: string,
-  context: "login" | "register" | "account" = "login",
+  context: "login" | "register" | "account" | "forgot" | "reset" = "login",
 ): string {
   const messageLower = rawMessage.toLowerCase();
 
@@ -39,7 +39,7 @@ export function friendlyAuthError(
       messageLower.includes("should contain") ||
       messageLower.includes("requirements"))
   ) {
-    return context === "account"
+    return context === "account" || context === "reset"
       ? "New password must be at least 8 characters and include a letter and a number."
       : "Password must be at least 8 characters and include a letter and a number.";
   }
@@ -57,6 +57,12 @@ export function friendlyAuthError(
 
   if (context === "register") {
     return "Could not create the account. Please try again.";
+  }
+  if (context === "forgot") {
+    return "Could not send a reset link. Please try again.";
+  }
+  if (context === "reset") {
+    return "Could not update your password. Please try again.";
   }
   if (context === "account") {
     return "Could not update account settings. Please try again.";

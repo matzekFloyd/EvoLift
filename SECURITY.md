@@ -329,7 +329,7 @@ Next.js **`proxy.ts`** (Next 16; formerly middleware) runs `lib/supabase/update-
 1. Refreshes the Supabase auth cookie via `@supabase/ssr`.
 2. Calls **`auth.getUser()`** (not cookie-only `getSession()`) to verify the user.
 3. Redirects anonymous browsers to `/login` for protected app routes.
-4. Redirects signed-in users away from `/login` to `/`.
+4. Redirects signed-in users away from `/login` to `/`, except `/login?recovery=1` (password-recovery callback stays open so the lifter can set a new password).
 
 **Public without a session cookie:** `/login`, `/privacy`, `/terms`, `/glossary`, and all `/api/*` paths.
 

@@ -1,6 +1,9 @@
 /** Path after email confirmation (sign-up or email change). */
 export const AUTH_EMAIL_VERIFIED_PATH = "/login?verified=1";
 
+/** Path after password-recovery email; keeps `/login` open while the recovery session is active. */
+export const AUTH_EMAIL_RECOVERY_PATH = "/login?recovery=1";
+
 /**
  * Public origin for auth email redirects.
  * Prefer `NEXT_PUBLIC_APP_URL` in production so confirm links never depend on
@@ -30,6 +33,20 @@ export function authEmailRedirectUrl(input: {
   const path = input.path?.trim() || AUTH_EMAIL_VERIFIED_PATH;
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   return `${origin}${normalizedPath}`;
+}
+
+/** True when the login URL is the password-recovery callback (`?recovery=1`). */
+export function isAuthEmailRecoverySearch(
+  search: string | URLSearchParams | null | undefined,
+): boolean {
+  if (search == null) {
+    return false;
+  }
+  const params =
+    typeof search === "string"
+      ? new URLSearchParams(search.startsWith("?") ? search.slice(1) : search)
+      : search;
+  return params.get("recovery") === "1";
 }
 
 function normalizeOrigin(value: string | null | undefined): string | null {

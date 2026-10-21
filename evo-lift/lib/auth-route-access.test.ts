@@ -38,4 +38,31 @@ describe("auth-route-access", () => {
     assert.equal(sessionGateDecision({ pathname: "/login", hasUser: true }), "redirect_home");
     assert.equal(sessionGateDecision({ pathname: "/", hasUser: true }), "allow");
   });
+
+  it("keeps signed-in users on the password-recovery login callback", () => {
+    assert.equal(
+      sessionGateDecision({
+        pathname: "/login",
+        hasUser: true,
+        search: "?recovery=1",
+      }),
+      "allow",
+    );
+    assert.equal(
+      sessionGateDecision({
+        pathname: "/login",
+        hasUser: true,
+        search: "recovery=1&code=abc",
+      }),
+      "allow",
+    );
+    assert.equal(
+      sessionGateDecision({
+        pathname: "/login",
+        hasUser: true,
+        search: "?verified=1",
+      }),
+      "redirect_home",
+    );
+  });
 });

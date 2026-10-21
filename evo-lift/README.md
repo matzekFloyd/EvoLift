@@ -133,7 +133,7 @@ Set these in each environment:
 
 Production (and preview, if you use a fixed host) should also set:
 
-- `NEXT_PUBLIC_APP_URL` — public app origin used in confirm-email / email-change redirects (`https://evolift.at` in production). Do **not** set this for local `npm run dev`; the browser origin (`http://localhost:3000`) is used instead.
+- `NEXT_PUBLIC_APP_URL` — public app origin used in confirm-email / email-change / password-recovery redirects (`https://evolift.at` in production). Do **not** set this for local `npm run dev`; the browser origin (`http://localhost:3000`) is used instead.
 
 Optional page-load sampling stays off unless `NEXT_PUBLIC_EVOLIFT_PERF_TELEMETRY` is exactly `1`. Restart the app after changing it, because `NEXT_PUBLIC_*` values are embedded at build time. When it is on, each instrumented load (`/exercises`, `/exercises/[slug]`, `/sessions/[id]`) has a chance to POST a summary to `/api/perf`. The default chance is 10%. Set `NEXT_PUBLIC_EVOLIFT_PERF_SAMPLE_RATE` to a number from 0 to 1 to change it (`1` sends every load, `0` sends none). A sample contains the route template, load duration, query count, up to five slowest query names and durations, and cache hit/miss notes when that load already knew them. It does not contain workout notes, set values, or account data. The server writes one log line and stores nothing.
 
@@ -163,9 +163,11 @@ In the hosted project: **Authentication → URL Configuration**:
    - `http://localhost:3000/**` and `http://127.0.0.1:3000/**` for local register
    - optionally `https://*-<team>.vercel.app/**` for Vercel previews
 
-Sign-up and email-change use `…/login?verified=1` as `emailRedirectTo`. That path must match the allow list (wildcards above cover it).
+Sign-up and email-change use `…/login?verified=1` as `emailRedirectTo`. Password recovery uses `…/login?recovery=1` as `redirectTo`. Those paths must match the allow list (wildcards above cover it).
 
-`NEXT_PUBLIC_APP_URL` on Vercel Production is `https://evolift.at`. That is the single origin used in confirmation emails. Do not put two URLs in that env var. DNS records for the domain are in the root `README.md` under Production domain.
+`NEXT_PUBLIC_APP_URL` on Vercel Production is `https://evolift.at`. That is the single origin used in confirmation and recovery emails. Do not put two URLs in that env var. DNS records for the domain are in the root `README.md` under Production domain.
+
+Local Auth email HTML lives under `supabase/templates/` (`confirmation.html`, `recovery.html`) and is wired in `supabase/config.toml`. For the hosted project, paste the same subjects/bodies under **Authentication → Email Templates** (Confirm signup / Reset password) when you change them.
 
 ### Environment matrix
 
@@ -189,6 +191,7 @@ Sign-up and email-change use `…/login?verified=1` as `emailRedirectTo`. That p
 7. Smoke test:
    - `/login`
    - register → confirm-email link opens the production host (not localhost)
+   - forgot password → recovery link opens `/login?recovery=1` on the production host and sets a new password
    - `/docs`
    - authenticated `GET /api/exercises?lang=en`
 
