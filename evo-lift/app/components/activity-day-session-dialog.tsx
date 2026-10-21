@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect } from "react";
 import { ActionButton } from "@/app/components/action-button";
 import { AppDialog } from "@/app/components/app-dialog";
 import { ExerciseBadgeChip } from "@/app/components/exercise-badge-chip";
@@ -26,20 +25,10 @@ export function ActivityDaySessionDialog({
   onOpen,
   onClose,
 }: ActivityDaySessionDialogProps) {
-  useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    }
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
-
   const countLabel = sessions.length === 1 ? "1 workout session" : `${sessions.length} workout sessions`;
 
   return (
-    <AppDialog titleId="activity-day-sessions-title" onBackdropClick={onClose}>
+    <AppDialog titleId="activity-day-sessions-title" onClose={onClose}>
       <SectionHeading id="activity-day-sessions-title">Choose a workout session</SectionHeading>
       <p className="mt-1 text-sm text-zinc-600">
         {countLabel} on {dateLabel}.

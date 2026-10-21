@@ -412,7 +412,11 @@ export function PlanEditorClient(props: Props) {
       </form>
 
       {dayKeyPendingRemoval ? (
-        <AppDialog titleId="remove-plan-day-title" panelClassName="max-w-sm">
+        <AppDialog
+          titleId="remove-plan-day-title"
+          panelClassName="max-w-sm"
+          onClose={() => setDayKeyPendingRemoval(null)}
+        >
           <h2 id="remove-plan-day-title" className="text-base font-semibold text-zinc-900">
             Remove this day?
           </h2>

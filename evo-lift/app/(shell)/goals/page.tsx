@@ -399,7 +399,15 @@ export default function GoalsPage() {
       ) : null}
 
       {deleteTarget ? (
-        <AppDialog titleId="delete-goal-title" panelClassName="max-w-sm">
+        <AppDialog
+          titleId="delete-goal-title"
+          panelClassName="max-w-sm"
+          onClose={() => {
+            if (!isDeleting) {
+              setDeleteTarget(null);
+            }
+          }}
+        >
           <SectionHeading id="delete-goal-title">Delete this goal?</SectionHeading>
           <p className="mt-1 text-sm text-zinc-600">
             This removes the goal for {deleteTarget.label}. Logged sets stay unchanged.

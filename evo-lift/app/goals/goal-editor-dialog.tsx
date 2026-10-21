@@ -36,7 +36,7 @@ export function GoalEditorDialog({
 }: GoalEditorDialogProps) {
   const isEdit = draft.id != null;
   return (
-    <AppDialog titleId="goal-editor-title">
+    <AppDialog titleId="goal-editor-title" onClose={onClose}>
       <SectionHeading id="goal-editor-title">{isEdit ? "Edit goal" : "Create goal"}</SectionHeading>
       <p className="mt-1 text-sm text-zinc-600">
         Total (kg) is loaded weight plus the session base. Warm-up sets do not count.
