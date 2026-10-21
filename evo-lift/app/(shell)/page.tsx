@@ -1,12 +1,14 @@
 "use client";
 
 import { FilterX, Play } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
+import { CollapsibleSection } from "@/app/components/collapsible-section";
 import { PageAddAction } from "@/app/components/page-add-action";
 import { DateInput } from "@/app/components/date-input";
 import { ContentPlaceholder } from "@/app/components/content-placeholder";
+import { ExerciseBadgeChip } from "@/app/components/exercise-badge-chip";
 import { PageShell } from "@/app/components/page-shell";
 import { SectionHeading } from "@/app/components/section-heading";
 import { ActivePlanPanel } from "@/app/components/active-plan-panel";
@@ -14,7 +16,6 @@ import { NewSessionDraftCallout } from "@/app/components/new-session-draft-callo
 import { SessionsTable, type SessionsTableRow } from "@/app/components/sessions-table";
 import { ActivityDaySessionDialog } from "@/app/components/activity-day-session-dialog";
 import { WorkoutActivityChart } from "@/app/components/workout-activity-chart";
-import { ExerciseBadgeChip } from "@/app/components/exercise-badge-chip";
 import { activityDayOpen, activityDaySessionIds } from "@/app/home-activity-day";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { loadGoalReachedSessionDates } from "@/lib/goal-reached-dates";
@@ -28,6 +29,10 @@ import { rememberedUserId } from "@/lib/signed-in-memory";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { homeExerciseBadgeTone, homeExerciseBadges, homeSetCount } from "@/app/home-sessions";
 import { getDefaultHomeDateRange } from "@/app/home-date-range";
+import {
+  homeCompetingCtaVariant,
+  homeSessionTableStartsOpen,
+} from "@/app/home-next-action-layout";
 import { HOME_PAST_WORKOUT_PLACEHOLDER_ROWS } from "@/app/home-loading-layout";
 import type { ScheduledHomeSession } from "@/app/home-scheduled-sessions";
 import {
@@ -104,6 +109,7 @@ export default function Home() {
   );
   const [userId, setUserId] = useState<string | null>(cachedHome?.userId ?? null);
   const [goalReachedByDate, setGoalReachedByDate] = useState<Record<string, string>>({});
+  const [planOpenSessionIds, setPlanOpenSessionIds] = useState<string[]>([]);
   const reloadHomeSessionsRef = useRef<() => void>(() => {});
 
   useEffect(() => {
@@ -227,6 +233,22 @@ export default function Home() {
       historySessions: partitioned.history.map((item) => item.row),
     };
   }, [sessions, todayYyyyMmDd]);
+
+  const planOpenSessionIdSet = useMemo(() => new Set(planOpenSessionIds), [planOpenSessionIds]);
+  const standaloneInProgressSessions = useMemo(
+    () => inProgressSessions.filter((session) => !planOpenSessionIdSet.has(session.id)),
+    [inProgressSessions, planOpenSessionIdSet],
+  );
+
+  const handlePlanOpenSessionIdsChange = useCallback((ids: string[]) => {
+    const sorted = [...ids].sort();
+    setPlanOpenSessionIds((prev) => {
+      if (prev.length === sorted.length && prev.every((id, index) => id === sorted[index])) {
+        return prev;
+      }
+      return sorted;
+    });
+  }, []);
 
   /** History plus open sessions for activity chart / day picker (not planned). */
   const activitySessions = useMemo(() => {
@@ -422,59 +444,70 @@ export default function Home() {
     <PageShell>
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Workout sessions</h1>
-        <PageAddAction href="/sessions/new" label="Create session" />
+        <PageAddAction
+          href="/sessions/new"
+          label="Create session"
+          variant={homeCompetingCtaVariant(standaloneInProgressSessions.length > 0)}
+        />
       </div>
       {userId ? <NewSessionDraftCallout userId={userId} /> : null}
-      {inProgressSessions.length > 0 ? (
-        <section className="panel divide-y divide-zinc-200" aria-label="In progress">
-          {inProgressSessions.map((session) => {
-            const badges = exerciseBadgesBySessionId.get(session.id) ?? [];
-            return (
-              <div
-                key={session.id}
-                className="flex items-center justify-between gap-2 px-3 py-2"
-              >
-                <div className="min-w-0 space-y-1">
-                  <p className="text-sm font-medium text-zinc-900">
-                    {formatDateOnlyForLocale(session.performed_on)}
-                  </p>
-                  {session.notes?.trim() ? (
-                    <p className="truncate text-xs text-zinc-600">{session.notes.trim()}</p>
-                  ) : null}
-                  {badges.length > 0 ? (
-                    <div className="flex flex-wrap gap-1">
-                      {badges.map((badge) => (
-                        <ExerciseBadgeChip
-                          key={`${session.id}-${badge.slug}`}
-                          slug={badge.slug}
-                          variant={homeExerciseBadgeTone(badge)}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-zinc-500">No exercises yet.</p>
-                  )}
-                </div>
-                <ActionButton
-                  type="button"
-                  variant="primary"
-                  size="sm"
-                  className="shrink-0"
-                  disabled={openingSessionId === session.id}
-                  onClick={() => openSession(session.id)}
+      {standaloneInProgressSessions.length > 0 ? (
+        <section className="panel p-5" aria-label="In progress">
+          <div className="mb-2">
+            <SectionHeading>In progress</SectionHeading>
+          </div>
+          <ul className="space-y-2">
+            {standaloneInProgressSessions.map((session) => {
+              const badges = exerciseBadgesBySessionId.get(session.id) ?? [];
+              return (
+                <li
+                  key={session.id}
+                  className="flex items-center justify-between gap-2"
                 >
-                  <Play className="h-3.5 w-3.5 text-white" />
-                  {openingSessionId === session.id ? "Opening..." : "Continue"}
-                </ActionButton>
-              </div>
-            );
-          })}
+                  <div className="min-w-0 space-y-1">
+                    <p className="text-sm font-medium text-zinc-900">
+                      {formatDateOnlyForLocale(session.performed_on)}
+                    </p>
+                    {session.notes?.trim() ? (
+                      <p className="truncate text-xs text-zinc-600">{session.notes.trim()}</p>
+                    ) : null}
+                    {badges.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {badges.map((badge) => (
+                          <ExerciseBadgeChip
+                            key={`${session.id}-${badge.slug}`}
+                            slug={badge.slug}
+                            variant={homeExerciseBadgeTone(badge)}
+                          />
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs text-zinc-500">No exercises yet.</p>
+                    )}
+                  </div>
+                  <ActionButton
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    className="shrink-0"
+                    disabled={openingSessionId === session.id}
+                    onClick={() => openSession(session.id)}
+                  >
+                    <Play className="h-3.5 w-3.5 text-white" />
+                    {openingSessionId === session.id ? "Opening..." : "Continue"}
+                  </ActionButton>
+                </li>
+              );
+            })}
+          </ul>
         </section>
       ) : null}
       <ActivePlanPanel
         scheduledSessions={scheduledSessions}
+        hasStandaloneInProgress={standaloneInProgressSessions.length > 0}
         openingSessionId={openingSessionId}
         onOpenSession={openSession}
+        onPlanOpenSessionIdsChange={handlePlanOpenSessionIdsChange}
       />
       <section className="panel p-5" aria-busy={isChecking}>
         {sessionsError ? (
@@ -483,10 +516,7 @@ export default function Home() {
           <div className="space-y-3">
             <SectionHeading>Past workouts</SectionHeading>
             {isChecking && workoutActivityData.length === 0 ? (
-              <div className="flex flex-col gap-2">
-                <p className="text-sm text-zinc-500">Loading workouts...</p>
-                <div className="w-full sm:w-fit sm:self-end">{pastRangeControls}</div>
-              </div>
+              <p className="text-sm text-zinc-500">Loading workouts...</p>
             ) : (
               <WorkoutActivityChart
                 data={workoutActivityData}
@@ -495,27 +525,35 @@ export default function Home() {
                 onHighlightDatesChange={setHighlightedActivityDates}
                 goalReachedByDate={goalReachedByDate}
                 onDayClick={openActivityDay}
-                headerAside={pastRangeControls}
               />
             )}
-            {isChecking ? (
-              <ContentPlaceholder
-                label="Loading workouts..."
-                rows={HOME_PAST_WORKOUT_PLACEHOLDER_ROWS}
-              />
-            ) : (
-              <SessionsTable
-                rows={historyTableRows}
-                dateHeaderLabel="Performed on"
-                emptyMessage="No workout sessions in the selected timeframe."
-                showNotesColumn={!isSmallPhone}
-                compactMode={isSmallPhone}
-                openingRowId={openingSessionId}
-                highlightedPerformedOnDates={highlightedActivityDates}
-                goalReachedByDate={goalReachedByDate}
-                onOpenRow={openSession}
-              />
-            )}
+            <div className="flex w-full flex-col sm:items-end">{pastRangeControls}</div>
+            <CollapsibleSection
+              key={isSmallPhone ? "sessions-compact" : "sessions-desktop"}
+              title="Sessions"
+              inset={false}
+              titleTone="chrome"
+              defaultOpen={homeSessionTableStartsOpen(isSmallPhone)}
+            >
+              {isChecking ? (
+                <ContentPlaceholder
+                  label="Loading workouts..."
+                  rows={HOME_PAST_WORKOUT_PLACEHOLDER_ROWS}
+                />
+              ) : (
+                <SessionsTable
+                  rows={historyTableRows}
+                  dateHeaderLabel="Performed on"
+                  emptyMessage="No workout sessions in the selected timeframe."
+                  showNotesColumn={!isSmallPhone}
+                  compactMode={isSmallPhone}
+                  openingRowId={openingSessionId}
+                  highlightedPerformedOnDates={highlightedActivityDates}
+                  goalReachedByDate={goalReachedByDate}
+                  onOpenRow={openSession}
+                />
+              )}
+            </CollapsibleSection>
           </div>
         )}
       </section>
