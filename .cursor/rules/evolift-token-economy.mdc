@@ -1,0 +1,30 @@
+---
+description: Keep agent context and replies lean to reduce token burn
+alwaysApply: true
+---
+
+# Token economy
+
+## Read narrow
+
+- Prefer `Grep` or path-scoped search before opening files.
+- On large files, use `Read` with offset/limit. Do not open whole trees “just in case.”
+
+## Logs
+
+- On failure, extract the error message and relevant stack only.
+- Do not paste or re-read entire terminal or build logs into the thread.
+
+## Stop thrashing
+
+- After two failed approaches on the same failure, stop.
+- Summarize what was tried and ask or propose a reset instead of another blind retry.
+
+## Scope replies
+
+- Do not restate full file contents in chat; cite short ranges.
+- Prefer diffs over full rewrites when explaining.
+
+## Done metric
+
+- For non-trivial behavior changes, define or update the colocated Vitest assertion before or with the implementation (see project test rules).
