@@ -22,6 +22,7 @@ import {
   appHeaderNavIconInactiveClassName,
   appHeaderNavIconInactiveGlyphClassName,
 } from "@/app/components/app-header-nav-link";
+import { APP_LEGAL_LINKS } from "@/app/components/app-legal-links";
 import { EvoLiftMark } from "@/app/components/evo-lift-logo";
 import { prefetchHomeSessionSummaries } from "@/lib/home-session-cache";
 import { clearSignedInMemory, rememberUserId } from "@/lib/signed-in-memory";
@@ -299,6 +300,21 @@ export function HeaderActions() {
                 Log out
               </button>
             </div>
+            <nav
+              aria-label="Legal"
+              className="mt-auto flex flex-col gap-2 border-t border-zinc-200 pt-4 text-sm"
+            >
+              {APP_LEGAL_LINKS.map((link) => (
+                <Link
+                  key={link.href}
+                  href={link.href}
+                  onClick={() => closeCompactMenu({ returnFocus: false })}
+                  className="font-medium text-zinc-700 underline-offset-2 hover:text-sky-800 hover:underline"
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </nav>
           </div>
         </div>
       ) : null}
