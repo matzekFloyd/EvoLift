@@ -1,6 +1,6 @@
 "use client";
 
-import { CircleCheck, Lock, Mail } from "lucide-react";
+import { CircleCheck } from "lucide-react";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -13,6 +13,7 @@ import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { ActionButton } from "@/app/components/action-button";
 import { EvoLiftBrand } from "@/app/components/evo-lift-logo";
 import { PageFrame } from "@/app/components/page-frame";
+import { PasswordField } from "@/app/components/password-field";
 import { SectionHeading } from "@/app/components/section-heading";
 import { SegmentedTabs } from "@/app/components/segmented-tabs";
 import { StatusNotice } from "@/app/components/status-notice";
@@ -24,8 +25,20 @@ import {
   normalizeLoginEmail,
   type LoginPanelMode,
 } from "@/app/login/login-form";
+import { PASSWORD_CONFIRM_HINT, PASSWORD_STRENGTH_HINT } from "@/lib/password-policy";
 import { reportSecurityEvent } from "@/lib/report-security-event";
 import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
+
+const LOGIN_A11Y_PREFIX = "login-auth";
+
+const actionLinkClassName =
+  "text-sm font-medium text-sky-800 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60 rounded-sm";
+
+const quietLinkClassName =
+  "text-sm font-medium text-zinc-600 underline-offset-2 hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60 focus-visible:text-sky-800 rounded-sm";
+
+const emailInputClassName =
+  "mt-1 w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -344,6 +357,7 @@ export default function LoginPage() {
                   buttonLayout="equal-row"
                   buttonMinWidthClassName="sm:min-w-0"
                   tabListAriaLabel="Log in or register"
+                  a11yIdPrefix={LOGIN_A11Y_PREFIX}
                   options={[
                     { value: "login", label: "Log in" },
                     { value: "register", label: "Register" },
@@ -363,173 +377,161 @@ export default function LoginPage() {
               </div>
             )}
 
-            <form onSubmit={formSubmit} className="space-y-4">
-              {mode !== "reset" ? (
-                <label className="block text-sm font-medium">
-                  <span className="inline-flex items-center gap-1">
-                    <Mail className="h-3.5 w-3.5 text-zinc-500" />
+            <div
+              {...(showAuthTabs
+                ? {
+                    id: `${LOGIN_A11Y_PREFIX}-panel-${mode}`,
+                    role: "tabpanel" as const,
+                    "aria-labelledby": `${LOGIN_A11Y_PREFIX}-tab-${mode}`,
+                  }
+                : {})}
+            >
+              <form onSubmit={formSubmit} className="space-y-4">
+                {mode !== "reset" ? (
+                  <label className="block text-sm font-medium">
                     Email
-                  </span>
-                  <input
-                    type="email"
-                    required
-                    value={email}
-                    onChange={(event) => setEmail(event.target.value)}
-                    className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
-                    placeholder="you@example.com"
-                  />
-                </label>
-              ) : null}
+                    <input
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(event) => setEmail(event.target.value)}
+                      autoComplete="email"
+                      className={emailInputClassName}
+                      placeholder="you@example.com"
+                    />
+                  </label>
+                ) : null}
 
-              {mode === "login" || mode === "register" ? (
-                <label className="block text-sm font-medium">
-                  <span className="inline-flex items-center gap-1">
-                    <Lock className="h-3.5 w-3.5 text-zinc-500" />
-                    Password
-                  </span>
-                  <input
-                    type="password"
-                    required
+                {mode === "login" || mode === "register" ? (
+                  <PasswordField
+                    label="Password"
                     value={password}
-                    onChange={(event) => setPassword(event.target.value)}
-                    className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
-                    placeholder="Your password"
-                  />
-                </label>
-              ) : null}
-
-              {mode === "login" ? (
-                <div className="-mt-2">
-                  <button
-                    type="button"
-                    onClick={() => switchMode("forgot")}
-                    className="text-sm font-medium text-sky-800 underline-offset-2 hover:underline"
-                  >
-                    Forgot password?
-                  </button>
-                </div>
-              ) : null}
-
-              {mode === "register" ? (
-                <label className="block text-sm font-medium">
-                  <span className="inline-flex items-center gap-1">
-                    <Lock className="h-3.5 w-3.5 text-zinc-500" />
-                    Confirm password
-                  </span>
-                  <input
-                    type="password"
+                    onChange={setPassword}
+                    autoComplete={mode === "login" ? "current-password" : "new-password"}
+                    placeholder={mode === "login" ? "Your password" : undefined}
+                    hint={mode === "register" ? PASSWORD_STRENGTH_HINT : undefined}
                     required
-                    value={confirmPassword}
-                    onChange={(event) => setConfirmPassword(event.target.value)}
-                    className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
-                    placeholder="Confirm your password"
                   />
-                </label>
-              ) : null}
+                ) : null}
 
-              {mode === "reset" ? (
-                <>
-                  {recoveryLinkError ? (
-                    <StatusNotice tone="error" message={recoveryLinkError} />
-                  ) : !recoveryReady ? (
-                    <p className="text-sm text-zinc-600">Opening reset link…</p>
-                  ) : null}
-                  <label className="block text-sm font-medium">
-                    <span className="inline-flex items-center gap-1">
-                      <Lock className="h-3.5 w-3.5 text-zinc-500" />
-                      New password
-                    </span>
-                    <input
-                      type="password"
-                      required
-                      value={password}
-                      onChange={(event) => setPassword(event.target.value)}
-                      className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
-                      placeholder="At least 8 characters"
-                      disabled={!recoveryReady}
-                    />
-                  </label>
-                  <label className="block text-sm font-medium">
-                    <span className="inline-flex items-center gap-1">
-                      <Lock className="h-3.5 w-3.5 text-zinc-500" />
-                      Confirm new password
-                    </span>
-                    <input
-                      type="password"
-                      required
-                      value={confirmPassword}
-                      onChange={(event) => setConfirmPassword(event.target.value)}
-                      className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
-                      placeholder="Repeat new password"
-                      disabled={!recoveryReady}
-                    />
-                  </label>
-                </>
-              ) : null}
-
-              {message ? <StatusNotice tone="error" message={message} /> : null}
-              <div className="flex w-full items-center gap-3">
-                <div className="mr-auto flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-                  {mode === "forgot" || mode === "reset" ? (
+                {mode === "login" ? (
+                  <div className="-mt-2">
                     <button
                       type="button"
-                      onClick={() => {
-                        if (mode === "reset") {
-                          window.history.replaceState({}, "", "/login");
-                        }
-                        switchMode("login");
-                      }}
-                      className="shrink-0 text-sm font-medium text-sky-800 underline-offset-2 hover:underline"
+                      onClick={() => switchMode("forgot")}
+                      className={actionLinkClassName}
                     >
-                      Back to log in
+                      Forgot password?
                     </button>
-                  ) : (
-                    <>
-                      <Link
-                        href="/terms"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        prefetch={false}
-                        className="shrink-0 text-sm font-medium text-sky-800 underline-offset-2 hover:underline"
+                  </div>
+                ) : null}
+
+                {mode === "register" ? (
+                  <PasswordField
+                    label="Confirm password"
+                    value={confirmPassword}
+                    onChange={setConfirmPassword}
+                    autoComplete="new-password"
+                    hint={PASSWORD_CONFIRM_HINT}
+                    required
+                  />
+                ) : null}
+
+                {mode === "reset" ? (
+                  <>
+                    {recoveryLinkError ? (
+                      <StatusNotice tone="error" message={recoveryLinkError} />
+                    ) : !recoveryReady ? (
+                      <p className="text-sm text-zinc-600" role="status">
+                        Opening reset link…
+                      </p>
+                    ) : null}
+                    <PasswordField
+                      label="New password"
+                      value={password}
+                      onChange={setPassword}
+                      autoComplete="new-password"
+                      hint={PASSWORD_STRENGTH_HINT}
+                      required
+                      disabled={!recoveryReady}
+                    />
+                    <PasswordField
+                      label="Confirm new password"
+                      value={confirmPassword}
+                      onChange={setConfirmPassword}
+                      autoComplete="new-password"
+                      hint={PASSWORD_CONFIRM_HINT}
+                      required
+                      disabled={!recoveryReady}
+                    />
+                  </>
+                ) : null}
+
+                {message ? <StatusNotice tone="error" message={message} /> : null}
+                <div className="flex w-full items-center gap-3">
+                  <div className="mr-auto flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
+                    {mode === "forgot" || mode === "reset" ? (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (mode === "reset") {
+                            window.history.replaceState({}, "", "/login");
+                          }
+                          switchMode("login");
+                        }}
+                        className={`shrink-0 ${actionLinkClassName}`}
                       >
-                        Terms of use
-                      </Link>
-                      <Link
-                        href="/privacy"
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        prefetch={false}
-                        className="shrink-0 text-sm font-medium text-sky-800 underline-offset-2 hover:underline"
-                      >
-                        Privacy policy
-                      </Link>
-                    </>
-                  )}
+                        Back to log in
+                      </button>
+                    ) : (
+                      <>
+                        <Link
+                          href="/terms"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          prefetch={false}
+                          className={`shrink-0 ${quietLinkClassName}`}
+                        >
+                          Terms of use
+                        </Link>
+                        <Link
+                          href="/privacy"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          prefetch={false}
+                          className={`shrink-0 ${quietLinkClassName}`}
+                        >
+                          Privacy policy
+                        </Link>
+                      </>
+                    )}
+                  </div>
+                  <ActionButton
+                    type="submit"
+                    variant="primary"
+                    disabled={
+                      isLoading ||
+                      (mode === "reset" && (!recoveryReady || Boolean(recoveryLinkError)))
+                    }
+                    className="ml-auto shrink-0"
+                  >
+                    {mode === "login"
+                      ? "Log in"
+                      : mode === "register"
+                        ? "Register"
+                        : mode === "forgot"
+                          ? "Send reset link"
+                          : "Set new password"}
+                  </ActionButton>
                 </div>
-                <ActionButton
-                  type="submit"
-                  variant="primary"
-                  disabled={
-                    isLoading || (mode === "reset" && (!recoveryReady || Boolean(recoveryLinkError)))
-                  }
-                  className="ml-auto shrink-0"
-                >
-                  {mode === "login"
-                    ? "Log in"
-                    : mode === "register"
-                      ? "Register"
-                      : mode === "forgot"
-                        ? "Send reset link"
-                        : "Set new password"}
-                </ActionButton>
-              </div>
-            </form>
+              </form>
+            </div>
           </section>
 
           {successEmail && successKind ? (
-            <section className="panel p-4 text-sm">
+            <section className="panel p-4 text-sm" role="status" aria-live="polite">
               <SectionHeading className="inline-flex items-center gap-1">
-                <CircleCheck className="h-4 w-4 text-sky-700" />
+                <CircleCheck className="h-4 w-4 text-sky-700" aria-hidden />
                 Check your inbox
               </SectionHeading>
               <p className="mt-1 text-zinc-700">

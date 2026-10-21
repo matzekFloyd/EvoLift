@@ -1,6 +1,12 @@
 /** Minimum length enforced in-app and in Supabase Auth (`minimum_password_length`). */
 export const MIN_PASSWORD_LENGTH = 8;
 
+/** Short hint for password fields that enforce strength (register, reset, account). */
+export const PASSWORD_STRENGTH_HINT = `At least ${MIN_PASSWORD_LENGTH} characters, with a letter and a number.`;
+
+/** Short hint for confirm-password fields. */
+export const PASSWORD_CONFIRM_HINT = "Enter the same password again.";
+
 /**
  * Shared strength rules for register and password change.
  * Keep aligned with `supabase/config.toml` (`minimum_password_length`, `password_requirements = "letters_digits"`)

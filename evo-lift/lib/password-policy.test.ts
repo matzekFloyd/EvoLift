@@ -1,10 +1,20 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
-import { MIN_PASSWORD_LENGTH, passwordStrengthError } from "./password-policy";
+import {
+  MIN_PASSWORD_LENGTH,
+  PASSWORD_CONFIRM_HINT,
+  PASSWORD_STRENGTH_HINT,
+  passwordStrengthError,
+} from "./password-policy";
 
 describe("password policy", () => {
   it("requires eight characters plus a letter and a number", () => {
     assert.equal(MIN_PASSWORD_LENGTH, 8);
+    assert.equal(
+      PASSWORD_STRENGTH_HINT,
+      "At least 8 characters, with a letter and a number.",
+    );
+    assert.equal(PASSWORD_CONFIRM_HINT, "Enter the same password again.");
     assert.equal(passwordStrengthError("short1"), "Password must be at least 8 characters.");
     assert.equal(
       passwordStrengthError("longpassword"),

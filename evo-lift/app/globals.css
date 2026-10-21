@@ -64,11 +64,20 @@ select:focus-visible {
   background-color: var(--control-surface);
 }
 
-input:focus-visible:is([type="checkbox"], [type="radio"]),
-button:focus-visible {
+input:focus-visible:is([type="checkbox"], [type="radio"]) {
   outline: none;
   border-color: var(--accent-strong);
-  box-shadow: 0 0 0 2px var(--accent-soft);
+  box-shadow: 0 0 0 3px var(--control-focus-ring);
+}
+
+/*
+ * Buttons (including primary sky fills) need a real focus chrome. The old
+ * zinc soft ring (#f4f4f5) disappeared on white panels and on sky-700 CTAs.
+ */
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  box-shadow: none;
 }
 
 a:hover {

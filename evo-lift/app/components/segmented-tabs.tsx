@@ -66,7 +66,7 @@ export function SegmentedTabs<T extends string>({
               aria-controls={panelId}
               aria-selected={isActive}
               onClick={() => onChange(option.value)}
-              className={`inline-flex h-9 items-center justify-center gap-1.5 rounded-md text-sm font-medium transition-colors ${widthClass} ${buttonMinWidthClassName} ${
+              className={`inline-flex h-9 items-center justify-center gap-1.5 rounded-md text-sm font-medium transition-colors focus-visible:z-10 ${widthClass} ${buttonMinWidthClassName} ${
                 isActive
                   ? "bg-sky-100 text-sky-900"
                   : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
