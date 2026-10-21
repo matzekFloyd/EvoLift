@@ -56,7 +56,7 @@ describe("progress insight rows", () => {
   it("links the exercise and shows the latest estimate, unless the row is not linked or still early", () => {
     const linked = progressInsightRow(progressRow("ahead"));
     assert.equal(linked.badge, "Ahead");
-    assert.equal(linked.href, "/exercises/back-squat");
+    assert.equal(linked.href, "/app/exercises/back-squat");
     assert.equal(linked.meta, "Latest est. 1RM 100.0 kg · +2.5 kg");
     assert.equal(progressInsightRow(progressRow("down", { changeKg: -3 }), { link: false }).href, null);
     assert.equal(
@@ -95,7 +95,7 @@ describe("comparison insight rows", () => {
     const row = comparisonInsightRow(
       note({ kind: "public", badge: "Novice", tableHref: "https://exrx.net/Testing", meta: "80 kg" }),
     );
-    assert.equal(row.href, "/exercises/back-squat");
+    assert.equal(row.href, "/app/exercises/back-squat");
     assert.equal(row.badge, "Novice");
     assert.equal(row.tableHref, "https://exrx.net/Testing");
     assert.equal(row.meta, "80 kg");

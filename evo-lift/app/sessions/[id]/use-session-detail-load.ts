@@ -28,7 +28,7 @@ export function useSessionDetailLoad(input: {
   useEffect(() => {
     let isMounted = true;
     const startedEpoch = openedSessionEpoch();
-    const perf = createPageLoadPerfTracker("/sessions/[id]");
+    const perf = createPageLoadPerfTracker("/app/sessions/[id]");
 
     async function loadData() {
       if (!sessionId) {

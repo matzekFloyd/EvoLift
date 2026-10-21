@@ -24,16 +24,17 @@ import {
 } from "@/app/components/app-header-nav-link";
 import { APP_LEGAL_LINKS } from "@/app/components/app-legal-links";
 import { EvoLiftMark } from "@/app/components/evo-lift-logo";
+import { APP_HOME_PATH, appPath, isAppNavItemActive, type AppNavMatch } from "@/lib/app-paths";
 import { prefetchHomeSessionSummaries } from "@/lib/home-session-cache";
 import { clearSignedInMemory, rememberUserId } from "@/lib/signed-in-memory";
 import { getBrowserUser } from "@/lib/supabase/browser-auth";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 
-type CompactNavItem = {
+type HeaderNavItem = {
   href: string;
   label: string;
   icon: LucideIcon;
-  isActive: boolean;
+  match: AppNavMatch;
 };
 
 function compactNavTileClassName(isActive: boolean) {
@@ -45,6 +46,16 @@ function compactNavTileClassName(isActive: boolean) {
   ].join(" ");
 }
 
+const HEADER_NAV: HeaderNavItem[] = [
+  { href: APP_HOME_PATH, label: "Home", icon: House, match: "exact" },
+  { href: appPath("/exercises"), label: "Exercises", icon: Dumbbell, match: "section" },
+  { href: appPath("/insights"), label: "Insights", icon: BarChart3, match: "section" },
+  { href: appPath("/goals"), label: "Goals", icon: Target, match: "section" },
+  { href: appPath("/plans"), label: "Plans", icon: ListOrdered, match: "section" },
+  { href: appPath("/templates"), label: "Templates", icon: FileStack, match: "section" },
+  { href: appPath("/account"), label: "Account", icon: UserRound, match: "exact" },
+];
+
 export function HeaderActions() {
   const router = useRouter();
   const pathname = usePathname();
@@ -55,45 +66,10 @@ export function HeaderActions() {
   const compactMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
   const compactMenuFirstItemRef = useRef<HTMLAnchorElement | null>(null);
 
-  const compactNavItems: CompactNavItem[] = [
-    { href: "/", label: "Home", icon: House, isActive: pathname === "/" },
-    {
-      href: "/exercises",
-      label: "Exercises",
-      icon: Dumbbell,
-      isActive: pathname.startsWith("/exercises"),
-    },
-    {
-      href: "/insights",
-      label: "Insights",
-      icon: BarChart3,
-      isActive: pathname.startsWith("/insights"),
-    },
-    {
-      href: "/goals",
-      label: "Goals",
-      icon: Target,
-      isActive: pathname.startsWith("/goals"),
-    },
-    {
-      href: "/plans",
-      label: "Plans",
-      icon: ListOrdered,
-      isActive: pathname.startsWith("/plans"),
-    },
-    {
-      href: "/templates",
-      label: "Templates",
-      icon: FileStack,
-      isActive: pathname.startsWith("/templates"),
-    },
-    {
-      href: "/account",
-      label: "Account",
-      icon: UserRound,
-      isActive: pathname === "/account",
-    },
-  ];
+  const compactNavItems = HEADER_NAV.map((item) => ({
+    ...item,
+    isActive: isAppNavItemActive(pathname, item.href, item.match),
+  }));
 
   useEffect(() => {
     let isMounted = true;
@@ -186,7 +162,7 @@ export function HeaderActions() {
       >
         <Link
           className="group inline-flex items-center gap-2 rounded-md px-1.5 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 focus-visible:ring-offset-2 focus-visible:ring-offset-sky-100"
-          href="/"
+          href={APP_HOME_PATH}
         >
           <EvoLiftMark className="h-8 w-8 shrink-0 transition-transform duration-150 group-hover:scale-110" />
           <span className="origin-left text-lg leading-none font-bold tracking-[-0.04em] text-sky-900 transition-transform duration-150 group-hover:scale-110">
@@ -194,44 +170,22 @@ export function HeaderActions() {
           </span>
         </Link>
         <div className="hidden shrink-0 items-center justify-end gap-1 sm:gap-2 md:flex">
-          <AppHeaderNavLink href="/" label="Home" isActive={pathname === "/"} icon={House} />
-          <AppHeaderNavLink
-            href="/exercises"
-            label="Exercises"
-            isActive={pathname.startsWith("/exercises")}
-            icon={Dumbbell}
-          />
-          <AppHeaderNavLink
-            href="/insights"
-            label="Insights"
-            isActive={pathname.startsWith("/insights")}
-            icon={BarChart3}
-          />
-          <AppHeaderNavLink
-            href="/goals"
-            label="Goals"
-            isActive={pathname.startsWith("/goals")}
-            icon={Target}
-          />
-          <AppHeaderNavLink
-            href="/plans"
-            label="Plans"
-            isActive={pathname.startsWith("/plans")}
-            icon={ListOrdered}
-          />
-          <AppHeaderNavLink
-            href="/templates"
-            label="Templates"
-            isActive={pathname.startsWith("/templates")}
-            icon={FileStack}
-          />
-          <AppHeaderNavLink
-            href="/account"
-            label="Account"
-            isActive={pathname === "/account"}
-            icon={UserRound}
-            title={userEmail ? `Account — ${userEmail}` : "Account"}
-          />
+          {compactNavItems.map((item) => (
+            <AppHeaderNavLink
+              key={item.href}
+              href={item.href}
+              label={item.label}
+              isActive={item.isActive}
+              icon={item.icon}
+              title={
+                item.href === appPath("/account")
+                  ? userEmail
+                    ? `Account — ${userEmail}`
+                    : "Account"
+                  : undefined
+              }
+            />
+          ))}
           <button
             type="button"
             onClick={handleAuthClick}

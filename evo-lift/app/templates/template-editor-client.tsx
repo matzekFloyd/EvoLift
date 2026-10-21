@@ -14,6 +14,7 @@ import { PageShell } from "@/app/components/page-shell";
 import { StatusNotice } from "@/app/components/status-notice";
 import { WorkoutExerciseDraftList } from "@/app/components/workout-exercise-draft-list";
 import type { Database } from "@/lib/supabase/database.types";
+import { appPath } from "@/lib/app-paths";
 import {
   createEmptyExerciseRow,
   exerciseDraftRowsFromTemplateLines,
@@ -252,7 +253,7 @@ export function TemplateEditorClient(props: Props) {
       if (userId) {
         window.localStorage.removeItem(getTemplateDraftStorageKey(userId, draftScope));
       }
-      router.push("/templates");
+      router.push(appPath("/templates"));
       router.refresh();
     } catch (err) {
       showError(err instanceof Error ? err.message : "Could not save template.");
@@ -267,7 +268,7 @@ export function TemplateEditorClient(props: Props) {
       router.back();
       return;
     }
-    router.push("/templates");
+    router.push(appPath("/templates"));
   }
 
   if (isChecking) {
@@ -286,7 +287,7 @@ export function TemplateEditorClient(props: Props) {
         <p className="mt-2 text-sm text-zinc-600">
           Templates save exercise order, targets, and notes so you can start a workout session quickly.
           <Link
-            href="/sessions/new"
+            href={appPath("/sessions/new")}
             className="ml-1 font-medium text-sky-800 underline-offset-2 hover:underline"
           >
             Plan a session
@@ -318,7 +319,7 @@ export function TemplateEditorClient(props: Props) {
       <p className="mt-2 text-sm text-zinc-600">
         Templates save exercise order, targets, and notes so you can start a workout session quickly.
         <Link
-          href="/sessions/new"
+          href={appPath("/sessions/new")}
           className="ml-1 font-medium text-sky-800 underline-offset-2 hover:underline"
         >
           Plan a session

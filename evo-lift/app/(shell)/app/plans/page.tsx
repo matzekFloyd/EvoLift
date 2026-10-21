@@ -17,6 +17,7 @@ import {
 import { ContentPlaceholder } from "@/app/components/content-placeholder";
 import { NAMED_LIST_PLACEHOLDER_ROWS } from "@/app/components/content-placeholder-layout";
 import { PageAddAction } from "@/app/components/page-add-action";
+import { appPath } from "@/lib/app-paths";
 import { PageShell } from "@/app/components/page-shell";
 import { SectionHeading } from "@/app/components/section-heading";
 import {
@@ -193,7 +194,7 @@ export default function PlansPage() {
           <ListOrdered className="h-6 w-6 text-sky-700" />
           Plans
         </h1>
-        <PageAddAction href="/plans/new" label="Create plan" />
+        <PageAddAction href={appPath("/plans/new")} label="Create plan" />
       </div>
 
       <section className="panel p-5">
@@ -281,7 +282,7 @@ export default function PlansPage() {
                         )}
                         {row.isActive ? "Deactivate" : "Set active"}
                       </ActionButton>
-                      <Link href={`/plans/${row.id}/edit`} className={tableRowActionLinkClassName}>
+                      <Link href={appPath(`/plans/${row.id}/edit`)} className={tableRowActionLinkClassName}>
                         <Pencil className="h-3.5 w-3.5 shrink-0" aria-hidden />
                         Edit
                       </Link>

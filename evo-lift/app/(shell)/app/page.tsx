@@ -17,6 +17,7 @@ import { SessionsTable, type SessionsTableRow } from "@/app/components/sessions-
 import { ActivityDaySessionDialog } from "@/app/components/activity-day-session-dialog";
 import { WorkoutActivityChart } from "@/app/components/workout-activity-chart";
 import { activityDayOpen, activityDaySessionIds } from "@/app/home-activity-day";
+import { appPath } from "@/lib/app-paths";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { loadGoalReachedSessionDates } from "@/lib/goal-reached-dates";
 import {
@@ -348,7 +349,7 @@ export default function Home() {
     }
     setDayChoiceIds(null);
     setOpeningSessionId(sessionId);
-    router.push(`/sessions/${sessionId}`);
+    router.push(appPath(`/sessions/${sessionId}`));
   }
 
   function openActivityDay(date: string) {
@@ -445,7 +446,7 @@ export default function Home() {
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Workout sessions</h1>
         <PageAddAction
-          href="/sessions/new"
+          href={appPath("/sessions/new")}
           label="Create session"
           variant={homeCompetingCtaVariant(standaloneInProgressSessions.length > 0)}
         />

@@ -2,6 +2,7 @@ import type { Dispatch, SetStateAction } from "react";
 import type { Database } from "@/lib/supabase/database.types";
 import { isAssistanceExercise } from "@/lib/assistance-exercise";
 import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
+import { APP_HOME_PATH } from "@/lib/app-paths";
 import { PLAN_ALREADY_OPEN_MESSAGE } from "@/lib/plan-cycle";
 import {
   MAX_OPEN_SESSIONS,
@@ -551,7 +552,7 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
     }
 
     invalidateLoggedHistoryCaches();
-    router.replace("/");
+    router.replace(APP_HOME_PATH);
   }
 
   async function addExerciseToSession() {

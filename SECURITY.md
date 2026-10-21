@@ -194,7 +194,7 @@ The Next app sets security headers in `evo-lift/next.config.ts` via `evo-lift/li
 - **Local Supabase** (`http(s)://127.0.0.1:54321` / `localhost:54321` and matching `ws:`) is included outside Vercel production so `supabase start` works
 - **script-src / style-src:** `'unsafe-inline'` (and script `'unsafe-eval'`) remain for Next.js and Swagger UI until nonce-based CSP is wired
 
-Swagger UI on `/docs` loads from `swagger-ui-dist` (bundled), not a CDN. Geist fonts use `next/font` (self-hosted).
+Swagger UI on `/app/docs` loads from `swagger-ui-dist` (bundled), not a CDN. Geist fonts use `next/font` (self-hosted).
 
 ## Dependency updates (npm / Actions)
 

@@ -19,6 +19,7 @@ import {
   homePlanDaysStartsOpen,
 } from "@/app/home-next-action-layout";
 import { homeExerciseBadgeTone } from "@/app/home-sessions";
+import { appPath } from "@/lib/app-paths";
 import {
   scheduledSessionsBesidePlan,
   type ScheduledHomeSession,
@@ -201,7 +202,7 @@ export function ActivePlanPanel({
       onOpenSession(sessionId);
       return;
     }
-    router.push(`/sessions/${sessionId}`);
+    router.push(appPath(`/sessions/${sessionId}`));
   }
 
   function openStart(dayId: string) {
@@ -244,7 +245,7 @@ export function ActivePlanPanel({
       });
       invalidateLoggedHistoryCaches();
       setStartDayId(null);
-      router.push(`/sessions/${sessionId}`);
+      router.push(appPath(`/sessions/${sessionId}`));
     } catch (err) {
       setMessage(err instanceof Error ? err.message : "Could not start session.");
     } finally {
@@ -284,7 +285,7 @@ export function ActivePlanPanel({
                 </p>
                 {linked ? (
                   <Link
-                    href={`/sessions/${linked.id}`}
+                    href={appPath(`/sessions/${linked.id}`)}
                     className="text-xs font-medium text-sky-800 underline-offset-2 hover:underline"
                   >
                     {formatDateOnlyForLocale(linked.performedOn)}
@@ -334,7 +335,7 @@ export function ActivePlanPanel({
       ) : !plan ? (
         <p className="text-sm text-zinc-600">
           No active plan.{" "}
-          <Link href="/plans" className="font-medium text-sky-800 underline-offset-2 hover:underline">
+          <Link href={appPath("/plans")} className="font-medium text-sky-800 underline-offset-2 hover:underline">
             Choose a plan
           </Link>{" "}
           or start a workout session without one.
@@ -344,7 +345,7 @@ export function ActivePlanPanel({
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
               <Link
-                href={`/plans/${plan.id}/edit`}
+                href={appPath(`/plans/${plan.id}/edit`)}
                 className="text-sm font-medium text-zinc-900 underline-offset-2 hover:text-sky-800 hover:underline"
               >
                 {plan.name}

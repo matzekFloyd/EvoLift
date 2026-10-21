@@ -1,6 +1,7 @@
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
+import { legacySignedInRedirects } from "./lib/app-paths";
 import {
   buildSecurityHeaders,
   shouldEnableHsts,
@@ -19,7 +20,7 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["ws"],
   devIndicators: false,
   async redirects() {
-    return [{ source: "/api", destination: "/docs", permanent: false }];
+    return legacySignedInRedirects();
   },
   async headers() {
     return [

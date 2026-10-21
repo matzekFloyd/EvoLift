@@ -17,6 +17,7 @@ import {
 import { ContentPlaceholder } from "@/app/components/content-placeholder";
 import { NAMED_LIST_PLACEHOLDER_ROWS } from "@/app/components/content-placeholder-layout";
 import { PageAddAction } from "@/app/components/page-add-action";
+import { appPath } from "@/lib/app-paths";
 import { DateInput } from "@/app/components/date-input";
 import { PageShell } from "@/app/components/page-shell";
 import { SectionHeading } from "@/app/components/section-heading";
@@ -162,7 +163,7 @@ export default function TemplatesPage() {
       });
       invalidateLoggedHistoryCaches();
       setUseDialogTemplateId(null);
-      router.push(`/sessions/${sessionId}`);
+      router.push(appPath(`/sessions/${sessionId}`));
     } catch (err) {
       showError(err instanceof Error ? err.message : "Could not start session.");
     } finally {
@@ -199,14 +200,14 @@ export default function TemplatesPage() {
           <FileStack className="h-6 w-6 text-sky-700" />
           Templates
         </h1>
-        <PageAddAction href="/templates/new" label="Create template" />
+        <PageAddAction href={appPath("/templates/new")} label="Create template" />
       </div>
 
       <section className="panel p-5">
         <p className="text-sm text-zinc-600">
           Save a reusable exercise list with targets. Use a template to start a logged workout session
           in one step, or prefill a planned session from{" "}
-          <Link href="/sessions/new" className="font-medium text-sky-800 underline-offset-2 hover:underline">
+          <Link href={appPath("/sessions/new")} className="font-medium text-sky-800 underline-offset-2 hover:underline">
             New workout session
           </Link>
           .
@@ -274,7 +275,7 @@ export default function TemplatesPage() {
                         Use
                       </ActionButton>
                       <Link
-                        href={`/templates/${row.id}/edit`}
+                        href={appPath(`/templates/${row.id}/edit`)}
                         className={tableRowActionLinkClassName}
                       >
                         <Pencil className="h-3.5 w-3.5 shrink-0" aria-hidden />

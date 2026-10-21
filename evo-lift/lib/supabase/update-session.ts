@@ -1,6 +1,6 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { sessionGateDecision } from "@/lib/auth-route-access";
+import { sessionGateDecision, sessionGateRedirectPath } from "@/lib/auth-route-access";
 import { realtimeTransportOptions } from "@/lib/supabase/realtime-transport";
 
 function normalizeSupabaseUrl(url: string): string {
@@ -14,7 +14,8 @@ type CookieToSet = {
 };
 
 /**
- * Refresh the auth cookie and gate protected app routes with `getUser()`.
+ * Refresh the auth cookie and gate `/app` with `getUser()`.
+ * `/` sends a signed-out visitor to `/login` and a signed-in visitor to `/app`.
  * Does not gate `/api/*` (API bearer auth stays the control plane).
  */
 export async function updateSession(request: NextRequest): Promise<NextResponse> {
@@ -56,9 +57,10 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     search: request.nextUrl.search,
   });
 
-  if (decision === "redirect_login" || decision === "redirect_home") {
+  const redirectPath = sessionGateRedirectPath(decision);
+  if (redirectPath) {
     const url = request.nextUrl.clone();
-    url.pathname = decision === "redirect_login" ? "/login" : "/";
+    url.pathname = redirectPath;
     url.search = "";
     const redirect = NextResponse.redirect(url);
     supabaseResponse.cookies.getAll().forEach((cookie) => {

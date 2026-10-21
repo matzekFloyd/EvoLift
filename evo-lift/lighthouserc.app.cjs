@@ -5,7 +5,7 @@ module.exports = {
   ci: {
     collect: {
       numberOfRuns: Number(process.env.LHCI_NUMBER_OF_RUNS || 1),
-      url: [`${baseUrl}/`, `${baseUrl}/insights`],
+      url: [`${baseUrl}/app`, `${baseUrl}/app/insights`],
       puppeteerScript: "./scripts/lighthouse-login.cjs",
       puppeteerLaunchOptions: {
         // chromeFlags in settings are ignored when puppeteerScript is set.
@@ -21,13 +21,13 @@ module.exports = {
     assert: {
       assertMatrix: [
         {
-          matchingUrlPattern: "://[^/]+/?$",
+          matchingUrlPattern: "://[^/]+/app/?$",
           assertions: {
             "categories:performance": ["error", { minScore: 0.55 }],
           },
         },
         {
-          matchingUrlPattern: "/insights",
+          matchingUrlPattern: "/app/insights",
           assertions: {
             "categories:performance": ["error", { minScore: 0.5 }],
           },

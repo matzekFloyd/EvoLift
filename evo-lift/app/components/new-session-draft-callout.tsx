@@ -13,6 +13,7 @@ import {
   parseNewSessionDraftFromStorage,
 } from "@/lib/new-session-draft";
 import { coalesceNewSessionDraftPerformedOn, getTodayYyyyMmDd } from "@/lib/session-date";
+import { appPath } from "@/lib/app-paths";
 
 type DraftSummary = {
   performedOnDisplay: string;
@@ -145,7 +146,7 @@ export function NewSessionDraftCallout({ userId }: NewSessionDraftCalloutProps) 
             <span className={isCompactActions ? "sr-only" : undefined}>Discard draft</span>
           </ActionButton>
           <Link
-            href="/sessions/new?resume=1"
+            href={appPath("/sessions/new?resume=1")}
             aria-label="Continue to draft"
             title="Continue to draft"
             className={

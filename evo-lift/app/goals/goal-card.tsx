@@ -4,6 +4,7 @@ import { ActionButton } from "@/app/components/action-button";
 import { ExerciseBadgeChip } from "@/app/components/exercise-badge-chip";
 import { PanelInset } from "@/app/components/panel-inset";
 import { StatusBadge } from "@/app/components/status-badge";
+import { appPath } from "@/lib/app-paths";
 
 type GoalCardProps = {
   exerciseLabel: string;
@@ -46,7 +47,7 @@ export function GoalCard({
           <div className="flex items-center gap-2">
             <ExerciseBadgeChip slug={exerciseSlug} />
             <Link
-              href={`/exercises/${exerciseSlug}`}
+              href={appPath(`/exercises/${exerciseSlug}`)}
               className="truncate font-medium text-zinc-900 underline-offset-2 hover:underline"
             >
               {exerciseLabel}
@@ -69,7 +70,7 @@ export function GoalCard({
       {missingBodyweight ? (
         <p className="mt-3 text-sm text-zinc-700">
           Add bodyweight on{" "}
-          <Link href="/account" className="font-medium text-sky-800 underline-offset-2 hover:underline">
+          <Link href={appPath("/account")} className="font-medium text-sky-800 underline-offset-2 hover:underline">
             Account
           </Link>{" "}
           to track this goal.

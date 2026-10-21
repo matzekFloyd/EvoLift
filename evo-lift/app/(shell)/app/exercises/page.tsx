@@ -16,6 +16,7 @@ import {
   loadExerciseMetadata,
 } from "@/lib/exercise-metadata-cache";
 import { createPageLoadPerfTracker } from "@/lib/page-load-perf";
+import { appPath } from "@/lib/app-paths";
 import { pastSessionCountsBySlug } from "@/lib/home-session-cache";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
@@ -127,7 +128,7 @@ function ExercisesMain() {
 
   useEffect(() => {
     let isMounted = true;
-    const perf = createPageLoadPerfTracker("/exercises");
+    const perf = createPageLoadPerfTracker("/app/exercises");
 
     async function loadData() {
       const session = await perf.trackQuery("auth.getUser", () => getBrowserAuthSession());
@@ -265,7 +266,7 @@ function ExercisesMain() {
                 "mt-3 max-h-[min(24rem,55vh)] space-y-2 overflow-y-auto overscroll-y-contain p-3 sm:grid sm:grid-cols-2 sm:gap-2 sm:space-y-0",
               )}
               renderItem={(exercise) => {
-                const href = `/exercises/${exercise.slug}`;
+                const href = appPath(`/exercises/${exercise.slug}`);
                 return (
                   <Link
                     href={href}

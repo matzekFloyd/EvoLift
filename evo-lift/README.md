@@ -113,7 +113,7 @@ Route handlers stay thin and call that data layer:
 
 ### Browser API testing (Swagger UI)
 
-- After login, open `http://localhost:3000/docs` for interactive API docs.
+- After login, open `http://localhost:3000/app/docs` for interactive API docs.
 - The OpenAPI spec is served from `http://localhost:3000/api/openapi`.
 - Try-it-out uses your current session automatically. To use a personal API token instead, click Authorize and paste the token value (without an extra `Bearer` prefix).
 
@@ -135,7 +135,7 @@ Production (and preview, if you use a fixed host) should also set:
 
 - `NEXT_PUBLIC_APP_URL` — public app origin used in confirm-email / email-change / password-recovery redirects (`https://evolift.at` in production). Do **not** set this for local `npm run dev`; the browser origin (`http://localhost:3000`) is used instead.
 
-Optional page-load sampling stays off unless `NEXT_PUBLIC_EVOLIFT_PERF_TELEMETRY` is exactly `1`. Restart the app after changing it, because `NEXT_PUBLIC_*` values are embedded at build time. When it is on, each instrumented load (`/exercises`, `/exercises/[slug]`, `/sessions/[id]`) has a chance to POST a summary to `/api/perf`. The default chance is 10%. Set `NEXT_PUBLIC_EVOLIFT_PERF_SAMPLE_RATE` to a number from 0 to 1 to change it (`1` sends every load, `0` sends none). A sample contains the route template, load duration, query count, up to five slowest query names and durations, and cache hit/miss notes when that load already knew them. It does not contain workout notes, set values, or account data. The server writes one log line and stores nothing.
+Optional page-load sampling stays off unless `NEXT_PUBLIC_EVOLIFT_PERF_TELEMETRY` is exactly `1`. Restart the app after changing it, because `NEXT_PUBLIC_*` values are embedded at build time. When it is on, each instrumented load (`/app/exercises`, `/app/exercises/[slug]`, `/app/sessions/[id]`) has a chance to POST a summary to `/api/perf`. The default chance is 10%. Set `NEXT_PUBLIC_EVOLIFT_PERF_SAMPLE_RATE` to a number from 0 to 1 to change it (`1` sends every load, `0` sends none). A sample contains the route template, load duration, query count, up to five slowest query names and durations, and cache hit/miss notes when that load already knew them. It does not contain workout notes, set values, or account data. The server writes one log line and stores nothing.
 
 **Local Docker:** from the repo root, run `supabase start`, then `supabase status -o env --override-name api.url=NEXT_PUBLIC_SUPABASE_URL` and map `ANON_KEY` / `SERVICE_ROLE_KEY` into `evo-lift/.env.local` (see the root `README.md`).
 
@@ -192,7 +192,7 @@ Local Auth email HTML lives under `supabase/templates/` (`confirmation.html`, `r
    - `/login`
    - register → confirm-email link opens the production host (not localhost)
    - forgot password → recovery link opens `/login?recovery=1` on the production host and sets a new password
-   - `/docs`
+   - `/app/docs`
    - authenticated `GET /api/exercises?lang=en`
 
 ## Auth and API usage
@@ -200,8 +200,8 @@ Local Auth email HTML lives under `supabase/templates/` (`confirmation.html`, `r
 - Users authenticate via Supabase Auth (email/password, OAuth, magic link, etc.).
 - Frontend gets `access_token` from Supabase session for in-app requests.
 - Authenticated `/api/*` routes accept a session JWT or a personal API token created on Account → Login (`Authorization: Bearer evo_…`). Tokens are stored hashed, shown once, and do not expire until revoked.
-- Workout sessions and templates can be listed, created, updated, and deleted over the API (same ownership rules as the UI). Use `/docs` to try them.
-- In Swagger (`/docs`), the logged-in session is sent automatically. To use a personal token, use Authorize and paste the raw token value (without adding an extra `Bearer` prefix).
+- Workout sessions and templates can be listed, created, updated, and deleted over the API (same ownership rules as the UI). Use `/app/docs` to try them.
+- In Swagger (`/app/docs`), the logged-in session is sent automatically. To use a personal token, use Authorize and paste the raw token value (without adding an extra `Bearer` prefix).
 
 ## Seed policy
 

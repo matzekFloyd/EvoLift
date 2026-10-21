@@ -1,4 +1,5 @@
 import { useRouter } from "next/navigation";
+import { appPath } from "@/lib/app-paths";
 import { FilterX, Medal, Trophy } from "lucide-react";
 import { ActionButton } from "@/app/components/action-button";
 import { AppTable } from "@/app/components/app-table";
@@ -146,7 +147,7 @@ export function ExerciseSetHistorySection({
                 `${row.sessionId}-${row.setNumber}` === topRepsRowKey,
                 Boolean(row.goalLabel),
               )}`}
-              onClick={() => router.push(`/sessions/${row.sessionId}`)}
+              onClick={() => router.push(appPath(`/sessions/${row.sessionId}`))}
               title={historyRowTitle(row, `${row.sessionId}-${row.setNumber}` === topRepsRowKey)}
             >
               {(() => {
@@ -256,7 +257,7 @@ export function ExerciseSetHistorySection({
                   <tr
                     key={`${row.sessionId}-${row.setNumber}-${index}`}
                     className={`cursor-pointer border-b last:border-b-0 ${historyRowSurfaceClass(isTopRepsRow, isGoalRow)}`}
-                    onClick={() => router.push(`/sessions/${row.sessionId}`)}
+                    onClick={() => router.push(appPath(`/sessions/${row.sessionId}`))}
                     title={historyRowTitle(row, isTopRepsRow)}
                   >
                     <td className="px-2 py-2">
