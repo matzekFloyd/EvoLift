@@ -103,10 +103,7 @@ button {
     box-shadow 150ms ease;
 }
 
-button:not(:disabled):hover {
-  border-color: var(--accent);
-  background-color: var(--accent-soft);
-}
+/* Button hover belongs on ActionButton / explicit controls — not a global sky wash. */
 
 input:not([type="checkbox"]):not([type="radio"]):not(:disabled):hover:not(:focus-visible),
 textarea:not(:disabled):hover:not(:focus-visible),
@@ -115,33 +112,15 @@ select:not(:disabled):hover:not(:focus-visible) {
   background-color: var(--control-hover-bg);
 }
 
-button.bg-sky-700:not(:disabled):hover {
-  border-color: var(--accent);
-  background-color: #0369a1;
-  color: #ffffff;
-}
-
-/* Header add actions are either a link or a button. Extra class beats `a:hover`
-   and `button.bg-sky-700:hover` so both lighten the same way and keep white text. */
-a.page-add-action.bg-sky-700:hover,
-button.page-add-action.bg-sky-700:not(:disabled):hover {
-  border-color: var(--accent);
-  background-color: var(--accent);
-  color: #ffffff;
-}
-
 button:disabled {
   cursor: not-allowed;
 }
 
+/* Border-first page cards; elevation stays on sticky bars and dialogs. */
 .panel {
   border: 1px solid #d4d4d8;
   border-radius: 0.75rem;
   background: #ffffff;
-  /* Matches Tailwind shadow-md */
-  box-shadow:
-    0 4px 6px -1px rgb(0 0 0 / 0.1),
-    0 2px 4px -2px rgb(0 0 0 / 0.1);
 }
 
 .compact-activity-chart .recharts-surface,
