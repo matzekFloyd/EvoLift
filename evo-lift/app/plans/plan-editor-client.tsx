@@ -15,6 +15,7 @@ import { PageShell } from "@/app/components/page-shell";
 import { StatusNotice } from "@/app/components/status-notice";
 import { WorkoutExerciseDraftList } from "@/app/components/workout-exercise-draft-list";
 import { createDayDraft, daysFromPlan, type DayDraft } from "@/app/plans/plan-day-draft";
+import { appPath } from "@/lib/app-paths";
 import { normalizePlanDraft } from "@/lib/plan-draft";
 import type { Database } from "@/lib/supabase/database.types";
 import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
@@ -201,7 +202,7 @@ export function PlanEditorClient(props: Props) {
           plan: normalized.value,
         });
       }
-      router.push("/plans");
+      router.push(appPath("/plans"));
       router.refresh();
     } catch (err) {
       showError(err instanceof Error ? err.message : "Could not save plan.");
@@ -218,7 +219,7 @@ export function PlanEditorClient(props: Props) {
             {title}
           </h1>
           <Link
-            href="/plans"
+            href={appPath("/plans")}
             className="inline-flex h-10 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100 max-md:hidden"
           >
             <ArrowLeft className="h-4 w-4 text-sky-700" />
@@ -247,7 +248,7 @@ export function PlanEditorClient(props: Props) {
           {title}
         </h1>
         <Link
-          href="/plans"
+          href={appPath("/plans")}
           className="inline-flex h-10 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100 max-md:hidden"
         >
           <ArrowLeft className="h-4 w-4 text-sky-700" />

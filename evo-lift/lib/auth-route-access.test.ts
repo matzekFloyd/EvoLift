@@ -4,6 +4,7 @@ import {
   isPublicAppPath,
   requiresAppSession,
   sessionGateDecision,
+  sessionGateRedirectPath,
 } from "./auth-route-access";
 
 describe("auth-route-access", () => {
@@ -19,24 +20,32 @@ describe("auth-route-access", () => {
     assert.equal(isPublicAppPath("/api/sessions"), true);
     assert.equal(isPublicAppPath("/api/perf"), true);
     assert.equal(isPublicAppPath("/api/security/events"), true);
+    assert.equal(requiresAppSession("/api/sessions"), false);
+    assert.equal(sessionGateDecision({ pathname: "/api/sessions", hasUser: false }), "allow");
   });
 
-  it("requires a session for app shells", () => {
-    for (const path of ["/", "/account", "/sessions/new", "/insights", "/docs", "/plans"]) {
+  it("requires a session only under /app", () => {
+    for (const path of ["/app", "/app/account", "/app/sessions/new", "/app/insights", "/app/docs", "/app/plans"]) {
       assert.equal(requiresAppSession(path), true);
       assert.equal(isPublicAppPath(path), false);
     }
+    for (const path of ["/", "/account", "/privacy", "/glossary", "/apple", "/application"]) {
+      assert.equal(requiresAppSession(path), false);
+    }
   });
 
-  it("redirects anonymous users away from private shells", () => {
-    assert.equal(
-      sessionGateDecision({ pathname: "/account", hasUser: false }),
-      "redirect_login",
-    );
-    assert.equal(sessionGateDecision({ pathname: "/api/sessions", hasUser: false }), "allow");
+  it("redirects anonymous users away from /app and sends / to login or home", () => {
+    assert.equal(sessionGateDecision({ pathname: "/app/account", hasUser: false }), "redirect_login");
+    assert.equal(sessionGateDecision({ pathname: "/app", hasUser: true }), "allow");
+    assert.equal(sessionGateDecision({ pathname: "/", hasUser: false }), "redirect_login");
+    assert.equal(sessionGateDecision({ pathname: "/", hasUser: true }), "redirect_home");
     assert.equal(sessionGateDecision({ pathname: "/login", hasUser: false }), "allow");
     assert.equal(sessionGateDecision({ pathname: "/login", hasUser: true }), "redirect_home");
-    assert.equal(sessionGateDecision({ pathname: "/", hasUser: true }), "allow");
+    assert.equal(sessionGateDecision({ pathname: "/privacy", hasUser: false }), "allow");
+    assert.equal(sessionGateDecision({ pathname: "/glossary", hasUser: true }), "allow");
+    assert.equal(sessionGateRedirectPath("redirect_login"), "/login");
+    assert.equal(sessionGateRedirectPath("redirect_home"), "/app");
+    assert.equal(sessionGateRedirectPath("allow"), null);
   });
 
   it("keeps signed-in users on the password-recovery login callback", () => {

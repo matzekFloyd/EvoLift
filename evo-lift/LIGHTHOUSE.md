@@ -7,8 +7,8 @@ Catches load and runtime cost regressions on the surfaces lifters use most.
 | URL | Auth | Why |
 | --- | --- | --- |
 | `/login` | Logged out | First paint for new and returning lifters |
-| `/` (Home) | Local demo user | Main shell after login |
-| `/insights` | Local demo user | Heavier charts and insight panels |
+| `/app` (Home) | Local demo user | Main shell after login |
+| `/app/insights` | Local demo user | Heavier charts and insight panels |
 
 Login uses the local demo account from `npm run seed:local` (`demo@example.com` / `demo1234`) unless `LHCI_EMAIL` / `LHCI_PASSWORD` are set.
 
@@ -19,8 +19,8 @@ Desktop Lighthouse **performance** category (one run in CI; raise `LHCI_NUMBER_O
 | Surface | Minimum score |
 | --- | --- |
 | `/login` | **0.70** |
-| Home `/` | **0.55** |
-| `/insights` | **0.50** |
+| Home `/app` | **0.55** |
+| `/app/insights` | **0.50** |
 
 Scores below the minimum fail the command and the GitHub Actions job. Tighten these after a few green CI baselines if the app is consistently higher.
 

@@ -9,6 +9,7 @@ import { WarmupSuggestion } from "@/app/components/warmup-suggestion";
 import { targetWeightFieldLabel } from "@/lib/assistance-exercise";
 import { targetSuggestionsEnabled } from "@/lib/target-weight-suggestion";
 import { warmupSuggestionsEnabled } from "@/lib/warmup-suggestion";
+import { appPath } from "@/lib/app-paths";
 import { PLANNED_SESSION_SETS_MESSAGE } from "./session-input";
 import { lastLoggedSet, resolvedAddDraft, setsForSessionExercise } from "./session-detail-model";
 import {
@@ -165,7 +166,7 @@ export function SessionExerciseBlock({
         <div className="flex min-w-0 items-center gap-2">
           {exerciseSlug ? (
             <Link
-              href={`/exercises/${exerciseSlug}`}
+              href={appPath(`/exercises/${exerciseSlug}`)}
               className="group inline-flex min-w-0 items-center gap-2 truncate rounded-sm text-lg font-medium text-zinc-900 hover:text-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60"
             >
               {exerciseBadge ? (

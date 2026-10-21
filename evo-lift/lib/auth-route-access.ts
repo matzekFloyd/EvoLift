@@ -1,9 +1,12 @@
 /**
- * Which app paths the session proxy leaves open without a verified user.
- * `/api/*` stays open here so bearer/personal-token API auth is unchanged.
+ * Session gate for the UI proxy.
+ * Paths under `/app` require a verified user. `/api/*` stays open for bearer auth.
+ * `/login`, `/privacy`, `/terms`, and `/glossary` stay public at the site root.
+ * `/` is not a second home until the marketing page exists.
  */
 
 import { isAuthEmailRecoverySearch } from "@/lib/auth-email-redirect";
+import { APP_HOME_PATH } from "@/lib/app-paths";
 
 const PUBLIC_EXACT = new Set([
   "/login",
@@ -22,9 +25,9 @@ export function isPublicAppPath(pathname: string): boolean {
   return false;
 }
 
-/** Paths that require a verified session cookie (defense-in-depth for the UI shell). */
+/** A path under `/app`, including Home. `/apple` and `/application` do not match. */
 export function requiresAppSession(pathname: string): boolean {
-  return !isPublicAppPath(pathname);
+  return pathname === APP_HOME_PATH || pathname.startsWith(`${APP_HOME_PATH}/`);
 }
 
 export type SessionGateDecision = "allow" | "redirect_login" | "redirect_home";
@@ -35,6 +38,9 @@ export function sessionGateDecision(input: {
   hasUser: boolean;
   search?: string | URLSearchParams | null;
 }): SessionGateDecision {
+  if (input.pathname === "/") {
+    return input.hasUser ? "redirect_home" : "redirect_login";
+  }
   if (!input.hasUser && requiresAppSession(input.pathname)) {
     return "redirect_login";
   }
@@ -46,4 +52,15 @@ export function sessionGateDecision(input: {
     return "redirect_home";
   }
   return "allow";
+}
+
+/** Where the proxy sends `redirect_login` and `redirect_home`. `allow` has no redirect. */
+export function sessionGateRedirectPath(decision: SessionGateDecision): string | null {
+  if (decision === "redirect_login") {
+    return "/login";
+  }
+  if (decision === "redirect_home") {
+    return APP_HOME_PATH;
+  }
+  return null;
 }

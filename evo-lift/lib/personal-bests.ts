@@ -1,3 +1,4 @@
+import { appPath } from "@/lib/app-paths";
 import { isAssistanceExercise } from "@/lib/assistance-exercise";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { formatKgAmount, formatRepCount } from "@/lib/milestone-progress";
@@ -69,7 +70,7 @@ export function buildPersonalBestRows(
       exerciseId: exercise.id,
       slug: exercise.slug,
       label: exercise.label,
-      href: `/exercises/${exercise.slug}`,
+      href: appPath(`/exercises/${exercise.slug}`),
       isAssistance: isAssistanceExercise(exercise.slug),
       bestSet,
       heaviestLoad,

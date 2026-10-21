@@ -4,6 +4,7 @@ import { Copy, KeyRound, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ActionButton } from "@/app/components/action-button";
+import { appPath } from "@/lib/app-paths";
 import { ContentPlaceholder } from "@/app/components/content-placeholder";
 import { API_TOKEN_PLACEHOLDER_ROWS } from "@/app/components/content-placeholder-layout";
 import {
@@ -142,7 +143,7 @@ export function AccountApiTokensSection({ accessToken }: AccountApiTokensSection
         icon={<KeyRound className="h-4 w-4 text-zinc-500" />}
       />
       <p className="mt-1.5 text-sm text-zinc-600">
-        <Link className="font-medium text-sky-800 hover:text-sky-950" href="/docs">
+        <Link className="font-medium text-sky-800 hover:text-sky-950" href={appPath("/docs")}>
           Open API docs
         </Link>{" "}
         to try endpoints in the browser with your session.

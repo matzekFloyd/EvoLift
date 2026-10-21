@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const PAGES = new Set(["/exercises", "/exercises/[slug]", "/sessions/[id]"]);
+const PAGES = new Set(["/app/exercises", "/app/exercises/[slug]", "/app/sessions/[id]"]);
 const CACHE_STATUSES = new Set(["hit", "miss", "hit-memory", "hit-local"]);
 const NAME_PATTERN = /^[A-Za-z0-9_.:-]{1,80}$/;
 

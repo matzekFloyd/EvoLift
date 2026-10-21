@@ -7,6 +7,7 @@ import { AppDialog } from "@/app/components/app-dialog";
 import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
+import { appPath } from "@/lib/app-paths";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { loadTargetWeightHistory } from "@/lib/target-weight-history";
 import {
@@ -143,7 +144,7 @@ export function SessionExerciseHistoryDialog({
 
       <div className="mt-3 flex justify-end sm:mt-4">
         <Link
-          href={`/exercises/${exerciseSlug}`}
+          href={appPath(`/exercises/${exerciseSlug}`)}
           className="text-sm text-sky-800 underline-offset-2 hover:underline"
         >
           Full history

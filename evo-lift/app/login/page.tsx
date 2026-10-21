@@ -25,6 +25,7 @@ import {
   normalizeLoginEmail,
   type LoginPanelMode,
 } from "@/app/login/login-form";
+import { APP_HOME_PATH } from "@/lib/app-paths";
 import { PASSWORD_CONFIRM_HINT, PASSWORD_STRENGTH_HINT } from "@/lib/password-policy";
 import { reportSecurityEvent } from "@/lib/report-security-event";
 import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
@@ -91,7 +92,7 @@ export default function LoginPage() {
       }
 
       if (session) {
-        router.replace("/");
+        router.replace(APP_HOME_PATH);
       }
     }
 
@@ -137,7 +138,7 @@ export default function LoginPage() {
       }
 
       if (session && !recoveryActiveRef.current) {
-        router.replace("/");
+        router.replace(APP_HOME_PATH);
       }
     });
 
@@ -197,7 +198,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.replace("/");
+    router.replace(APP_HOME_PATH);
     setIsLoading(false);
   }
 
@@ -313,7 +314,7 @@ export default function LoginPage() {
     }
 
     setIsLoading(false);
-    router.replace("/");
+    router.replace(APP_HOME_PATH);
   }
 
   const showAuthTabs = mode === "login" || mode === "register";

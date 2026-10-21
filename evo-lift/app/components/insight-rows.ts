@@ -1,4 +1,5 @@
 import type { StatusBadgeTone } from "@/app/components/status-badge";
+import { appPath } from "@/lib/app-paths";
 import {
   progressReadLabel,
   type ExerciseProgressRow,
@@ -98,7 +99,7 @@ export function progressInsightRow(row: ExerciseProgressRow, options?: { link?: 
   return {
     id: row.exerciseId,
     title: row.label,
-    href: options?.link === false ? null : `/exercises/${row.slug}`,
+    href: options?.link === false ? null : appPath(`/exercises/${row.slug}`),
     badge: progressReadLabel(row.read),
     badgeTone: progressReadBadgeTone(row.read),
     badgeDescription: progressBadgeDescription(row.read),
@@ -112,7 +113,7 @@ export function comparisonInsightRow(note: LiftBalanceNote): InsightRow {
   return {
     id: note.id,
     title: note.title,
-    href: note.titleSlug ? `/exercises/${note.titleSlug}` : null,
+    href: note.titleSlug ? appPath(`/exercises/${note.titleSlug}`) : null,
     badge: note.badge,
     badgeTone: comparisonBadgeTone(note),
     badgeDescription: comparisonBadgeDescription(note),

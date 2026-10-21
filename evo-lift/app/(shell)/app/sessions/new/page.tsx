@@ -6,6 +6,7 @@ import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useState } 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
+import { APP_HOME_PATH, appPath } from "@/lib/app-paths";
 import { ActionButton } from "@/app/components/action-button";
 import { ContentPlaceholder } from "@/app/components/content-placeholder";
 import { NEW_SESSION_PLACEHOLDER_ROWS } from "@/app/components/content-placeholder-layout";
@@ -379,7 +380,7 @@ function NewSessionPageContent() {
     invalidateLoggedHistoryCaches();
     window.localStorage.removeItem(getNewSessionDraftStorageKey(userId));
     notifyNewSessionDraftChanged();
-    router.replace(createMode === "log" ? `/sessions/${sessionInsert.id}` : "/");
+    router.replace(createMode === "log" ? appPath(`/sessions/${sessionInsert.id}`) : APP_HOME_PATH);
   }
 
   function clearDraft() {
@@ -466,7 +467,7 @@ function NewSessionPageContent() {
       router.back();
       return;
     }
-    router.push("/");
+    router.push(APP_HOME_PATH);
   }
 
   if (isChecking || (userId != null && draftGate === "pending-check")) {
@@ -565,14 +566,14 @@ function NewSessionPageContent() {
             <p className="text-xs text-zinc-600">
               No templates yet.{" "}
               <Link
-                href="/templates/new"
+                href={appPath("/templates/new")}
                 className="font-medium text-sky-800 underline-offset-2 hover:underline"
               >
                 Create a template
               </Link>
               {" · "}
               <Link
-                href="/templates"
+                href={appPath("/templates")}
                 className="font-medium text-sky-800 underline-offset-2 hover:underline"
               >
                 Manage templates
@@ -581,7 +582,7 @@ function NewSessionPageContent() {
           ) : (
             <p className="text-xs text-zinc-600">
               <Link
-                href="/templates"
+                href={appPath("/templates")}
                 className="font-medium text-sky-800 underline-offset-2 hover:underline"
               >
                 Manage templates

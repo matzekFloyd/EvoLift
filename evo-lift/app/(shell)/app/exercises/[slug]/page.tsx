@@ -66,6 +66,7 @@ import { buildExerciseSessionE1rmChartPoints } from "@/lib/exercise-session-e1rm
 import { buildExerciseSessionVolumeChartPoints } from "@/lib/exercise-session-volume-chart";
 import { buildExerciseSessionWeightChartPoints } from "@/lib/exercise-session-weight-chart";
 import { createPageLoadPerfTracker } from "@/lib/page-load-perf";
+import { appPath } from "@/lib/app-paths";
 import { resolveLifterAge } from "@/lib/body-metrics";
 import { buildExerciseProgressReport, type LifterProfile } from "@/lib/exercise-progress-insights";
 import {
@@ -216,7 +217,7 @@ export default function ExerciseDetailPage() {
   useEffect(() => {
     let isMounted = true;
     const startedEpoch = openedExerciseHistoryEpoch();
-    const perf = createPageLoadPerfTracker("/exercises/[slug]");
+    const perf = createPageLoadPerfTracker("/app/exercises/[slug]");
 
     async function loadData() {
       if (!slug) {
@@ -573,7 +574,7 @@ export default function ExerciseDetailPage() {
           </div>
           {isCompactView ? null : (
             <Link
-              href="/exercises"
+              href={appPath("/exercises")}
               className="inline-flex h-9 items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 text-sm text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
             >
               <ArrowLeft className="h-3.5 w-3.5 text-sky-700" />
