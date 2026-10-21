@@ -26,4 +26,13 @@ describe("login client graph", () => {
     assert.match(login, /variant="primary"/);
     assert.doesNotMatch(login, /Dumbbell/);
   });
+
+  it("exposes forgot-password recovery from login mode", () => {
+    const login = readFileSync(join(appDir, "login", "page.tsx"), "utf8");
+
+    assert.match(login, /Forgot password\?/);
+    assert.match(login, /resetPasswordForEmail/);
+    assert.match(login, /AUTH_EMAIL_RECOVERY_PATH/);
+    assert.match(login, /PASSWORD_RECOVERY/);
+  });
 });

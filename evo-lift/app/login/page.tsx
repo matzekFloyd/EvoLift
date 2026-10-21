@@ -1,10 +1,14 @@
 "use client";
 
 import { CircleCheck, Lock, Mail } from "lucide-react";
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { authEmailRedirectUrl } from "@/lib/auth-email-redirect";
+import {
+  AUTH_EMAIL_RECOVERY_PATH,
+  authEmailRedirectUrl,
+  isAuthEmailRecoverySearch,
+} from "@/lib/auth-email-redirect";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { ActionButton } from "@/app/components/action-button";
 import { EvoLiftBrand } from "@/app/components/evo-lift-logo";
@@ -16,27 +20,48 @@ import {
   friendlyAuthError,
   loginEmailError,
   loginPasswordError,
+  loginResetPasswordError,
   normalizeLoginEmail,
+  type LoginPanelMode,
 } from "@/app/login/login-form";
 import { reportSecurityEvent } from "@/lib/report-security-event";
 import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [mode, setMode] = useState<"login" | "register">("login");
+  const [mode, setMode] = useState<LoginPanelMode>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [message, setMessage] = useState<string | null>(null);
   const [successEmail, setSuccessEmail] = useState<string | null>(null);
+  const [successKind, setSuccessKind] = useState<"confirm" | "forgot" | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifiedNotice, setIsVerifiedNotice] = useState(false);
+  const [recoveryReady, setRecoveryReady] = useState(false);
+  const [recoveryLinkError, setRecoveryLinkError] = useState<string | null>(null);
+  const recoveryActiveRef = useRef(false);
+  const recoveryReadyRef = useRef(false);
 
   useEffect(() => {
     let isMounted = true;
-
+    let recoveryTimeoutId: number | undefined;
     const params = new URLSearchParams(window.location.search);
+    const onRecovery = isAuthEmailRecoverySearch(params);
     setIsVerifiedNotice(params.get("verified") === "1");
+
+    function markRecoveryReady() {
+      recoveryActiveRef.current = true;
+      recoveryReadyRef.current = true;
+      setMode("reset");
+      setRecoveryReady(true);
+      setRecoveryLinkError(null);
+    }
+
+    if (onRecovery) {
+      recoveryActiveRef.current = true;
+      setMode("reset");
+    }
 
     async function loadSession() {
       const session = await getBrowserAuthSession();
@@ -45,28 +70,87 @@ export default function LoginPage() {
         return;
       }
 
+      if (onRecovery) {
+        if (session) {
+          markRecoveryReady();
+        }
+        return;
+      }
+
       if (session) {
         router.replace("/");
-        return;
       }
     }
 
     void loadSession();
 
+    if (onRecovery) {
+      recoveryTimeoutId = window.setTimeout(() => {
+        void (async () => {
+          if (!isMounted || recoveryReadyRef.current) {
+            return;
+          }
+          const session = await getBrowserAuthSession();
+          if (!isMounted || recoveryReadyRef.current) {
+            return;
+          }
+          if (session) {
+            markRecoveryReady();
+            return;
+          }
+          setRecoveryReady(false);
+          setRecoveryLinkError(
+            "This reset link is invalid or expired. Request a new one from Log in.",
+          );
+        })();
+      }, 3000);
+    }
+
     const {
       data: { subscription },
-    } = supabaseBrowserClient.auth.onAuthStateChange((_event, session) => {
-      if (session) {
-        router.replace("/");
+    } = supabaseBrowserClient.auth.onAuthStateChange((event, session) => {
+      if (!isMounted) {
         return;
+      }
+
+      if (event === "PASSWORD_RECOVERY") {
+        markRecoveryReady();
+        return;
+      }
+
+      if (onRecovery && session) {
+        markRecoveryReady();
+        return;
+      }
+
+      if (session && !recoveryActiveRef.current) {
+        router.replace("/");
       }
     });
 
     return () => {
       isMounted = false;
+      if (recoveryTimeoutId !== undefined) {
+        window.clearTimeout(recoveryTimeoutId);
+      }
       subscription.unsubscribe();
     };
   }, [router]);
+
+  function switchMode(nextMode: LoginPanelMode) {
+    setMode(nextMode);
+    setMessage(null);
+    setSuccessEmail(null);
+    setSuccessKind(null);
+    setPassword("");
+    setConfirmPassword("");
+    if (nextMode !== "reset") {
+      recoveryActiveRef.current = false;
+      recoveryReadyRef.current = false;
+      setRecoveryReady(false);
+      setRecoveryLinkError(null);
+    }
+  }
 
   async function handleLogin(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -77,7 +161,7 @@ export default function LoginPage() {
       return;
     }
 
-    const passwordError = loginPasswordError({ password, confirmPassword, mode });
+    const passwordError = loginPasswordError({ password, confirmPassword, mode: "login" });
     if (passwordError) {
       setMessage(passwordError);
       return;
@@ -86,13 +170,12 @@ export default function LoginPage() {
     setIsLoading(true);
     setMessage(null);
     setSuccessEmail(null);
+    setSuccessKind(null);
 
-    const { error } = await supabaseBrowserClient.auth.signInWithPassword(
-      {
-        email: normalizedEmail,
-        password,
-      },
-    );
+    const { error } = await supabaseBrowserClient.auth.signInWithPassword({
+      email: normalizedEmail,
+      password,
+    });
 
     if (error) {
       void reportSecurityEvent({ type: "login_failed", email: normalizedEmail });
@@ -114,7 +197,7 @@ export default function LoginPage() {
       return;
     }
 
-    const passwordError = loginPasswordError({ password, confirmPassword, mode });
+    const passwordError = loginPasswordError({ password, confirmPassword, mode: "register" });
     if (passwordError) {
       setMessage(passwordError);
       return;
@@ -123,6 +206,7 @@ export default function LoginPage() {
     setIsLoading(true);
     setMessage(null);
     setSuccessEmail(null);
+    setSuccessKind(null);
 
     const emailRedirectTo = authEmailRedirectUrl({
       envAppUrl: process.env.NEXT_PUBLIC_APP_URL,
@@ -141,12 +225,93 @@ export default function LoginPage() {
     }
 
     setSuccessEmail(normalizedEmail);
+    setSuccessKind("confirm");
     setMessage(null);
     setIsLoading(false);
     setMode("login");
     setPassword("");
     setConfirmPassword("");
   }
+
+  async function handleForgot(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const normalizedEmail = normalizeLoginEmail(email);
+    const emailError = loginEmailError(normalizedEmail);
+    if (emailError) {
+      setMessage(emailError);
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage(null);
+    setSuccessEmail(null);
+    setSuccessKind(null);
+
+    const redirectTo = authEmailRedirectUrl({
+      envAppUrl: process.env.NEXT_PUBLIC_APP_URL,
+      windowOrigin: window.location.origin,
+      path: AUTH_EMAIL_RECOVERY_PATH,
+    });
+
+    const { error } = await supabaseBrowserClient.auth.resetPasswordForEmail(normalizedEmail, {
+      redirectTo: redirectTo ?? undefined,
+    });
+
+    if (error) {
+      setMessage(friendlyAuthError(error.message, "forgot"));
+      setIsLoading(false);
+      return;
+    }
+
+    setSuccessEmail(normalizedEmail);
+    setSuccessKind("forgot");
+    setMessage(null);
+    setIsLoading(false);
+    setMode("login");
+  }
+
+  async function handleReset(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const passwordError = loginResetPasswordError({ password, confirmPassword });
+    if (passwordError) {
+      setMessage(passwordError);
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage(null);
+
+    const { error } = await supabaseBrowserClient.auth.updateUser({
+      password,
+    });
+
+    if (error) {
+      setMessage(friendlyAuthError(error.message, "reset"));
+      setIsLoading(false);
+      return;
+    }
+
+    const session = await getBrowserAuthSession();
+    if (session?.access_token) {
+      void reportSecurityEvent({
+        type: "password_changed",
+        accessToken: session.access_token,
+      });
+    }
+
+    setIsLoading(false);
+    router.replace("/");
+  }
+
+  const showAuthTabs = mode === "login" || mode === "register";
+  const formSubmit =
+    mode === "login"
+      ? handleLogin
+      : mode === "register"
+        ? handleRegister
+        : mode === "forgot"
+          ? handleForgot
+          : handleReset;
 
   return (
     <div className="flex min-h-full flex-1 flex-col bg-gradient-to-b from-sky-50 to-white">
@@ -161,65 +326,90 @@ export default function LoginPage() {
       <PageFrame className="max-w-md justify-start gap-6">
         <div className="flex w-full flex-col gap-6 pt-4">
           <section className="panel p-4">
-            {isVerifiedNotice ? (
+            {isVerifiedNotice && mode !== "reset" ? (
               <StatusNotice
                 tone="success"
                 message="Email confirmed. You can log in now."
                 className="mb-4"
               />
             ) : null}
-            <div className="mb-5">
-              <SegmentedTabs
-                value={mode}
-                onChange={(nextMode) => {
-                  setMode(nextMode);
-                  setMessage(null);
-                  setSuccessEmail(null);
-                }}
-                className="w-full"
-                buttonLayout="equal-row"
-                buttonMinWidthClassName="sm:min-w-0"
-                tabListAriaLabel="Log in or register"
-                options={[
-                  { value: "login", label: "Log in" },
-                  { value: "register", label: "Register" },
-                ]}
-              />
-            </div>
-
-            <form
-              onSubmit={mode === "login" ? handleLogin : handleRegister}
-              className="space-y-4"
-            >
-              <label className="block text-sm font-medium">
-                <span className="inline-flex items-center gap-1">
-                  <Mail className="h-3.5 w-3.5 text-zinc-500" />
-                  Email
-                </span>
-                <input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
-                  placeholder="you@example.com"
+            {showAuthTabs ? (
+              <div className="mb-5">
+                <SegmentedTabs
+                  value={mode as "login" | "register"}
+                  onChange={(nextMode) => {
+                    switchMode(nextMode);
+                  }}
+                  className="w-full"
+                  buttonLayout="equal-row"
+                  buttonMinWidthClassName="sm:min-w-0"
+                  tabListAriaLabel="Log in or register"
+                  options={[
+                    { value: "login", label: "Log in" },
+                    { value: "register", label: "Register" },
+                  ]}
                 />
-              </label>
+              </div>
+            ) : (
+              <div className="mb-5">
+                <SectionHeading>
+                  {mode === "forgot" ? "Forgot password" : "Set a new password"}
+                </SectionHeading>
+                <p className="mt-1 text-sm text-zinc-600">
+                  {mode === "forgot"
+                    ? "Enter your email and we will send a reset link."
+                    : "Choose a new password for your account."}
+                </p>
+              </div>
+            )}
 
-              <label className="block text-sm font-medium">
-                <span className="inline-flex items-center gap-1">
-                  <Lock className="h-3.5 w-3.5 text-zinc-500" />
-                  Password
-                </span>
-                <input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
-                  placeholder="Your password"
-                />
-              </label>
+            <form onSubmit={formSubmit} className="space-y-4">
+              {mode !== "reset" ? (
+                <label className="block text-sm font-medium">
+                  <span className="inline-flex items-center gap-1">
+                    <Mail className="h-3.5 w-3.5 text-zinc-500" />
+                    Email
+                  </span>
+                  <input
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(event) => setEmail(event.target.value)}
+                    className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+                    placeholder="you@example.com"
+                  />
+                </label>
+              ) : null}
+
+              {mode === "login" || mode === "register" ? (
+                <label className="block text-sm font-medium">
+                  <span className="inline-flex items-center gap-1">
+                    <Lock className="h-3.5 w-3.5 text-zinc-500" />
+                    Password
+                  </span>
+                  <input
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(event) => setPassword(event.target.value)}
+                    className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+                    placeholder="Your password"
+                  />
+                </label>
+              ) : null}
+
+              {mode === "login" ? (
+                <div className="-mt-2">
+                  <button
+                    type="button"
+                    onClick={() => switchMode("forgot")}
+                    className="text-sm font-medium text-sky-800 underline-offset-2 hover:underline"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              ) : null}
+
               {mode === "register" ? (
                 <label className="block text-sm font-medium">
                   <span className="inline-flex items-center gap-1">
@@ -237,49 +427,123 @@ export default function LoginPage() {
                 </label>
               ) : null}
 
+              {mode === "reset" ? (
+                <>
+                  {recoveryLinkError ? (
+                    <StatusNotice tone="error" message={recoveryLinkError} />
+                  ) : !recoveryReady ? (
+                    <p className="text-sm text-zinc-600">Opening reset link…</p>
+                  ) : null}
+                  <label className="block text-sm font-medium">
+                    <span className="inline-flex items-center gap-1">
+                      <Lock className="h-3.5 w-3.5 text-zinc-500" />
+                      New password
+                    </span>
+                    <input
+                      type="password"
+                      required
+                      value={password}
+                      onChange={(event) => setPassword(event.target.value)}
+                      className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+                      placeholder="At least 8 characters"
+                      disabled={!recoveryReady}
+                    />
+                  </label>
+                  <label className="block text-sm font-medium">
+                    <span className="inline-flex items-center gap-1">
+                      <Lock className="h-3.5 w-3.5 text-zinc-500" />
+                      Confirm new password
+                    </span>
+                    <input
+                      type="password"
+                      required
+                      value={confirmPassword}
+                      onChange={(event) => setConfirmPassword(event.target.value)}
+                      className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+                      placeholder="Repeat new password"
+                      disabled={!recoveryReady}
+                    />
+                  </label>
+                </>
+              ) : null}
+
               {message ? <StatusNotice tone="error" message={message} /> : null}
               <div className="flex w-full items-center gap-3">
                 <div className="mr-auto flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-                  <Link
-                    href="/terms"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    prefetch={false}
-                    className="shrink-0 text-sm font-medium text-sky-800 underline-offset-2 hover:underline"
-                  >
-                    Terms of use
-                  </Link>
-                  <Link
-                    href="/privacy"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    prefetch={false}
-                    className="shrink-0 text-sm font-medium text-sky-800 underline-offset-2 hover:underline"
-                  >
-                    Privacy policy
-                  </Link>
+                  {mode === "forgot" || mode === "reset" ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (mode === "reset") {
+                          window.history.replaceState({}, "", "/login");
+                        }
+                        switchMode("login");
+                      }}
+                      className="shrink-0 text-sm font-medium text-sky-800 underline-offset-2 hover:underline"
+                    >
+                      Back to log in
+                    </button>
+                  ) : (
+                    <>
+                      <Link
+                        href="/terms"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        prefetch={false}
+                        className="shrink-0 text-sm font-medium text-sky-800 underline-offset-2 hover:underline"
+                      >
+                        Terms of use
+                      </Link>
+                      <Link
+                        href="/privacy"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        prefetch={false}
+                        className="shrink-0 text-sm font-medium text-sky-800 underline-offset-2 hover:underline"
+                      >
+                        Privacy policy
+                      </Link>
+                    </>
+                  )}
                 </div>
                 <ActionButton
                   type="submit"
                   variant="primary"
-                  disabled={isLoading}
+                  disabled={
+                    isLoading || (mode === "reset" && (!recoveryReady || Boolean(recoveryLinkError)))
+                  }
                   className="ml-auto shrink-0"
                 >
-                  {mode === "login" ? "Log in" : "Register"}
+                  {mode === "login"
+                    ? "Log in"
+                    : mode === "register"
+                      ? "Register"
+                      : mode === "forgot"
+                        ? "Send reset link"
+                        : "Set new password"}
                 </ActionButton>
               </div>
             </form>
           </section>
 
-          {successEmail ? (
+          {successEmail && successKind ? (
             <section className="panel p-4 text-sm">
               <SectionHeading className="inline-flex items-center gap-1">
                 <CircleCheck className="h-4 w-4 text-sky-700" />
                 Check your inbox
               </SectionHeading>
               <p className="mt-1 text-zinc-700">
-                We sent a confirmation link to <span className="font-medium">{successEmail}</span>.
-                Confirm your email, then log in.
+                {successKind === "confirm" ? (
+                  <>
+                    We sent a confirmation link to <span className="font-medium">{successEmail}</span>.
+                    Confirm your email, then log in.
+                  </>
+                ) : (
+                  <>
+                    We sent a reset link to <span className="font-medium">{successEmail}</span>. Open
+                    it to choose a new password.
+                  </>
+                )}
               </p>
             </section>
           ) : null}

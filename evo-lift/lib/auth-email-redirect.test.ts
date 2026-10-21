@@ -1,8 +1,10 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 import {
+  AUTH_EMAIL_RECOVERY_PATH,
   AUTH_EMAIL_VERIFIED_PATH,
   authEmailRedirectUrl,
+  isAuthEmailRecoverySearch,
   resolveAppOrigin,
 } from "./auth-email-redirect";
 
@@ -43,6 +45,27 @@ describe("auth-email-redirect", () => {
       }),
       "https://evolift.at/login?verified=1",
     );
+  });
+
+  it("builds the password-recovery redirect URL", () => {
+    assert.equal(AUTH_EMAIL_RECOVERY_PATH, "/login?recovery=1");
+    assert.equal(
+      authEmailRedirectUrl({
+        envAppUrl: "https://evolift.at",
+        windowOrigin: null,
+        path: AUTH_EMAIL_RECOVERY_PATH,
+      }),
+      "https://evolift.at/login?recovery=1",
+    );
+  });
+
+  it("detects the recovery callback query", () => {
+    assert.equal(isAuthEmailRecoverySearch("recovery=1"), true);
+    assert.equal(isAuthEmailRecoverySearch("?recovery=1&code=abc"), true);
+    assert.equal(isAuthEmailRecoverySearch(new URLSearchParams("recovery=1")), true);
+    assert.equal(isAuthEmailRecoverySearch("verified=1"), false);
+    assert.equal(isAuthEmailRecoverySearch(""), false);
+    assert.equal(isAuthEmailRecoverySearch(null), false);
   });
 
   it("returns null when no origin is available", () => {

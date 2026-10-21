@@ -1,5 +1,7 @@
 import { passwordStrengthError } from "@/lib/password-policy";
 
+export type LoginPanelMode = "login" | "register" | "forgot" | "reset";
+
 export function normalizeLoginEmail(email: string): string {
   return email.trim().toLowerCase();
 }
@@ -29,6 +31,21 @@ export function loginPasswordError(input: {
   }
   if (input.password !== input.confirmPassword) {
     return "Passwords do not match.";
+  }
+  return null;
+}
+
+/** Validation for the post-email recovery form (new password + confirm). */
+export function loginResetPasswordError(input: {
+  password: string;
+  confirmPassword: string;
+}): string | null {
+  const strengthError = passwordStrengthError(input.password, "New password");
+  if (strengthError) {
+    return strengthError;
+  }
+  if (input.password !== input.confirmPassword) {
+    return "New password and confirmation do not match.";
   }
   return null;
 }

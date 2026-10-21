@@ -4,6 +4,7 @@ import {
   friendlyAuthError,
   loginEmailError,
   loginPasswordError,
+  loginResetPasswordError,
   normalizeLoginEmail,
 } from "./login-form";
 
@@ -63,6 +64,34 @@ describe("login form", () => {
     );
   });
 
+  it("validates the recovery new-password form", () => {
+    assert.equal(
+      loginResetPasswordError({ password: "short1", confirmPassword: "short1" }),
+      "New password must be at least 8 characters.",
+    );
+    assert.equal(
+      loginResetPasswordError({
+        password: "longpassword",
+        confirmPassword: "longpassword",
+      }),
+      "New password must include at least one letter and one number.",
+    );
+    assert.equal(
+      loginResetPasswordError({
+        password: "longpass1",
+        confirmPassword: "longpass2",
+      }),
+      "New password and confirmation do not match.",
+    );
+    assert.equal(
+      loginResetPasswordError({
+        password: "longpass1",
+        confirmPassword: "longpass1",
+      }),
+      null,
+    );
+  });
+
   it("rewrites known auth failures and never returns raw provider text", () => {
     assert.equal(
       friendlyAuthError("User already registered"),
@@ -76,6 +105,14 @@ describe("login form", () => {
     assert.equal(
       friendlyAuthError("Database error querying schema"),
       "Could not sign in. Check your email and password, then try again.",
+    );
+    assert.equal(
+      friendlyAuthError("Database error querying schema", "forgot"),
+      "Could not send a reset link. Please try again.",
+    );
+    assert.equal(
+      friendlyAuthError("Database error querying schema", "reset"),
+      "Could not update your password. Please try again.",
     );
   });
 });

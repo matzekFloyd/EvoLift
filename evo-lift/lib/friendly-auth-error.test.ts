@@ -40,5 +40,13 @@ describe("friendlyAuthError", () => {
       friendlyAuthError("AuthApiError: something internal", "account"),
       "Could not update account settings. Please try again.",
     );
+    assert.equal(
+      friendlyAuthError("AuthApiError: something internal", "forgot"),
+      "Could not send a reset link. Please try again.",
+    );
+    assert.equal(
+      friendlyAuthError("AuthApiError: something internal", "reset"),
+      "Could not update your password. Please try again.",
+    );
   });
 });
