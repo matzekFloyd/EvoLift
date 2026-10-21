@@ -1,0 +1,39 @@
+# Dependencies and build output
+node_modules/
+.next/
+coverage/
+out/
+build/
+.vercel/
+.lighthouseci/
+
+# Lockfiles (large, rarely useful for agent context)
+**/package-lock.json
+**/pnpm-lock.yaml
+**/yarn.lock
+
+# Android / Gradle noise
+android/.gradle/
+android/**/build/
+**/*.jks
+**/*.keystore
+android/keystore.properties
+
+# Binary splash / density drawables (not useful as text context)
+android/**/res/drawable*/splash.png
+android/**/res/**/*.png
+android/**/res/**/*.webp
+android/**/res/**/*.jpg
+android/**/res/**/*.jpeg
+
+# Tooling dumps
+**/*.tsbuildinfo
+**/*.log
+**/npm-debug.log*
+**/yarn-debug.log*
+**/yarn-error.log*
+**/pnpm-debug.log*
+
+# Secrets / env
+.env*
+*.pem
