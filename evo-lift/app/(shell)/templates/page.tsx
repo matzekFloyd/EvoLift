@@ -299,7 +299,7 @@ export default function TemplatesPage() {
       </section>
 
       {useDialogTemplateId ? (
-        <AppDialog titleId="use-template-title">
+        <AppDialog titleId="use-template-title" onClose={() => setUseDialogTemplateId(null)}>
           <SectionHeading id="use-template-title">Start session from template</SectionHeading>
           <p className="mt-1 text-xs text-zinc-600">
             Creates a workout session with this template&apos;s exercises and targets. You can
@@ -345,7 +345,11 @@ export default function TemplatesPage() {
       ) : null}
 
       {deleteTargetId ? (
-        <AppDialog titleId="delete-template-title" panelClassName="max-w-sm">
+        <AppDialog
+          titleId="delete-template-title"
+          panelClassName="max-w-sm"
+          onClose={() => setDeleteTargetId(null)}
+        >
           <SectionHeading id="delete-template-title">Delete template?</SectionHeading>
           <p className="mt-1 text-sm text-zinc-600">
             This removes the template only. Existing workout sessions stay unchanged.

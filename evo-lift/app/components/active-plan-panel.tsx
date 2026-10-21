@@ -477,7 +477,7 @@ export function ActivePlanPanel({
       ) : null}
 
       {startDay && plan ? (
-        <AppDialog titleId="start-plan-day-title">
+        <AppDialog titleId="start-plan-day-title" onClose={() => setStartDayId(null)}>
           <SectionHeading id="start-plan-day-title">
             Start session from {startDay.name}
           </SectionHeading>

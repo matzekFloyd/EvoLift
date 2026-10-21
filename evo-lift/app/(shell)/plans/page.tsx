@@ -314,7 +314,11 @@ export default function PlansPage() {
       </section>
 
       {deleteTargetId ? (
-        <AppDialog titleId="delete-plan-title" panelClassName="max-w-sm">
+        <AppDialog
+          titleId="delete-plan-title"
+          panelClassName="max-w-sm"
+          onClose={() => setDeleteTargetId(null)}
+        >
           <SectionHeading id="delete-plan-title">Delete plan?</SectionHeading>
           <p className="mt-1 text-sm text-zinc-600">
             This removes the plan only. Existing workout sessions stay unchanged.

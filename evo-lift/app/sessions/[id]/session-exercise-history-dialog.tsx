@@ -40,16 +40,6 @@ export function SessionExerciseHistoryDialog({
   const [hasMore, setHasMore] = useState(false);
 
   useEffect(() => {
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    }
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [onClose]);
-
-  useEffect(() => {
     let cancelled = false;
     setStatus("loading");
     loadTargetWeightHistory(supabaseBrowserClient, exerciseId)
@@ -77,7 +67,7 @@ export function SessionExerciseHistoryDialog({
     <AppDialog
       titleId="session-exercise-history-title"
       panelClassName="flex max-h-[85vh] max-w-md flex-col"
-      onBackdropClick={onClose}
+      onClose={onClose}
     >
       <div className="flex items-start justify-between gap-2 sm:gap-3">
         <div className="min-w-0">
