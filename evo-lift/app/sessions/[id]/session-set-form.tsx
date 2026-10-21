@@ -74,7 +74,7 @@ function CompactLoggedSetSummary({
           <span className="font-medium text-zinc-900">Set {setNumber}</span>
         </span>
         {showSeparator ? <span className="text-zinc-500">·</span> : null}
-        <span ref={loadRef}>
+        <span ref={loadRef} className="tabular-nums">
           {weightKg ?? "-"} kg, {reps} reps
         </span>
       </span>
@@ -260,10 +260,10 @@ export function SessionExerciseSets({
                       <span>Set {set.set_number}</span>
                     </p>
                   </div>
-                  <p className="mt-1 text-sm">
+                  <p className="mt-1 text-sm tabular-nums">
                     <span className="font-medium">{loadValuePrefix}:</span> {set.weight_kg ?? "-"} kg
                   </p>
-                  <p className="text-sm">
+                  <p className="text-sm tabular-nums">
                     <span className="font-medium">Reps:</span> {set.reps}
                   </p>
                   {assistance ? (
@@ -273,7 +273,7 @@ export function SessionExerciseSets({
                         : "Assistance, not added load."}
                     </p>
                   ) : (
-                    <p className="text-xs text-zinc-600">
+                    <p className="text-xs tabular-nums text-zinc-600">
                       Total: {((set.weight_kg ?? 0) + (baseWeightKg ?? 0)).toFixed(1)} kg
                     </p>
                   )}
@@ -585,8 +585,8 @@ export function SessionExerciseSets({
                     <td className="px-2 py-2">
                       <SetKindIndicator isWarmup={set.is_warmup} density="compact" />
                     </td>
-                    <td className="px-2 py-2">{set.set_number}</td>
-                    <td className="px-2 py-2">
+                    <td className="px-2 py-2 tabular-nums">{set.set_number}</td>
+                    <td className="px-2 py-2 tabular-nums">
                       <div>{set.weight_kg ?? "-"}</div>
                       {assistance ? (
                         <div className="text-xs text-zinc-500">
@@ -600,7 +600,7 @@ export function SessionExerciseSets({
                         </div>
                       )}
                     </td>
-                    <td className="px-2 py-2">{set.reps}</td>
+                    <td className="px-2 py-2 tabular-nums">{set.reps}</td>
                     {canManageSets ? (
                       <td className="px-2 py-2">
                         <div className="flex justify-end gap-2">

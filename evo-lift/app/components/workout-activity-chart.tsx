@@ -146,9 +146,9 @@ export function WorkoutActivityChart({
 
   if (sortedData.length === 0) {
     return (
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+      <div className="flex flex-col gap-2">
         <p className="text-xs text-zinc-500">No workouts in the selected timeframe.</p>
-        {headerAside}
+        {headerAside ? <div className="w-full sm:w-fit sm:self-end">{headerAside}</div> : null}
       </div>
     );
   }
@@ -165,14 +165,12 @@ export function WorkoutActivityChart({
 
     return (
       <div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div className="mb-2 flex flex-col gap-1">
           <ActivityRangeLine
             sentence={`${totalSets} sets across ${totalWorkouts} workouts in the last 10 weeks`}
           />
-          {headerAside}
-        </div>
-        <div className="mb-2 mt-1">
           <ActivityComparisonLine sentence={comparison.sentence} setTrend={comparison.setTrend} />
+          {headerAside ? <div className="w-full pt-1 sm:w-fit sm:self-end">{headerAside}</div> : null}
         </div>
         <div
           ref={compactChartRef}
@@ -258,28 +256,26 @@ export function WorkoutActivityChart({
   return (
     <div>
       <div className="mb-3 space-y-2">
-        <div className="flex flex-col gap-2 lg:flex-row lg:items-end lg:justify-between">
+        <div className="flex flex-col gap-1">
           <ActivityRangeLine
             sentence={`${totalSets} sets across ${totalWorkouts} workouts in the selected range.`}
           />
-          {headerAside}
-        </div>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <ActivityComparisonLine sentence={comparison.sentence} setTrend={comparison.setTrend} />
-          <div className="flex shrink-0 flex-wrap gap-x-3 gap-y-1 text-[10px] text-zinc-500">
-            {INTENSITY_LEGEND.map((intensity) => (
+          {headerAside ? <div className="w-full pt-1 sm:w-fit sm:self-end">{headerAside}</div> : null}
+        </div>
+        <div className="flex shrink-0 flex-wrap gap-x-3 gap-y-1 text-[10px] text-zinc-500">
+          {INTENSITY_LEGEND.map((intensity) => (
+            <span
+              key={intensity}
+              className="inline-flex items-center gap-1"
+              title={activityIntensityPhrase(intensity)}
+            >
               <span
-                key={intensity}
-                className="inline-flex items-center gap-1"
-                title={activityIntensityPhrase(intensity)}
-              >
-                <span
-                  className={`h-3 w-3 rounded-sm border border-zinc-200 ${activityIntensityClass(intensity)}`}
-                />
-                {activityIntensityLabel(intensity)}
-              </span>
-            ))}
-          </div>
+                className={`h-3 w-3 rounded-sm border border-zinc-200 ${activityIntensityClass(intensity)}`}
+              />
+              {activityIntensityLabel(intensity)}
+            </span>
+          ))}
         </div>
       </div>
       <div className="grid grid-cols-[32px_minmax(0,1fr)] gap-2">

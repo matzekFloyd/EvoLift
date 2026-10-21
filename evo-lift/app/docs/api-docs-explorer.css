@@ -1,5 +1,5 @@
 .api-docs-explorer .swagger-ui {
-  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-ibm-plex-sans), ui-sans-serif, system-ui, sans-serif;
 }
 
 .api-docs-explorer .swagger-ui .information-container .title {

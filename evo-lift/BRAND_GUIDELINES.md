@@ -37,9 +37,11 @@ Examples:
 - Layout: compact, card-and-table hybrid, optimized for quick scanning.
 - Density: moderate; avoid excessive whitespace in core logging flows.
 - Border-first hierarchy: subtle borders + soft backgrounds over heavy shadows.
+- Page panels (`.panel`) are bordered surfaces, not floating cards. Soft shadow only for floating chrome that needs separation (sticky bars, dialogs).
 - Rounded controls (`rounded-md`) and small radii for consistency.
-- Global header uses a branded light-blue gradient to reinforce navigation hierarchy
+- Global header uses a branded light-sky gradient to reinforce navigation hierarchy
   (`bg-gradient-to-l from-sky-200 via-sky-100 to-sky-50`, darker on the right, with no bottom border).
+- Typeface: **IBM Plex Sans** for UI text. Use tabular lining figures for Loaded (kg), Target weight (kg), and reps so logging columns stay still. **IBM Plex Mono** only for monospace needs (e.g. API tokens on Account). Do not use Inter or Geist as the product face.
 
 ## User-named text
 
@@ -56,11 +58,51 @@ Example:
 
 ## Color intent
 
-- Primary action: sky blue (`sky-*`) for forward/progressive actions.
-- Destructive action: red (`red-*`) for delete/remove.
-- Success state: emerald (`emerald-*`) for completed/saved feedback.
-- Warning state: amber (`amber-*`) for cautionary feedback.
-- Neutral controls: zinc (`zinc-*`) for secondary actions.
+Color is **role**, not decoration. EvoLift leans on sky as the brand/forward color. Non-sky hues exist for status and data — not for making quiet screens “pop.”
+
+A quiet screen with **one** filled sky CTA in the focal area is correct. A screen with many sky chips, fills, and icons is not more on-brand.
+
+### Brand / structure
+
+| Role | Palette | Use for |
+| --- | --- | --- |
+| Structure | `zinc-*` | Text, borders, secondary buttons, most chrome |
+| Brand / forward | `sky-*` | Primary CTA, focus rings, active nav, strength chart series, “next” / selected row (`PanelInset` `tone="accent"`, soft `sky-50`) |
+
+### Status (UI feedback)
+
+| Role | Palette | Use for |
+| --- | --- | --- |
+| Success | `emerald-*` | Saved / success notices, goal reached feedback |
+| Caution | `amber-*` | Warning notices, cautionary actions (e.g. clear filters that discard), pace caution |
+| Danger | `red-*` | Delete / irreversible actions |
+
+### Data (charts only)
+
+| Role | Palette | Use for |
+| --- | --- | --- |
+| Companion series | `teal-*` | Second metric on a chart (e.g. Loaded (kg) beside Total) — see **Charts** |
+| Volume / work | `emerald-*` | Tonnage-style volume series — see **Charts** |
+
+Teal is **not** a second brand accent for buttons, badges, or page chrome unless this document later promotes it.
+
+### Highlight budget
+
+On a typical screen:
+
+- **Often:** zinc structure.
+- **Sometimes:** sky for forward action, selection, or strength meaning.
+- **Rarely:** emerald / amber / red — only when state requires it (feedback or irreversible).
+- **Charts only:** teal as a companion series; emerald for volume role.
+
+If a highlight is not success, warning, danger, “this is the next thing,” or a documented chart role, keep it zinc (or soft sky only when it is truly selected / next).
+
+Do not invent purple, pink, orange, or other one-off hues for personality. Warmup / caution cues use amber (with icon + text), not a separate orange.
+
+### Product state vs outcome feedback
+
+- **Session lifecycle chrome** (planned / in progress / completed): zinc or soft sky. “Completed” here means product state, not a toast — do not repaint whole sections emerald because a session is done.
+- **Outcome feedback** (`StatusNotice`, goal reached): emerald for success, amber for warning, red for error. Keep these near the control that caused them.
 
 ## Charts and data visualization
 
@@ -97,13 +139,18 @@ Pace mixes and similar status breakdowns may use semantic fills (e.g. on-track �
 
 ## Iconography
 
-- Every high-frequency action should have an icon if space allows.
+- Prefer Lucide for actions and nav. Do not swap icon libraries for novelty.
+- High-frequency **actions** should have an icon if space allows (Save, Delete, Continue, Create session, sticky bar controls).
+- Do **not** put an icon on every section heading. If the title already scans, text alone is enough. Icons beside titles are chrome, not meaning.
+- Brand identity uses `EvoLiftMark` (plate mark), not a generic dumbbell glyph as the logo.
 - Keep icon size compact (`h-3` to `h-4` depending on button size).
-- Match icon color to intent:
-  - primary/action: blue
-  - destructive: red
-  - success/save: green or white on filled primary buttons
-  - neutral/cancel: zinc
+- Match icon color to intent (Tailwind tokens):
+  - primary/action: `sky-*`
+  - destructive: `red-*`
+  - success/save: `emerald-*` or white on filled primary buttons
+  - caution: `amber-*`
+  - neutral/cancel: `zinc-*`
+- Do not rely on color alone; pair with text and/or a distinct icon where state matters (e.g. warmup vs working).
 
 ## Button conventions
 
@@ -158,7 +205,9 @@ Avoid stacking the same fill on itself (e.g. white row on white card, or `zinc-5
 - Are terms consistent with this document?
 - Are user-named labels weighted per **User-named text** (medium, not italic/semibold-only)?
 - Are nested groups using `PanelInset` / **Nested surfaces** (no hand-rolled muted fills)?
-- Are action colors and icons semantically correct?
+- Does color follow **Color intent** (sky for forward; emerald/amber/red only for status; teal chart-only)?
+- Is there roughly one filled sky CTA in the focal area, not sky decoration everywhere?
+- Are icons on actions/nav, not on every section heading?
 - Do chart series use **Charts and data visualization** roles (no one-off hues)?
 - Is compact/mobile behavior still usable with one hand?
 - Is success/error feedback shown near the triggering control?

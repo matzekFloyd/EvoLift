@@ -381,23 +381,23 @@ export default function Home() {
   );
 
   const pastRangeControls = (
-    <div className="flex flex-wrap items-end gap-2">
-      <label className="text-xs font-medium text-zinc-600">
-        From
+    <div className="grid w-full grid-cols-2 items-end gap-2 sm:flex sm:w-auto sm:flex-nowrap">
+      <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-zinc-600">
+        <span>From</span>
         <DateInput
           value={dateFrom}
           onChange={(event) => setDateFrom(event.target.value)}
           max={todayYyyyMmDd}
-          className="mt-1 w-[9.5rem] rounded-md border bg-white px-2 py-1 text-sm"
+          className="w-full rounded-md border bg-white px-2 py-1 text-sm sm:w-[9.5rem]"
         />
       </label>
-      <label className="text-xs font-medium text-zinc-600">
-        To
+      <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-zinc-600">
+        <span>To</span>
         <DateInput
           value={dateTo}
           onChange={(event) => setDateTo(event.target.value)}
           max={todayYyyyMmDd}
-          className="mt-1 w-[9.5rem] rounded-md border bg-white px-2 py-1 text-sm"
+          className="w-full rounded-md border bg-white px-2 py-1 text-sm sm:w-[9.5rem]"
         />
       </label>
       <ActionButton
@@ -409,7 +409,7 @@ export default function Home() {
         disabled={dateFrom === defaultDateRange.from && dateTo === defaultDateRange.to}
         variant="secondary"
         size="sm"
-        className="text-sm font-normal text-amber-800 hover:text-amber-900"
+        className="col-span-2 w-full justify-center text-sm font-normal text-amber-800 hover:text-amber-900 sm:col-auto sm:w-auto sm:shrink-0"
         iconColor="amber"
       >
         <FilterX className="h-3.5 w-3.5" />
@@ -489,9 +489,9 @@ export default function Home() {
               Past workouts
             </SectionHeading>
             {isChecking && workoutActivityData.length === 0 ? (
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+              <div className="flex flex-col gap-2">
                 <p className="text-sm text-zinc-500">Loading workouts...</p>
-                {pastRangeControls}
+                <div className="w-full sm:w-fit sm:self-end">{pastRangeControls}</div>
               </div>
             ) : (
               <WorkoutActivityChart
