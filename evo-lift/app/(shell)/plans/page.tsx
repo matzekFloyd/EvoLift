@@ -281,6 +281,10 @@ export default function PlansPage() {
                         )}
                         {row.isActive ? "Deactivate" : "Set active"}
                       </ActionButton>
+                      <Link href={`/plans/${row.id}/edit`} className={tableRowActionLinkClassName}>
+                        <Pencil className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                        Edit
+                      </Link>
                       <ActionButton
                         type="button"
                         size="sm"
@@ -291,10 +295,6 @@ export default function PlansPage() {
                         <Copy className="h-3.5 w-3.5 shrink-0" aria-hidden />
                         Duplicate
                       </ActionButton>
-                      <Link href={`/plans/${row.id}/edit`} className={tableRowActionLinkClassName}>
-                        <Pencil className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                        Edit
-                      </Link>
                       <ActionButton
                         type="button"
                         size="sm"
