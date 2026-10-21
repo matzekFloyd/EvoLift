@@ -42,7 +42,7 @@ export function resolveSessionSheetFocusCycle(args: {
   if (args.shiftKey && args.activeIndex <= 0) {
     return { action: "focus", index: args.focusableCount - 1 };
   }
-  if (!args.shiftKey && args.activeIndex === args.focusableCount - 1) {
+  if (!args.shiftKey && (args.activeIndex < 0 || args.activeIndex === args.focusableCount - 1)) {
     return { action: "focus", index: 0 };
   }
   return { action: "none" };
