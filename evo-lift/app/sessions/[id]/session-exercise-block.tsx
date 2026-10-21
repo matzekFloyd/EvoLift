@@ -233,7 +233,7 @@ export function SessionExerciseBlock({
               aria-haspopup="dialog"
               className="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
             >
-              <History className="h-3.5 w-3.5 text-sky-700" />
+              <History className="h-3.5 w-3.5 text-sky-700" aria-hidden />
               Open history
             </button>
           ) : null}
@@ -254,13 +254,14 @@ export function SessionExerciseBlock({
             <button
               type="button"
               onClick={onToggleTargets}
+              aria-expanded={targetsOpenInline}
               title="Edit planned working-set targets (warmups do not count)."
               className="inline-flex h-9 w-24 items-center justify-center rounded-md border border-zinc-300 bg-zinc-50 px-2 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
             >
               {targetsOpenInline ? (
-                <ChevronUp className="mr-1 h-3.5 w-3.5" />
+                <ChevronUp className="mr-1 h-3.5 w-3.5" aria-hidden />
               ) : (
-                <ChevronDown className="mr-1 h-3.5 w-3.5" />
+                <ChevronDown className="mr-1 h-3.5 w-3.5" aria-hidden />
               )}
               Set targets
             </button>
@@ -295,7 +296,7 @@ export function SessionExerciseBlock({
               onClick={onCancelTargets}
               className="inline-flex h-9 w-24 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
             >
-              <X className="h-3 w-3 text-zinc-500" />
+              <X className="h-3 w-3 text-zinc-500" aria-hidden />
               Cancel
             </button>
             <button
@@ -304,7 +305,7 @@ export function SessionExerciseBlock({
               disabled={isSavingTargets}
               className="inline-flex h-9 w-24 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-2 text-xs text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60"
             >
-              <Check className="h-3 w-3 text-white" />
+              <Check className="h-3 w-3 text-white" aria-hidden />
               {isSavingTargets ? "Saving..." : "Save"}
             </button>
           </div>

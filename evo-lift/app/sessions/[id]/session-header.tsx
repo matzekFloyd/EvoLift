@@ -96,7 +96,7 @@ export function SessionHeader({
                 isCompactView ? "h-10 flex-1 justify-center" : "w-fit"
               }`}
             >
-              <Trash2 className="h-4 w-4 text-red-600" />
+              <Trash2 className="h-4 w-4 text-red-600" aria-hidden />
               {isDeletingSession ? "Deleting..." : "Delete session"}
             </button>
             {isDeleteSessionConfirmOpen ? (
@@ -137,7 +137,7 @@ export function SessionHeader({
               isCompactView ? "h-10 flex-1 justify-center" : "w-fit"
             }`}
           >
-            <RotateCcw className="h-4 w-4 text-white" />
+            <RotateCcw className="h-4 w-4 text-white" aria-hidden />
             {isMarkingCompleted ? "Saving..." : "Reopen session"}
           </button>
         ) : null}
@@ -150,7 +150,7 @@ export function SessionHeader({
               isCompactView ? "h-10 flex-1 justify-center" : "w-fit"
             }`}
           >
-            <Check className="h-4 w-4 text-white" />
+            <Check className="h-4 w-4 text-white" aria-hidden />
             {isMarkingCompleted ? "Saving..." : "Finish session"}
           </button>
         ) : null}
@@ -160,7 +160,7 @@ export function SessionHeader({
             onClick={onAddExercise}
             className="inline-flex h-10 w-full items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-sm text-zinc-800 hover:border-sky-400 hover:bg-zinc-100 hover:text-zinc-900"
           >
-            <Plus className="h-4 w-4 text-sky-700" />
+            <Plus className="h-4 w-4 text-sky-700" aria-hidden />
             Add exercise
           </button>
         ) : null}

@@ -64,6 +64,7 @@ export function SessionCompactBar({
         </>
       }
       progressLabel={`${activeExerciseIndex + 1}/${exerciseCount}`}
+      progressAriaLabel={`Exercise ${activeExerciseIndex + 1} of ${exerciseCount}`}
       onPrevious={() => setActiveExerciseIndex((prev) => Math.max(0, prev - 1))}
       onNext={() => setActiveExerciseIndex((prev) => Math.min(exerciseCount - 1, prev + 1))}
       isPreviousDisabled={activeExerciseIndex === 0}

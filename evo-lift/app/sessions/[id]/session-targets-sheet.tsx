@@ -42,7 +42,7 @@ export function SessionTargetsSheet({
   onSave,
 }: SessionTargetsSheetProps) {
   return (
-    <SessionBottomSheet title="Set targets" backdropLabel="Close targets form" onClose={onCancel}>
+    <SessionBottomSheet title="Set targets" onClose={onCancel}>
       <p className="mb-2 text-xs text-zinc-600">{exerciseLabel}</p>
       <p className="mb-3 text-xs text-zinc-600">
         Values apply to working sets only; warmups do not count.
@@ -72,7 +72,7 @@ export function SessionTargetsSheet({
           onClick={onCancel}
           className="inline-flex h-10 flex-1 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 text-sm text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
         >
-          <X className="h-3.5 w-3.5 text-zinc-500" />
+          <X className="h-3.5 w-3.5 text-zinc-500" aria-hidden />
           Cancel
         </button>
         <button
@@ -81,7 +81,7 @@ export function SessionTargetsSheet({
           disabled={isSavingTargets}
           className="inline-flex h-10 flex-1 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-3 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60"
         >
-          <Check className="h-3.5 w-3.5 text-white" />
+          <Check className="h-3.5 w-3.5 text-white" aria-hidden />
           {isSavingTargets ? "Saving..." : "Save targets"}
         </button>
       </div>
