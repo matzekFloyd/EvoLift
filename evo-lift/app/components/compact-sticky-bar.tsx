@@ -41,8 +41,9 @@ export function CompactStickyBar({
           >
             Previous
           </button>
-          <span className="text-xs text-zinc-600" aria-label={progressAriaLabel ?? progressLabel}>
-            {progressLabel}
+          <span className="text-xs text-zinc-600">
+            <span aria-hidden>{progressLabel}</span>
+            <span className="sr-only">{progressAriaLabel ?? progressLabel}</span>
           </span>
           <button
             type="button"

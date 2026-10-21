@@ -18,8 +18,10 @@ describe("session logging keyboard and screen-reader graph", () => {
     assert.match(sheet, /aria-modal="true"/);
     assert.match(sheet, /aria-labelledby=\{titleId\}/);
     assert.match(sheet, /event\.key === "Escape"/);
+    assert.match(sheet, /nestedControlHandlesEscape/);
     assert.match(sheet, /cycleSessionSheetFocus/);
-    assert.match(sheet, /previouslyFocusedRef\.current\?\.focus/);
+    assert.match(sheet, /previouslyFocused\?\.focus/);
+    assert.match(sheet, /onCloseRef\.current/);
     assert.doesNotMatch(sheet, /backdropLabel/);
     assert.doesNotMatch(sheet, /role="button"/);
 
@@ -51,7 +53,7 @@ describe("session logging keyboard and screen-reader graph", () => {
 
     assert.match(compactBar, /progressAriaLabel=\{`Exercise \$\{activeExerciseIndex \+ 1\} of \$\{exerciseCount\}`\}/);
     assert.match(stickyBar, /progressAriaLabel/);
-    assert.match(stickyBar, /aria-label=\{progressAriaLabel \?\? progressLabel\}/);
+    assert.match(stickyBar, /<span className="sr-only">\{progressAriaLabel \?\? progressLabel\}<\/span>/);
 
     assert.match(exerciseBlock, /aria-expanded=\{targetsOpenInline\}/);
     assert.match(exerciseBlock, /History className="h-3\.5 w-3\.5 text-sky-700" aria-hidden/);

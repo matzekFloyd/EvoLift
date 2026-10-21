@@ -27,7 +27,16 @@ describe("resolveSessionSheetFocusCycle", () => {
     );
   });
 
-  it("wraps Shift+Tab when focus is outside the sheet controls", () => {
+  it("pulls focus back inside when it starts outside the sheet", () => {
+    assert.deepEqual(
+      resolveSessionSheetFocusCycle({
+        key: "Tab",
+        shiftKey: false,
+        focusableCount: 2,
+        activeIndex: -1,
+      }),
+      { action: "focus", index: 0 },
+    );
     assert.deepEqual(
       resolveSessionSheetFocusCycle({
         key: "Tab",

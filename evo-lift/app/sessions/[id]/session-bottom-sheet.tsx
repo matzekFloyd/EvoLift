@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useRef, type ReactNode } from "react";
+import { nestedControlHandlesEscape } from "@/app/components/app-dialog-focus";
 import { SectionHeading } from "@/app/components/section-heading";
 import {
   cycleSessionSheetFocus,
@@ -24,38 +25,41 @@ export function SessionBottomSheet({
 }: SessionBottomSheetProps) {
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
-  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
-    previouslyFocusedRef.current =
+    const previouslyFocused =
       document.activeElement instanceof HTMLElement ? document.activeElement : null;
-
     const panel = panelRef.current;
-    if (!panel) {
-      return;
+    if (panel) {
+      const focusable = listSessionSheetFocusable(panel);
+      (focusable[0] ?? panel).focus();
     }
-
-    const focusable = listSessionSheetFocusable(panel);
-    (focusable[0] ?? panel).focus();
 
     function onKeyDown(event: KeyboardEvent) {
       if (event.key === "Escape") {
+        if (nestedControlHandlesEscape(event.target)) {
+          return;
+        }
         event.preventDefault();
-        onClose();
+        onCloseRef.current();
         return;
       }
-      if (!panel) {
+      const root = panelRef.current;
+      if (!root) {
         return;
       }
-      cycleSessionSheetFocus(panel, event, document.activeElement);
+      cycleSessionSheetFocus(root, event, document.activeElement);
     }
 
     document.addEventListener("keydown", onKeyDown);
     return () => {
       document.removeEventListener("keydown", onKeyDown);
-      previouslyFocusedRef.current?.focus();
+      previouslyFocused?.focus();
     };
-  }, [onClose]);
+    // Bind once. A new onClose identity must not steal focus while the sheet stays open.
+  }, []);
 
   return (
     <div
