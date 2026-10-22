@@ -17,13 +17,25 @@ import {
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import {
+  listDialogFocusable,
+  resolveDialogKeyAction,
+} from "@/app/components/app-dialog-focus";
+import {
   AppHeaderNavCaption,
   AppHeaderNavLink,
   appHeaderNavIconInactiveClassName,
   appHeaderNavIconInactiveGlyphClassName,
 } from "@/app/components/app-header-nav-link";
-import { APP_LEGAL_LINKS } from "@/app/components/app-legal-links";
+import { APP_LEGAL_LINKS, legalLinkAriaCurrent, legalLinkClassNameFor } from "@/app/components/app-legal-links";
 import { EvoLiftMark } from "@/app/components/evo-lift-logo";
+import {
+  HEADER_LOG_OUT_LABEL,
+  compactMenuButtonClassName,
+  compactMenuButtonLabel,
+  compactMenuFocusable,
+  compactNavTileClassName,
+  focusHeaderControl,
+} from "@/app/header-nav";
 import { APP_HOME_PATH, appPath, isAppNavItemActive, type AppNavMatch } from "@/lib/app-paths";
 import { prefetchHomeSessionSummaries } from "@/lib/home-session-cache";
 import { clearSignedInMemory, rememberUserId } from "@/lib/signed-in-memory";
@@ -36,15 +48,6 @@ type HeaderNavItem = {
   icon: LucideIcon;
   match: AppNavMatch;
 };
-
-function compactNavTileClassName(isActive: boolean) {
-  return [
-    "flex min-h-[5.75rem] flex-col items-center justify-center gap-2 rounded-md border px-3 py-4 text-center text-sm font-medium",
-    isActive
-      ? "border-sky-700 bg-sky-700 text-white shadow-sm"
-      : "border-zinc-200 bg-white text-zinc-800 hover:border-sky-200 hover:bg-white",
-  ].join(" ");
-}
 
 const HEADER_NAV: HeaderNavItem[] = [
   { href: APP_HOME_PATH, label: "Home", icon: House, match: "exact" },
@@ -63,7 +66,9 @@ export function HeaderActions() {
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isReady, setIsReady] = useState(false);
   const [isCompactMenuOpen, setIsCompactMenuOpen] = useState(false);
+  const compactLogoRef = useRef<HTMLAnchorElement | null>(null);
   const compactMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const compactMenuRef = useRef<HTMLDivElement | null>(null);
   const compactMenuFirstItemRef = useRef<HTMLAnchorElement | null>(null);
 
   const compactNavItems = HEADER_NAV.map((item) => ({
@@ -118,14 +123,36 @@ export function HeaderActions() {
     // Lock scroll on html so scrollbar-gutter: stable keeps the same right inset.
     root.style.overflow = "hidden";
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") {
+      const dialogItems = compactMenuRef.current ? listDialogFocusable(compactMenuRef.current) : [];
+      const focusable = compactMenuFocusable({
+        logo: compactLogoRef.current,
+        trigger: compactMenuTriggerRef.current,
+        dialogItems,
+      });
+      const activeElement = document.activeElement;
+      const activeIndex = activeElement instanceof HTMLElement ? focusable.indexOf(activeElement) : -1;
+      const action = resolveDialogKeyAction({
+        key: event.key,
+        shiftKey: event.shiftKey,
+        focusableCount: focusable.length,
+        activeIndex,
+      });
+
+      if (action.type === "close") {
         event.preventDefault();
         closeCompactMenu({ returnFocus: true });
+        return;
+      }
+      if (action.type === "trap") {
+        event.preventDefault();
+        if (action.cycle.action === "focus") {
+          focusHeaderControl(focusable[action.cycle.index] ?? null);
+        }
       }
     };
     window.addEventListener("keydown", onKeyDown);
     const focusTimer = window.setTimeout(() => {
-      compactMenuFirstItemRef.current?.focus();
+      focusHeaderControl(compactMenuFirstItemRef.current);
     }, 0);
     return () => {
       root.style.overflow = previousOverflow;
@@ -148,7 +175,7 @@ export function HeaderActions() {
     setIsCompactMenuOpen(false);
     if (returnFocus) {
       window.requestAnimationFrame(() => {
-        compactMenuTriggerRef.current?.focus();
+        focusHeaderControl(compactMenuTriggerRef.current);
       });
     }
   }
@@ -156,11 +183,13 @@ export function HeaderActions() {
   return (
     <header className="bg-gradient-to-l from-sky-200 via-sky-100 to-sky-50 pt-[env(safe-area-inset-top,0px)]">
       <nav
+        aria-label="Main"
         className={`mx-auto flex w-full max-w-5xl items-center justify-between gap-2 px-4 py-3 sm:px-6 ${
           isCompactMenuOpen ? "relative z-[90]" : ""
         }`}
       >
         <Link
+          ref={compactLogoRef}
           className="group inline-flex items-center gap-2 rounded-md px-1.5 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 focus-visible:ring-offset-2 focus-visible:ring-offset-sky-100"
           href={APP_HOME_PATH}
         >
@@ -190,9 +219,10 @@ export function HeaderActions() {
             type="button"
             onClick={handleAuthClick}
             className={`${appHeaderNavIconInactiveClassName} header-nav-logout`}
+            aria-label={HEADER_LOG_OUT_LABEL}
           >
             <LogOut className={appHeaderNavIconInactiveGlyphClassName} aria-hidden />
-            <AppHeaderNavCaption label="Log out" />
+            <AppHeaderNavCaption label={HEADER_LOG_OUT_LABEL} />
           </button>
         </div>
         <div className="md:hidden">
@@ -200,8 +230,8 @@ export function HeaderActions() {
             ref={compactMenuTriggerRef}
             type="button"
             onClick={() => setIsCompactMenuOpen((prev) => !prev)}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-md text-zinc-700 hover:bg-sky-100/70 hover:text-sky-900"
-            aria-label={isCompactMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+            className={compactMenuButtonClassName}
+            aria-label={compactMenuButtonLabel(isCompactMenuOpen)}
             aria-expanded={isCompactMenuOpen}
             aria-controls="compact-header-menu"
           >
@@ -215,6 +245,7 @@ export function HeaderActions() {
       </nav>
       {isCompactMenuOpen ? (
         <div
+          ref={compactMenuRef}
           id="compact-header-menu"
           role="dialog"
           aria-modal="true"
@@ -251,23 +282,27 @@ export function HeaderActions() {
                 className={compactNavTileClassName(false)}
               >
                 <LogOut className="h-6 w-6 shrink-0 text-sky-700" aria-hidden />
-                Log out
+                {HEADER_LOG_OUT_LABEL}
               </button>
             </div>
             <nav
               aria-label="Legal"
               className="mt-auto flex flex-col gap-2 border-t border-zinc-200 pt-4 text-sm"
             >
-              {APP_LEGAL_LINKS.map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  onClick={() => closeCompactMenu({ returnFocus: false })}
-                  className="font-medium text-zinc-700 underline-offset-2 hover:text-sky-800 hover:underline"
-                >
-                  {link.label}
-                </Link>
-              ))}
+              {APP_LEGAL_LINKS.map((link) => {
+                const current = legalLinkAriaCurrent(pathname, link.href);
+                return (
+                  <Link
+                    key={link.href}
+                    href={link.href}
+                    onClick={() => closeCompactMenu({ returnFocus: false })}
+                    aria-current={current}
+                    className={legalLinkClassNameFor(current === "page")}
+                  >
+                    {link.label}
+                  </Link>
+                );
+              })}
             </nav>
           </div>
         </div>

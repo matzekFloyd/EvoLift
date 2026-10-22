@@ -36,12 +36,13 @@ export function AppHeaderNavCaption({ label }: { label: string }) {
  * label beside the icon without changing the control’s height. Active: filled sky; icon and label
  * stay `text-white` on hover so the global link hover color cannot darken the caption. Focus:
  * inactive uses sky ring + white offset; active uses white ring + sky offset so the glyph
- * stays visible.
+ * stays visible. The resting control is the icon, so the accessible name is `label`.
  */
 export function AppHeaderNavLink({ href, label, isActive, icon: Icon, title }: AppHeaderNavLinkProps) {
   return (
     <Link
       href={href}
+      aria-label={label}
       aria-current={isActive ? "page" : undefined}
       title={title}
       className={isActive ? appHeaderNavIconActiveClassName : appHeaderNavIconInactiveClassName}
