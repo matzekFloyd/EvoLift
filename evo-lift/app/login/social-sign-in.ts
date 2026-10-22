@@ -17,6 +17,20 @@ export const SOCIAL_SIGN_IN_ENABLED: Record<SocialSignInProvider, boolean> = {
   apple: false,
 };
 
+/**
+ * Buttons and the "or" divider appear only for providers that are on.
+ * An empty list means the login panel omits the whole social block.
+ */
+export function visibleSocialSignIn(
+  enabled: Record<SocialSignInProvider, boolean> = SOCIAL_SIGN_IN_ENABLED,
+): {
+  providers: readonly (typeof SOCIAL_SIGN_IN_PROVIDERS)[number][];
+  showDivider: boolean;
+} {
+  const providers = SOCIAL_SIGN_IN_PROVIDERS.filter((item) => enabled[item.provider]);
+  return { providers, showDivider: providers.length > 0 };
+}
+
 export function socialSignInControlDisabled(input: {
   provider: SocialSignInProvider;
   busy: boolean;
