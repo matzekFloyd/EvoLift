@@ -27,6 +27,16 @@ describe("login client graph", () => {
     assert.doesNotMatch(login, /Dumbbell/);
   });
 
+  it("uses the product name as the only heading", () => {
+    const login = readFileSync(join(appDir, "login", "page.tsx"), "utf8");
+    const brand = readFileSync(join(appDir, "components", "evo-lift-logo.tsx"), "utf8");
+
+    assert.match(login, /<EvoLiftBrand[\s\S]*?\basHeading\b/);
+    assert.equal(login.match(/<h1\b/g)?.length ?? 0, 0);
+    assert.match(brand, /asHeading \? "h1" : "div"/);
+    assert.match(brand, />EvoLift</);
+  });
+
   it("exposes forgot-password recovery from login mode", () => {
     const login = readFileSync(join(appDir, "login", "page.tsx"), "utf8");
 

@@ -24,10 +24,16 @@ describe("public home", () => {
       title: { absolute: APP_DOCUMENT_TITLE },
       description: PUBLIC_HOME_HEADING,
       alternates: { canonical: PUBLIC_APP_ORIGIN },
+      openGraph: {
+        title: APP_DOCUMENT_TITLE,
+        description: PUBLIC_HOME_HEADING,
+        url: PUBLIC_APP_ORIGIN,
+        siteName: APP_DOCUMENT_TITLE,
+        type: "website",
+      },
     });
     assert.equal(APP_DOCUMENT_TITLE, "EvoLift");
     assert.equal(PUBLIC_APP_ORIGIN, "https://evolift.at");
-    assert.equal("openGraph" in publicHomeMetadata, false);
   });
 
   it("sends Start lifting to the login page", () => {
@@ -55,6 +61,7 @@ describe("public home", () => {
     assert.doesNotMatch(page, /max-w-\[28rem\]|mt-auto|PUBLIC_HOME_REGISTER/);
     assert.doesNotMatch(page, /HeaderActions|header-actions|PageShell|AppFooter|className="panel/);
     assert.doesNotMatch(page, /openGraph/);
+    assert.doesNotMatch(page, /asHeading/);
   });
 
   it("keeps marketing controls named, focusable, and free of extra roles", () => {

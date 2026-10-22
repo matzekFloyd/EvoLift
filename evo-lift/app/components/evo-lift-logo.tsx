@@ -27,6 +27,8 @@ type EvoLiftBrandProps = {
   className?: string;
   markClassName?: string;
   titleClassName?: string;
+  /** The product name is the page heading. Other lockups stay unlabeled. */
+  asHeading?: boolean;
 };
 
 /** Plate mark + wordmark. Use when the name should sit with the mark. */
@@ -34,11 +36,17 @@ export function EvoLiftBrand({
   className = "",
   markClassName = "h-8 w-8",
   titleClassName = "text-lg leading-none font-bold tracking-[-0.04em] text-sky-900",
+  asHeading = false,
 }: EvoLiftBrandProps) {
+  const Root = asHeading ? "h1" : "div";
   return (
-    <div className={`inline-flex items-center gap-2 ${className}`.trim()}>
+    <Root
+      className={["inline-flex items-center gap-2", asHeading ? "m-0 leading-none" : "", className]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <EvoLiftMark className={`shrink-0 ${markClassName}`.trim()} />
       <span className={titleClassName}>EvoLift</span>
-    </div>
+    </Root>
   );
 }

@@ -2,11 +2,9 @@ import type { Metadata } from "next";
 import { ScrollText } from "lucide-react";
 import { PageShell } from "@/app/components/page-shell";
 import { termsOfUseSections } from "@/app/terms/terms-of-use";
+import { termsMetadata } from "@/lib/public-page-metadata";
 
-export const metadata: Metadata = {
-  title: "Terms of use",
-  description: "Terms for using EvoLift accounts, the app, and personal API tokens.",
-};
+export const metadata: Metadata = termsMetadata;
 
 export default function TermsOfUsePage() {
   return (

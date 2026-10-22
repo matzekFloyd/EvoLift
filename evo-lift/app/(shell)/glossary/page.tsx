@@ -2,11 +2,9 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { BookMarked } from "lucide-react";
 import { PageShell } from "@/app/components/page-shell";
+import { glossaryMetadata } from "@/lib/public-page-metadata";
 
-export const metadata: Metadata = {
-  title: "Glossary",
-  description: "Definitions for the words EvoLift uses.",
-};
+export const metadata: Metadata = glossaryMetadata;
 
 const terms: Array<{ term: string; definition: ReactNode }> = [
   {
