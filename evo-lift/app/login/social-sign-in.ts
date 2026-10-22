@@ -7,6 +7,23 @@ export const SOCIAL_SIGN_IN_PROVIDERS = [
 
 export type SocialSignInProvider = (typeof SOCIAL_SIGN_IN_PROVIDERS)[number]["provider"];
 
+/**
+ * Per-provider switch. Both stay off until the consoles are configured.
+ * Google: https://github.com/matzekFloyd/EvoLift/issues/379
+ * Apple: https://github.com/matzekFloyd/EvoLift/issues/380
+ */
+export const SOCIAL_SIGN_IN_ENABLED: Record<SocialSignInProvider, boolean> = {
+  google: false,
+  apple: false,
+};
+
+export function socialSignInControlDisabled(input: {
+  provider: SocialSignInProvider;
+  busy: boolean;
+}): boolean {
+  return input.busy || !SOCIAL_SIGN_IN_ENABLED[input.provider];
+}
+
 export type OAuthLoginNotice = "cancelled" | "email_taken" | "failed";
 
 const OAUTH_LOGIN_NOTICES: Record<OAuthLoginNotice, string> = {

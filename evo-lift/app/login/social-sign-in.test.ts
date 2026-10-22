@@ -1,7 +1,9 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 import {
+  SOCIAL_SIGN_IN_ENABLED,
   SOCIAL_SIGN_IN_PROVIDERS,
+  socialSignInControlDisabled,
   friendlyOAuthError,
   loadSocialAuthSettings,
   oauthCallbackDecision,
@@ -21,6 +23,10 @@ describe("social sign-in", () => {
       SOCIAL_SIGN_IN_PROVIDERS.map((item) => item.label),
       ["Sign in with Google", "Sign in with Apple"],
     );
+    assert.equal(SOCIAL_SIGN_IN_ENABLED.google, false);
+    assert.equal(SOCIAL_SIGN_IN_ENABLED.apple, false);
+    assert.equal(socialSignInControlDisabled({ provider: "google", busy: false }), true);
+    assert.equal(socialSignInControlDisabled({ provider: "apple", busy: false }), true);
   });
 
   it("turns the OAuth return into a fixed login notice", () => {

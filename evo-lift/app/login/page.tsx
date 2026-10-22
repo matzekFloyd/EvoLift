@@ -32,6 +32,7 @@ import {
   friendlyOAuthError,
   loadSocialAuthSettings,
   oauthLoginNotice,
+  SOCIAL_SIGN_IN_ENABLED,
   socialSignInBlockedMessage,
   type SocialSignInProvider,
 } from "@/app/login/social-sign-in";
@@ -328,6 +329,10 @@ export default function LoginPage() {
   }
 
   async function handleSocial(provider: SocialSignInProvider) {
+    if (!SOCIAL_SIGN_IN_ENABLED[provider]) {
+      return;
+    }
+
     setIsLoading(true);
     setMessage(null);
     setOauthNotice(null);

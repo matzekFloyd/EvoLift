@@ -324,7 +324,7 @@ Keep Site URL, Redirect URLs, `NEXT_PUBLIC_APP_URL`, and `PUBLIC_APP_ORIGIN` on 
 
 Email and password stay available. Magic link is not offered.
 
-`/login` starts `signInWithOAuth` for Google or Apple and returns to `/auth/callback` (`authOAuthRedirectUrl` in `evo-lift/lib/auth-email-redirect.ts`). That callback exchanges the code for the cookie session and redirects to `/app`. Provider error text is not shown. The panel uses `friendlyOAuthError` and three fixed notices: cancelled, email already registered, or a generic failure.
+The Google and Apple buttons on `/login` stay disabled until [#379](https://github.com/matzekFloyd/EvoLift/issues/379) and [#380](https://github.com/matzekFloyd/EvoLift/issues/380). `SOCIAL_SIGN_IN_ENABLED` in `evo-lift/app/login/social-sign-in.ts` is the switch. Once a provider is on, `/login` starts `signInWithOAuth` and returns to `/auth/callback` (`authOAuthRedirectUrl` in `evo-lift/lib/auth-email-redirect.ts`). That callback exchanges the code for the cookie session and redirects to `/app`. Provider error text is not shown. The panel uses `friendlyOAuthError` and three fixed notices: cancelled, email already registered, or a generic failure.
 
 Supabase Auth links a **verified** provider email to the existing user automatically. There is no switch to turn that off. Manual linking stays off (`enable_manual_linking = false`): this release has no screen to attach a second email. Production should keep **Confirm email** on, so an unconfirmed password signup cannot take over an address that later signs in with Google or Apple. Local `enable_confirmations = false` autoconfirms email and is not the production setting.
 

@@ -59,6 +59,7 @@ describe("login client graph", () => {
     assert.match(login, /authOAuthRedirectUrl/);
     assert.match(login, /signInWithOAuth/);
     assert.match(login, /socialSignInBlockedMessage/);
+    assert.match(login, /SOCIAL_SIGN_IN_ENABLED/);
     assert.doesNotMatch(login, /signInWithOtp/);
     assert.match(buttons, /SOCIAL_SIGN_IN_PROVIDERS/);
     assert.match(buttons, /min-h-11 w-full/);

@@ -171,7 +171,7 @@ Local Auth email HTML lives under `supabase/templates/` (`confirmation.html`, `r
 
 ### Google and Apple sign-in
 
-Email and password stay on `/login`. Magic link is not offered. The panel adds **Sign in with Google** and **Sign in with Apple** under the email form. The buttons stay visible. If that provider is not enabled in Supabase Auth, the panel says so and does not leave EvoLift. A verified provider email joins the existing EvoLift account (Supabase automatic linking). Keep **Confirm email** enabled on the hosted project.
+Email and password stay on `/login`. Magic link is not offered. The panel shows **Sign in with Google** and **Sign in with Apple** under the email form. Both buttons stay disabled until their provider is configured ([#379](https://github.com/matzekFloyd/EvoLift/issues/379), [#380](https://github.com/matzekFloyd/EvoLift/issues/380)). Then set that provider to `true` in `SOCIAL_SIGN_IN_ENABLED` (`evo-lift/app/login/social-sign-in.ts`). A verified provider email joins the existing EvoLift account (Supabase automatic linking). Keep **Confirm email** enabled on the hosted project.
 
 **Account actions.** API tokens use the session only. An account with no password can set one on Account → Login, and can delete the account there without a password. After a password exists, changing it, changing email through `PATCH /api/account/email`, and deleting the account require the current password.
 

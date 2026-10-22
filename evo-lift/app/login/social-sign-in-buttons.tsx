@@ -1,5 +1,6 @@
 import {
   SOCIAL_SIGN_IN_PROVIDERS,
+  socialSignInControlDisabled,
   type SocialSignInProvider,
 } from "@/app/login/social-sign-in";
 
@@ -24,7 +25,7 @@ export function SocialSignInButtons({ disabled, onSelect }: SocialSignInButtonsP
           <button
             key={item.provider}
             type="button"
-            disabled={disabled}
+            disabled={socialSignInControlDisabled({ provider: item.provider, busy: disabled })}
             onClick={() => onSelect(item.provider)}
             className="flex min-h-11 w-full items-center justify-center gap-2 rounded-md border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-900 hover:border-sky-300 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60 disabled:opacity-60"
           >
