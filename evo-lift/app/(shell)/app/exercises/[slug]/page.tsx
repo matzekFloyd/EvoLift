@@ -684,9 +684,13 @@ export default function ExerciseDetailPage() {
               hidden={detailPanelTab !== "charts"}
               className="flex flex-col gap-4"
             >
-              <ExerciseWeightChartSection points={sessionWeightChartPoints} assistance={assistance} />
-              <ExerciseE1rmChartSection points={sessionE1rmChartPoints} assistance={assistance} />
-              <ExerciseVolumeChartSection points={sessionVolumeChartPoints} assistance={assistance} />
+              {detailPanelTab === "charts" ? (
+                <>
+                  <ExerciseWeightChartSection points={sessionWeightChartPoints} assistance={assistance} />
+                  <ExerciseE1rmChartSection points={sessionE1rmChartPoints} assistance={assistance} />
+                  <ExerciseVolumeChartSection points={sessionVolumeChartPoints} assistance={assistance} />
+                </>
+              ) : null}
             </div>
           </div>
         )}

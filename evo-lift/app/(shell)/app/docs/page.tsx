@@ -3,7 +3,7 @@
 import { BookOpen } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ApiDocsExplorer } from "@/app/docs/api-docs-explorer";
+import { ApiDocsExplorer } from "@/app/docs/api-docs-explorer-loader";
 import { ContentPlaceholder } from "@/app/components/content-placeholder";
 import { DOCS_PLACEHOLDER_CLASS } from "@/app/components/content-placeholder-layout";
 import { PageShell } from "@/app/components/page-shell";

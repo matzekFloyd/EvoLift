@@ -13,10 +13,12 @@ import {
 import { CollapsibleSection } from "@/app/components/collapsible-section";
 import { KpiBadge } from "@/app/components/kpi-badge";
 import { ExerciseProgressPanel } from "@/app/components/exercise-progress-panel";
-import { InsightsCompoundE1rmChart } from "@/app/components/insights-compound-e1rm-chart";
+import {
+  InsightsCompoundE1rmChart,
+  InsightsWeeklyVolumeChart,
+} from "@/app/components/chart-dynamic";
 import { LiftComparisonPanel } from "@/app/components/lift-comparison-panel";
 import { PersonalBestsPanel } from "@/app/components/personal-bests-panel";
-import { InsightsWeeklyVolumeChart } from "@/app/components/insights-weekly-volume-chart";
 import { DateInput } from "@/app/components/date-input";
 import { PageShell } from "@/app/components/page-shell";
 import { SectionHeading } from "@/app/components/section-heading";

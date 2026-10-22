@@ -1,6 +1,6 @@
 import { type ExerciseProgressReport } from "@/lib/exercise-progress-insights";
 import { CollapsibleSection } from "@/app/components/collapsible-section";
-import { ExerciseProgressPaceChart } from "@/app/components/exercise-progress-pace-chart";
+import { ExerciseProgressPaceChart } from "@/app/components/chart-dynamic";
 import { exerciseProgressPaceBuckets } from "@/app/components/exercise-progress-pace";
 import { InsightRowList, progressInsightRow } from "@/app/components/insight-row-list";
 

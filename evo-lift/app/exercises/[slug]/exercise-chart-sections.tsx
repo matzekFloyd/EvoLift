@@ -1,6 +1,8 @@
-import { ExerciseSessionE1rmChart } from "@/app/components/exercise-session-e1rm-chart";
-import { ExerciseSessionVolumeChart } from "@/app/components/exercise-session-volume-chart";
-import { ExerciseWeightProgressChart } from "@/app/components/exercise-weight-progress-chart";
+import {
+  ExerciseSessionE1rmChart,
+  ExerciseSessionVolumeChart,
+  ExerciseWeightProgressChart,
+} from "@/app/components/chart-dynamic";
 import { InfoPopover } from "@/app/components/info-popover";
 import { panelInsetClass } from "@/app/components/panel-inset";
 import { SectionHeading } from "@/app/components/section-heading";
