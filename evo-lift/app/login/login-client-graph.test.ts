@@ -51,6 +51,10 @@ describe("login client graph", () => {
     const buttons = readFileSync(join(appDir, "login", "social-sign-in-buttons.tsx"), "utf8");
     const social = readFileSync(join(appDir, "login", "social-sign-in.ts"), "utf8");
 
+    const socialAt = login.indexOf("<SocialSignInButtons");
+    const termsAt = login.indexOf("Terms of use");
+    assert.ok(socialAt > 0 && termsAt > socialAt);
+    assert.match(login, /fullWidth/);
     assert.match(login, /SocialSignInButtons/);
     assert.match(login, /authOAuthRedirectUrl/);
     assert.match(login, /signInWithOAuth/);
@@ -58,6 +62,8 @@ describe("login client graph", () => {
     assert.doesNotMatch(login, /signInWithOtp/);
     assert.match(buttons, /SOCIAL_SIGN_IN_PROVIDERS/);
     assert.match(buttons, /min-h-11 w-full/);
+    assert.match(buttons, />\s*or\s*</);
+    assert.doesNotMatch(buttons, /already has an EvoLift account/);
     assert.match(social, /Sign in with Google/);
     assert.match(social, /Sign in with Apple/);
     assert.doesNotMatch(`${login}\n${buttons}\n${social}`, /magic link|signInWithOtp/i);

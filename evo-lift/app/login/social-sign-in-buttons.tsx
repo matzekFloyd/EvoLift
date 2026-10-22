@@ -1,5 +1,4 @@
 import {
-  SOCIAL_SIGN_IN_LINKING_COPY,
   SOCIAL_SIGN_IN_PROVIDERS,
   type SocialSignInProvider,
 } from "@/app/login/social-sign-in";
@@ -16,20 +15,24 @@ type SocialSignInButtonsProps = {
  */
 export function SocialSignInButtons({ disabled, onSelect }: SocialSignInButtonsProps) {
   return (
-    <div className="mt-5 space-y-2 border-t border-zinc-200 pt-4">
-      {SOCIAL_SIGN_IN_PROVIDERS.map((item) => (
-        <button
-          key={item.provider}
-          type="button"
-          disabled={disabled}
-          onClick={() => onSelect(item.provider)}
-          className="flex min-h-11 w-full items-center justify-center gap-2 rounded-md border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-900 hover:border-sky-300 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60 disabled:opacity-60"
-        >
-          {item.provider === "google" ? <GoogleMark /> : <AppleMark />}
-          {item.label}
-        </button>
-      ))}
-      <p className="text-sm text-zinc-600">{SOCIAL_SIGN_IN_LINKING_COPY}</p>
+    <div className="relative mt-5 border-t border-zinc-200 pt-4">
+      <span className="absolute top-0 left-1/2 z-10 -translate-x-1/2 -translate-y-1/2 bg-white px-2 text-xs text-zinc-500">
+        or
+      </span>
+      <div className="space-y-2">
+        {SOCIAL_SIGN_IN_PROVIDERS.map((item) => (
+          <button
+            key={item.provider}
+            type="button"
+            disabled={disabled}
+            onClick={() => onSelect(item.provider)}
+            className="flex min-h-11 w-full items-center justify-center gap-2 rounded-md border border-zinc-300 bg-white px-3 text-sm font-medium text-zinc-900 hover:border-sky-300 hover:bg-zinc-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60 disabled:opacity-60"
+          >
+            {item.provider === "google" ? <GoogleMark /> : <AppleMark />}
+            {item.label}
+          </button>
+        ))}
+      </div>
     </div>
   );
 }

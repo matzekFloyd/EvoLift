@@ -7,9 +7,6 @@ export const SOCIAL_SIGN_IN_PROVIDERS = [
 
 export type SocialSignInProvider = (typeof SOCIAL_SIGN_IN_PROVIDERS)[number]["provider"];
 
-export const SOCIAL_SIGN_IN_LINKING_COPY =
-  "If that email already has an EvoLift account, you log in to that account.";
-
 export type OAuthLoginNotice = "cancelled" | "email_taken" | "failed";
 
 const OAUTH_LOGIN_NOTICES: Record<OAuthLoginNotice, string> = {

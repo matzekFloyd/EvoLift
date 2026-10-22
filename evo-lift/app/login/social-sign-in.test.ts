@@ -1,7 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 import {
-  SOCIAL_SIGN_IN_LINKING_COPY,
   SOCIAL_SIGN_IN_PROVIDERS,
   friendlyOAuthError,
   loadSocialAuthSettings,
@@ -22,7 +21,6 @@ describe("social sign-in", () => {
       SOCIAL_SIGN_IN_PROVIDERS.map((item) => item.label),
       ["Sign in with Google", "Sign in with Apple"],
     );
-    assert.match(SOCIAL_SIGN_IN_LINKING_COPY, /same EvoLift account|already has an EvoLift account/);
   });
 
   it("turns the OAuth return into a fixed login notice", () => {

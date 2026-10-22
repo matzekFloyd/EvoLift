@@ -525,65 +525,70 @@ export default function LoginPage() {
                 ) : null}
 
                 {message ? <StatusNotice tone="error" message={message} /> : null}
-                <div className="flex w-full items-center gap-3">
-                  <div className="mr-auto flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
-                    {mode === "forgot" || mode === "reset" ? (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (mode === "reset") {
-                            window.history.replaceState({}, "", "/login");
-                          }
-                          switchMode("login");
-                        }}
-                        className={`shrink-0 ${actionLinkClassName}`}
-                      >
-                        Back to log in
-                      </button>
-                    ) : (
-                      <>
-                        <Link
-                          href="/terms"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          prefetch={false}
-                          className={`shrink-0 ${quietLinkClassName}`}
-                        >
-                          Terms of use
-                        </Link>
-                        <Link
-                          href="/privacy"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          prefetch={false}
-                          className={`shrink-0 ${quietLinkClassName}`}
-                        >
-                          Privacy policy
-                        </Link>
-                      </>
-                    )}
-                  </div>
+                {showAuthTabs ? (
                   <ActionButton
                     type="submit"
                     variant="primary"
-                    disabled={
-                      isLoading ||
-                      (mode === "reset" && (!recoveryReady || Boolean(recoveryLinkError)))
-                    }
-                    className="ml-auto shrink-0"
+                    fullWidth
+                    disabled={isLoading}
+                    className="!h-11"
                   >
-                    {mode === "login"
-                      ? "Log in"
-                      : mode === "register"
-                        ? "Register"
-                        : mode === "forgot"
-                          ? "Send reset link"
-                          : "Set new password"}
+                    {mode === "login" ? "Log in" : "Register"}
                   </ActionButton>
-                </div>
+                ) : (
+                  <div className="flex w-full items-center gap-3">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (mode === "reset") {
+                          window.history.replaceState({}, "", "/login");
+                        }
+                        switchMode("login");
+                      }}
+                      className={`mr-auto shrink-0 ${actionLinkClassName}`}
+                    >
+                      Back to log in
+                    </button>
+                    <ActionButton
+                      type="submit"
+                      variant="primary"
+                      disabled={
+                        isLoading || (mode === "reset" && (!recoveryReady || Boolean(recoveryLinkError)))
+                      }
+                      className="ml-auto shrink-0"
+                    >
+                      {mode === "forgot" ? "Send reset link" : "Set new password"}
+                    </ActionButton>
+                  </div>
+                )}
               </form>
               {showAuthTabs ? (
-                <SocialSignInButtons disabled={isLoading} onSelect={(provider) => void handleSocial(provider)} />
+                <>
+                  <SocialSignInButtons
+                    disabled={isLoading}
+                    onSelect={(provider) => void handleSocial(provider)}
+                  />
+                  <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1">
+                    <Link
+                      href="/terms"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      prefetch={false}
+                      className={`shrink-0 ${quietLinkClassName}`}
+                    >
+                      Terms of use
+                    </Link>
+                    <Link
+                      href="/privacy"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      prefetch={false}
+                      className={`shrink-0 ${quietLinkClassName}`}
+                    >
+                      Privacy policy
+                    </Link>
+                  </div>
+                </>
               ) : null}
             </div>
           </section>
