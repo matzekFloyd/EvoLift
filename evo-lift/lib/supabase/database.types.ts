@@ -671,6 +671,13 @@ export type Database = {
         };
         Returns: string;
       };
+      import_account_transfer: {
+        Args: {
+          p_user_id: string;
+          p_payload: Json;
+        };
+        Returns: Json;
+      };
     };
     Enums: {
       language_code: LanguageCode;
