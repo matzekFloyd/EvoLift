@@ -15,7 +15,7 @@ import { ActivePlanPanel } from "@/app/components/active-plan-panel";
 import { NewSessionDraftCallout } from "@/app/components/new-session-draft-callout";
 import { SessionsTable, type SessionsTableRow } from "@/app/components/sessions-table";
 import { ActivityDaySessionDialog } from "@/app/components/activity-day-session-dialog";
-import { WorkoutActivityChart } from "@/app/components/workout-activity-chart";
+import { WorkoutActivityChart } from "@/app/components/chart-dynamic";
 import { activityDayOpen, activityDaySessionIds } from "@/app/home-activity-day";
 import { appPath } from "@/lib/app-paths";
 import { formatDateOnlyForLocale } from "@/lib/date-format";

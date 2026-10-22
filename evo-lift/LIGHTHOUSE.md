@@ -71,4 +71,33 @@ The **Lighthouse** workflow (`.github/workflows/lighthouse.yml`) runs on Node 22
 
 The job fails when a score is below the thresholds above. HTML/JSON reports under `.lighthouseci/` are uploaded as the `lighthouse-reports` workflow artifact (including on failure) so you can inspect a run in the Actions UI.
 
+After `npm run build`, the same job runs `npm run check:route-js`. That reads uncompressed First Load JS from `.next/diagnostics/route-bundle-stats.json` and fails when a route below exceeds the measured size plus 32 KiB, or when Recharts shows up outside Home, Insights, and an exercise page, or Swagger UI shows up outside `/app/docs`.
+
 Chrome is launched with `--no-sandbox` so the job works on GitHub-hosted Ubuntu runners.
+
+## Route JavaScript
+
+Turbopack does not print the old Size / First Load JS columns. The bytes below are uncompressed First Load JS from `route-bundle-stats.json` (the same file the budget check reads).
+
+Chrome UX Report has no field data for `https://evolift.at` or `https://www.evolift.at`. A signed-out load of `/app/insights` redirects to `/login` in the proxy (about 90 ms when warm). The login document then spends most of its time on the response, not on chart code. The heavy routes are static shells, so the cut stays on client bytes.
+
+`next analyze` on the build before the split named the largest client modules:
+
+| Route | Largest extra modules |
+| --- | --- |
+| `/app`, `/app/insights`, `/app/exercises/[slug]` | `recharts` (about 277 kB on Insights, shared as one ~314 kB chunk) plus `d3-scale`, `d3-shape`, and `decimal.js-light` |
+| `/app/docs` | `swagger-ui-dist` (about 1.6 MB) and its CSS (about 180 kB), already a separate chunk |
+
+Those modules were not in `/login`, `/`, or a session page. They were still in the first-load entry of every chart route, including Insights sections that stay closed and the exercise Charts tab that starts hidden. Chart screens now load Recharts with `next/dynamic`. API docs loads Swagger UI the same way. The exercise Charts tab mounts those charts only after it is opened.
+
+| Route | Before | After | Budget |
+| --- | --- | --- | --- |
+| `/` | 455.8 kB | 455.8 kB | 487.8 kB |
+| `/login` | 735.8 kB | 735.8 kB | 767.8 kB |
+| `/app` (Home) | 1138.7 kB | 802.6 kB | 834.6 kB |
+| `/app/insights` | 1230.1 kB | 810.0 kB | 842.0 kB |
+| `/app/exercises/[slug]` | 1212.6 kB | 835.0 kB | 867.0 kB |
+| `/app/sessions/[id]` | 867.7 kB | 867.7 kB | 899.7 kB |
+| `/app/docs` | 748.3 kB | 752.3 kB | 784.3 kB |
+
+`npm run analyze` opens the Turbopack bundle analyzer for this build. `@next/bundle-analyzer` is wired for a Webpack build (`ANALYZE=true` and `next build --webpack`). The production build uses Turbopack, so the budget uses that graph.

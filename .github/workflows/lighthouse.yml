@@ -68,6 +68,10 @@ jobs:
         working-directory: evo-lift
         run: npm run build
 
+      - name: Check route JavaScript budgets
+        working-directory: evo-lift
+        run: npm run check:route-js
+
       - name: Run Lighthouse checks
         working-directory: evo-lift
         run: npm run lighthouse

@@ -14,7 +14,9 @@
     "typecheck": "tsc --noEmit -p tsconfig.json",
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.mts",
-    "lighthouse": "node scripts/run-lighthouse.mjs"
+    "lighthouse": "node scripts/run-lighthouse.mjs",
+    "analyze": "next analyze",
+    "check:route-js": "node scripts/check-route-js-budget.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/server": "^2.3.1",
@@ -32,6 +34,7 @@
   },
   "devDependencies": {
     "@lhci/cli": "^0.15.1",
+    "@next/bundle-analyzer": "^16.4.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^26",
     "@types/react": "^19",
