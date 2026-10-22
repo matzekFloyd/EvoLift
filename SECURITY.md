@@ -84,10 +84,14 @@ Normal gym logging (web/Android) stays well under these budgets. Automation and 
 Browser login, signup, email confirmation, and Google or Apple sign-in go to **Supabase Auth**, not our `/api` handlers. Limits live in `supabase/config.toml` under `[auth.rate_limit]` (and the hosted Auth dashboard), including:
 
 - `sign_in_sign_ups` — email and OAuth sign-in / sign-up attempts per IP (5-minute window)
-- `email_sent` / `max_frequency` — confirmation and recovery email volume
+- `email_sent` / `max_frequency` — confirmation, recovery, and email-change volume
 - `token_refresh` — session refresh per IP
 
-User-visible Auth rate-limit errors are sanitized in `friendly-auth-error.ts`. Confirm hosted project Auth rate limits match local intent after dashboard changes.
+Local Auth uses Inbucket. `[auth.email.smtp]` stays commented, and `email_sent` stays at 2. Production Auth mail goes through Resend SMTP (`smtp.resend.com`, from `EvoLift <no-reply@auth.evolift.at>`). The sending-only Resend API key lives only in the hosted SMTP password field.
+
+With custom SMTP on, Supabase caps Auth mail at **30 emails per hour**. Leave that burst cap. The Resend free plan caps the same mail at **100 emails per day** and **3,000 per month**. Do not raise the Supabase cap past what that plan can send. The hosted per-user resend window stays at **1 minute** (`max_frequency`). Local `max_frequency` stays at `1s` for Inbucket.
+
+User-visible Auth rate-limit errors are sanitized in `friendly-auth-error.ts`. Confirm hosted Auth rate limits still match this section after dashboard changes.
 
 ### Not covered here
 
@@ -102,6 +106,7 @@ Edge / CDN DDoS scrubbing (Vercel platform). CAPTCHA on login only if abuse warr
 | `SUPABASE_SERVICE_ROLE_KEY` | Server-only. Bypasses RLS. Never prefix with `NEXT_PUBLIC_`. |
 | `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET` | Google OAuth client secret. Local only via env. Hosted value stays in the Supabase dashboard. |
 | `SUPABASE_AUTH_EXTERNAL_APPLE_SECRET` | Apple client secret (a short-lived JWT). Do not commit. |
+| Resend API key | Sending-only key for production Auth SMTP. Stays in the hosted Supabase SMTP password field. Do not commit it. |
 | Play upload keystore (`*.jks`, `*.keystore`) | Gitignored. Play App Signing holds the app signing key. |
 | `android/keystore.properties` | Keystore passwords; gitignored. Copy from the `.example` file locally. |
 | `.env.local` | Local secrets; gitignored. |

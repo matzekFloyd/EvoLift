@@ -173,6 +173,29 @@ Sign-up and email-change use `…/login?verified=1` as `emailRedirectTo`. Passwo
 
 Local Auth email HTML lives under `supabase/templates/` (`confirmation.html`, `recovery.html`) and is wired in `supabase/config.toml`. For the hosted project, paste the same subjects/bodies under **Authentication → Email Templates** (Confirm signup / Reset password) when you change them.
 
+### Production Auth email (Resend SMTP)
+
+Production confirm, password reset, and email-change mail goes through Resend. The Supabase templates stay in place. Do not turn on a Resend integration that replaces them. Magic link stays off.
+
+Use the subdomain `auth.evolift.at` (transactional mail stays off the apex). In Resend, leave open tracking and click tracking off. Create a sending-only API key and do not commit it. DNS for that subdomain is in the root `README.md` under Production domain. Wait until Resend marks the domain verified.
+
+Sender: `no-reply@auth.evolift.at`, name `EvoLift`.
+
+In the hosted project, **Authentication → Emails → SMTP Settings**:
+
+- Sender email: `no-reply@auth.evolift.at`
+- Sender name: `EvoLift`
+- Host: `smtp.resend.com`
+- Port: `465`
+- Username: `resend`
+- Password: the Resend API key
+
+Enable custom SMTP and save. The API key stays in that field only. Leave `[auth.email.smtp]` commented in `supabase/config.toml`. Local mail stays on Inbucket.
+
+Supabase starts custom SMTP at **30 emails per hour**. Keep that burst cap. The Resend free plan allows **100 emails per day** and **3,000 per month**. Do not raise the Supabase cap past that. Keep the hosted per-user resend window at 1 minute. Confirm email stays on, and an email change still requires both the old and the new address.
+
+Confirm signup (`Confirm your EvoLift email`) and Reset password (`Reset your EvoLift password`) stay aligned with `supabase/templates/confirmation.html` and `supabase/templates/recovery.html`.
+
 ### Google and Apple sign-in
 
 Email and password stay on `/login`. Magic link is not offered. The panel shows **Sign in with Google** and **Sign in with Apple** under the email form. Both buttons stay disabled until their provider is configured ([#379](https://github.com/matzekFloyd/EvoLift/issues/379), [#380](https://github.com/matzekFloyd/EvoLift/issues/380)). Then set that provider to `true` in `SOCIAL_SIGN_IN_ENABLED` (`evo-lift/app/login/social-sign-in.ts`). A verified provider email joins the existing EvoLift account (Supabase automatic linking). Keep **Confirm email** enabled on the hosted project.
@@ -212,12 +235,14 @@ Restart local Supabase after editing `config.toml` (`supabase stop`, then `supab
 4. Confirm hosted Supabase **Authentication → URL Configuration** Site URL and Redirect URLs (see above).
 5. Confirm hosted email password strength matches the [password policy](#password-policy-local--hosted) (min 8, letters and digits).
 6. Confirm hosted **Authentication → Multi-Factor → App Authenticator** is on (enroll and verify). Phone and WebAuthn stay off.
-7. Redeploy application.
-8. Smoke test:
+7. Confirm hosted Auth uses Resend SMTP (`no-reply@auth.evolift.at` via `smtp.resend.com`). The email burst cap stays at 30 per hour. Confirm signup and Reset password templates still match `supabase/templates/`.
+8. Redeploy application.
+9. Smoke test:
    - `/login` (email and password, plus Sign in with Google and Sign in with Apple)
    - Account → Login → Set up authenticator, then log in again and enter the code. An account with it off still logs in with the password only.
-   - register → confirm-email link opens the production host (not localhost)
+   - register from an address that is not an organization member → the confirm link opens `https://evolift.at/login?verified=1`, and the message is from EvoLift at `no-reply@auth.evolift.at`
    - forgot password → recovery link opens `/login?recovery=1` on the production host and sets a new password
+   - email change sends to both the old and the new address
    - `/app/docs`
    - authenticated `GET /api/exercises?lang=en`
 
