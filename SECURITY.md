@@ -87,7 +87,7 @@ Browser login, signup, email confirmation, and Google or Apple sign-in go to **S
 - `email_sent` / `max_frequency` — confirmation, recovery, and email-change volume
 - `token_refresh` — session refresh per IP
 
-Local Auth uses Inbucket. `[auth.email.smtp]` stays commented, and `email_sent` stays at 2. Production Auth mail goes through Resend SMTP (`smtp.resend.com`, from `EvoLift <no-reply@auth.evolift.at>`) after custom SMTP is enabled on the hosted project. Until that is saved, Auth still uses Supabase's built-in email service. The sending-only Resend API key lives only in the hosted SMTP password field.
+Local Auth uses Inbucket. `[auth.email.smtp]` stays commented, and `email_sent` stays at 2. Production Auth mail goes through Resend SMTP (`smtp.resend.com`, from `EvoLift <no-reply@auth.evolift.at>`). The sending-only Resend API key lives only in the hosted SMTP password field.
 
 With custom SMTP on, Supabase caps Auth mail at **30 emails per hour**. Leave that burst cap. The Resend free plan caps the same mail at **100 emails per day** and **3,000 per month**. Do not raise the Supabase cap past what that plan can send. The hosted per-user resend window stays at **1 minute** (`max_frequency`). Local `max_frequency` stays at `1s` for Inbucket.
 
