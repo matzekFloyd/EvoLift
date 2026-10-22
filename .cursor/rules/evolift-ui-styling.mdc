@@ -53,4 +53,4 @@ alwaysApply: false
 
 ## Accessibility
 
-- Explicit control labels (`Save`, `Delete`, etc.); visible labels by inputs; sufficient contrast for text + icons.
+Follow **Accessibility baseline** in `evo-lift/BRAND_GUIDELINES.md`. Visible control names, visible focus, contrast for text and icons, status that is not color alone, decorative icons `aria-hidden`, and no ARIA role on a native `button`, link, or `label`.
