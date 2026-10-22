@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 import {
   isPublicAppPath,
+  PUBLIC_PAGE_PATHS,
   requiresAppSession,
   sessionGateDecision,
   sessionGateRedirectPath,
@@ -9,11 +10,11 @@ import {
 
 describe("auth-route-access", () => {
   it("treats the marketing page, login, and legal pages as public", () => {
-    assert.equal(isPublicAppPath("/"), true);
-    assert.equal(isPublicAppPath("/login"), true);
-    assert.equal(isPublicAppPath("/privacy"), true);
-    assert.equal(isPublicAppPath("/terms"), true);
-    assert.equal(isPublicAppPath("/glossary"), true);
+    assert.deepEqual([...PUBLIC_PAGE_PATHS], ["/", "/login", "/privacy", "/terms", "/glossary"]);
+    for (const path of PUBLIC_PAGE_PATHS) {
+      assert.equal(isPublicAppPath(path), true);
+      assert.equal(requiresAppSession(path), false);
+    }
   });
 
   it("leaves API routes to their own auth", () => {
