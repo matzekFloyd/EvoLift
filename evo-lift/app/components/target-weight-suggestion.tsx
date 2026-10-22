@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ActionButton } from "@/app/components/action-button";
+import { PanelInset } from "@/app/components/panel-inset";
 import { StatusNotice } from "@/app/components/status-notice";
 import { loadDoubleProgressionPreference } from "@/lib/double-progression-preference";
 import { loadTargetWeightHistory } from "@/lib/target-weight-history";
@@ -118,27 +119,26 @@ export function TargetWeightSuggestion({
       : `${formatRepCount(suggestion.reps)} at ${formatKgAmount(suggestion.weightKg)}`;
 
   return (
-    <div className="mt-2 space-y-1">
-      <div className="flex flex-wrap items-center gap-2">
-        <p className="text-xs text-zinc-700">
-          Suggested target: <span className="font-medium text-zinc-900">{suggestedLabel}</span>
-        </p>
-        <ActionButton
-          type="button"
-          variant="secondary"
-          size="sm"
-          className="h-8 px-2 font-normal"
-          onClick={() =>
-            onApply({
-              weightKg: formatSuggestedTargetInput(suggestion.weightKg),
-              reps: suggestion.reps == null ? null : String(suggestion.reps),
-            })
-          }
-        >
-          Apply
-        </ActionButton>
+    <PanelInset className="mt-2 flex items-center justify-between gap-3 px-3 py-2">
+      <div className="min-w-0 space-y-1">
+        <p className="text-xs text-zinc-600">Suggested target</p>
+        <p className="text-sm font-medium text-zinc-900">{suggestedLabel}</p>
+        <p className="text-xs text-zinc-600">{suggestion.rationale}</p>
       </div>
-      <p className="text-xs text-zinc-600">{suggestion.rationale}</p>
-    </div>
+      <ActionButton
+        type="button"
+        variant="secondary"
+        size="sm"
+        className="shrink-0"
+        onClick={() =>
+          onApply({
+            weightKg: formatSuggestedTargetInput(suggestion.weightKg),
+            reps: suggestion.reps == null ? null : String(suggestion.reps),
+          })
+        }
+      >
+        Apply
+      </ActionButton>
+    </PanelInset>
   );
 }
