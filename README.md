@@ -204,7 +204,7 @@ npm run lighthouse
 
 `npm run test:integration` calls API route handlers against local Supabase (shared helpers in `evo-lift/tests/api/integration-helpers.ts`; files may run in parallel). Start Supabase with `supabase start` from the repository root first. The URL must be `127.0.0.1` or `localhost`. See [`evo-lift/tests/api/README.md`](evo-lift/tests/api/README.md) for coverage notes.
 
-`npm run lighthouse` builds on a production `next start` server and fails if performance scores drop below the thresholds in [`evo-lift/LIGHTHOUSE.md`](evo-lift/LIGHTHOUSE.md). Seed the local demo user first (`npm run seed:local`) so Home and Insights run logged in.
+`npm run lighthouse` builds on a production `next start` server and fails if performance or public-page SEO scores drop below the thresholds in [`evo-lift/LIGHTHOUSE.md`](evo-lift/LIGHTHOUSE.md). Seed the local demo user first (`npm run seed:local`) so Home and Insights run logged in.
 
 ## Android app
 
