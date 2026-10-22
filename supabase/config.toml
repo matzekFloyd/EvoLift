@@ -194,7 +194,8 @@ password_requirements = "letters_digits"
 # rp_origins = ["http://127.0.0.1:3000"]
 
 [auth.rate_limit]
-# Number of emails that can be sent per hour. Requires auth.email.smtp to be enabled.
+# Local Inbucket cap. Hosted custom SMTP stays at 30 emails per hour (SECURITY.md).
+# Raising this requires [auth.email.smtp], which stays commented so local mail is not production SMTP.
 email_sent = 2
 # Number of SMS messages that can be sent per hour. Requires auth.sms to be enabled.
 sms_sent = 30
@@ -232,7 +233,9 @@ otp_length = 6
 # Number of seconds before the email OTP expires (defaults to 1 hour).
 otp_expiry = 3600
 
-# Use a production-ready SMTP server
+# Production Auth mail uses Resend SMTP on the hosted project only
+# (no-reply@auth.evolift.at). Leave this block commented so local mail stays on Inbucket.
+# Do not commit a Resend API key. See evo-lift/README.md.
 # [auth.email.smtp]
 # enabled = true
 # host = "smtp.sendgrid.net"

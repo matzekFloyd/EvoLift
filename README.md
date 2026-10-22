@@ -384,6 +384,8 @@ Auth and email links use the same origin:
 - Vercel Production `NEXT_PUBLIC_APP_URL` is `https://evolift.at`. It is applied on the next production deploy.
 - Hosted Supabase, Authentication → URL Configuration: Site URL `https://evolift.at`. Redirect URLs include `https://evolift.at/**`, `https://www.evolift.at/**`, `https://evo-lift.vercel.app/**`, `http://localhost:3000/**`, and `http://127.0.0.1:3000/**`.
 
+Auth mail uses the subdomain `auth.evolift.at`, not the apex. In Resend, add that subdomain and leave open tracking and click tracking off. Copy the SPF, DKIM, and DMARC records Resend shows into this same world4you zone. Wait until Resend marks the domain verified. The sender is `EvoLift <no-reply@auth.evolift.at>`. Supabase SMTP settings are in `evo-lift/README.md`. Do not commit the Resend API key.
+
 Merge to `master` only after the verify commands succeed. The production smoke workflow calls `https://evolift.at`.
 
 ## Branding and UX Consistency
