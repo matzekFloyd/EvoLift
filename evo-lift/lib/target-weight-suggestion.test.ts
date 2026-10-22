@@ -350,6 +350,27 @@ describe("suggestTargetWeight", () => {
     }
   });
 
+  it("still suggests from sessions older than 30 days", () => {
+    const result = suggest([
+      historySet({
+        sessionId: "older",
+        performedOn: daysBefore(45),
+        sessionCreatedAt: `${daysBefore(45)}T10:00:00Z`,
+      }),
+      historySet({
+        sessionId: "newer",
+        performedOn: daysBefore(31),
+        sessionCreatedAt: `${daysBefore(31)}T10:00:00Z`,
+      }),
+    ]);
+
+    assert.deepEqual(result, {
+      status: "suggestion",
+      weightKg: 62.5,
+      rationale: "Last 2 sessions hit 8 reps at 60 kg.",
+    });
+  });
+
   it("ignores sessions older than 8 weeks and keeps a session on the boundary", () => {
     const tooOld = suggest([
       historySet({

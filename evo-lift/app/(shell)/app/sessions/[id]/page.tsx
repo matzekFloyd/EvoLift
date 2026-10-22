@@ -519,6 +519,7 @@ export default function SessionDetailPage() {
                 exerciseBadge={exerciseBadgeById.get(sessionExercise.exercise_id)}
                 exerciseSlug={exerciseSlugById.get(sessionExercise.exercise_id)}
                 sessionId={sessionId ?? null}
+                sessionPerformedOn={session.performed_on}
                 isReadOnly={isReadOnly}
                 shouldUseSingleExerciseFlow={shouldUseSingleExerciseFlow}
                 isCompactView={isCompactView}
