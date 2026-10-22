@@ -10,7 +10,9 @@ import {
   peekAccountProfile,
   type AccountProfileSnapshot,
 } from "@/lib/account-profile-cache";
+import { accountHasEmailPassword } from "@/lib/account-has-password";
 import { confirmSignedInUser } from "@/lib/confirm-signed-in-user";
+import { getBrowserUser } from "@/lib/supabase/browser-auth";
 import { rememberedUserEmail, rememberedUserId } from "@/lib/signed-in-memory";
 import { ContentPlaceholder } from "@/app/components/content-placeholder";
 import {
@@ -43,11 +45,18 @@ export default function AccountPage() {
   const [userId, setUserId] = useState<string | null>(rememberedUserId);
   const [accessToken, setAccessToken] = useState<string | null>(null);
   const [userEmail, setUserEmail] = useState<string | null>(rememberedUserEmail);
+  const [hasPassword, setHasPassword] = useState(true);
   const [exerciseOptions, setExerciseOptions] = useState(cachedAccount?.exerciseOptions ?? []);
   const [activeSection, setActiveSection] = useState<AccountSectionId>("security");
 
   const email = useAccountEmail({ accessToken, activeSection });
-  const password = useAccountPassword({ accessToken, userEmail, activeSection });
+  const password = useAccountPassword({
+    accessToken,
+    userEmail,
+    activeSection,
+    hasPassword,
+    onPasswordSaved: () => setHasPassword(true),
+  });
   const metrics = useAccountMetrics({ userId, cachedAccount, activeSection });
   const hidden = useHiddenExercises({ userId, cachedAccount, activeSection });
   const defaults = useExerciseDefaults({ userId, exerciseOptions, cachedAccount, activeSection });
@@ -92,6 +101,11 @@ export default function AccountPage() {
       setUserId(visit.userId);
       setAccessToken(visit.accessToken);
       setUserEmail(visit.email);
+      const verified = await getBrowserUser();
+      if (!isMounted || started !== accountProfileEpoch()) {
+        return;
+      }
+      setHasPassword(accountHasEmailPassword(verified?.identities));
       if (!visit.showCached) {
         setIsChecking(true);
       }
@@ -165,7 +179,13 @@ export default function AccountPage() {
           <AccountEmailSection userEmail={userEmail} email={email} />
           <AccountPasswordSection password={password} />
           {accessToken ? <AccountApiTokensSection accessToken={accessToken} /> : null}
-          {accessToken ? <AccountDeleteSection accessToken={accessToken} userEmail={userEmail} /> : null}
+          {accessToken ? (
+            <AccountDeleteSection
+              accessToken={accessToken}
+              userEmail={userEmail}
+              hasPassword={hasPassword}
+            />
+          ) : null}
         </>
       ) : null}
       {activeSection === "profile" ? <AccountMetricsSection metrics={metrics} /> : null}

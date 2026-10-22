@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import {
   AUTH_EMAIL_RECOVERY_PATH,
   authEmailRedirectUrl,
+  authOAuthRedirectUrl,
   isAuthEmailRecoverySearch,
 } from "@/lib/auth-email-redirect";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
@@ -26,6 +27,14 @@ import {
   normalizeLoginEmail,
   type LoginPanelMode,
 } from "@/app/login/login-form";
+import { SocialSignInButtons } from "@/app/login/social-sign-in-buttons";
+import {
+  friendlyOAuthError,
+  loadSocialAuthSettings,
+  oauthLoginNotice,
+  socialSignInBlockedMessage,
+  type SocialSignInProvider,
+} from "@/app/login/social-sign-in";
 import { APP_HOME_PATH } from "@/lib/app-paths";
 import { PASSWORD_CONFIRM_HINT, PASSWORD_STRENGTH_HINT } from "@/lib/password-policy";
 import { reportSecurityEvent } from "@/lib/report-security-event";
@@ -47,6 +56,7 @@ export default function LoginPage() {
   const [successKind, setSuccessKind] = useState<"confirm" | "forgot" | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isVerifiedNotice, setIsVerifiedNotice] = useState(false);
+  const [oauthNotice, setOauthNotice] = useState<string | null>(null);
   const [recoveryReady, setRecoveryReady] = useState(false);
   const [recoveryLinkError, setRecoveryLinkError] = useState<string | null>(null);
   const recoveryActiveRef = useRef(false);
@@ -58,6 +68,7 @@ export default function LoginPage() {
     const params = new URLSearchParams(window.location.search);
     const onRecovery = isAuthEmailRecoverySearch(params);
     setIsVerifiedNotice(params.get("verified") === "1");
+    setOauthNotice(oauthLoginNotice(params.get("oauth")));
 
     function markRecoveryReady() {
       recoveryActiveRef.current = true;
@@ -178,6 +189,7 @@ export default function LoginPage() {
 
     setIsLoading(true);
     setMessage(null);
+    setOauthNotice(null);
     setSuccessEmail(null);
     setSuccessKind(null);
 
@@ -214,6 +226,7 @@ export default function LoginPage() {
 
     setIsLoading(true);
     setMessage(null);
+    setOauthNotice(null);
     setSuccessEmail(null);
     setSuccessKind(null);
 
@@ -253,6 +266,7 @@ export default function LoginPage() {
 
     setIsLoading(true);
     setMessage(null);
+    setOauthNotice(null);
     setSuccessEmail(null);
     setSuccessKind(null);
 
@@ -289,6 +303,7 @@ export default function LoginPage() {
 
     setIsLoading(true);
     setMessage(null);
+    setOauthNotice(null);
 
     const { error } = await supabaseBrowserClient.auth.updateUser({
       password,
@@ -310,6 +325,48 @@ export default function LoginPage() {
 
     setIsLoading(false);
     router.replace(APP_HOME_PATH);
+  }
+
+  async function handleSocial(provider: SocialSignInProvider) {
+    setIsLoading(true);
+    setMessage(null);
+    setOauthNotice(null);
+    setSuccessEmail(null);
+    setSuccessKind(null);
+
+    const settings = await loadSocialAuthSettings({
+      supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL,
+      anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    });
+    const blocked = socialSignInBlockedMessage(settings, provider);
+    if (blocked) {
+      setMessage(blocked);
+      setIsLoading(false);
+      return;
+    }
+
+    const redirectTo = authOAuthRedirectUrl({
+      envAppUrl: process.env.NEXT_PUBLIC_APP_URL,
+      windowOrigin: window.location.origin,
+    });
+    if (!redirectTo) {
+      setMessage(friendlyOAuthError("missing redirect", provider));
+      setIsLoading(false);
+      return;
+    }
+
+    const { error } = await supabaseBrowserClient.auth.signInWithOAuth({
+      provider,
+      options: {
+        redirectTo,
+        ...(provider === "google" ? { queryParams: { prompt: "select_account" } } : {}),
+      },
+    });
+
+    if (error) {
+      setMessage(friendlyOAuthError(error.message, provider));
+      setIsLoading(false);
+    }
   }
 
   const showAuthTabs = mode === "login" || mode === "register";
@@ -342,6 +399,9 @@ export default function LoginPage() {
                 message="Email confirmed. You can log in now."
                 className="mb-4"
               />
+            ) : null}
+            {oauthNotice && !message && mode !== "reset" ? (
+              <StatusNotice tone="error" message={oauthNotice} className="mb-4" />
             ) : null}
             {showAuthTabs ? (
               <div className="mb-5">
@@ -522,6 +582,9 @@ export default function LoginPage() {
                   </ActionButton>
                 </div>
               </form>
+              {showAuthTabs ? (
+                <SocialSignInButtons disabled={isLoading} onSelect={(provider) => void handleSocial(provider)} />
+              ) : null}
             </div>
           </section>
 

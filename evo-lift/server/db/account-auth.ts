@@ -3,6 +3,7 @@ import {
   CURRENT_PASSWORD_INCORRECT,
   CURRENT_PASSWORD_REQUIRED,
 } from "@/app/account/account-form";
+import { accountHasEmailPassword } from "@/lib/account-has-password";
 import { friendlyAuthError } from "@/lib/friendly-auth-error";
 import { createPublicServerClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { ApiHttpError } from "@/server/api/http";
@@ -45,7 +46,7 @@ export async function readAccount(userId: string): Promise<{ email: string | nul
   if (error || !data.user) {
     throw new ApiHttpError(400, ACCOUNT_EMAIL_UNAVAILABLE);
   }
-  const hasPassword = (data.user.identities ?? []).some((identity) => identity.provider === "email");
+  const hasPassword = accountHasEmailPassword(data.user.identities);
   return { email: data.user.email ?? null, has_password: hasPassword };
 }
 

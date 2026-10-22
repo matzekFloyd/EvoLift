@@ -163,11 +163,31 @@ In the hosted project: **Authentication → URL Configuration**:
    - `http://localhost:3000/**` and `http://127.0.0.1:3000/**` for local register
    - optionally `https://*-<team>.vercel.app/**` for Vercel previews
 
-Sign-up and email-change use `…/login?verified=1` as `emailRedirectTo`. Password recovery uses `…/login?recovery=1` as `redirectTo`. Those paths must match the allow list (wildcards above cover it).
+Sign-up and email-change use `…/login?verified=1` as `emailRedirectTo`. Password recovery uses `…/login?recovery=1` as `redirectTo`. Google and Apple return to `…/auth/callback`. Those paths must match the allow list (wildcards above cover it). Local `supabase/config.toml` lists `http://localhost:3000/auth/callback` and `http://127.0.0.1:3000/auth/callback` exactly.
 
 `NEXT_PUBLIC_APP_URL` on Vercel Production is `https://evolift.at`. That is the single origin used in confirmation and recovery emails. Do not put two URLs in that env var. DNS records for the domain are in the root `README.md` under Production domain.
 
 Local Auth email HTML lives under `supabase/templates/` (`confirmation.html`, `recovery.html`) and is wired in `supabase/config.toml`. For the hosted project, paste the same subjects/bodies under **Authentication → Email Templates** (Confirm signup / Reset password) when you change them.
+
+### Google and Apple sign-in
+
+Email and password stay on `/login`. Magic link is not offered. The panel adds **Sign in with Google** and **Sign in with Apple** under the email form. The buttons stay visible. If that provider is not enabled in Supabase Auth, the panel says so and does not leave EvoLift. A verified provider email joins the existing EvoLift account (Supabase automatic linking). Keep **Confirm email** enabled on the hosted project.
+
+**Account actions.** API tokens use the session only. An account with no password can set one on Account → Login, and can delete the account there without a password. After a password exists, changing it, changing email through `PATCH /api/account/email`, and deleting the account require the current password.
+
+**Google Cloud** (APIs & Services → Credentials → OAuth client ID, Web):
+
+1. Authorized redirect URI: `https://<project-ref>.supabase.co/auth/v1/callback`. Local: `http://127.0.0.1:54321/auth/v1/callback`.
+2. Hosted Supabase: Authentication → Providers → Google. Enable it and paste the client id and secret.
+3. Local: set `[auth.external.google]` `enabled = true`, put the client id in `config.toml`, and set `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET`. For local only, set `skip_nonce_check = true`. Do not commit the secret.
+
+**Apple** (Certificates, Identifiers & Profiles):
+
+1. Create a Services ID, enable Sign in with Apple, and set the return URL to the same Supabase callback as Google.
+2. Create a Sign in with Apple key and generate the client secret JWT (Apple limits it to 6 months). Rotate it before it expires.
+3. Hosted Supabase: Authentication → Providers → Apple. Local `[auth.external.apple]` stays disabled until `SUPABASE_AUTH_EXTERNAL_APPLE_SECRET` is set.
+
+Restart local Supabase after editing `config.toml` (`supabase stop`, then `supabase start`).
 
 ### Environment matrix
 
@@ -189,7 +209,7 @@ Local Auth email HTML lives under `supabase/templates/` (`confirmation.html`, `r
 5. Confirm hosted email password strength matches the [password policy](#password-policy-local--hosted) (min 8, letters and digits).
 6. Redeploy application.
 7. Smoke test:
-   - `/login`
+   - `/login` (email and password, plus Sign in with Google and Sign in with Apple)
    - register → confirm-email link opens the production host (not localhost)
    - forgot password → recovery link opens `/login?recovery=1` on the production host and sets a new password
    - `/app/docs`
@@ -197,7 +217,7 @@ Local Auth email HTML lives under `supabase/templates/` (`confirmation.html`, `r
 
 ## Auth and API usage
 
-- Users authenticate via Supabase Auth (email/password, OAuth, magic link, etc.).
+- Users authenticate via Supabase Auth with email and password, or with Google or Apple. Magic link is not offered.
 - Frontend gets `access_token` from Supabase session for in-app requests.
 - Authenticated `/api/*` routes accept a session JWT or a personal API token created on Account → Login (`Authorization: Bearer evo_…`). Tokens are stored hashed, shown once, and do not expire until revoked.
 - Workout sessions and templates can be listed, created, updated, and deleted over the API (same ownership rules as the UI). Use `/app/docs` to try them.

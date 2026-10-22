@@ -4,6 +4,9 @@ export const AUTH_EMAIL_VERIFIED_PATH = "/login?verified=1";
 /** Path after password-recovery email; keeps `/login` open while the recovery session is active. */
 export const AUTH_EMAIL_RECOVERY_PATH = "/login?recovery=1";
 
+/** Path Google and Apple return to after the provider. No query, so it can sit on the redirect allow list. */
+export const AUTH_OAUTH_CALLBACK_PATH = "/auth/callback";
+
 /**
  * Public origin for auth email redirects.
  * Prefer `NEXT_PUBLIC_APP_URL` in production so confirm links never depend on
@@ -33,6 +36,14 @@ export function authEmailRedirectUrl(input: {
   const path = input.path?.trim() || AUTH_EMAIL_VERIFIED_PATH;
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
   return `${origin}${normalizedPath}`;
+}
+
+/** OAuth `redirectTo`, using the same origin rules as confirm and recovery emails. */
+export function authOAuthRedirectUrl(input: {
+  envAppUrl?: string | null;
+  windowOrigin?: string | null;
+}): string | null {
+  return authEmailRedirectUrl({ ...input, path: AUTH_OAUTH_CALLBACK_PATH });
 }
 
 /** True when the login URL is the password-recovery callback (`?recovery=1`). */

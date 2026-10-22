@@ -36,31 +36,54 @@ export function accountPasswordUpdateError(input: {
   currentPassword: string;
   newPassword: string;
   confirmNewPassword: string;
+  /** False for Google/Apple accounts that have not set a password yet. */
+  hasPassword?: boolean;
 }): string | null {
   if (!input.userEmail) {
     return ACCOUNT_EMAIL_UNAVAILABLE;
   }
-  if (!input.currentPassword) {
+  if (input.hasPassword !== false && !input.currentPassword) {
     return CURRENT_PASSWORD_REQUIRED;
   }
-  const strengthError = passwordStrengthError(input.newPassword, "New password");
+  const strengthError = passwordStrengthError(
+    input.newPassword,
+    input.hasPassword === false ? "Password" : "New password",
+  );
   if (strengthError) {
     return strengthError;
   }
   if (input.newPassword !== input.confirmNewPassword) {
-    return "New password and confirmation do not match.";
+    return input.hasPassword === false
+      ? "Passwords do not match."
+      : "New password and confirmation do not match.";
   }
   return null;
+}
+
+/** First password on an account that signed in with Google or Apple. */
+export function accountPasswordSetError(input: {
+  newPassword: string;
+  confirmNewPassword: string;
+}): string | null {
+  return accountPasswordUpdateError({
+    userEmail: "set-password@local",
+    currentPassword: "",
+    newPassword: input.newPassword,
+    confirmNewPassword: input.confirmNewPassword,
+    hasPassword: false,
+  });
 }
 
 export function accountDeleteError(input: {
   userEmail: string | null;
   currentPassword: string;
+  /** False when the account has no email/password identity. */
+  hasPassword?: boolean;
 }): string | null {
   if (!input.userEmail) {
     return ACCOUNT_EMAIL_UNAVAILABLE;
   }
-  if (!input.currentPassword) {
+  if (input.hasPassword !== false && !input.currentPassword) {
     return CURRENT_PASSWORD_REQUIRED;
   }
   return null;

@@ -81,9 +81,9 @@ Normal gym logging (web/Android) stays well under these budgets. Automation and 
 
 ### Provider-enforced (Auth)
 
-Browser login, signup, and email confirmation go to **Supabase Auth**, not our `/api` handlers. Limits live in `supabase/config.toml` under `[auth.rate_limit]` (and the hosted Auth dashboard), including:
+Browser login, signup, email confirmation, and Google or Apple sign-in go to **Supabase Auth**, not our `/api` handlers. Limits live in `supabase/config.toml` under `[auth.rate_limit]` (and the hosted Auth dashboard), including:
 
-- `sign_in_sign_ups` — sign-in / sign-up attempts per IP (5-minute window)
+- `sign_in_sign_ups` — email and OAuth sign-in / sign-up attempts per IP (5-minute window)
 - `email_sent` / `max_frequency` — confirmation and recovery email volume
 - `token_refresh` — session refresh per IP
 
@@ -100,6 +100,8 @@ Edge / CDN DDoS scrubbing (Vercel platform). CAPTCHA on login only if abuse warr
 | Secret | Notes |
 | --- | --- |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server-only. Bypasses RLS. Never prefix with `NEXT_PUBLIC_`. |
+| `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET` | Google OAuth client secret. Local only via env. Hosted value stays in the Supabase dashboard. |
+| `SUPABASE_AUTH_EXTERNAL_APPLE_SECRET` | Apple client secret (a short-lived JWT). Do not commit. |
 | Play upload keystore (`*.jks`, `*.keystore`) | Gitignored. Play App Signing holds the app signing key. |
 | `android/keystore.properties` | Keystore passwords; gitignored. Copy from the `.example` file locally. |
 | `.env.local` | Local secrets; gitignored. |
@@ -317,6 +319,27 @@ Production confirm / email-change links use `NEXT_PUBLIC_APP_URL` via `evo-lift/
 | Redirect URLs | `https://evolift.at/**`, `https://www.evolift.at/**`, `https://evo-lift.vercel.app/**`, local `http://localhost:3000/**` and `http://127.0.0.1:3000/**` |
 
 Keep Site URL, Redirect URLs, `NEXT_PUBLIC_APP_URL`, and `PUBLIC_APP_ORIGIN` on `https://evolift.at`. DNS for that host is in the root `README.md` (Production domain). `www.evolift.at` and `evo-lift.vercel.app` redirect to the apex.
+
+### Google and Apple sign-in
+
+Email and password stay available. Magic link is not offered.
+
+`/login` starts `signInWithOAuth` for Google or Apple and returns to `/auth/callback` (`authOAuthRedirectUrl` in `evo-lift/lib/auth-email-redirect.ts`). That callback exchanges the code for the cookie session and redirects to `/app`. Provider error text is not shown. The panel uses `friendlyOAuthError` and three fixed notices: cancelled, email already registered, or a generic failure.
+
+Supabase Auth links a **verified** provider email to the existing user automatically. There is no switch to turn that off. Manual linking stays off (`enable_manual_linking = false`): this release has no screen to attach a second email. Production should keep **Confirm email** on, so an unconfirmed password signup cannot take over an address that later signs in with Google or Apple. Local `enable_confirmations = false` autoconfirms email and is not the production setting.
+
+Account actions:
+
+| Action | Password required? |
+| --- | --- |
+| Use the app, create or revoke API tokens | No. The signed-in session is enough, including Google or Apple. |
+| Set the first password (Account → Login) | No, until a password exists. The Account screen and `PATCH /api/account/password` both allow this when the user has no email identity. |
+| Change password, or `PATCH /api/account/email` | Yes. Current password. |
+| Delete the account | Yes, when the account has a password. Google/Apple-only accounts confirm on Account without a password. The API skips the check only when `has_password` is false. |
+
+OAuth failures stay in Supabase Auth logs. The app does not add a new security-event type for them. Password login failures still emit `login_failed`.
+
+Hosted setup (dashboard, not this repo): enable the Google and Apple providers, and allow `https://evolift.at/auth/callback` via the existing `https://evolift.at/**` redirect entry. Provider console redirect URI is the Supabase callback `https://<project-ref>.supabase.co/auth/v1/callback`, not the app URL. Steps are in `evo-lift/README.md`.
 
 ### MFA decision
 

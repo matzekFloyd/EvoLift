@@ -46,6 +46,23 @@ describe("login client graph", () => {
     assert.match(login, /PASSWORD_RECOVERY/);
   });
 
+  it("adds Google and Apple under the email form and does not offer a magic link", () => {
+    const login = readFileSync(join(appDir, "login", "page.tsx"), "utf8");
+    const buttons = readFileSync(join(appDir, "login", "social-sign-in-buttons.tsx"), "utf8");
+    const social = readFileSync(join(appDir, "login", "social-sign-in.ts"), "utf8");
+
+    assert.match(login, /SocialSignInButtons/);
+    assert.match(login, /authOAuthRedirectUrl/);
+    assert.match(login, /signInWithOAuth/);
+    assert.match(login, /socialSignInBlockedMessage/);
+    assert.doesNotMatch(login, /signInWithOtp/);
+    assert.match(buttons, /SOCIAL_SIGN_IN_PROVIDERS/);
+    assert.match(buttons, /min-h-11 w-full/);
+    assert.match(social, /Sign in with Google/);
+    assert.match(social, /Sign in with Apple/);
+    assert.doesNotMatch(`${login}\n${buttons}\n${social}`, /magic link|signInWithOtp/i);
+  });
+
   it("wires keyboard and screen-reader affordances on log in and register", () => {
     const login = readFileSync(join(appDir, "login", "page.tsx"), "utf8");
     const statusNotice = readFileSync(join(appDir, "components", "status-notice.tsx"), "utf8");

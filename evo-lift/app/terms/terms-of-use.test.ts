@@ -13,6 +13,7 @@ describe("terms of use", () => {
     for (const phrase of [
       PUBLIC_APP_ORIGIN,
       "email and password",
+      "Google or Apple",
       "delete the account",
       "privacy policy",
       "personal API tokens",
