@@ -151,7 +151,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Upcoming session",
     definition:
-      "A workout session dated after today. On Home it is the date on its plan day. A session that is not part of the active plan is listed under the plan. You cannot log sets until that day.",
+      "A workout session dated after today. On Home it is the date on its plan day, and it does not block the next day. A session that is not part of the active plan is listed under the plan. You cannot log sets until that day. Move to today on the session to log it now.",
   },
   {
     term: "Warmup",

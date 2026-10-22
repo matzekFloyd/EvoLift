@@ -7,6 +7,7 @@ import {
   type OpenedSessionSnapshot,
 } from "@/lib/opened-session-cache";
 import { rememberedUserId } from "@/lib/signed-in-memory";
+import { ActionButton } from "@/app/components/action-button";
 import { DocumentTitle } from "@/app/components/document-title";
 import { ContentPlaceholder } from "@/app/components/content-placeholder";
 import {
@@ -52,6 +53,7 @@ import { SessionCompactBar } from "@/app/sessions/[id]/session-compact-bar";
 import { SessionDetailsPanel } from "@/app/sessions/[id]/session-details-panel";
 import { SessionExerciseBlock } from "@/app/sessions/[id]/session-exercise-block";
 import { SessionHeader } from "@/app/sessions/[id]/session-header";
+import { upcomingSessionLogMessage } from "@/app/sessions/[id]/session-input";
 import { SessionTargetsSheet } from "@/app/sessions/[id]/session-targets-sheet";
 import type { SessionSetDraft as SetDraft } from "@/app/sessions/[id]/session-set-draft";
 import { useActiveExerciseReset } from "@/app/sessions/[id]/use-active-exercise-reset";
@@ -288,6 +290,7 @@ export default function SessionDetailPage() {
     beginEditingSessionDetails,
     cancelEditingSessionDetails,
     saveSessionDetails,
+    moveSessionToToday,
     markSessionCompleted,
     undoSessionCompleted,
   } = createSessionDetailActions({
@@ -475,6 +478,23 @@ export default function SessionDetailPage() {
           onSave={saveSessionDetails}
           onCancel={cancelEditingSessionDetails}
         />
+        {isPlannedSession ? (
+          <div className={panelInsetClass("mt-3 flex flex-wrap items-center justify-between gap-3 p-3")}>
+            <p className="min-w-0 text-sm text-zinc-800">
+              {upcomingSessionLogMessage(formattedPerformedOn)}
+            </p>
+            <ActionButton
+              type="button"
+              variant="primary"
+              size="sm"
+              className="shrink-0"
+              disabled={isSavingSessionDetails || isDeletingSession}
+              onClick={() => void moveSessionToToday()}
+            >
+              {isSavingSessionDetails ? "Saving..." : "Move to today"}
+            </ActionButton>
+          </div>
+        ) : null}
         {message ? (
           <StatusNotice message={message} tone={messageTone} onDismiss={clearMessage} className="mt-3" />
         ) : null}

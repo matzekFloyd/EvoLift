@@ -12,7 +12,7 @@ import {
   canUndoSessionCompleted,
   wouldStartSession,
 } from "@/lib/session-lifecycle";
-import { isFutureSessionDate } from "@/lib/session-date";
+import { getTodayYyyyMmDd, isFutureSessionDate } from "@/lib/session-date";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { suggestWarmups } from "@/lib/warmup-suggestion";
 import { exerciseIdsToSkipOnComplete } from "./session-exercise-status";
@@ -743,7 +743,48 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
 
     if (error || !data) {
       const msg = error?.message ?? "Unknown error";
-      if (/row level security|rls|permission denied|violates row-level/i.test(msg)) {
+      if (/open plan session limit/i.test(msg)) {
+        showWarning(PLAN_ALREADY_OPEN_MESSAGE);
+      } else if (/row level security|rls|permission denied|violates row-level/i.test(msg)) {
+        showError("You can only update your own workout sessions.");
+      } else {
+        showError(`Could not update session: ${msg}`);
+      }
+      setIsSavingSessionDetails(false);
+      return;
+    }
+
+    invalidateLoggedHistoryCaches();
+    setSession(data);
+    setPerformedOnDraft(data.performed_on);
+    setNotesDraft(data.notes ?? "");
+    setIsEditingSessionDetails(false);
+    clearMessage();
+    setIsSavingSessionDetails(false);
+  }
+
+  async function moveSessionToToday() {
+    if (!sessionId || !session || !isFutureSessionDate(session.performed_on)) {
+      return;
+    }
+    setIsSavingSessionDetails(true);
+    clearMessage();
+    setSessionDetailsDateError(null);
+
+    const { data, error } = await supabaseBrowserClient
+      .from("workout_sessions")
+      .update({ performed_on: getTodayYyyyMmDd() })
+      .eq("id", sessionId)
+      .select(
+        "id, user_id, performed_on, notes, created_at, updated_at, source_template_id, plan_id, plan_day_id, started_at, completed_at",
+      )
+      .single();
+
+    if (error || !data) {
+      const msg = error?.message ?? "Unknown error";
+      if (/open plan session limit/i.test(msg)) {
+        showWarning(PLAN_ALREADY_OPEN_MESSAGE);
+      } else if (/row level security|rls|permission denied|violates row-level/i.test(msg)) {
         showError("You can only update your own workout sessions.");
       } else {
         showError(`Could not update session: ${msg}`);
@@ -840,6 +881,7 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
         .select("id", { count: "exact", head: true })
         .eq("plan_id", session.plan_id)
         .is("completed_at", null)
+        .lte("performed_on", getTodayYyyyMmDd())
         .neq("id", sessionId);
       if (openPlanError) {
         showError("Could not check the plan.");
@@ -916,6 +958,7 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
     beginEditingSessionDetails,
     cancelEditingSessionDetails,
     saveSessionDetails,
+    moveSessionToToday,
     markSessionCompleted,
     undoSessionCompleted,
   };

@@ -29,13 +29,30 @@ function orderedDays(days: PlanCycleDay[]): PlanCycleDay[] {
 }
 
 /**
+ * True when this unfinished plan session can be logged now.
+ * An upcoming session (performed on after today) does not block the plan.
+ */
+export function planSessionBlocksAnotherDay(
+  session: Pick<PlanCycleSession, "planDayId" | "performedOn" | "completedAt">,
+  todayYyyyMmDd: string,
+): boolean {
+  return (
+    session.planDayId != null &&
+    session.completedAt === null &&
+    sessionDate(session.performedOn) <= todayYyyyMmDd
+  );
+}
+
+/**
  * Next day in plan order.
- * Only sessions whose day is still on the plan count. No such session means day 1.
- * After the last day, the cycle returns to day 1.
+ * Only sessions whose day is still on the plan, and whose date is today or earlier, count.
+ * A future session has not been trained, so it does not move the pointer.
+ * No such session means day 1. After the last day, the cycle returns to day 1.
  */
 export function nextPlanDayId(
   days: PlanCycleDay[],
   sessions: PlanCycleSession[],
+  todayYyyyMmDd: string,
 ): string | null {
   const ordered = orderedDays(days);
   if (ordered.length === 0) {
@@ -44,7 +61,12 @@ export function nextPlanDayId(
 
   const dayIds = new Set(ordered.map((day) => day.id));
   const latest = sessions
-    .filter((session) => session.planDayId != null && dayIds.has(session.planDayId))
+    .filter(
+      (session) =>
+        session.planDayId != null &&
+        dayIds.has(session.planDayId) &&
+        sessionDate(session.performedOn) <= todayYyyyMmDd,
+    )
     .sort(comparePlanSessionsDesc)[0];
 
   if (!latest?.planDayId) {
@@ -62,14 +84,37 @@ export const PLAN_ALREADY_OPEN_MESSAGE =
   "Finish the open plan session before starting another day.";
 
 /**
+ * Latest upcoming session for one plan day.
+ * Starting that day reuses this session instead of creating a second one.
+ */
+export function upcomingSessionOnPlanDay<T extends PlanCycleSession>(
+  sessions: T[],
+  planDayId: string,
+  todayYyyyMmDd: string,
+): T | null {
+  const upcoming = sessions.filter(
+    (session) =>
+      session.planDayId === planDayId &&
+      session.completedAt === null &&
+      sessionDate(session.performedOn) > todayYyyyMmDd,
+  );
+  if (upcoming.length === 0) {
+    return null;
+  }
+  return [...upcoming].sort(comparePlanSessionsDesc)[0];
+}
+
+/**
  * The one unfinished plan session that can be continued.
- * When several are unfinished, this is the earliest performed date.
+ * Upcoming sessions are excluded: sets cannot be logged on them yet.
+ * When several can be logged, this is the earliest performed date.
  * Sessions with an unknown completedAt are ignored.
  */
-export function continuablePlanSession<T extends PlanCycleSession>(sessions: T[]): T | null {
-  const open = sessions.filter(
-    (session) => session.planDayId != null && session.completedAt === null,
-  );
+export function continuablePlanSession<T extends PlanCycleSession>(
+  sessions: T[],
+  todayYyyyMmDd: string,
+): T | null {
+  const open = sessions.filter((session) => planSessionBlocksAnotherDay(session, todayYyyyMmDd));
   if (open.length === 0) {
     return null;
   }
