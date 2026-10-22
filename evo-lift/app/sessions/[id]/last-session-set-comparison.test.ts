@@ -99,10 +99,78 @@ describe("previousSessionWorkingSets", () => {
         setRow({ sessionId: "older", performedOn: "2026-10-01", loadedKg: 100, reps: 5 }),
       ],
       null,
+      "2026-10-17",
     );
     assert.deepEqual(warmupOnly, []);
   });
+
+  it("hides the previous session when its performed date is more than 30 days earlier", () => {
+    const current = "2026-10-22";
+    const stale = previousSessionWorkingSets(
+      [
+        setRow({
+          sessionId: "stale",
+          performedOn: daysBefore(current, 31),
+          sessionCreatedAt: "2026-10-21T10:00:00Z",
+          loadedKg: 80,
+          reps: 8,
+        }),
+        setRow({
+          sessionId: "older",
+          performedOn: daysBefore(current, 60),
+          loadedKg: 70,
+          reps: 5,
+        }),
+      ],
+      "current",
+      current,
+    );
+
+    assert.deepEqual(stale, []);
+    assert.equal(lastSessionComparisonLine(stale, 1, { assistance: false }), null);
+  });
+
+  it("keeps Last session when the previous performed date is 30 days earlier or the same day", () => {
+    const current = "2026-10-22";
+    const onBoundary = previousSessionWorkingSets(
+      [
+        setRow({
+          sessionId: "boundary",
+          performedOn: daysBefore(current, 30),
+          sessionCreatedAt: "2026-01-01T10:00:00Z",
+          loadedKg: 80,
+          reps: 8,
+        }),
+        setRow({
+          sessionId: "older",
+          performedOn: daysBefore(current, 40),
+          loadedKg: 50,
+          reps: 5,
+        }),
+      ],
+      "current",
+      current,
+    );
+    assert.deepEqual(onBoundary, [{ loadedKg: 80, reps: 8 }]);
+    assert.equal(
+      lastSessionComparisonLine(onBoundary, 1, { assistance: false }),
+      "Last session: 80 kg, 8 reps",
+    );
+
+    const sameDay = previousSessionWorkingSets(
+      [setRow({ sessionId: "same", performedOn: current, loadedKg: 90, reps: 3 })],
+      "current",
+      current,
+    );
+    assert.deepEqual(sameDay, [{ loadedKg: 90, reps: 3 }]);
+  });
 });
+
+function daysBefore(day: string, days: number): string {
+  const date = new Date(`${day}T00:00:00Z`);
+  date.setUTCDate(date.getUTCDate() - days);
+  return date.toISOString().slice(0, 10);
+}
 
 describe("working set ordinals", () => {
   it("counts working sets in log order and ignores warmups", () => {

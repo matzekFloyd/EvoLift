@@ -17,15 +17,39 @@ export type LastSessionWorkingSet = {
   reps: number;
 };
 
+/** Hide Last session when the previous performed date is older than this. */
+const LAST_SESSION_MAX_AGE_DAYS = 30;
+
+/**
+ * Whole calendar days from `earlier` to `later`, using performed dates.
+ * A later previous session is negative. An unreadable date stays unknown.
+ */
+function calendarDaysBefore(earlier: string, later: string): number | null {
+  const startDay = earlier.slice(0, 10);
+  const endDay = later.slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(startDay) || !/^\d{4}-\d{2}-\d{2}$/.test(endDay)) {
+    return null;
+  }
+  const start = Date.parse(`${startDay}T00:00:00Z`);
+  const end = Date.parse(`${endDay}T00:00:00Z`);
+  if (!Number.isFinite(start) || !Number.isFinite(end)) {
+    return null;
+  }
+  return Math.round((end - start) / 86_400_000);
+}
+
 /**
  * Working sets from the latest earlier session, in log order.
  * Warmups are left out, so the first entry is the first working set even when
  * earlier sets in that session were warmups. The session on screen is left out.
  * A previous session with only warmups stays empty instead of falling back.
+ * When `sessionPerformedOn` is set, a previous session more than 30 days before
+ * that performed date is left out too. The cutoff uses performed dates.
  */
 export function previousSessionWorkingSets(
   sets: readonly PreviousSessionSetSource[],
   excludeSessionId?: string | null,
+  sessionPerformedOn?: string | null,
 ): LastSessionWorkingSet[] {
   const bySession = new Map<
     string,
@@ -68,6 +92,13 @@ export function previousSessionWorkingSets(
 
   if (!latest) {
     return [];
+  }
+
+  if (sessionPerformedOn) {
+    const ageDays = calendarDaysBefore(latest.performedOn, sessionPerformedOn);
+    if (ageDays != null && ageDays > LAST_SESSION_MAX_AGE_DAYS) {
+      return [];
+    }
   }
 
   return latest.sets

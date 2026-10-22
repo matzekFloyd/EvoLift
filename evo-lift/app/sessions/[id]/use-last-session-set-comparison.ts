@@ -6,20 +6,22 @@ import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import {
   previousSessionWorkingSets,
   type LastSessionWorkingSet,
+  type PreviousSessionSetSource,
 } from "./last-session-set-comparison";
 
 /**
  * Working sets from the previous session of this exercise.
- * Empty while loading, on failure, or when that session has no working sets.
+ * Empty while loading, on failure, when that session has no working sets,
+ * or when its performed date is more than 30 days before this session.
  */
 export function usePreviousSessionWorkingSets(
   exerciseId: string | undefined,
   excludeSessionId: string | null,
+  sessionPerformedOn: string,
 ): LastSessionWorkingSet[] {
   const [loaded, setLoaded] = useState<{
     exerciseId: string;
-    excludeSessionId: string | null;
-    sets: LastSessionWorkingSet[];
+    sets: PreviousSessionSetSource[];
   } | null>(null);
 
   useEffect(() => {
@@ -30,29 +32,21 @@ export function usePreviousSessionWorkingSets(
     void loadTargetWeightHistory(supabaseBrowserClient, exerciseId)
       .then((sets) => {
         if (!cancelled) {
-          setLoaded({
-            exerciseId,
-            excludeSessionId,
-            sets: previousSessionWorkingSets(sets, excludeSessionId),
-          });
+          setLoaded({ exerciseId, sets });
         }
       })
       .catch(() => {
         if (!cancelled) {
-          setLoaded({ exerciseId, excludeSessionId, sets: [] });
+          setLoaded({ exerciseId, sets: [] });
         }
       });
     return () => {
       cancelled = true;
     };
-  }, [exerciseId, excludeSessionId]);
+  }, [exerciseId]);
 
-  if (
-    !exerciseId ||
-    loaded?.exerciseId !== exerciseId ||
-    loaded.excludeSessionId !== excludeSessionId
-  ) {
+  if (!exerciseId || loaded?.exerciseId !== exerciseId) {
     return [];
   }
-  return loaded.sets;
+  return previousSessionWorkingSets(loaded.sets, excludeSessionId, sessionPerformedOn);
 }

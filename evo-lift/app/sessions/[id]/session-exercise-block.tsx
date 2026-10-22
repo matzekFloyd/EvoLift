@@ -36,6 +36,8 @@ type SessionExerciseBlockProps = {
   exerciseBadge: string | undefined;
   exerciseSlug: string | undefined;
   sessionId: string | null;
+  /** Performed date of the session on screen. Last session older than 30 days stays hidden. */
+  sessionPerformedOn: string;
   isReadOnly: boolean;
   shouldUseSingleExerciseFlow: boolean;
   isCompactView: boolean;
@@ -91,6 +93,7 @@ export function SessionExerciseBlock({
   exerciseBadge,
   exerciseSlug,
   sessionId,
+  sessionPerformedOn,
   isReadOnly,
   shouldUseSingleExerciseFlow,
   isCompactView,
@@ -133,7 +136,11 @@ export function SessionExerciseBlock({
   onExpandFullAddSetRow,
 }: SessionExerciseBlockProps) {
   const [historyOpen, setHistoryOpen] = useState(false);
-  const previousWorkingSets = usePreviousSessionWorkingSets(sessionExercise.exercise_id, sessionId);
+  const previousWorkingSets = usePreviousSessionWorkingSets(
+    sessionExercise.exercise_id,
+    sessionId,
+    sessionPerformedOn,
+  );
   const sets = setsForSessionExercise(workoutSets, sessionExercise.id);
   const addDraft = resolvedAddDraft([sessionExercise], workoutSets, addDrafts, sessionExercise.id);
   const lastSet = lastLoggedSet(workoutSets, sessionExercise.id);
