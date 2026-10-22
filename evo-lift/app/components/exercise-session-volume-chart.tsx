@@ -12,6 +12,8 @@ import {
 } from "recharts";
 import type { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
 import { ChartResponsiveContainer } from "@/app/components/chart-responsive-container";
+import { ChartTextAlternative } from "@/app/components/chart-text-alternative";
+import { exerciseVolumeChartText } from "@/app/components/chart-text-data";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { formatVolumeTick } from "@/app/components/exercise-session-volume-format";
 import {
@@ -82,9 +84,14 @@ export function ExerciseSessionVolumeChart({ points }: ExerciseSessionVolumeChar
       <div
         className="exercise-session-volume-chart relative h-52 w-full sm:h-64"
         style={{ WebkitTapHighlightColor: "transparent" }}
+        aria-hidden
       >
         <ChartResponsiveContainer initialDimension={{ width: 320, height: 208 }}>
-          <LineChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 4 }}>
+          <LineChart
+            accessibilityLayer={false}
+            data={chartData}
+            margin={{ top: 8, right: 8, left: 0, bottom: 4 }}
+          >
             <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
             <XAxis
               dataKey="xTickLabel"
@@ -111,6 +118,7 @@ export function ExerciseSessionVolumeChart({ points }: ExerciseSessionVolumeChar
           </LineChart>
         </ChartResponsiveContainer>
       </div>
+      <ChartTextAlternative model={exerciseVolumeChartText(points)} />
     </div>
   );
 }

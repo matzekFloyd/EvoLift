@@ -17,6 +17,12 @@ import type {
   ValueType,
 } from "recharts/types/component/DefaultTooltipContent";
 import { ChartResponsiveContainer } from "@/app/components/chart-responsive-container";
+import {
+  ChartSeriesLegend,
+  ChartTextAlternative,
+} from "@/app/components/chart-text-alternative";
+import { insightsWeeklyChartText } from "@/app/components/chart-text-data";
+import { useDisplayLocale } from "@/app/components/use-display-locale";
 import { formatCompactNumber } from "@/app/components/insights-weekly-volume-format";
 import type { InsightsTrendMetric } from "@/app/insights/insights-weekly-chart-data";
 
@@ -67,7 +73,7 @@ function metricConfig(metric: InsightsTrendMetric) {
     return {
       valueKey: "volumeKg" as const,
       barName: "Volume",
-      movingAverageName: "4w avg",
+      movingAverageName: "4-week average",
       barSeries: SERIES_VOLUME,
       formatBar: (value: number) => `${value.toFixed(1)} kg`,
       formatAverage: (value: number) => `${value.toFixed(1)} kg`,
@@ -79,7 +85,7 @@ function metricConfig(metric: InsightsTrendMetric) {
     return {
       valueKey: "workingSets" as const,
       barName: "Working sets",
-      movingAverageName: "4w avg working sets",
+      movingAverageName: "4-week average",
       barSeries: SERIES_PRIMARY,
       formatBar: (value: number) => `${Math.round(value)}`,
       formatAverage: (value: number) => `${value.toFixed(1)}`,
@@ -89,7 +95,7 @@ function metricConfig(metric: InsightsTrendMetric) {
   return {
     valueKey: "sessionCount" as const,
     barName: "Sessions",
-    movingAverageName: "4w avg sessions",
+    movingAverageName: "4-week average",
     barSeries: SERIES_PRIMARY,
     formatBar: (value: number) => `${Math.round(value)}`,
     formatAverage: (value: number) => `${value.toFixed(1)}`,
@@ -99,6 +105,7 @@ function metricConfig(metric: InsightsTrendMetric) {
 
 export function InsightsWeeklyVolumeChart({ data, metric }: InsightsWeeklyVolumeChartProps) {
   const config = metricConfig(metric);
+  const locale = useDisplayLocale();
   const { valueKey, barName, movingAverageName, barSeries } = config;
   const [isCompactView, setIsCompactView] = useState(false);
   const [selectedWeekStart, setSelectedWeekStart] = useState<string | null>(null);
@@ -193,14 +200,26 @@ export function InsightsWeeklyVolumeChart({ data, metric }: InsightsWeeklyVolume
     );
   };
 
+  const barSwatchClassName =
+    metric === "volume" ? "h-2.5 w-2.5 bg-emerald-600" : "h-2.5 w-2.5 bg-sky-600";
+
   return (
-    <div
-      ref={chartRef}
-      className="insights-weekly-chart relative h-56 w-full sm:h-72"
-      style={{ WebkitTapHighlightColor: "transparent" }}
-    >
+    <div className="space-y-2">
+      <ChartSeriesLegend
+        items={[
+          { key: "bars", label: barName, swatchClassName: barSwatchClassName },
+          { key: "average", label: movingAverageName, swatchClassName: "h-0.5 w-4 bg-teal-700" },
+        ]}
+      />
+      <div
+        ref={chartRef}
+        className="insights-weekly-chart relative h-56 w-full sm:h-72"
+        style={{ WebkitTapHighlightColor: "transparent" }}
+        aria-hidden
+      >
       <ChartResponsiveContainer initialDimension={{ width: 320, height: 224 }}>
         <ComposedChart
+          accessibilityLayer={false}
           data={data}
           margin={{ top: 10, right: 8, left: 0, bottom: 0 }}
         >
@@ -281,6 +300,8 @@ export function InsightsWeeklyVolumeChart({ data, metric }: InsightsWeeklyVolume
           <p className="text-zinc-500">{selectedWeekRangeLabel}</p>
         </div>
       ) : null}
+      </div>
+      <ChartTextAlternative model={insightsWeeklyChartText(data, metric, locale)} />
     </div>
   );
 }

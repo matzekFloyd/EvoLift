@@ -3,6 +3,8 @@ import { describe, it } from "vitest";
 import {
   exerciseProgressPaceBuckets,
   exerciseProgressPaceChartLabel,
+  exerciseProgressPaceTextRows,
+  exerciseProgressPaceTotalLabel,
 } from "./exercise-progress-pace";
 
 describe("exercise progress pace buckets", () => {
@@ -36,6 +38,14 @@ describe("exercise progress pace buckets", () => {
     );
     assert.match(exerciseProgressPaceChartLabel(buckets), /2 Room to gain \(40%\)/);
     assert.doesNotMatch(exerciseProgressPaceChartLabel(buckets), /Down/);
+    assert.deepEqual(exerciseProgressPaceTextRows(buckets), [
+      { read: "room", label: "Room to gain", countLabel: "2 (40%)" },
+      { read: "on-track", label: "On track", countLabel: "1 (20%)" },
+      { read: "ahead", label: "Ahead", countLabel: "1 (20%)" },
+      { read: "early", label: "More sessions", countLabel: "1 (20%)" },
+    ]);
+    assert.equal(exerciseProgressPaceTotalLabel(5), "5 lifts");
+    assert.equal(exerciseProgressPaceTotalLabel(1), "1 lift");
   });
 
   it("keeps a single bucket readable at 100%", () => {

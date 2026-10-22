@@ -9,8 +9,14 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ChartResponsiveContainer } from "@/app/components/chart-responsive-container";
+import { useDisplayLocale } from "@/app/components/use-display-locale";
+import { ChartTextAlternative } from "@/app/components/chart-text-alternative";
+import {
+  compactActivityChartText,
+  heatmapActivityChartText,
+} from "@/app/components/chart-text-data";
 import {
   activityDateKey,
   activityDateToLocalDate,
@@ -27,25 +33,6 @@ import {
   type ActivityIntensity,
   type ActivitySetTrend,
 } from "@/lib/workout-activity-summary";
-
-const HYDRATION_LOCALE = "en";
-
-function subscribeDisplayLocale() {
-  return () => {};
-}
-
-function clientDisplayLocale() {
-  return navigator.language || HYDRATION_LOCALE;
-}
-
-function serverDisplayLocale() {
-  return HYDRATION_LOCALE;
-}
-
-/** Browser language after hydration. The server and the first client render share English so month names match. */
-function useDisplayLocale(): string {
-  return useSyncExternalStore(subscribeDisplayLocale, clientDisplayLocale, serverDisplayLocale);
-}
 
 type WorkoutActivityPoint = {
   date: string;
@@ -176,6 +163,7 @@ export function WorkoutActivityChart({
           ref={compactChartRef}
           className="compact-activity-chart relative h-36 w-full"
           style={{ WebkitTapHighlightColor: "transparent" }}
+          aria-hidden
           onClick={(event) => {
             const target = event.target as HTMLElement;
             const clickedBar = target.closest(".recharts-bar-rectangle, .recharts-rectangle");
@@ -191,7 +179,11 @@ export function WorkoutActivityChart({
             </div>
           ) : null}
           <ChartResponsiveContainer initialDimension={{ width: 320, height: 144 }}>
-            <BarChart data={compactData} margin={{ top: 4, right: 8, bottom: 0, left: -16 }}>
+            <BarChart
+              accessibilityLayer={false}
+              data={compactData}
+              margin={{ top: 4, right: 8, bottom: 0, left: -16 }}
+            >
               <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
               <XAxis dataKey="weekLabel" tick={{ fill: "#52525b", fontSize: 10 }} minTickGap={10} />
               <YAxis allowDecimals={false} tick={{ fill: "#52525b", fontSize: 10 }} />
@@ -227,6 +219,9 @@ export function WorkoutActivityChart({
               </Bar>
             </BarChart>
           </ChartResponsiveContainer>
+        </div>
+        <div className="mt-2">
+          <ChartTextAlternative model={compactActivityChartText(compactData)} />
         </div>
       </div>
     );
@@ -333,10 +328,12 @@ export function WorkoutActivityChart({
                   <div
                     key={day.date}
                     title={tooltip}
-                    aria-label={tooltip}
+                    aria-label={canOpen ? tooltip : undefined}
                     role={canOpen ? "button" : undefined}
                     tabIndex={canOpen ? 0 : undefined}
-                    className={`flex h-full w-full cursor-pointer items-center justify-center overflow-hidden rounded-sm border transition hover:brightness-95 active:scale-95 ${
+                    className={`flex h-full w-full items-center justify-center overflow-hidden rounded-sm border transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 focus-visible:ring-offset-1 ${
+                      canOpen ? "cursor-pointer hover:brightness-95 active:scale-95" : ""
+                    } ${
                       isToday
                         ? "border-zinc-900 ring-2 ring-zinc-900 ring-offset-1"
                         : highlightedDateSet.has(day.date) && day.isInRange
@@ -378,6 +375,22 @@ export function WorkoutActivityChart({
             );
           })}
         </div>
+      </div>
+      <div className="mt-3">
+        <ChartTextAlternative
+          model={heatmapActivityChartText(
+            visibleWeeks.flatMap((week) => {
+              const isCurrentWeek = week[0].date === currentWeekStart;
+              return week.map((day) => ({
+                ...day,
+                isCurrentWeek,
+                isToday: day.date === todayKey,
+              }));
+            }),
+            goalReachedByDate,
+            locale,
+          )}
+        />
       </div>
     </div>
   );
