@@ -46,7 +46,7 @@ describe("login client graph", () => {
     assert.match(login, /PASSWORD_RECOVERY/);
   });
 
-  it("adds Google and Apple under the email form and does not offer a magic link", () => {
+  it("keeps social sign-in under the email form and hides it until a provider is on", () => {
     const login = readFileSync(join(appDir, "login", "page.tsx"), "utf8");
     const buttons = readFileSync(join(appDir, "login", "social-sign-in-buttons.tsx"), "utf8");
     const social = readFileSync(join(appDir, "login", "social-sign-in.ts"), "utf8");
@@ -61,12 +61,16 @@ describe("login client graph", () => {
     assert.match(login, /socialSignInBlockedMessage/);
     assert.match(login, /SOCIAL_SIGN_IN_ENABLED/);
     assert.doesNotMatch(login, /signInWithOtp/);
-    assert.match(buttons, /SOCIAL_SIGN_IN_PROVIDERS/);
+    assert.match(buttons, /visibleSocialSignIn\(\)/);
+    assert.match(buttons, /if \(!showDivider\) \{\s*return null;\s*\}/);
+    assert.doesNotMatch(buttons, /SOCIAL_SIGN_IN_PROVIDERS/);
     assert.match(buttons, /min-h-11 w-full/);
     assert.match(buttons, />\s*or\s*</);
     assert.doesNotMatch(buttons, /already has an EvoLift account/);
     assert.match(social, /Sign in with Google/);
     assert.match(social, /Sign in with Apple/);
+    assert.match(social, /google: false/);
+    assert.match(social, /apple: false/);
     assert.doesNotMatch(`${login}\n${buttons}\n${social}`, /magic link|signInWithOtp/i);
   });
 

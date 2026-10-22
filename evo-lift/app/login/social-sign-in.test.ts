@@ -4,6 +4,7 @@ import {
   SOCIAL_SIGN_IN_ENABLED,
   SOCIAL_SIGN_IN_PROVIDERS,
   socialSignInControlDisabled,
+  visibleSocialSignIn,
   friendlyOAuthError,
   loadSocialAuthSettings,
   oauthCallbackDecision,
@@ -27,6 +28,20 @@ describe("social sign-in", () => {
     assert.equal(SOCIAL_SIGN_IN_ENABLED.apple, false);
     assert.equal(socialSignInControlDisabled({ provider: "google", busy: false }), true);
     assert.equal(socialSignInControlDisabled({ provider: "apple", busy: false }), true);
+  });
+
+  it("shows a provider button and the divider only when that provider is on", () => {
+    assert.deepEqual(visibleSocialSignIn(), { providers: [], showDivider: false });
+    assert.deepEqual(visibleSocialSignIn({ google: true, apple: false }), {
+      providers: [SOCIAL_SIGN_IN_PROVIDERS[0]],
+      showDivider: true,
+    });
+    assert.deepEqual(visibleSocialSignIn({ google: false, apple: true }), {
+      providers: [SOCIAL_SIGN_IN_PROVIDERS[1]],
+      showDivider: true,
+    });
+    assert.equal(visibleSocialSignIn({ google: true, apple: false }).providers[0]?.label, "Sign in with Google");
+    assert.equal(visibleSocialSignIn({ google: false, apple: true }).providers[0]?.label, "Sign in with Apple");
   });
 
   it("turns the OAuth return into a fixed login notice", () => {
