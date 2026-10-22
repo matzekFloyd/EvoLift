@@ -1,6 +1,6 @@
 "use client";
 
-import { Lock, SlidersHorizontal, UserRound } from "lucide-react";
+import { Files, Lock, SlidersHorizontal, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
@@ -22,6 +22,7 @@ import {
 import { PageShell } from "@/app/components/page-shell";
 import { SegmentedTabs } from "@/app/components/segmented-tabs";
 import { AccountDoubleProgressionSection } from "@/app/account/account-double-progression-section";
+import { AccountDataSection } from "@/app/account/account-data-section";
 import { AccountDeleteSection } from "@/app/account/account-delete-section";
 import { AccountEmailSection } from "@/app/account/account-email-section";
 import { AccountExerciseDefaultsSection } from "@/app/account/account-exercise-defaults-section";
@@ -29,7 +30,7 @@ import { AccountHiddenExercisesSection } from "@/app/account/account-hidden-exer
 import { AccountMetricsSection } from "@/app/account/account-metrics-section";
 import { AccountMfaSection } from "@/app/account/account-mfa-section";
 import { AccountPasswordSection } from "@/app/account/account-password-section";
-import type { AccountSectionId } from "@/app/account/account-section";
+import { ACCOUNT_SECTIONS, type AccountSectionId } from "@/app/account/account-section";
 import { AccountApiTokensSection } from "@/app/account/api-tokens-section";
 import { useAccountEmail } from "@/app/account/use-account-email";
 import { useAccountMetrics } from "@/app/account/use-account-metrics";
@@ -38,6 +39,21 @@ import { useAccountPassword } from "@/app/account/use-account-password";
 import { useDoubleProgression } from "@/app/account/use-double-progression";
 import { useExerciseDefaults } from "@/app/account/use-exercise-defaults";
 import { useHiddenExercises } from "@/app/account/use-hidden-exercises";
+
+const ACCOUNT_TAB_ICON_CLASS = "hidden h-3.5 w-3.5 sm:inline";
+
+function accountTabIcon(id: AccountSectionId) {
+  if (id === "security") {
+    return <Lock aria-hidden className={ACCOUNT_TAB_ICON_CLASS} />;
+  }
+  if (id === "profile") {
+    return <UserRound aria-hidden className={ACCOUNT_TAB_ICON_CLASS} />;
+  }
+  if (id === "exercises") {
+    return <SlidersHorizontal aria-hidden className={ACCOUNT_TAB_ICON_CLASS} />;
+  }
+  return <Files aria-hidden className={ACCOUNT_TAB_ICON_CLASS} />;
+}
 
 export default function AccountPage() {
   const router = useRouter();
@@ -166,11 +182,11 @@ export default function AccountPage() {
         buttonLayout="equal-row"
         buttonMinWidthClassName="min-w-0"
         tabListAriaLabel="Account sections"
-        options={[
-          { value: "security", label: "Login", icon: <Lock className="h-3.5 w-3.5" /> },
-          { value: "profile", label: "Profile", icon: <UserRound className="h-3.5 w-3.5" /> },
-          { value: "exercises", label: "Exercises", icon: <SlidersHorizontal className="h-3.5 w-3.5" /> },
-        ]}
+        options={ACCOUNT_SECTIONS.map((section) => ({
+          value: section.id,
+          label: section.label,
+          icon: accountTabIcon(section.id),
+        }))}
       />
     </>
   );
@@ -197,13 +213,32 @@ export default function AccountPage() {
           <AccountPasswordSection password={password} />
           {hasPassword ? <AccountMfaSection mfa={mfa} /> : null}
           {accessToken ? <AccountApiTokensSection accessToken={accessToken} /> : null}
-          {accessToken ? (
-            <AccountDeleteSection
-              accessToken={accessToken}
-              userEmail={userEmail}
-              hasPassword={hasPassword}
-            />
-          ) : null}
+        </>
+      ) : null}
+      {activeSection === "data" && accessToken ? (
+        <>
+          <AccountDataSection
+            accessToken={accessToken}
+            onImported={() => {
+              if (!userId) {
+                return;
+              }
+              void loadAccountProfile(supabaseBrowserClient, userId, { fresh: true }).then((result) => {
+                if (result.snapshot) {
+                  setExerciseOptions(result.snapshot.exerciseOptions);
+                  defaults.applySnapshot(result.snapshot);
+                  metrics.applySnapshot(result.snapshot);
+                  hidden.applySnapshot(result.snapshot);
+                  progression.applySnapshot(result.snapshot);
+                }
+              });
+            }}
+          />
+          <AccountDeleteSection
+            accessToken={accessToken}
+            userEmail={userEmail}
+            hasPassword={hasPassword}
+          />
         </>
       ) : null}
       {activeSection === "profile" ? <AccountMetricsSection metrics={metrics} /> : null}

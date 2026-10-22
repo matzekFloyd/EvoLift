@@ -116,6 +116,25 @@ export const resourceApiPaths = {
       responses: ok("Cleared defaults"),
     },
   },
+  "/api/account/export": {
+    get: {
+      summary: "Download account data as JSON or a CSV zip",
+      parameters: [
+        { name: "format", in: "query", required: true, schema: { type: "string", enum: ["json", "csv"] } },
+      ],
+      responses: ok("Account file"),
+    },
+  },
+  "/api/account/import": {
+    post: {
+      summary: "Import an account JSON file or CSV set",
+      responses: {
+        "200": { description: "Imported" },
+        "400": { description: "Invalid file" },
+        "401": { description: "Missing/invalid bearer token" },
+      },
+    },
+  },
   "/api/account/tokens": {
     get: { summary: "List API tokens", responses: ok("Tokens") },
     post: { summary: "Create an API token", responses: { "201": { description: "Created token" } } },
