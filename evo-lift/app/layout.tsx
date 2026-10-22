@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { IBM_Plex_Sans } from "next/font/google";
 import { SelectFieldValueOnDoubleClick } from "@/app/components/select-field-value-on-double-click";
 import { APP_DOCUMENT_TITLE } from "@/lib/page-title";
+import { PUBLIC_APP_ORIGIN } from "@/lib/public-app-origin";
 import "./globals.css";
 
 const ibmPlexSans = IBM_Plex_Sans({
@@ -12,6 +13,7 @@ const ibmPlexSans = IBM_Plex_Sans({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(PUBLIC_APP_ORIGIN),
   title: {
     default: APP_DOCUMENT_TITLE,
     template: `${APP_DOCUMENT_TITLE} - %s`,

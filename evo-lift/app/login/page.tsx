@@ -327,6 +327,7 @@ export default function LoginPage() {
       <div className="bg-gradient-to-l from-sky-200 via-sky-100 to-sky-50 pt-[env(safe-area-inset-top,0px)]">
         <div className="mx-auto flex w-full max-w-md justify-center px-4 py-6 sm:px-6">
           <EvoLiftBrand
+            asHeading
             markClassName="h-12 w-12"
             titleClassName="text-2xl leading-none font-bold tracking-[-0.04em] text-sky-900"
           />

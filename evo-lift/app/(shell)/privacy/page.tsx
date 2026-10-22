@@ -2,11 +2,9 @@ import type { Metadata } from "next";
 import { Shield } from "lucide-react";
 import { PageShell } from "@/app/components/page-shell";
 import { privacyPolicySections } from "@/app/privacy/privacy-policy";
+import { privacyMetadata } from "@/lib/public-page-metadata";
 
-export const metadata: Metadata = {
-  title: "Privacy policy",
-  description: "What EvoLift stores for an account, and how to delete it.",
-};
+export const metadata: Metadata = privacyMetadata;
 
 export default function PrivacyPolicyPage() {
   return (
