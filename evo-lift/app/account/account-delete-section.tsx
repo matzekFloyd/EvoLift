@@ -17,9 +17,10 @@ import { clearSignedInMemory } from "@/lib/signed-in-memory";
 type AccountDeleteSectionProps = {
   accessToken: string;
   userEmail: string | null;
+  hasPassword: boolean;
 };
 
-export function AccountDeleteSection({ accessToken, userEmail }: AccountDeleteSectionProps) {
+export function AccountDeleteSection({ accessToken, userEmail, hasPassword }: AccountDeleteSectionProps) {
   const router = useRouter();
   const [currentPassword, setCurrentPassword] = useState("");
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
@@ -32,7 +33,7 @@ export function AccountDeleteSection({ accessToken, userEmail }: AccountDeleteSe
   }
 
   async function deleteAccount() {
-    const validationError = accountDeleteError({ userEmail, currentPassword });
+    const validationError = accountDeleteError({ userEmail, currentPassword, hasPassword });
     if (validationError) {
       showError(validationError);
       return;
@@ -49,7 +50,7 @@ export function AccountDeleteSection({ accessToken, userEmail }: AccountDeleteSe
           authorization: `Bearer ${accessToken}`,
           "content-type": "application/json",
         },
-        body: JSON.stringify({ currentPassword }),
+        body: JSON.stringify(hasPassword ? { currentPassword } : {}),
       });
     } catch {
       showError("Could not delete the account. Try again.");
@@ -73,7 +74,11 @@ export function AccountDeleteSection({ accessToken, userEmail }: AccountDeleteSe
     <SettingsSection>
       <SettingsSectionHeader
         title="Delete account"
-        description="Deletes this account and the workout data stored for it. This cannot be undone."
+        description={
+          hasPassword
+            ? "Deletes this account and the workout data stored for it. This cannot be undone."
+            : "Deletes this account and the workout data stored for it. This account has no password. This cannot be undone."
+        }
         icon={<Trash2 className="h-4 w-4 text-red-600" />}
       />
       <SettingsSectionBody>
@@ -81,7 +86,7 @@ export function AccountDeleteSection({ accessToken, userEmail }: AccountDeleteSe
           className="space-y-3"
           onSubmit={(event) => {
             event.preventDefault();
-            const validationError = accountDeleteError({ userEmail, currentPassword });
+            const validationError = accountDeleteError({ userEmail, currentPassword, hasPassword });
             if (validationError) {
               showError(validationError);
               return;
@@ -90,21 +95,23 @@ export function AccountDeleteSection({ accessToken, userEmail }: AccountDeleteSe
             setIsConfirmOpen(true);
           }}
         >
-          <label className="block text-sm font-medium">
-            Current password
-            <input
-              type="password"
-              required
-              autoComplete="current-password"
-              value={currentPassword}
-              onChange={(event) => {
-                setCurrentPassword(event.target.value);
-                setIsConfirmOpen(false);
-              }}
-              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
-              placeholder="Enter your current password"
-            />
-          </label>
+          {hasPassword ? (
+            <label className="block text-sm font-medium">
+              Current password
+              <input
+                type="password"
+                required
+                autoComplete="current-password"
+                value={currentPassword}
+                onChange={(event) => {
+                  setCurrentPassword(event.target.value);
+                  setIsConfirmOpen(false);
+                }}
+                className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+                placeholder="Enter your current password"
+              />
+            </label>
+          ) : null}
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             {message ? (
               <StatusNotice

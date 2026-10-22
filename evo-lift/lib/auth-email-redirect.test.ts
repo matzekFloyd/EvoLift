@@ -3,7 +3,9 @@ import { describe, it } from "vitest";
 import {
   AUTH_EMAIL_RECOVERY_PATH,
   AUTH_EMAIL_VERIFIED_PATH,
+  AUTH_OAUTH_CALLBACK_PATH,
   authEmailRedirectUrl,
+  authOAuthRedirectUrl,
   isAuthEmailRecoverySearch,
   resolveAppOrigin,
 } from "./auth-email-redirect";
@@ -57,6 +59,22 @@ describe("auth-email-redirect", () => {
       }),
       "https://evolift.at/login?recovery=1",
     );
+  });
+
+  it("builds the Google and Apple callback on the same origin", () => {
+    assert.equal(AUTH_OAUTH_CALLBACK_PATH, "/auth/callback");
+    assert.equal(
+      authOAuthRedirectUrl({
+        envAppUrl: "https://evolift.at",
+        windowOrigin: "http://localhost:3000",
+      }),
+      "https://evolift.at/auth/callback",
+    );
+    assert.equal(
+      authOAuthRedirectUrl({ envAppUrl: "", windowOrigin: "http://localhost:3000" }),
+      "http://localhost:3000/auth/callback",
+    );
+    assert.equal(authOAuthRedirectUrl({ envAppUrl: " ", windowOrigin: "" }), null);
   });
 
   it("detects the recovery callback query", () => {

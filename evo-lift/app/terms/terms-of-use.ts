@@ -22,8 +22,8 @@ export const termsOfUseSections: TermsOfUseSection[] = [
   {
     heading: "Your account",
     paragraphs: [
-      "You need an email and password to use EvoLift.",
-      "Keep your password private. You are responsible for activity on your account.",
+      "You can use an email and password, or sign in with Google or Apple.",
+      "Keep your password private when you use one. You are responsible for activity on your account.",
       "You can delete the account from Account. After that, that email cannot log in.",
     ],
   },

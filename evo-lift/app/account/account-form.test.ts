@@ -3,6 +3,7 @@ import { describe, it } from "vitest";
 import {
   accountDeleteError,
   accountEmailUpdateError,
+  accountPasswordSetError,
   accountPasswordUpdateError,
   exerciseDefaultsClearError,
   exerciseDefaultsSaveError,
@@ -64,7 +65,22 @@ describe("account form", () => {
     assert.equal(accountPasswordUpdateError(passwordInput), null);
   });
 
-  it("requires the current password before deleting the account", () => {
+  it("lets a Google or Apple account set a first password without the current one", () => {
+    assert.equal(
+      accountPasswordSetError({ newPassword: "longpass1", confirmNewPassword: "longpass1" }),
+      null,
+    );
+    assert.equal(
+      accountPasswordSetError({ newPassword: "longpass1", confirmNewPassword: "otherpass1" }),
+      "Passwords do not match.",
+    );
+    assert.equal(
+      accountPasswordUpdateError({ ...passwordInput, currentPassword: "", hasPassword: false }),
+      null,
+    );
+  });
+
+  it("requires the current password before deleting a password account", () => {
     assert.equal(
       accountDeleteError({ userEmail: null, currentPassword: "oldpass1" }),
       "Could not verify current user email. Please log in again.",
@@ -75,6 +91,14 @@ describe("account form", () => {
     );
     assert.equal(
       accountDeleteError({ userEmail: "ada@example.com", currentPassword: "oldpass1" }),
+      null,
+    );
+    assert.equal(
+      accountDeleteError({
+        userEmail: "ada@example.com",
+        currentPassword: "",
+        hasPassword: false,
+      }),
       null,
     );
   });
