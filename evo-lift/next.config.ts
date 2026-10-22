@@ -14,6 +14,9 @@ const appRoot = path.dirname(fileURLToPath(import.meta.url));
 const nextConfig: NextConfig = {
   // The app is opened at 127.0.0.1 while the dev server is bound to localhost.
   allowedDevOrigins: ["127.0.0.1"],
+  experimental: {
+    agentUpgrade: "security",
+  },
   turbopack: {
     root: appRoot,
   },
