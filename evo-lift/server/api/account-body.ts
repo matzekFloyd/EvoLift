@@ -1,5 +1,6 @@
 import {
   accountEmailUpdateError,
+  accountPasswordSetError,
   accountPasswordUpdateError,
   exerciseDefaultsSaveError,
   normalizeAccountEmail,
@@ -61,6 +62,17 @@ export function parsePasswordUpdate(body: Record<string, unknown>, userEmail: st
     throw new ApiHttpError(400, message);
   }
   return { currentPassword, newPassword };
+}
+
+/** First password for an account that has no email/password identity yet. */
+export function parsePasswordSet(body: Record<string, unknown>): { newPassword: string } {
+  const newPassword = requiredString(body.new_password);
+  const confirmNewPassword = requiredString(body.confirm_new_password);
+  const message = accountPasswordSetError({ newPassword, confirmNewPassword });
+  if (message) {
+    throw new ApiHttpError(400, message);
+  }
+  return { newPassword };
 }
 
 export function parseProfileBody(body: Record<string, unknown>, today: string): ParsedBodyMetrics {

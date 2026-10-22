@@ -14,6 +14,7 @@ describe("privacy policy", () => {
       PUBLIC_APP_ORIGIN,
       "email",
       "password held by Supabase Auth",
+      "Google or Apple",
       "workout sessions and sets",
       "templates",
       "plans",

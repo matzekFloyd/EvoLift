@@ -12,6 +12,7 @@ import {
   parseBodyweightWrite,
   parseEmailUpdate,
   parseExerciseDefaults,
+  parsePasswordSet,
   parsePasswordUpdate,
   parseProfileBody,
 } from "./account-body";
@@ -115,6 +116,11 @@ describe("account request body", () => {
         ),
       ),
       "New password must be at least 8 characters.",
+    );
+    assert.equal(parsePasswordSet({ new_password: "longpass1", confirm_new_password: "longpass1" }).newPassword, "longpass1");
+    assert.equal(
+      message(() => parsePasswordSet({ new_password: "longpass1", confirm_new_password: "other1" })),
+      "Passwords do not match.",
     );
     assert.equal(
       message(() => parseProfileBody({ height_cm: 50 }, "2026-10-16")),

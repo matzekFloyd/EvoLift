@@ -11,10 +11,14 @@ export function useAccountPassword({
   accessToken,
   userEmail,
   activeSection,
+  hasPassword,
+  onPasswordSaved,
 }: {
   accessToken: string | null;
   userEmail: string | null;
   activeSection: AccountSectionId;
+  hasPassword: boolean;
+  onPasswordSaved?: () => void;
 }) {
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -35,6 +39,7 @@ export function useAccountPassword({
       currentPassword,
       newPassword,
       confirmNewPassword,
+      hasPassword,
     });
     if (passwordError || !userEmail) {
       notice.show("error", passwordError ?? "Could not verify current user email. Please log in again.");
@@ -44,21 +49,23 @@ export function useAccountPassword({
     setIsSaving(true);
     notice.clear();
 
-    const { error: reauthError } = await supabaseBrowserClient.auth.signInWithPassword({
-      email: userEmail,
-      password: currentPassword,
-    });
+    if (hasPassword) {
+      const { error: reauthError } = await supabaseBrowserClient.auth.signInWithPassword({
+        email: userEmail,
+        password: currentPassword,
+      });
 
-    if (reauthError) {
-      if (accessToken) {
-        void reportSecurityEvent({
-          type: "password_verify_failed",
-          accessToken,
-        });
+      if (reauthError) {
+        if (accessToken) {
+          void reportSecurityEvent({
+            type: "password_verify_failed",
+            accessToken,
+          });
+        }
+        notice.show("error", CURRENT_PASSWORD_INCORRECT);
+        setIsSaving(false);
+        return;
       }
-      notice.show("error", CURRENT_PASSWORD_INCORRECT);
-      setIsSaving(false);
-      return;
     }
 
     const { error } = await supabaseBrowserClient.auth.updateUser({
@@ -78,7 +85,11 @@ export function useAccountPassword({
       });
     }
 
-    notice.clear();
+    notice.show(
+      "success",
+      hasPassword ? "Password updated successfully." : "Password saved. You can also log in with email.",
+    );
+    onPasswordSaved?.();
     setCurrentPassword("");
     setNewPassword("");
     setConfirmNewPassword("");
@@ -95,6 +106,7 @@ export function useAccountPassword({
     isSaving,
     canSave: accountPasswordChanged({ currentPassword, newPassword, confirmNewPassword }),
     notice,
+    hasPassword,
     handleSubmit,
   };
 }
