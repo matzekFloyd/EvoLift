@@ -8,13 +8,10 @@
 import { isAuthEmailRecoverySearch } from "@/lib/auth-email-redirect";
 import { APP_HOME_PATH } from "@/lib/app-paths";
 
-const PUBLIC_EXACT = new Set([
-  "/",
-  "/login",
-  "/privacy",
-  "/terms",
-  "/glossary",
-]);
+/** Site-root pages that stay open without a session. Search indexing uses this list. */
+export const PUBLIC_PAGE_PATHS = ["/", "/login", "/privacy", "/terms", "/glossary"] as const;
+
+const PUBLIC_EXACT = new Set<string>(PUBLIC_PAGE_PATHS);
 
 export function isPublicAppPath(pathname: string): boolean {
   if (PUBLIC_EXACT.has(pathname)) {
