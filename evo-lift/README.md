@@ -149,6 +149,10 @@ Notes:
 
 Register and password change require **8+ characters** with at least **one letter and one number** (`evo-lift/lib/password-policy.ts`). Local Auth matches that in `supabase/config.toml` (`minimum_password_length = 8`, `password_requirements = "letters_digits"`). Set the same values on the hosted project under **Authentication → Providers → Email**. Restart local Supabase after editing `config.toml`.
 
+### Authenticator app (optional)
+
+Account → Login can turn on an authenticator app for an email/password account. It is not required. Login asks for a 6-digit code only when one is already on. Local Auth has `[auth.mfa.totp]` enroll and verify enabled. On the hosted project, turn on **Authentication → Multi-Factor → App Authenticator** (TOTP needs the Supabase Pro plan). Leave phone and WebAuthn off. Lost-device recovery is in `SECURITY.md`.
+
 ### Hosted Supabase Auth URLs (required for production email confirm)
 
 If Site URL stays at `http://localhost:3000`, confirmation emails fall back to localhost whenever the requested redirect is missing from the allow list.
@@ -207,9 +211,11 @@ Restart local Supabase after editing `config.toml` (`supabase stop`, then `supab
 3. Verify Vercel env vars are set for the target environment (including `NEXT_PUBLIC_APP_URL` for Production).
 4. Confirm hosted Supabase **Authentication → URL Configuration** Site URL and Redirect URLs (see above).
 5. Confirm hosted email password strength matches the [password policy](#password-policy-local--hosted) (min 8, letters and digits).
-6. Redeploy application.
-7. Smoke test:
+6. Confirm hosted **Authentication → Multi-Factor → App Authenticator** is on (enroll and verify). Phone and WebAuthn stay off.
+7. Redeploy application.
+8. Smoke test:
    - `/login` (email and password, plus Sign in with Google and Sign in with Apple)
+   - Account → Login → Set up authenticator, then log in again and enter the code. An account with it off still logs in with the password only.
    - register → confirm-email link opens the production host (not localhost)
    - forgot password → recovery link opens `/login?recovery=1` on the production host and sets a new password
    - `/app/docs`

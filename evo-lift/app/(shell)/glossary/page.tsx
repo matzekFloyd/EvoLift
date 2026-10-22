@@ -18,6 +18,11 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
       "On Assisted Dip and Assisted Pull-Up, the counterweight help you used. Enter it as a positive number (for example 7). Blank or 0 means unassisted bodyweight. It is not Loaded (kg), and it is not used for estimated 1RM or training volume.",
   },
   {
+    term: "Authenticator app",
+    definition:
+      "An optional second check at login. When it is on, EvoLift asks for a 6-digit code from an authenticator app after your password. You turn it on or off under Account. It is not required.",
+  },
+  {
     term: "Base weight",
     definition:
       "Optional weight for an exercise on a session, such as the bar. You set it once for that exercise. Total (kg) adds it to Loaded (kg). It is not bodyweight. Assisted Dip and Assisted Pull-Up do not use base weight.",

@@ -20,12 +20,14 @@ import {
 } from "@/server/rate-limit";
 import { logSecurityEvent } from "@/server/security/log-security-event";
 
-const PUBLIC_TYPES = new Set<SecurityEventType>(["login_failed"]);
+const PUBLIC_TYPES = new Set<SecurityEventType>(["login_failed", "mfa_challenge_failed"]);
 
 const AUTHENTICATED_TYPES = new Set<SecurityEventType>([
   "password_changed",
   "email_change_requested",
   "password_verify_failed",
+  "mfa_enrolled",
+  "mfa_disabled",
 ]);
 
 function readEventType(body: Record<string, unknown>): SecurityEventType {
@@ -58,17 +60,21 @@ export async function POST(request: NextRequest) {
     const type = readEventType(body);
 
     if (PUBLIC_TYPES.has(type)) {
-      if (type === "login_failed") {
+      if (type === "login_failed" || type === "mfa_challenge_failed") {
         const rawEmail = typeof body.email === "string" ? body.email : "";
         const email = normalizeLoginEmail(rawEmail);
-        if (!email) {
+        if (type === "login_failed" && !email) {
           throw new ApiHttpError(400, "Please enter a valid email.");
         }
         logSecurityEvent({
-          type: "login_failed",
+          type,
           outcome: "failure",
-          emailFingerprint: await emailFingerprint(email),
-          emailDomain: emailDomainFrom(email),
+          ...(email
+            ? {
+                emailFingerprint: await emailFingerprint(email),
+                emailDomain: emailDomainFrom(email),
+              }
+            : {}),
         });
       }
       return jsonData({ recorded: true });
@@ -95,6 +101,12 @@ export async function POST(request: NextRequest) {
       logSecurityEvent({
         type: "password_verify_failed",
         outcome: "failure",
+        userId: auth.userId,
+      });
+    } else if (type === "mfa_enrolled" || type === "mfa_disabled") {
+      logSecurityEvent({
+        type,
+        outcome: "success",
         userId: auth.userId,
       });
     }

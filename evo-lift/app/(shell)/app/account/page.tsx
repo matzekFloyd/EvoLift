@@ -27,11 +27,13 @@ import { AccountEmailSection } from "@/app/account/account-email-section";
 import { AccountExerciseDefaultsSection } from "@/app/account/account-exercise-defaults-section";
 import { AccountHiddenExercisesSection } from "@/app/account/account-hidden-exercises-section";
 import { AccountMetricsSection } from "@/app/account/account-metrics-section";
+import { AccountMfaSection } from "@/app/account/account-mfa-section";
 import { AccountPasswordSection } from "@/app/account/account-password-section";
 import type { AccountSectionId } from "@/app/account/account-section";
 import { AccountApiTokensSection } from "@/app/account/api-tokens-section";
 import { useAccountEmail } from "@/app/account/use-account-email";
 import { useAccountMetrics } from "@/app/account/use-account-metrics";
+import { useAccountMfa } from "@/app/account/use-account-mfa";
 import { useAccountPassword } from "@/app/account/use-account-password";
 import { useDoubleProgression } from "@/app/account/use-double-progression";
 import { useExerciseDefaults } from "@/app/account/use-exercise-defaults";
@@ -58,6 +60,13 @@ export default function AccountPage() {
     activeSection,
     hasPassword,
     onPasswordSaved: () => setHasPassword(true),
+  });
+  const mfa = useAccountMfa({
+    accessToken,
+    userEmail,
+    activeSection,
+    hasPassword,
+    onAuthenticatorEnabled: setAccessToken,
   });
   const metrics = useAccountMetrics({ userId, cachedAccount, activeSection });
   const hidden = useHiddenExercises({ userId, cachedAccount, activeSection });
@@ -186,6 +195,7 @@ export default function AccountPage() {
         <>
           <AccountEmailSection userEmail={userEmail} email={email} />
           <AccountPasswordSection password={password} />
+          {hasPassword ? <AccountMfaSection mfa={mfa} /> : null}
           {accessToken ? <AccountApiTokensSection accessToken={accessToken} /> : null}
           {accessToken ? (
             <AccountDeleteSection

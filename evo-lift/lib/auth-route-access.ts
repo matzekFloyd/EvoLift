@@ -28,14 +28,34 @@ export function requiresAppSession(pathname: string): boolean {
   return pathname === APP_HOME_PATH || pathname.startsWith(`${APP_HOME_PATH}/`);
 }
 
-export type SessionGateDecision = "allow" | "redirect_login" | "redirect_home";
+export type SessionGateDecision = "allow" | "redirect_login" | "redirect_home" | "redirect_mfa";
 
 /** Pure gate used by the Next.js proxy after `getUser()`. */
 export function sessionGateDecision(input: {
   pathname: string;
   hasUser: boolean;
   search?: string | URLSearchParams | null;
+  /**
+   * True when this session has a verified authenticator and is still below AAL2.
+   * Does not mean the account must enroll. Accounts without a factor stay false.
+   */
+  needsAuthenticatorChallenge?: boolean;
 }): SessionGateDecision {
+  if (
+    input.hasUser &&
+    input.pathname === "/login" &&
+    isAuthEmailRecoverySearch(input.search)
+  ) {
+    return "allow";
+  }
+  if (input.hasUser && input.needsAuthenticatorChallenge) {
+    if (input.pathname === "/" || requiresAppSession(input.pathname)) {
+      return "redirect_mfa";
+    }
+    if (input.pathname === "/login") {
+      return "allow";
+    }
+  }
   if (input.pathname === "/" && input.hasUser) {
     return "redirect_home";
   }
@@ -43,10 +63,6 @@ export function sessionGateDecision(input: {
     return "redirect_login";
   }
   if (input.hasUser && input.pathname === "/login") {
-    // Recovery email lands with a session; keep `/login?recovery=1` so the user can set a password.
-    if (isAuthEmailRecoverySearch(input.search)) {
-      return "allow";
-    }
     return "redirect_home";
   }
   return "allow";
@@ -59,6 +75,9 @@ export function sessionGateRedirectPath(decision: SessionGateDecision): string |
   }
   if (decision === "redirect_home") {
     return APP_HOME_PATH;
+  }
+  if (decision === "redirect_mfa") {
+    return "/login?mfa=1";
   }
   return null;
 }

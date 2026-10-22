@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { friendlyAuthError } from "@/lib/friendly-auth-error";
 import { reportSecurityEvent } from "@/lib/report-security-event";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
+import { verifyCurrentPassword } from "@/lib/verify-current-password";
 import { accountPasswordUpdateError, CURRENT_PASSWORD_INCORRECT } from "@/app/account/account-form";
 import { accountPasswordChanged } from "@/app/account/account-section-dirty";
 import type { AccountSectionId } from "@/app/account/account-section";
@@ -50,12 +51,9 @@ export function useAccountPassword({
     notice.clear();
 
     if (hasPassword) {
-      const { error: reauthError } = await supabaseBrowserClient.auth.signInWithPassword({
-        email: userEmail,
-        password: currentPassword,
-      });
+      const reauth = await verifyCurrentPassword(userEmail, currentPassword);
 
-      if (reauthError) {
+      if (!reauth.ok) {
         if (accessToken) {
           void reportSecurityEvent({
             type: "password_verify_failed",

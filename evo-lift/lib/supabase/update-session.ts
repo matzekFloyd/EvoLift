@@ -1,6 +1,10 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { sessionGateDecision, sessionGateRedirectPath } from "@/lib/auth-route-access";
+import {
+  authenticatorAssuranceLevelFromJwt,
+  needsAuthenticatorChallenge,
+} from "@/lib/mfa-assurance";
 import { realtimeTransportOptions } from "@/lib/supabase/realtime-transport";
 
 function normalizeSupabaseUrl(url: string): string {
@@ -50,18 +54,38 @@ export async function updateSession(request: NextRequest): Promise<NextResponse>
     data: { user },
   } = await supabase.auth.getUser();
 
+  let needsMfa = false;
+  if (user) {
+    const {
+      data: { session },
+    } = await supabase.auth.getSession();
+    needsMfa = needsAuthenticatorChallenge({
+      currentLevel: session?.access_token
+        ? authenticatorAssuranceLevelFromJwt(session.access_token)
+        : null,
+      factors: user.factors,
+    });
+  }
+
   const pathname = request.nextUrl.pathname;
   const decision = sessionGateDecision({
     pathname,
     hasUser: Boolean(user),
     search: request.nextUrl.search,
+    needsAuthenticatorChallenge: needsMfa,
   });
 
   const redirectPath = sessionGateRedirectPath(decision);
   if (redirectPath) {
     const url = request.nextUrl.clone();
-    url.pathname = redirectPath;
-    url.search = "";
+    const queryIndex = redirectPath.indexOf("?");
+    if (queryIndex === -1) {
+      url.pathname = redirectPath;
+      url.search = "";
+    } else {
+      url.pathname = redirectPath.slice(0, queryIndex);
+      url.search = redirectPath.slice(queryIndex);
+    }
     const redirect = NextResponse.redirect(url);
     supabaseResponse.cookies.getAll().forEach((cookie) => {
       redirect.cookies.set(cookie.name, cookie.value);
