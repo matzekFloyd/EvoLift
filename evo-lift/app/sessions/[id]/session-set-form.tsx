@@ -13,8 +13,43 @@ import {
 import { setsToShowForSkippedExercise } from "./session-exercise-status";
 import { SetKindIndicator } from "@/app/components/set-kind-indicator";
 import { shouldShowSetSummarySeparator } from "./compact-set-summary";
+import {
+  lastSessionComparisonLine,
+  nextWorkingSetOrdinal,
+  workingSetOrdinal,
+  type LastSessionWorkingSet,
+} from "./last-session-set-comparison";
 import { canEditSetAsWarmup, showWarmupSetToggle, type SessionSetDraft } from "./session-set-draft";
 import type { WorkoutSetRow } from "./session-detail-actions";
+
+function LastSessionSetNote({ line }: { line: string | null }) {
+  if (!line) {
+    return null;
+  }
+  return <p className="mt-1 text-xs tabular-nums text-zinc-600">{line}</p>;
+}
+
+function loggedSetComparisonLine(
+  sets: WorkoutSetRow[],
+  setId: string,
+  setNumber: number,
+  isWarmup: boolean,
+  previousWorkingSets: readonly LastSessionWorkingSet[],
+  assistance: boolean,
+  labeled: boolean,
+): string | null {
+  if (isWarmup) {
+    return null;
+  }
+  const ordinal = workingSetOrdinal(
+    sets.map((row) => ({
+      setNumber: row.set_number,
+      isWarmup: row.id === setId ? isWarmup : row.is_warmup,
+    })),
+    setNumber,
+  );
+  return lastSessionComparisonLine(previousWorkingSets, ordinal, { assistance, labeled });
+}
 
 function CompactLoggedSetSummary({
   isWarmup,
@@ -115,6 +150,8 @@ type SessionExerciseSetsProps = {
   onAddExercise: () => void;
   onShowExtraSets: () => void;
   onExpandFullAddSetRow: () => void;
+  /** Working sets from the previous session, in log order. Warmups are already omitted. */
+  previousWorkingSets?: readonly LastSessionWorkingSet[];
 };
 
 export function SessionExerciseSets({
@@ -150,6 +187,7 @@ export function SessionExerciseSets({
   onAddExercise,
   onShowExtraSets,
   onExpandFullAddSetRow,
+  previousWorkingSets = [],
 }: SessionExerciseSetsProps) {
   const visibleSets = setsToShowForSkippedExercise(sets, notDone);
   const showWarmupToggle = showWarmupSetToggle(lastSet?.is_warmup ?? null);
@@ -159,6 +197,20 @@ export function SessionExerciseSets({
   const hideCompactNewSetComposer =
     shouldUseSingleExerciseFlow && targetSetsMet && canManageSets && !compactShowExtraSetComposer;
   const hideFullViewAddSetRow = targetSetsMet && canManageSets && !fullAddSetRowExpanded;
+  const setColumnCount = canManageSets ? 6 : 5;
+  const upcomingWorkingOrdinal = addDraft.isWarmup
+    ? null
+    : nextWorkingSetOrdinal(sets.map((set) => ({ isWarmup: set.is_warmup })));
+  const comparisonFor = (set: WorkoutSetRow, isWarmup: boolean, labeled: boolean) =>
+    loggedSetComparisonLine(
+      sets,
+      set.id,
+      set.set_number,
+      isWarmup,
+      previousWorkingSets,
+      assistance,
+      labeled,
+    );
 
   return (
     <>
@@ -171,8 +223,11 @@ export function SessionExerciseSets({
               data-compact-last-set={setIndex === visibleSets.length - 1 ? "" : undefined}
               className={panelInsetClass("p-3")}
             >
-              <div className="flex items-center justify-between gap-2">
-                <p className="shrink-0 text-sm font-medium text-zinc-900">Set {set.set_number}</p>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="shrink-0 text-sm font-medium text-zinc-900">Set {set.set_number}</p>
+                  <LastSessionSetNote line={comparisonFor(set, editDraft.isWarmup, true)} />
+                </div>
                 {canEditSetAsWarmup(visibleSets, set.id) ? (
                   <label className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs text-zinc-700">
                     <input
@@ -238,6 +293,7 @@ export function SessionExerciseSets({
                       weightKg={set.weight_kg}
                       reps={set.reps}
                     />
+                    <LastSessionSetNote line={comparisonFor(set, set.is_warmup, true)} />
                   </div>
                   {canManageSets ? (
                     <div className="flex shrink-0 items-center">
@@ -266,6 +322,7 @@ export function SessionExerciseSets({
                   <p className="text-sm tabular-nums">
                     <span className="font-medium">Reps:</span> {set.reps}
                   </p>
+                  <LastSessionSetNote line={comparisonFor(set, set.is_warmup, true)} />
                   {assistance ? (
                     <p className="text-xs text-zinc-600">
                       {set.weight_kg == null || Number(set.weight_kg) === 0
@@ -384,11 +441,19 @@ export function SessionExerciseSets({
               data-compact-next-action=""
               className="rounded-md border border-sky-300 bg-sky-50 p-3"
             >
-              <div className="flex items-center justify-between gap-2">
-                <p className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-sky-950">
-                  <Plus className="h-3 w-3 text-sky-700" aria-hidden />
-                  New set
-                </p>
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0">
+                  <p className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-sky-950">
+                    <Plus className="h-3 w-3 text-sky-700" aria-hidden />
+                    New set
+                  </p>
+                  <LastSessionSetNote
+                    line={lastSessionComparisonLine(previousWorkingSets, upcomingWorkingOrdinal, {
+                      assistance,
+                      labeled: true,
+                    })}
+                  />
+                </div>
                 {showWarmupToggle ? (
                   <label className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs text-zinc-700">
                     <input
@@ -503,13 +568,14 @@ export function SessionExerciseSets({
 
       {!isPlannedSession ? (
         <div className="mt-3 hidden overflow-x-auto rounded-md border border-zinc-200 bg-white md:block">
-          <table className="w-full min-w-[640px] text-left text-sm">
+          <table className="w-full min-w-[760px] text-left text-sm">
             <thead>
               <tr className="border-b bg-zinc-50">
                 <th className="px-2 py-2">Type</th>
                 <th className="px-2 py-2">Set</th>
                 <th className="px-2 py-2">{loadFieldLabel}</th>
                 <th className="px-2 py-2">Reps</th>
+                <th className="px-2 py-2">Last session</th>
                 {canManageSets ? <th className="px-2 py-2 text-right">Actions</th> : null}
               </tr>
             </thead>
@@ -557,6 +623,9 @@ export function SessionExerciseSets({
                         aria-label="Reps"
                         className="w-20 rounded-md border bg-white px-2 py-1"
                       />
+                    </td>
+                    <td className="px-2 py-2 text-xs tabular-nums text-zinc-600">
+                      {comparisonFor(set, editDraft.isWarmup, false)}
                     </td>
                     {canManageSets ? (
                       <td className="px-2 py-2">
@@ -607,6 +676,9 @@ export function SessionExerciseSets({
                       )}
                     </td>
                     <td className="px-2 py-2 tabular-nums">{set.reps}</td>
+                    <td className="px-2 py-2 text-xs tabular-nums text-zinc-600">
+                      {comparisonFor(set, set.is_warmup, false)}
+                    </td>
                     {canManageSets ? (
                       <td className="px-2 py-2">
                         <div className="flex justify-end gap-2">
@@ -636,7 +708,7 @@ export function SessionExerciseSets({
               )}
               {canManageSets && hideFullViewAddSetRow ? (
                 <tr className="border-b bg-sky-50/50">
-                  <td colSpan={5} className="px-2 py-2">
+                  <td colSpan={setColumnCount} className="px-2 py-2">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <span className="inline-flex items-center gap-1.5 text-sm font-medium text-sky-950">
                         <CheckCircle2 className="h-4 w-4 shrink-0 text-sky-700" aria-hidden />
@@ -699,6 +771,12 @@ export function SessionExerciseSets({
                       className="w-20 rounded-md border bg-white px-2 py-1"
                       placeholder="Reps"
                     />
+                  </td>
+                  <td className="px-2 py-2 text-xs tabular-nums text-zinc-600">
+                    {lastSessionComparisonLine(previousWorkingSets, upcomingWorkingOrdinal, {
+                      assistance,
+                      labeled: false,
+                    })}
                   </td>
                   <td className="px-2 py-2">
                     <div className="flex items-center justify-end gap-2">
