@@ -47,7 +47,64 @@ describe("auth-route-access", () => {
     assert.equal(sessionGateDecision({ pathname: "/glossary", hasUser: true }), "allow");
     assert.equal(sessionGateRedirectPath("redirect_login"), "/login");
     assert.equal(sessionGateRedirectPath("redirect_home"), "/app");
+    assert.equal(sessionGateRedirectPath("redirect_mfa"), "/login?mfa=1");
     assert.equal(sessionGateRedirectPath("allow"), null);
+  });
+
+  it("sends an authenticator challenge back to login and does not require enrollment", () => {
+    assert.equal(
+      sessionGateDecision({
+        pathname: "/app",
+        hasUser: true,
+        needsAuthenticatorChallenge: true,
+      }),
+      "redirect_mfa",
+    );
+    assert.equal(
+      sessionGateDecision({
+        pathname: "/app/account",
+        hasUser: true,
+        needsAuthenticatorChallenge: true,
+      }),
+      "redirect_mfa",
+    );
+    assert.equal(
+      sessionGateDecision({
+        pathname: "/",
+        hasUser: true,
+        needsAuthenticatorChallenge: true,
+      }),
+      "redirect_mfa",
+    );
+    assert.equal(
+      sessionGateDecision({
+        pathname: "/login",
+        hasUser: true,
+        needsAuthenticatorChallenge: true,
+      }),
+      "allow",
+    );
+    assert.equal(
+      sessionGateDecision({
+        pathname: "/login",
+        hasUser: true,
+        search: "?recovery=1",
+        needsAuthenticatorChallenge: true,
+      }),
+      "allow",
+    );
+    assert.equal(
+      sessionGateDecision({
+        pathname: "/glossary",
+        hasUser: true,
+        needsAuthenticatorChallenge: true,
+      }),
+      "allow",
+    );
+    assert.equal(
+      sessionGateDecision({ pathname: "/app", hasUser: true, needsAuthenticatorChallenge: false }),
+      "allow",
+    );
   });
 
   it("keeps signed-in users on the password-recovery login callback", () => {

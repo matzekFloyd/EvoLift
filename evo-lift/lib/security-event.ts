@@ -14,13 +14,17 @@ export type SecurityEventType =
   | "password_changed"
   | "email_change_requested"
   | "password_verify_failed"
-  | "account_deleted";
+  | "account_deleted"
+  | "mfa_challenge_failed"
+  | "mfa_enrolled"
+  | "mfa_disabled";
 
 export type ApiAuthFailureReason =
   | "missing_bearer"
   | "invalid_personal_token"
   | "invalid_bearer_format"
-  | "invalid_session_token";
+  | "invalid_session_token"
+  | "mfa_required";
 
 export type SecurityEvent = {
   type: SecurityEventType;
@@ -42,7 +46,7 @@ export type SecurityLogRecord = SecurityEvent & {
 };
 
 const SECRET_KEY_RE =
-  /^(password|currentPassword|current_password|newPassword|new_password|token|accessToken|access_token|authorization|bearer|secret)$/i;
+  /^(password|currentPassword|current_password|newPassword|new_password|token|accessToken|access_token|authorization|bearer|secret|code|otp|totp|factorId|factor_id)$/i;
 
 /** Strip any accidental secret-looking keys before stringify. */
 export function sanitizeSecurityEventFields(
@@ -89,6 +93,7 @@ export async function emailFingerprint(email: string): Promise<string> {
 export function classifyApiAuthFailure(errorMessage: string): ApiAuthFailureReason {
   if (/missing bearer/i.test(errorMessage)) return "missing_bearer";
   if (/invalid or revoked personal/i.test(errorMessage)) return "invalid_personal_token";
+  if (/authenticator code/i.test(errorMessage)) return "mfa_required";
   if (/invalid or expired session/i.test(errorMessage)) return "invalid_session_token";
   if (/invalid bearer/i.test(errorMessage)) return "invalid_bearer_format";
   return "invalid_bearer_format";

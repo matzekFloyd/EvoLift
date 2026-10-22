@@ -2,6 +2,11 @@ import type { NextRequest } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import {
+  authenticatorAssuranceLevelFromJwt,
+  MFA_SESSION_REQUIRED,
+  needsAuthenticatorChallenge,
+} from "@/lib/mfa-assurance";
+import {
   createPublicServerClient,
   createServiceRoleClient,
 } from "@/lib/supabase/server";
@@ -85,6 +90,18 @@ export async function authenticateBearer(
     return {
       status: 401,
       error: "Invalid or expired session access token.",
+    };
+  }
+
+  if (
+    needsAuthenticatorChallenge({
+      currentLevel: authenticatorAssuranceLevelFromJwt(credential),
+      factors: user.factors,
+    })
+  ) {
+    return {
+      status: 401,
+      error: MFA_SESSION_REQUIRED,
     };
   }
 

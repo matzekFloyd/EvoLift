@@ -27,6 +27,8 @@ import {
   normalizeLoginEmail,
   type LoginPanelMode,
 } from "@/app/login/login-form";
+import { LoginMfaForm } from "@/app/login/login-mfa-form";
+import { loginNeedsAuthenticatorChallenge } from "@/app/login/login-mfa";
 import { SocialSignInButtons } from "@/app/login/social-sign-in-buttons";
 import {
   friendlyOAuthError,
@@ -37,6 +39,11 @@ import {
   type SocialSignInProvider,
 } from "@/app/login/social-sign-in";
 import { APP_HOME_PATH } from "@/lib/app-paths";
+import {
+  authenticatorCodeError,
+  normalizeAuthenticatorCode,
+  verifiedTotpFactorId,
+} from "@/lib/mfa-assurance";
 import { PASSWORD_CONFIRM_HINT, PASSWORD_STRENGTH_HINT } from "@/lib/password-policy";
 import { reportSecurityEvent } from "@/lib/report-security-event";
 import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
@@ -60,8 +67,11 @@ export default function LoginPage() {
   const [oauthNotice, setOauthNotice] = useState<string | null>(null);
   const [recoveryReady, setRecoveryReady] = useState(false);
   const [recoveryLinkError, setRecoveryLinkError] = useState<string | null>(null);
+  const [mfaChallenge, setMfaChallenge] = useState(false);
+  const [mfaCode, setMfaCode] = useState("");
   const recoveryActiveRef = useRef(false);
   const recoveryReadyRef = useRef(false);
+  const mfaChallengeRef = useRef(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -84,6 +94,15 @@ export default function LoginPage() {
       setMode("reset");
     }
 
+    async function sessionNeedsAuthenticator(): Promise<boolean> {
+      const { data: sessionData } = await supabaseBrowserClient.auth.getSession();
+      const { data: factors, error } = await supabaseBrowserClient.auth.mfa.listFactors();
+      return loginNeedsAuthenticatorChallenge({
+        accessToken: sessionData.session?.access_token,
+        factors: error || !factors ? null : factors.all,
+      });
+    }
+
     async function loadSession() {
       const session = await getBrowserAuthSession();
 
@@ -99,7 +118,19 @@ export default function LoginPage() {
       }
 
       if (session) {
-        router.replace(APP_HOME_PATH);
+        const needsMfa = await sessionNeedsAuthenticator();
+        if (!isMounted || recoveryActiveRef.current) {
+          return;
+        }
+        if (needsMfa) {
+          mfaChallengeRef.current = true;
+          setMfaChallenge(true);
+          setMode("login");
+          return;
+        }
+        if (!mfaChallengeRef.current) {
+          router.replace(APP_HOME_PATH);
+        }
       }
     }
 
@@ -145,7 +176,26 @@ export default function LoginPage() {
       }
 
       if (session && !recoveryActiveRef.current) {
-        router.replace(APP_HOME_PATH);
+        void (async () => {
+          const { data: sessionData } = await supabaseBrowserClient.auth.getSession();
+          const { data: factors, error } = await supabaseBrowserClient.auth.mfa.listFactors();
+          if (!isMounted || recoveryActiveRef.current) {
+            return;
+          }
+          const needsMfa = loginNeedsAuthenticatorChallenge({
+            accessToken: sessionData.session?.access_token,
+            factors: error || !factors ? null : factors.all,
+          });
+          if (needsMfa) {
+            mfaChallengeRef.current = true;
+            setMfaChallenge(true);
+            setMode("login");
+            return;
+          }
+          if (!mfaChallengeRef.current) {
+            router.replace(APP_HOME_PATH);
+          }
+        })();
       }
     });
 
@@ -206,8 +256,79 @@ export default function LoginPage() {
       return;
     }
 
+    const { data: factors, error: factorError } = await supabaseBrowserClient.auth.mfa.listFactors();
+    const needsMfa = loginNeedsAuthenticatorChallenge({
+      accessToken: (await supabaseBrowserClient.auth.getSession()).data.session?.access_token,
+      factors: factorError || !factors ? null : factors.all,
+    });
+    if (needsMfa) {
+      mfaChallengeRef.current = true;
+      setMfaChallenge(true);
+      setMfaCode("");
+      setMessage(null);
+      setIsLoading(false);
+      return;
+    }
+
     router.replace(APP_HOME_PATH);
     setIsLoading(false);
+  }
+
+  async function handleMfa(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const codeError = authenticatorCodeError(mfaCode);
+    if (codeError) {
+      setMessage(codeError);
+      return;
+    }
+
+    setIsLoading(true);
+    setMessage(null);
+    const listed = await supabaseBrowserClient.auth.mfa.listFactors();
+    const factorId = verifiedTotpFactorId(listed.data?.all);
+    if (listed.error || !factorId) {
+      setMessage(friendlyAuthError(listed.error?.message ?? "missing factor", "mfa"));
+      setIsLoading(false);
+      return;
+    }
+
+    const challenge = await supabaseBrowserClient.auth.mfa.challenge({ factorId });
+    if (challenge.error || !challenge.data) {
+      setMessage(friendlyAuthError(challenge.error?.message ?? "challenge failed", "mfa"));
+      setIsLoading(false);
+      return;
+    }
+
+    const verified = await supabaseBrowserClient.auth.mfa.verify({
+      factorId,
+      challengeId: challenge.data.id,
+      code: normalizeAuthenticatorCode(mfaCode),
+    });
+    if (verified.error) {
+      const { data: userData } = await supabaseBrowserClient.auth.getUser();
+      void reportSecurityEvent({
+        type: "mfa_challenge_failed",
+        email: normalizeLoginEmail(email || userData.user?.email || ""),
+      });
+      setMessage(friendlyAuthError(verified.error.message, "mfa"));
+      setIsLoading(false);
+      return;
+    }
+
+    mfaChallengeRef.current = false;
+    setMfaChallenge(false);
+    router.replace(APP_HOME_PATH);
+    setIsLoading(false);
+  }
+
+  async function useDifferentAccount() {
+    mfaChallengeRef.current = false;
+    setMfaChallenge(false);
+    setMfaCode("");
+    setMessage(null);
+    setPassword("");
+    await supabaseBrowserClient.auth.signOut({ scope: "local" });
+    window.history.replaceState({}, "", "/login");
   }
 
   async function handleRegister(event: FormEvent<HTMLFormElement>) {
@@ -405,10 +526,20 @@ export default function LoginPage() {
                 className="mb-4"
               />
             ) : null}
-            {oauthNotice && !message && mode !== "reset" ? (
+            {oauthNotice && !message && mode !== "reset" && !mfaChallenge ? (
               <StatusNotice tone="error" message={oauthNotice} className="mb-4" />
             ) : null}
-            {showAuthTabs ? (
+            {mfaChallenge ? (
+              <LoginMfaForm
+                code={mfaCode}
+                onCodeChange={setMfaCode}
+                message={message}
+                isLoading={isLoading}
+                onSubmit={(event) => void handleMfa(event)}
+                onUseDifferentAccount={() => void useDifferentAccount()}
+              />
+            ) : null}
+            {showAuthTabs && !mfaChallenge ? (
               <div className="mb-5">
                 <SegmentedTabs
                   value={mode as "login" | "register"}
@@ -426,7 +557,8 @@ export default function LoginPage() {
                   ]}
                 />
               </div>
-            ) : (
+            ) : null}
+            {!showAuthTabs && !mfaChallenge ? (
               <div className="mb-5">
                 <SectionHeading>
                   {mode === "forgot" ? "Forgot password" : "Set a new password"}
@@ -437,8 +569,9 @@ export default function LoginPage() {
                     : "Choose a new password for your account."}
                 </p>
               </div>
-            )}
+            ) : null}
 
+            {mfaChallenge ? null : (
             <div
               {...(showAuthTabs
                 ? {
@@ -596,6 +729,7 @@ export default function LoginPage() {
                 </>
               ) : null}
             </div>
+            )}
           </section>
 
           {successEmail && successKind ? (

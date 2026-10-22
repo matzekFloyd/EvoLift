@@ -4,7 +4,7 @@
  */
 export function friendlyAuthError(
   rawMessage: string,
-  context: "login" | "register" | "account" | "forgot" | "reset" = "login",
+  context: "login" | "register" | "account" | "forgot" | "reset" | "mfa" | "mfa-setup" | "mfa-disable" = "login",
 ): string {
   const messageLower = rawMessage.toLowerCase();
 
@@ -17,6 +17,16 @@ export function friendlyAuthError(
   }
   if (messageLower.includes("invalid login credentials")) {
     return "Invalid email or password.";
+  }
+  if (
+    messageLower.includes("invalid totp") ||
+    messageLower.includes("invalid otp") ||
+    messageLower.includes("invalid mfa") ||
+    messageLower.includes("mfa_verification_failed") ||
+    messageLower.includes("otp_expired") ||
+    (messageLower.includes("code") && messageLower.includes("invalid"))
+  ) {
+    return "That code is not valid. Check the authenticator app and try again.";
   }
   if (
     messageLower.includes("email not confirmed") ||
@@ -66,6 +76,15 @@ export function friendlyAuthError(
   }
   if (context === "account") {
     return "Could not update account settings. Please try again.";
+  }
+  if (context === "mfa") {
+    return "Could not verify the authenticator code. Please try again.";
+  }
+  if (context === "mfa-setup") {
+    return "Could not set up the authenticator app. Please try again.";
+  }
+  if (context === "mfa-disable") {
+    return "Could not turn off the authenticator app. Please try again.";
   }
   return "Could not sign in. Check your email and password, then try again.";
 }

@@ -70,6 +70,23 @@ describe("login client graph", () => {
     assert.doesNotMatch(`${login}\n${buttons}\n${social}`, /magic link|signInWithOtp/i);
   });
 
+  it("challenges an enrolled authenticator and does not enroll one during login", () => {
+    const login = readFileSync(join(appDir, "login", "page.tsx"), "utf8");
+    const form = readFileSync(join(appDir, "login", "login-mfa-form.tsx"), "utf8");
+    const account = readFileSync(join(appDir, "account", "account-mfa-section.tsx"), "utf8");
+
+    assert.match(login, /LoginMfaForm/);
+    assert.match(login, /mfa\.listFactors/);
+    assert.match(login, /mfa\.verify/);
+    assert.doesNotMatch(login, /mfa\.enroll/);
+    assert.match(form, /Authenticator code/);
+    assert.match(form, /Use a different account/);
+    assert.match(account, /Optional\./);
+    assert.match(account, /Set up authenticator/);
+    assert.match(account, /Turn off authenticator/);
+    assert.doesNotMatch(`${login}\n${form}\n${account}`, /required to (log in|sign up|continue)/i);
+  });
+
   it("wires keyboard and screen-reader affordances on log in and register", () => {
     const login = readFileSync(join(appDir, "login", "page.tsx"), "utf8");
     const statusNotice = readFileSync(join(appDir, "components", "status-notice.tsx"), "utf8");

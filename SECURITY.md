@@ -54,7 +54,7 @@ Short map of what is already enforced. Details in the sections below.
 | **Supabase RLS** | Session JWT path uses the user client; Postgres RLS scopes rows to the signed-in user |
 | **Personal tokens** | Stored as **SHA-256** hashes (`evo-lift/server/db/api-tokens.ts`); plaintext shown once. Token path uses the **service-role** client, so **RLS is bypassed** — every user-owned read/write must filter by `userId` / `requireOwned*` ([API authentication](#api-authentication-jwt-vs-personal-token)) |
 | **UI session gate** | `proxy.ts` + `getUser()` redirects anonymous browsers away from private pages ([App session gate](#app-session-gate-ui-shell)) |
-| **Auth UX** | Password strength aligned with local/hosted Auth; user-visible auth errors sanitized ([Authentication](#authentication-password-policy-redirects-mfa)) |
+| **Auth UX** | Password strength aligned with local/hosted Auth; optional authenticator app; user-visible auth errors sanitized ([Authentication](#authentication-password-policy-redirects-mfa)) |
 | **HTTP headers / CSP** | Set in `evo-lift/lib/security-headers.ts` ([HTTP security headers](#http-security-headers)) |
 | **Secrets** | Service role and Play keystore never ship to the client or git ([Secrets and environment](#secrets-and-environment)) |
 | **Supply chain** | Dependabot + CI `npm audit` for high/critical production advisories |
@@ -336,14 +336,30 @@ Account actions:
 | Set the first password (Account → Login) | No, until a password exists. The Account screen and `PATCH /api/account/password` both allow this when the user has no email identity. |
 | Change password, or `PATCH /api/account/email` | Yes. Current password. |
 | Delete the account | Yes, when the account has a password. Google/Apple-only accounts confirm on Account without a password. The API skips the check only when `has_password` is false. |
+| Turn the authenticator app on or off | On: verify a 6-digit code. Off: current password, from a signed-in session. Google/Apple-only accounts (no password yet) do not see this control. |
 
 OAuth failures stay in Supabase Auth logs. The app does not add a new security-event type for them. Password login failures still emit `login_failed`.
 
 Hosted setup (dashboard, not this repo): enable the Google and Apple providers, and allow `https://evolift.at/auth/callback` via the existing `https://evolift.at/**` redirect entry. Provider console redirect URI is the Supabase callback `https://<project-ref>.supabase.co/auth/v1/callback`, not the app URL. Steps are in `evo-lift/README.md`.
 
-### MFA decision
+### Authenticator app (optional MFA)
 
-**Deferred.** MFA (TOTP / WebAuthn) is not enabled (`[auth.mfa.totp]` enroll/verify remain false locally). Product intent is to add it later; track in GitHub issue [#297](https://github.com/matzekFloyd/EvoLift/issues/297). Do not treat missing MFA as an accidental omission—it is an explicit near-term out-of-scope choice.
+**Optional.** Email/password accounts can enroll an authenticator app (TOTP) under Account → Login. EvoLift does not require it for new or existing accounts, and does not block signup, login, or the app when none is enrolled. Login asks for a 6-digit code only after a verified authenticator exists.
+
+Local Auth enables that factor in `supabase/config.toml` (`[auth.mfa.totp]` `enroll_enabled` and `verify_enabled`). Phone and WebAuthn stay off. Restart local Supabase after editing `config.toml` (`supabase stop`, then `supabase start`).
+
+**Hosted Supabase (ops):** Authentication → Multi-Factor → App Authenticator (TOTP). Turn enroll and verify on. Leave phone and WebAuthn off. TOTP on hosted Auth needs the Supabase Pro plan. This repo cannot flip that dashboard switch by itself.
+
+After a password (or Google/Apple) sign-in, a session that still has a verified authenticator and is below AAL2 is sent to `/login?mfa=1` and cannot open `/app` until the code is verified. The same session JWT is rejected on `/api/*` with “Sign in with your authenticator code, then try again.” A personal API token (`evo_…`) is a separate secret and is not challenged with a code. Password reset does not remove the authenticator. The recovery screen (`/login?recovery=1`) stays open so a new password can be set; the app still asks for the code afterward.
+
+User-visible authenticator failures go through `friendlyAuthError` (`mfa`, `mfa-setup`, `mfa-disable`). Raw Auth strings, setup keys, and codes are not shown. Failed codes log `mfa_challenge_failed`. Turning the authenticator on or off logs `mfa_enrolled` or `mfa_disabled`. Logs never include the code or the setup key.
+
+### Lost authenticator
+
+There are no backup codes.
+
+- Still signed in (the code was verified for this session): Account → Login → Turn off authenticator. The current password is required.
+- Cannot produce a code: resetting the password does not turn the authenticator off. The person who runs EvoLift removes the TOTP factor in the Supabase dashboard (Authentication → Users → the user → Factors) after confirming the account is theirs. Until that factor is removed, login cannot finish.
 
 ## App session gate (UI shell)
 
@@ -352,7 +368,7 @@ Next.js **`proxy.ts`** (Next 16; formerly middleware) runs `lib/supabase/update-
 1. Refreshes the Supabase auth cookie via `@supabase/ssr`.
 2. Calls **`auth.getUser()`** (not cookie-only `getSession()`) to verify the user.
 3. Redirects anonymous browsers to `/login` for protected app routes.
-4. Redirects signed-in users away from `/login` to `/`, except `/login?recovery=1` (password-recovery callback stays open so the lifter can set a new password).
+4. Redirects signed-in users away from `/login` to `/app`, except `/login?recovery=1` (password-recovery callback stays open so the lifter can set a new password) and a session that still needs an authenticator code (`/login?mfa=1`).
 
 **Public without a session cookie:** `/login`, `/privacy`, `/terms`, `/glossary`, and all `/api/*` paths.
 
@@ -375,10 +391,12 @@ Server routes and a small client reporter emit **one JSON object per line** on s
 | `email_change_requested` | Email change requested (confirmation still required) |
 | `password_verify_failed` | Current-password check failed for a sensitive action |
 | `account_deleted` | Account deletion succeeded |
+| `mfa_challenge_failed` | Authenticator code was rejected at login |
+| `mfa_enrolled` / `mfa_disabled` | Authenticator app turned on or off |
 
 ### What is never logged
 
-Passwords, full session JWTs, personal API token secrets (`evo_…`), or request bodies that carry credentials.
+Passwords, authenticator codes, authenticator setup keys, full session JWTs, personal API token secrets (`evo_…`), or request bodies that carry credentials.
 
 Login failures store a short **email fingerprint** (truncated SHA-256 of the normalized address) and the **email domain**, not the raw address.
 
@@ -407,13 +425,13 @@ OWASP Top 10:2025 / STRIDE tracking: [#254](https://github.com/matzekFloyd/EvoLi
 | API error disclosure | [#258](https://github.com/matzekFloyd/EvoLift/issues/258) | Done |
 | Security event logging | [#259](https://github.com/matzekFloyd/EvoLift/issues/259) | Done |
 | Dependabot / npm audit | [#260](https://github.com/matzekFloyd/EvoLift/issues/260) | Done |
-| Auth password policy / MFA decision | [#261](https://github.com/matzekFloyd/EvoLift/issues/261) | Done (MFA deferred → [#297](https://github.com/matzekFloyd/EvoLift/issues/297)) |
+| Auth password policy / MFA decision | [#261](https://github.com/matzekFloyd/EvoLift/issues/261) | Done (optional authenticator shipped in [#297](https://github.com/matzekFloyd/EvoLift/issues/297)) |
 | This guide (`SECURITY.md`) | [#262](https://github.com/matzekFloyd/EvoLift/issues/262) | This file |
 | Rate limiting / DoS | [#263](https://github.com/matzekFloyd/EvoLift/issues/263) | Done (app budgets + Auth docs; not global CDN) |
 | CI/CD trust boundaries | [#264](https://github.com/matzekFloyd/EvoLift/issues/264) | Done (SHA-pinned Actions, least-privilege tokens, `master` ruleset documented) |
 | MCP bridge hardening | [#265](https://github.com/matzekFloyd/EvoLift/issues/265) | Done (threat notes, path allowlist + tests, rate-limit docs) |
 | Living STRIDE model | [#266](https://github.com/matzekFloyd/EvoLift/issues/266) | Done ([`docs/threat-model.md`](docs/threat-model.md)) |
-| MFA (product) | [#297](https://github.com/matzekFloyd/EvoLift/issues/297) | Deferred |
+| MFA (product) | [#297](https://github.com/matzekFloyd/EvoLift/issues/297) | Done (optional TOTP; not required) |
 
 ## References
 

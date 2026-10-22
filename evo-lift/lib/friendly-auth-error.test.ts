@@ -48,5 +48,25 @@ describe("friendlyAuthError", () => {
       friendlyAuthError("AuthApiError: something internal", "reset"),
       "Could not update your password. Please try again.",
     );
+    assert.equal(
+      friendlyAuthError("Invalid TOTP code entered for factor 8f3a", "mfa"),
+      "That code is not valid. Check the authenticator app and try again.",
+    );
+    assert.equal(
+      friendlyAuthError("factor 8f3a exploded in gotrue", "mfa"),
+      "Could not verify the authenticator code. Please try again.",
+    );
+    assert.equal(
+      friendlyAuthError("database error saving factor", "mfa-setup"),
+      "Could not set up the authenticator app. Please try again.",
+    );
+    assert.equal(
+      friendlyAuthError("database error deleting factor", "mfa-disable"),
+      "Could not turn off the authenticator app. Please try again.",
+    );
+    assert.doesNotMatch(
+      friendlyAuthError("Invalid TOTP code entered for factor 8f3a", "mfa"),
+      /8f3a|totp|gotrue/i,
+    );
   });
 });

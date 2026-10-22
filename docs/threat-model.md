@@ -73,7 +73,7 @@ Controls point at `SECURITY.md` sections or child issues. “Open/deferred” me
 | Element / interaction | S | T | R | I | D | E | Threat (short) | Control / status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Browser ↔ Next (HTML) | ● | ● | · | ● | ● | ● | Session theft, XSS, clickjacking, unauthenticated UI | Cookie session + `getUser()` gate [#257](https://github.com/matzekFloyd/EvoLift/issues/257); CSP/headers [#255](https://github.com/matzekFloyd/EvoLift/issues/255); rate limits [#263](https://github.com/matzekFloyd/EvoLift/issues/263) |
-| Browser ↔ Supabase Auth | ● | · | ● | ● | ● | · | Credential stuffing, weak passwords, verbose auth errors, OAuth account linking | Password policy [#261](https://github.com/matzekFloyd/EvoLift/issues/261); Auth rate limits; sanitized errors; Google and Apple with verified-email linking [#351](https://github.com/matzekFloyd/EvoLift/issues/351); magic link not offered; MFA **deferred** [#297](https://github.com/matzekFloyd/EvoLift/issues/297) |
+| Browser ↔ Supabase Auth | ● | · | ● | ● | ● | · | Credential stuffing, weak passwords, verbose auth errors, OAuth account linking, stolen password when an authenticator is enrolled | Password policy [#261](https://github.com/matzekFloyd/EvoLift/issues/261); Auth rate limits; sanitized errors; Google and Apple with verified-email linking [#351](https://github.com/matzekFloyd/EvoLift/issues/351); magic link not offered; optional TOTP authenticator [#297](https://github.com/matzekFloyd/EvoLift/issues/297) (not required; no backup codes; personal API tokens are not challenged) |
 | Next ↔ DB (JWT + RLS) | ● | ● | · | ● | · | ● | Cross-user reads if RLS misconfigured | RLS on owner policies; migrations reviewed with schema changes |
 | Next ↔ DB (personal token + service role) | ● | ● | · | ● | · | ● | **IDOR** if a handler omits `userId` filter | `requireOwned*` / ownership helpers [#256](https://github.com/matzekFloyd/EvoLift/issues/256); tokens hashed at rest |
 | REST `/api/*` | ● | ● | ● | ● | ● | ● | Abuse, error leakage, unverified callers | Bearer auth; error hygiene [#258](https://github.com/matzekFloyd/EvoLift/issues/258); security events [#259](https://github.com/matzekFloyd/EvoLift/issues/259); rate limits [#263](https://github.com/matzekFloyd/EvoLift/issues/263) |
@@ -94,7 +94,7 @@ OWASP Top 10:2025 / STRIDE program umbrella: [#254](https://github.com/matzekFlo
 Re-open this doc (and update the DFD / table) when **any** of the following lands:
 
 - [x] **New auth path (OAuth)** — Google and Apple ([#351](https://github.com/matzekFloyd/EvoLift/issues/351)), reviewed with that change. Magic link is not offered. The session is still the Supabase cookie.
-- [ ] **New auth path (MFA)** — MFA enrollment ([#297](https://github.com/matzekFloyd/EvoLift/issues/297)), or a second session store
+- [x] **New auth path (MFA)** — Optional authenticator-app TOTP ([#297](https://github.com/matzekFloyd/EvoLift/issues/297)), reviewed with that change. The session is still the Supabase cookie. AAL2 is required only after a factor is verified. Lost-device recovery is a dashboard unenroll, not a backup code. Personal API tokens stay outside the code challenge.
 - [ ] **New public API** — unauthenticated or broadly authenticated route under `/api/*`, or a new OpenAPI surface with different auth
 - [ ] **New CI secret or deploy credential** — anything beyond `github.token`, or moving deploy into Actions (OIDC, cloud keys)
 - [ ] **New MCP tool** — especially tools that take a user id, hit non-`/api` URLs, or talk to Supabase directly

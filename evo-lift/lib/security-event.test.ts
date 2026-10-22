@@ -29,6 +29,8 @@ describe("security-event", () => {
       password: "secret",
       currentPassword: "x",
       token: "evo_abc",
+      code: "123456",
+      otp: "654321",
       authorization: "Bearer eyJhbGciOiJIUzI1NiJ9.payload.sig",
       reason: "missing_bearer",
       leak: "evo_should_drop",
@@ -37,6 +39,8 @@ describe("security-event", () => {
     assert.equal(cleaned.password, undefined);
     assert.equal(cleaned.currentPassword, undefined);
     assert.equal(cleaned.token, undefined);
+    assert.equal(cleaned.code, undefined);
+    assert.equal(cleaned.otp, undefined);
     assert.equal(cleaned.authorization, undefined);
     assert.equal(cleaned.leak, undefined);
     assert.equal(cleaned.jwt, undefined);
@@ -56,6 +60,10 @@ describe("security-event", () => {
     assert.equal(
       classifyApiAuthFailure("Invalid or expired session access token."),
       "invalid_session_token",
+    );
+    assert.equal(
+      classifyApiAuthFailure("Sign in with your authenticator code, then try again."),
+      "mfa_required",
     );
     assert.equal(
       classifyApiAuthFailure("Invalid bearer token. Use a personal API token (evo_…)…"),
