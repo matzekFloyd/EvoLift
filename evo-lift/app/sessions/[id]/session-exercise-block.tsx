@@ -20,6 +20,7 @@ import {
   skippedExerciseLabel,
 } from "./session-exercise-status";
 import { SessionExerciseHistoryDialog } from "./session-exercise-history-dialog";
+import { usePreviousSessionWorkingSets } from "./use-last-session-set-comparison";
 import { SetTargetsFields } from "./set-targets-fields";
 import { SessionExerciseSets } from "./session-set-form";
 import type { SessionSetDraft } from "./session-set-draft";
@@ -132,6 +133,7 @@ export function SessionExerciseBlock({
   onExpandFullAddSetRow,
 }: SessionExerciseBlockProps) {
   const [historyOpen, setHistoryOpen] = useState(false);
+  const previousWorkingSets = usePreviousSessionWorkingSets(sessionExercise.exercise_id, sessionId);
   const sets = setsForSessionExercise(workoutSets, sessionExercise.id);
   const addDraft = resolvedAddDraft([sessionExercise], workoutSets, addDrafts, sessionExercise.id);
   const lastSet = lastLoggedSet(workoutSets, sessionExercise.id);
@@ -375,6 +377,7 @@ export function SessionExerciseBlock({
         onAddExercise={onAddExercise}
         onShowExtraSets={onShowExtraSets}
         onExpandFullAddSetRow={onExpandFullAddSetRow}
+        previousWorkingSets={previousWorkingSets}
       />
         </div>
         {sessionExercise.not_done ? (
