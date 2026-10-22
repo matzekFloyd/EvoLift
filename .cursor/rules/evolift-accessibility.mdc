@@ -1,0 +1,23 @@
+---
+description: Accessibility bar for new EvoLift screens and controls
+alwaysApply: true
+---
+
+# Accessibility
+
+New UI follows **Accessibility baseline** in `evo-lift/BRAND_GUIDELINES.md`. Check it before finishing a screen, control, or dialog.
+
+- Every control has a visible name (`Save`, `Delete`, `Set targets`). An accessible name is extra only when the control has no visible text.
+- Form labels stay visible and tied to the input.
+- Status uses text or an icon as well as color. Use `StatusNotice` for error, warning, and success.
+- Keyboard reaches every control. Focus is visible (`focus-visible`). Escape closes dialogs and popovers. `AppDialog` keeps focus inside until it closes, then returns focus to the control that opened it.
+- Decorative icons are `aria-hidden`. Do not add an ARIA role to a native `button`, link, or `label`.
+- Preserve contrast for text and icons. Do not add a conformance badge.
+
+```tsx
+<button type="button" aria-label="Delete set">
+  <Trash2 aria-hidden />
+</button>
+```
+
+A button that already shows Delete gets neither `aria-label` nor `role`.

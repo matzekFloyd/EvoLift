@@ -194,10 +194,14 @@ Avoid stacking the same fill on itself (e.g. white row on white card, or `zinc-5
 
 ## Accessibility baseline
 
-- Keep button labels explicit (`Save`, `Delete`, `Set targets`, etc.).
-- Preserve color contrast for text/icon combinations.
-- Do not rely on color alone to communicate state; include text and/or icons.
-- Keep form labels visible and adjacent to inputs.
+Hold every new screen to this bar. A keyboard and a screen reader get the same names the screen already shows.
+
+- Every control has a visible name (`Save`, `Delete`, `Set targets`). Add an accessible name only when the control has no visible text.
+- Form labels stay visible and tied to the input.
+- Status uses text or an icon as well as color. Reuse the shared status notice for error, warning, and success.
+- Keyboard reaches every control. Focus is visible. Escape closes dialogs and popovers. A dialog keeps focus inside until it closes, then returns focus to the control that opened it.
+- Decorative icons are hidden from assistive tech (`aria-hidden`). Do not add an ARIA role to a native `button`, link, or `label`.
+- Preserve color contrast for text and icons. Fix contrast where text or an icon fails this baseline. Do not add a conformance badge.
 
 ## Content style checklist for new UI
 
@@ -211,3 +215,4 @@ Avoid stacking the same fill on itself (e.g. white row on white card, or `zinc-5
 - Do chart series use **Charts and data visualization** roles (no one-off hues)?
 - Is compact/mobile behavior still usable with one hand?
 - Is success/error feedback shown near the triggering control?
+- Can a keyboard and a screen reader use every new control by its visible name, with visible focus, and with status that is not color alone?
