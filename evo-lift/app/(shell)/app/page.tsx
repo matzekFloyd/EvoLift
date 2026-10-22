@@ -17,6 +17,7 @@ import { SessionsTable, type SessionsTableRow } from "@/app/components/sessions-
 import { ActivityDaySessionDialog } from "@/app/components/activity-day-session-dialog";
 import { WorkoutActivityChart } from "@/app/components/chart-dynamic";
 import { activityDayOpen, activityDaySessionIds } from "@/app/home-activity-day";
+import { sessionDetailExercisePath } from "@/app/sessions/[id]/session-detail-query";
 import { appPath } from "@/lib/app-paths";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { loadGoalReachedSessionDates } from "@/lib/goal-reached-dates";
@@ -343,13 +344,13 @@ export default function Home() {
     [exerciseBadgesBySessionId, filteredHistorySessions],
   );
 
-  function openSession(sessionId: string) {
+  function openSession(sessionId: string, exerciseId?: string | null) {
     if (openingSessionId) {
       return;
     }
     setDayChoiceIds(null);
     setOpeningSessionId(sessionId);
-    router.push(appPath(`/sessions/${sessionId}`));
+    router.push(appPath(sessionDetailExercisePath(sessionId, exerciseId ?? null)));
   }
 
   function openActivityDay(date: string) {

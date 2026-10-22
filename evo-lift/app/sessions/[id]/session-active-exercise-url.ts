@@ -54,3 +54,26 @@ export function activeExerciseQueryString(input: {
   const qs = params.toString();
   return qs === input.searchString ? null : qs;
 }
+
+/**
+ * Index to apply before paint when `ex` names an exercise.
+ * Null when the current index already matches, or when the URL names no exercise.
+ */
+export function activeExerciseIndexForParam(input: {
+  exerciseIds: readonly string[];
+  exerciseParam: string | null;
+  activeExerciseIndex: number;
+}): number | null {
+  if (!input.exerciseParam || input.exerciseIds.length === 0) {
+    return null;
+  }
+  const next = resolveActiveExerciseFromUrl({
+    exerciseIds: [...input.exerciseIds],
+    exerciseParam: input.exerciseParam,
+    listChanged: true,
+  });
+  if (next.action !== "set" || next.index === input.activeExerciseIndex) {
+    return null;
+  }
+  return next.index;
+}

@@ -2,7 +2,7 @@
 
 import { ChevronRight, Play } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
 import { CollapsibleSection } from "@/app/components/collapsible-section";
@@ -20,6 +20,7 @@ import {
 } from "@/app/home-next-action-layout";
 import { homeExerciseBadgeTone } from "@/app/home-sessions";
 import { appPath } from "@/lib/app-paths";
+import { continueSessionExerciseId } from "@/lib/continue-session-exercise";
 import {
   scheduledSessionsBesidePlan,
   type ScheduledHomeSession,
@@ -38,7 +39,47 @@ import { getTodayYyyyMmDd } from "@/lib/session-date";
 import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { HOME_PLAN_LOADING_CLASSNAME } from "@/app/home-loading-layout";
+import { sessionDetailExercisePath } from "@/app/sessions/[id]/session-detail-query";
 import { instantiateUserPlanDay } from "@/server/actions/plans";
+
+/** First unfinished exercise for Continue session, or null to open the first exercise. */
+async function lookupContinueSessionExerciseId(sessionId: string): Promise<string | null> {
+  const { data: exercises, error } = await supabaseBrowserClient
+    .from("workout_session_exercises")
+    .select("id, position, target_sets, not_done")
+    .eq("session_id", sessionId)
+    .order("position", { ascending: true });
+  if (error || !exercises) {
+    return null;
+  }
+  if (exercises.length === 0) {
+    return null;
+  }
+
+  const { data: sets, error: setsError } = await supabaseBrowserClient
+    .from("workout_sets")
+    .select("session_exercise_id, is_warmup")
+    .in(
+      "session_exercise_id",
+      exercises.map((exercise) => exercise.id),
+    );
+  if (setsError || !sets) {
+    return null;
+  }
+
+  return continueSessionExerciseId(
+    exercises.map((exercise) => ({
+      id: exercise.id,
+      position: exercise.position,
+      targetSets: exercise.target_sets,
+      notDone: exercise.not_done,
+    })),
+    sets.map((set) => ({
+      sessionExerciseId: set.session_exercise_id,
+      isWarmup: set.is_warmup,
+    })),
+  );
+}
 
 type PlanDayView = {
   id: string;
@@ -67,7 +108,7 @@ type ActivePlanPanelProps = {
   /** True when Home shows a non-plan in-progress strip above this panel. */
   hasStandaloneInProgress?: boolean;
   openingSessionId?: string | null;
-  onOpenSession?: (sessionId: string) => void;
+  onOpenSession?: (sessionId: string, exerciseId?: string | null) => void;
   /** Open plan session ids so Home can keep them out of the standalone strip. */
   onPlanOpenSessionIdsChange?: (sessionIds: string[]) => void;
 };
@@ -80,6 +121,9 @@ export function ActivePlanPanel({
   onPlanOpenSessionIdsChange,
 }: ActivePlanPanelProps) {
   const router = useRouter();
+  const continueRequestRef = useRef(0);
+  const openingSessionIdRef = useRef(openingSessionId);
+  openingSessionIdRef.current = openingSessionId;
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [plan, setPlan] = useState<ActivePlanView | null>(null);
@@ -89,6 +133,13 @@ export function ActivePlanPanel({
   const [performedOn, setPerformedOn] = useState("");
   const [sessionNotes, setSessionNotes] = useState("");
   const [isStarting, setIsStarting] = useState(false);
+  const [resolvingContinueId, setResolvingContinueId] = useState<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      continueRequestRef.current += 1;
+    };
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
@@ -168,6 +219,9 @@ export function ActivePlanPanel({
   const openByDay = openSessionByPlanDay(sessions);
   const nextDay = plan?.days.find((day) => day.id === nextDayId) ?? null;
   const nextOpenSession = continuable ?? undefined;
+  const isOpeningContinue =
+    nextOpenSession != null &&
+    (openingSessionId === nextOpenSession.id || resolvingContinueId === nextOpenSession.id);
   const continuableDayName =
     plan?.days.find((day) => day.id === continuable?.planDayId)?.name ?? null;
   const besidePlan = isLoading
@@ -201,15 +255,30 @@ export function ActivePlanPanel({
     onPlanOpenSessionIdsChange([...ids]);
   }, [isLoading, onPlanOpenSessionIdsChange, sessions]);
 
-  function openExistingSession(sessionId: string) {
-    if (openingSessionId) {
+  async function openContinuableSession(sessionId: string) {
+    if (openingSessionId || resolvingContinueId) {
+      return;
+    }
+    const request = ++continueRequestRef.current;
+    setResolvingContinueId(sessionId);
+    let exerciseId: string | null = null;
+    try {
+      exerciseId = await lookupContinueSessionExerciseId(sessionId);
+    } catch {
+      exerciseId = null;
+    }
+    if (request !== continueRequestRef.current) {
+      return;
+    }
+    setResolvingContinueId(null);
+    if (openingSessionIdRef.current) {
       return;
     }
     if (onOpenSession) {
-      onOpenSession(sessionId);
+      onOpenSession(sessionId, exerciseId);
       return;
     }
-    router.push(appPath(`/sessions/${sessionId}`));
+    router.push(appPath(sessionDetailExercisePath(sessionId, exerciseId)));
   }
 
   function openStart(dayId: string) {
@@ -393,7 +462,7 @@ export function ActivePlanPanel({
               className="shrink-0"
               disabled={
                 nextOpenSession
-                  ? openingSessionId === nextOpenSession.id
+                  ? isOpeningContinue
                   : !nextDay || nextDay.exerciseCount === 0
               }
               title={
@@ -407,7 +476,7 @@ export function ActivePlanPanel({
               }
               onClick={() => {
                 if (nextOpenSession) {
-                  openExistingSession(nextOpenSession.id);
+                  void openContinuableSession(nextOpenSession.id);
                   return;
                 }
                 if (nextDay) {
@@ -431,7 +500,7 @@ export function ActivePlanPanel({
                 />
               )}
               {nextOpenSession
-                ? openingSessionId === nextOpenSession.id
+                ? isOpeningContinue
                   ? "Opening..."
                   : "Continue session"
                 : "Start session"}

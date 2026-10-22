@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { Dispatch, SetStateAction } from "react";
 import type { useRouter } from "next/navigation";
 import {
+  activeExerciseIndexForParam,
   activeExerciseQueryString,
   resolveActiveExerciseFromUrl,
 } from "./session-active-exercise-url";
@@ -35,6 +36,29 @@ export function useActiveExerciseUrl(input: {
   } = input;
   const activeExerciseIndexChangeSourceRef = useRef<"user" | "url">("user");
   const lastSessionExerciseIdsKeyRef = useRef<string>("");
+  const exerciseIds = sessionExercises.map((exercise) => exercise.id);
+  const exerciseParam = searchParams.get(SESSION_DETAIL_EXERCISE_QUERY);
+  const activeExerciseUrlKey = `${sessionId ?? ""}:${exerciseIds.join(",")}:${exerciseParam ?? ""}`;
+  const [appliedActiveExerciseUrlKey, setAppliedActiveExerciseUrlKey] = useState<string | null>(null);
+
+  // Apply `ex` before paint so Continue session does not flash the first exercise.
+  if (
+    !isChecking &&
+    sessionId &&
+    loadedSessionId === sessionId &&
+    appliedActiveExerciseUrlKey !== activeExerciseUrlKey
+  ) {
+    setAppliedActiveExerciseUrlKey(activeExerciseUrlKey);
+    const nextIndex = activeExerciseIndexForParam({
+      exerciseIds,
+      exerciseParam,
+      activeExerciseIndex,
+    });
+    if (nextIndex != null) {
+      activeExerciseIndexChangeSourceRef.current = "url";
+      setActiveExerciseIndex(nextIndex);
+    }
+  }
 
   useEffect(() => {
     lastSessionExerciseIdsKeyRef.current = "";

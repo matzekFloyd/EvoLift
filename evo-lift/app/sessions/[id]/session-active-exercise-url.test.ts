@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 import {
+  activeExerciseIndexForParam,
   activeExerciseQueryString,
   resolveActiveExerciseFromUrl,
 } from "./session-active-exercise-url";
@@ -75,6 +76,28 @@ describe("activeExerciseQueryString", () => {
     assert.equal(
       activeExerciseQueryString({ searchString: "tab=1&ex=b", activeExerciseIndex: 0, activeExerciseId: "a" }),
       "tab=1",
+    );
+  });
+});
+
+describe("activeExerciseIndexForParam", () => {
+  const exerciseIds = ["a", "b", "c"];
+
+  it("selects the exercise named in the URL before paint", () => {
+    assert.equal(
+      activeExerciseIndexForParam({ exerciseIds, exerciseParam: "c", activeExerciseIndex: 0 }),
+      2,
+    );
+  });
+
+  it("leaves the index alone when the URL already matches or names nothing", () => {
+    assert.equal(
+      activeExerciseIndexForParam({ exerciseIds, exerciseParam: "b", activeExerciseIndex: 1 }),
+      null,
+    );
+    assert.equal(
+      activeExerciseIndexForParam({ exerciseIds, exerciseParam: null, activeExerciseIndex: 0 }),
+      null,
     );
   });
 });

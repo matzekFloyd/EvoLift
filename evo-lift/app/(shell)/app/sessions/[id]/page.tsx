@@ -58,6 +58,7 @@ import { SessionTargetsSheet } from "@/app/sessions/[id]/session-targets-sheet";
 import type { SessionSetDraft as SetDraft } from "@/app/sessions/[id]/session-set-draft";
 import { useActiveExerciseReset } from "@/app/sessions/[id]/use-active-exercise-reset";
 import { useActiveExerciseUrl } from "@/app/sessions/[id]/use-active-exercise-url";
+import { useScrollActiveExerciseIntoView } from "@/app/sessions/[id]/use-scroll-active-exercise";
 import { useCompactLogFlow } from "@/app/sessions/[id]/use-compact-log-flow";
 import { useExerciseSuggestionSettings } from "@/app/sessions/[id]/use-exercise-suggestion-settings";
 import { useFullViewAddSetRows } from "@/app/sessions/[id]/use-full-view-add-set-rows";
@@ -255,6 +256,12 @@ export default function SessionDetailPage() {
     sessionExercises,
     activeExerciseIndex,
     setActiveExerciseIndex,
+  });
+  useScrollActiveExerciseIntoView({
+    isChecking,
+    isReadOnly,
+    activeExerciseIndex,
+    exerciseId: sessionExercises[activeExerciseIndex]?.id ?? null,
   });
   const { savingNotDoneId, toggleExerciseNotDone } = useToggleExerciseNotDone({
     setSessionExercises,

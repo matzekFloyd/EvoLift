@@ -170,7 +170,7 @@ export function SessionExerciseBlock({
         : panelInsetClass("p-5 text-sm");
 
   return (
-    <section id={`exercise-${sessionExercise.id}`} className={exercisePanelClass}>
+    <section id={`exercise-${sessionExercise.id}`} className={`${exercisePanelClass} scroll-mt-4`}>
       <div className="flex w-full items-center justify-between gap-3 text-left">
         <div className="flex min-w-0 items-center gap-2">
           {exerciseSlug ? (
