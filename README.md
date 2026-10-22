@@ -210,9 +210,9 @@ npm run lighthouse
 
 The Android app is a Capacitor shell. It opens the existing site. Register, log in, and logging a set stay on those pages. The signed-in session stays in the WebView, so closing the app and opening it again keeps the user logged in. Product versions follow [VERSIONING.md](VERSIONING.md). The site footer shows the same version.
 
-Back returns to the previous page opened in the app. On the home screen, Back leaves the app. While `/sessions/new` or a saved session is open, the shell holds the screen awake. Leaving that page, or sending the app to the background, lets the screen sleep on the system timeout again. The same pages in a browser still follow that timeout. A link whose host is not the configured site or its Supabase host opens in the system browser, and the app stays on the page that contained the link. The launcher name is EvoLift. The icon and splash use the EvoLift mark. The WebView is inset below the status bar and above the system gesture area, including a display cutout.
+Back returns to the previous page opened in the app. On `/app`, Back leaves the app. While `/app/sessions/new` or a saved session at `/app/sessions/[id]` is open, the shell holds the screen awake. `/app/sessions` and `/app/sessions/[id]/edit` do not. Leaving that page, or sending the app to the background, lets the screen sleep on the system timeout again. The same pages in a browser still follow that timeout. A link whose host is not the configured site or its Supabase host opens in the system browser, and the app stays on the page that contained the link. The launcher name is EvoLift. The icon and splash use the EvoLift mark. The WebView is inset below the status bar and above the system gesture area, including a display cutout.
 
-By default the shell loads `https://evolift.at`. It may also navigate to that site's Supabase host (`tiivtvejwxzgzgkmojuj.supabase.co`). A page on any other host does not load inside the shell. The phone opens that link in the system browser instead. The site in a browser is unchanged.
+By default the shell loads `https://evolift.at/app`. The site origin stays `https://evolift.at`. It may also navigate to that site's Supabase host (`tiivtvejwxzgzgkmojuj.supabase.co`). A page on any other host does not load inside the shell. The phone opens that link in the system browser instead. The site in a browser is unchanged.
 
 ### Install a debug build
 
@@ -250,7 +250,7 @@ To allow a different host, set `CAPACITOR_ALLOW_NAVIGATION` to a comma-separated
 
 HTTP cleartext is turned on only when the configured server URL is `http://`. Run `npm run android` again with the variable unset to install a debug build that opens production.
 
-`npm run android` rewrites `android/app/src/main/assets/capacitor.config.json`. That committed file must keep `https://evolift.at`. Sync again without a debug URL before committing.
+`npm run android` rewrites `android/app/src/main/assets/capacitor.config.json`. That committed file must keep `https://evolift.at/app`. Sync again without a debug URL before committing.
 
 ### Ship a signed bundle to Play internal testing
 
@@ -270,7 +270,7 @@ Bump the product version when this upload should replace an earlier one ([VERSIO
 npm run android:bundle
 ```
 
-That command ignores a debug server URL and writes `android/app/build/outputs/bundle/release/app-release.aab`. The bundle loads `https://evolift.at`. Ship that bundle only after `evolift.at` verifies on Vercel (see [Production domain](#production-domain)).
+That command ignores a debug server URL and writes `android/app/build/outputs/bundle/release/app-release.aab`. The bundle loads `https://evolift.at/app` on the `https://evolift.at` origin. Ship that bundle only after `evolift.at` verifies on Vercel (see [Production domain](#production-domain)).
 
 In Play Console, use the app with package name `app.evolift`. Create the app first if it is not there yet. Enroll in Play App Signing and let Google manage the app signing key. The keystore above is only the upload key. Upload the `.aab` under **Test and release → Testing → Internal testing**. Add tester emails and install from the opt-in link. A tester should be able to log in and log a set.
 

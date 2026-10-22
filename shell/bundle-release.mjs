@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { PRODUCTION_SITE_URL } from "./server-config.cjs";
+import { PRODUCTION_SHELL_URL } from "./server-config.cjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -68,6 +68,18 @@ export function readReleaseKeystoreProblem(androidDir, fileExists = existsSync, 
   return releaseKeystoreProblem(androidDir, readFile(propertiesPath, "utf8"), fileExists);
 }
 
+/**
+ * The release bundle must open /app on the production origin, with cleartext off.
+ * @returns {string | null} A message when the synced server URL is wrong, otherwise null.
+ */
+export function releaseBundleServerProblem(server) {
+  const url = server?.url;
+  if (url !== PRODUCTION_SHELL_URL || server?.cleartext === true) {
+    return `The release bundle must load ${PRODUCTION_SHELL_URL}. Sync wrote ${url ?? "no server URL"}.`;
+  }
+  return null;
+}
+
 function main() {
   const androidDir = path.join(repoRoot, "android");
   const problem = readReleaseKeystoreProblem(androidDir);
@@ -96,10 +108,9 @@ function main() {
 
   const configPath = path.join(androidDir, "app", "src", "main", "assets", "capacitor.config.json");
   const config = JSON.parse(readFileSync(configPath, "utf8"));
-  if (config.server?.url !== PRODUCTION_SITE_URL || config.server?.cleartext === true) {
-    console.error(
-      `The release bundle must load ${PRODUCTION_SITE_URL}. Sync wrote ${config.server?.url ?? "no server URL"}.`,
-    );
+  const serverProblem = releaseBundleServerProblem(config.server);
+  if (serverProblem) {
+    console.error(serverProblem);
     process.exit(1);
   }
 

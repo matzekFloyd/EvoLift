@@ -9,8 +9,10 @@ import {
   MISSING_KEYSTORE_PROPERTIES,
   missingKeystoreField,
   missingUploadKeystore,
+  releaseBundleServerProblem,
   releaseKeystoreProblem,
 } from "./bundle-release.mjs";
+import { PRODUCTION_SHELL_URL, PRODUCTION_SITE_URL } from "./server-config.cjs";
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -55,6 +57,25 @@ test("a release build explains how to add the upload key", () => {
     ),
     null,
   );
+});
+
+test("a release bundle opens /app on the production origin", () => {
+  assert.equal(PRODUCTION_SITE_URL, "https://evolift.at");
+  assert.equal(PRODUCTION_SHELL_URL, "https://evolift.at/app");
+  assert.equal(releaseBundleServerProblem({ url: PRODUCTION_SHELL_URL }), null);
+  assert.match(
+    releaseBundleServerProblem({ url: PRODUCTION_SITE_URL }),
+    /The release bundle must load https:\/\/evolift\.at\/app/,
+  );
+  assert.match(
+    releaseBundleServerProblem({ url: "https://evolift.at/app", cleartext: true }),
+    /The release bundle must load https:\/\/evolift\.at\/app/,
+  );
+  assert.match(
+    releaseBundleServerProblem({ url: "https://example.com/app" }),
+    /Sync wrote https:\/\/example\.com\/app/,
+  );
+  assert.match(releaseBundleServerProblem(undefined), /Sync wrote no server URL/);
 });
 
 test("the Android release build uses the same upload-key errors", () => {

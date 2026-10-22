@@ -1,8 +1,14 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
-/** Production site. A debug setting must not replace this default. */
+/** Production site origin. A debug setting must not replace this host. */
 const PRODUCTION_SITE_URL = "https://evolift.at";
+
+/** Signed-in home. Back on this path leaves the app. The site root stays outside the shell. */
+const SHELL_HOME_PATH = "/app";
+
+/** Release WebView start URL. Same origin as the site, opened on the signed-in home. */
+const PRODUCTION_SHELL_URL = `${PRODUCTION_SITE_URL}${SHELL_HOME_PATH}`;
 
 /**
  * Public Supabase API host embedded in the production web app.
@@ -34,7 +40,7 @@ function createCapacitorConfig({ env = {}, debugServer = null } = {}) {
   }
   const fileUrl = debugServer ? stringValue(debugServer.serverUrl) : "";
   const serverUrl = normalizeServerUrl(
-    envUrl || fileUrl || PRODUCTION_SITE_URL,
+    envUrl || fileUrl || PRODUCTION_SHELL_URL,
     envUrl ? "CAPACITOR_SERVER_URL" : fileUrl ? "serverUrl in shell/debug-server.json" : "production site URL",
   );
 
@@ -76,12 +82,7 @@ function createCapacitorConfig({ env = {}, debugServer = null } = {}) {
 }
 
 /**
- * True when Android Back should leave the app.
- * Home always leaves. Any other page leaves only when the WebView has no previous page.
- * Mirrors MainActivity.
- */
-/**
- * Home always leaves the app. Any other page goes back when page history exists.
+ * `/app` always leaves the app. Any other page goes back when page history exists.
  * MainActivity treats WebView history and the in-page Navigation API as that history.
  */
 function backLeavesTheApp(url, canGoBack) {
@@ -92,8 +93,9 @@ function backLeavesTheApp(url, canGoBack) {
 }
 
 /**
- * True while the open page is a workout session.
- * Matches /sessions/new and /sessions/[id], including a trailing slash or query.
+ * True while a workout session is open.
+ * Matches /app/sessions/new and /app/sessions/[id], including a trailing slash or query.
+ * /app/sessions and /app/sessions/[id]/edit do not match.
  * Mirrors MainActivity.screenStaysAwake.
  */
 function screenStaysAwake(url) {
@@ -101,8 +103,7 @@ function screenStaysAwake(url) {
     return false;
   }
   try {
-    const path = new URL(url).pathname.replace(/\/+$/, "") || "/";
-    return /^\/sessions\/[^/]+$/.test(path);
+    return /^\/app\/sessions\/[^/]+$/.test(shellPathname(url));
   } catch {
     return false;
   }
@@ -113,11 +114,15 @@ function isShellHome(url) {
     return true;
   }
   try {
-    const path = new URL(url).pathname;
-    return path === "" || path === "/";
+    return shellPathname(url) === SHELL_HOME_PATH;
   } catch {
     return true;
   }
+}
+
+/** Pathname with a trailing slash removed. The site root stays `/`. */
+function shellPathname(url) {
+  return new URL(url).pathname.replace(/\/+$/, "") || "/";
 }
 
 function readDebugServerFile(filePath = DEBUG_SERVER_FILE) {
@@ -252,6 +257,8 @@ function addHost(hosts, host) {
 
 module.exports = {
   PRODUCTION_SITE_URL,
+  PRODUCTION_SHELL_URL,
+  SHELL_HOME_PATH,
   PRODUCTION_SUPABASE_HOST,
   createCapacitorConfig,
   readDebugServerFile,
