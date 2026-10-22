@@ -324,18 +324,10 @@ function suggestDoubleProgression(input: {
       }
     }
     const nextWeight = Math.min(stepBy(load, 1), stepBy(heaviest, 1));
-    return suggestion(
-      nextWeight,
-      `${hitText} Next target is ${formatRepCount(bottom)} at ${formatKgAmount(nextWeight)}.`,
-      bottom,
-    );
+    return suggestion(nextWeight, hitText, bottom);
   }
 
-  return suggestion(
-    load,
-    `${hitText} Next target is ${formatRepCount(top)} at the same weight.`,
-    top,
-  );
+  return suggestion(load, hitText, top);
 }
 
 /**

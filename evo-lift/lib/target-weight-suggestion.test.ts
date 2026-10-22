@@ -552,7 +552,7 @@ describe("double progression", () => {
       status: "suggestion",
       weightKg: 60,
       reps: 12,
-      rationale: "Last session hit 10 reps at 60 kg. Next target is 12 reps at the same weight.",
+      rationale: "Last session hit 10 reps at 60 kg.",
     });
   });
 
@@ -571,7 +571,7 @@ describe("double progression", () => {
       status: "suggestion",
       weightKg: 62.5,
       reps: 10,
-      rationale: "Last session hit 12 reps at 60 kg. Next target is 10 reps at 62.5 kg.",
+      rationale: "Last session hit 12 reps at 60 kg.",
     });
   });
 
@@ -591,7 +591,7 @@ describe("double progression", () => {
       status: "suggestion",
       weightKg: 62.5,
       reps: 12,
-      rationale: "Last session hit 10 reps at 62.5 kg. Next target is 12 reps at the same weight.",
+      rationale: "Last session hit 10 reps at 62.5 kg.",
     });
   });
 
