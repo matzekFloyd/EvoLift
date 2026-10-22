@@ -1,5 +1,6 @@
 /**
- * Starts `next start`, then runs public + authenticated Lighthouse CI suites.
+ * Starts `next start`, then runs public performance, public SEO, and
+ * authenticated performance Lighthouse CI suites.
  * Expects `npm run build` (and a seeded local demo user for the app suite) already done.
  */
 import { spawn, spawnSync } from "node:child_process";
@@ -74,11 +75,11 @@ if (!ready) {
   shutdown(1);
 }
 
-function runLhci(configPath) {
+function runLhci(configPath, extraEnv = {}) {
   const result = spawnSync("npx", ["lhci", "autorun", `--config=${configPath}`], {
     stdio: "inherit",
     shell: true,
-    env: process.env,
+    env: { ...process.env, ...extraEnv },
   });
   if (result.status !== 0) {
     shutdown(result.status ?? 1);
@@ -86,5 +87,6 @@ function runLhci(configPath) {
 }
 
 runLhci("lighthouserc.public.cjs");
+runLhci("lighthouserc.public.cjs", { LHCI_PUBLIC_SUITE: "seo" });
 runLhci("lighthouserc.app.cjs");
 shutdown(0);

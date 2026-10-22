@@ -68,7 +68,7 @@ jobs:
         working-directory: evo-lift
         run: npm run build
 
-      - name: Run Lighthouse performance checks
+      - name: Run Lighthouse checks
         working-directory: evo-lift
         run: npm run lighthouse
 
