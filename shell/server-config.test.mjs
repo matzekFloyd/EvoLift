@@ -6,6 +6,7 @@ import test from "node:test";
 import { fileURLToPath } from "node:url";
 
 import {
+  PRODUCTION_SHELL_URL,
   PRODUCTION_SITE_URL,
   PRODUCTION_SUPABASE_HOST,
   backLeavesTheApp,
@@ -26,8 +27,10 @@ test("default shell opens production EvoLift and its Supabase host", () => {
 
   assert.equal(config.appId, "app.evolift");
   assert.equal(config.appName, "EvoLift");
-  assert.equal(config.server.url, PRODUCTION_SITE_URL);
-  assert.equal(config.server.url, "https://evolift.at");
+  assert.equal(PRODUCTION_SITE_URL, "https://evolift.at");
+  assert.equal(config.server.url, PRODUCTION_SHELL_URL);
+  assert.equal(config.server.url, "https://evolift.at/app");
+  assert.equal(new URL(config.server.url).origin, PRODUCTION_SITE_URL);
   assert.equal(config.server.cleartext, undefined);
   assert.equal(config.android.adjustMarginsForEdgeToEdge, "force");
   assert.deepEqual(config.server.allowNavigation, [PRODUCTION_SUPABASE_HOST]);
@@ -78,8 +81,9 @@ test("a release build ignores the debug server and loads production", () => {
     },
   });
 
-  assert.equal(config.server.url, PRODUCTION_SITE_URL);
-  assert.equal(config.server.url, "https://evolift.at");
+  assert.equal(config.server.url, PRODUCTION_SHELL_URL);
+  assert.equal(config.server.url, "https://evolift.at/app");
+  assert.equal(new URL(config.server.url).origin, PRODUCTION_SITE_URL);
   assert.equal(config.server.cleartext, undefined);
   assert.deepEqual(config.server.allowNavigation, [PRODUCTION_SUPABASE_HOST]);
 });
@@ -178,31 +182,51 @@ test("committed Android project opens production without cleartext", () => {
   assert.deepEqual(plugins, []);
 });
 
-test("Android Back leaves home and returns from a session", () => {
-  assert.equal(backLeavesTheApp("https://evolift.at/", true), true);
+test("Android Back leaves /app and returns from any other page", () => {
+  assert.equal(backLeavesTheApp("https://evolift.at/app", true), true);
+  assert.equal(backLeavesTheApp("https://evolift.at/app/", true), true);
+  assert.equal(backLeavesTheApp("https://evolift.at/app?set=1", true), true);
+  assert.equal(backLeavesTheApp("http://10.0.2.2:3000/app", true), true);
+  assert.equal(backLeavesTheApp("", true), true);
+  assert.equal(backLeavesTheApp("https://evolift.at/", true), false);
   assert.equal(backLeavesTheApp("https://evolift.at", false), true);
-  assert.equal(backLeavesTheApp("http://10.0.2.2:3000/", true), true);
-  assert.equal(
-    backLeavesTheApp("https://evolift.at/sessions/session-1", true),
-    false,
-  );
-  assert.equal(backLeavesTheApp("https://evolift.at/sessions/session-1", false), true);
+  assert.equal(backLeavesTheApp("http://10.0.2.2:3000/", true), false);
+  assert.equal(backLeavesTheApp("https://evolift.at/app/sessions/session-1", true), false);
+  assert.equal(backLeavesTheApp("https://evolift.at/app/sessions/session-1", false), true);
 });
 
-test("the screen stays awake only on an open session", () => {
-  assert.equal(screenStaysAwake("https://evolift.at/sessions/new"), true);
-  assert.equal(screenStaysAwake("https://evolift.at/sessions/session-1"), true);
-  assert.equal(screenStaysAwake("https://evolift.at/sessions/session-1/"), true);
-  assert.equal(screenStaysAwake("https://evolift.at/sessions/session-1?set=2"), true);
-  assert.equal(screenStaysAwake("http://10.0.2.2:3000/sessions/session-1"), true);
+test("the screen stays awake only on an open session under /app", () => {
+  assert.equal(screenStaysAwake("https://evolift.at/app/sessions/new"), true);
+  assert.equal(screenStaysAwake("https://evolift.at/app/sessions/new/"), true);
+  assert.equal(screenStaysAwake("https://evolift.at/app/sessions/session-1"), true);
+  assert.equal(screenStaysAwake("https://evolift.at/app/sessions/session-1/"), true);
+  assert.equal(screenStaysAwake("https://evolift.at/app/sessions/session-1?set=2"), true);
+  assert.equal(screenStaysAwake("http://10.0.2.2:3000/app/sessions/session-1"), true);
   assert.equal(screenStaysAwake("https://evolift.at/"), false);
-  assert.equal(screenStaysAwake("https://evolift.at/sessions"), false);
-  assert.equal(screenStaysAwake("https://evolift.at/sessions/session-1/edit"), false);
-  assert.equal(screenStaysAwake("https://evolift.at/insights"), false);
-  assert.equal(screenStaysAwake("https://evolift.at/goals"), false);
-  assert.equal(screenStaysAwake("https://evolift.at/account"), false);
+  assert.equal(screenStaysAwake("https://evolift.at/app"), false);
+  assert.equal(screenStaysAwake("https://evolift.at/app/sessions"), false);
+  assert.equal(screenStaysAwake("https://evolift.at/app/sessions/"), false);
+  assert.equal(screenStaysAwake("https://evolift.at/app/sessions/session-1/edit"), false);
+  assert.equal(screenStaysAwake("https://evolift.at/sessions/new"), false);
+  assert.equal(screenStaysAwake("https://evolift.at/sessions/session-1"), false);
+  assert.equal(screenStaysAwake("https://evolift.at/app/insights"), false);
+  assert.equal(screenStaysAwake("https://evolift.at/app/goals"), false);
+  assert.equal(screenStaysAwake("https://evolift.at/app/account"), false);
   assert.equal(screenStaysAwake(""), false);
   assert.equal(screenStaysAwake("not a url"), false);
+});
+
+test("MainActivity uses the same /app home and session paths", () => {
+  const java = readFileSync(
+    path.join(repoRoot, "android", "app", "src", "main", "java", "app", "evolift", "MainActivity.java"),
+    "utf8",
+  );
+
+  assert.match(java, /"\/app"\.equals\(shellPath\(url\)\)/);
+  assert.match(java, /path\.startsWith\("\/app\/sessions\/"\)/);
+  assert.match(java, /if\(path==='\/app'\)return 'leave'/);
+  assert.doesNotMatch(java, /path===''\|\|path==='\/'/);
+  assert.doesNotMatch(java, /startsWith\("\/sessions\/"\)/);
 });
 
 test("rejects a debug file server URL that is not a string", () => {

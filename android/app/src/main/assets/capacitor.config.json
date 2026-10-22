@@ -6,7 +6,7 @@
 		"adjustMarginsForEdgeToEdge": "force"
 	},
 	"server": {
-		"url": "https://evolift.at",
+		"url": "https://evolift.at/app",
 		"allowNavigation": [
 			"tiivtvejwxzgzgkmojuj.supabase.co"
 		]

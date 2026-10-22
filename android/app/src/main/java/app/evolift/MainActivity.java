@@ -44,8 +44,9 @@ public class MainActivity extends BridgeActivity {
                 }
                 // Next.js moves between pages without a WebView history entry.
                 webView.evaluateJavascript(
-                        "(function(){try{var path=location.pathname||'';"
-                                + "if(path===''||path==='/')return 'leave';"
+                        "(function(){try{var path=location.pathname||'/';"
+                                + "while(path.length>1&&path.endsWith('/'))path=path.slice(0,-1);"
+                                + "if(path==='/app')return 'leave';"
                                 + "if(window.navigation&&navigation.canGoBack){history.back();return 'back';}"
                                 + "return 'leave';}catch(e){return 'leave';}})()",
                         value -> {
@@ -85,7 +86,7 @@ public class MainActivity extends BridgeActivity {
     }
 
     /**
-     * Home always leaves the app. Any other page goes back when the WebView has history.
+     * `/app` always leaves the app. Any other page goes back when the WebView has history.
      * Same rule as backLeavesTheApp in shell/server-config.cjs.
      */
     static boolean backLeavesTheApp(String url, boolean canGoBack) {
@@ -96,24 +97,18 @@ public class MainActivity extends BridgeActivity {
     }
 
     /**
-     * True for /sessions/new and /sessions/[id]. Same rule as screenStaysAwake in shell/server-config.cjs.
+     * True for /app/sessions/new and /app/sessions/[id]. Same rule as screenStaysAwake in shell/server-config.cjs.
      */
     static boolean screenStaysAwake(String url) {
         if (url == null || url.trim().isEmpty()) {
             return false;
         }
         try {
-            String path = Uri.parse(url).getPath();
-            if (path == null || path.isEmpty()) {
+            String path = shellPath(url);
+            if (!path.startsWith("/app/sessions/")) {
                 return false;
             }
-            while (path.length() > 1 && path.endsWith("/")) {
-                path = path.substring(0, path.length() - 1);
-            }
-            if (!path.startsWith("/sessions/")) {
-                return false;
-            }
-            String rest = path.substring("/sessions/".length());
+            String rest = path.substring("/app/sessions/".length());
             return !rest.isEmpty() && !rest.contains("/");
         } catch (Exception ex) {
             return false;
@@ -125,10 +120,21 @@ public class MainActivity extends BridgeActivity {
             return true;
         }
         try {
-            String path = Uri.parse(url).getPath();
-            return path == null || path.isEmpty() || "/".equals(path);
+            return "/app".equals(shellPath(url));
         } catch (Exception ex) {
             return true;
         }
+    }
+
+    /** Pathname with a trailing slash removed. A missing path is the site root. */
+    private static String shellPath(String url) {
+        String path = Uri.parse(url).getPath();
+        if (path == null || path.isEmpty()) {
+            return "/";
+        }
+        while (path.length() > 1 && path.endsWith("/")) {
+            path = path.substring(0, path.length() - 1);
+        }
+        return path;
     }
 }
