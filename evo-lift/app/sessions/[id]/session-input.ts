@@ -1,6 +1,11 @@
 export const PLANNED_SESSION_SETS_MESSAGE =
   "Upcoming workouts cannot have sets yet. Log sets on or after the session date.";
 
+/** Shown on an upcoming session, with a Move to today action. */
+export function upcomingSessionLogMessage(formattedDate: string): string {
+  return `Sets can be logged on ${formattedDate}. Move this session to today to log it now.`;
+}
+
 export const TARGETS_EXERCISE_MISSING = "Could not determine which exercise targets to update.";
 
 export function parseLoggedSetInput(

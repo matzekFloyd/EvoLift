@@ -21,6 +21,7 @@ import {
 } from "@/app/components/content-placeholder-layout";
 import { PageShell } from "@/app/components/page-shell";
 import { SegmentedTabs } from "@/app/components/segmented-tabs";
+import { AccountDoubleProgressionSection } from "@/app/account/account-double-progression-section";
 import { AccountDeleteSection } from "@/app/account/account-delete-section";
 import { AccountEmailSection } from "@/app/account/account-email-section";
 import { AccountExerciseDefaultsSection } from "@/app/account/account-exercise-defaults-section";
@@ -32,6 +33,7 @@ import { AccountApiTokensSection } from "@/app/account/api-tokens-section";
 import { useAccountEmail } from "@/app/account/use-account-email";
 import { useAccountMetrics } from "@/app/account/use-account-metrics";
 import { useAccountPassword } from "@/app/account/use-account-password";
+import { useDoubleProgression } from "@/app/account/use-double-progression";
 import { useExerciseDefaults } from "@/app/account/use-exercise-defaults";
 import { useHiddenExercises } from "@/app/account/use-hidden-exercises";
 
@@ -49,7 +51,7 @@ export default function AccountPage() {
   const [exerciseOptions, setExerciseOptions] = useState(cachedAccount?.exerciseOptions ?? []);
   const [activeSection, setActiveSection] = useState<AccountSectionId>("security");
 
-  const email = useAccountEmail({ accessToken, activeSection });
+  const email = useAccountEmail({ accessToken, userEmail, activeSection });
   const password = useAccountPassword({
     accessToken,
     userEmail,
@@ -60,12 +62,20 @@ export default function AccountPage() {
   const metrics = useAccountMetrics({ userId, cachedAccount, activeSection });
   const hidden = useHiddenExercises({ userId, cachedAccount, activeSection });
   const defaults = useExerciseDefaults({ userId, exerciseOptions, cachedAccount, activeSection });
+  const progression = useDoubleProgression({ userId, cachedAccount, activeSection });
 
   function applyAccountSnapshot(snapshot: AccountProfileSnapshot) {
     setExerciseOptions(snapshot.exerciseOptions);
-    defaults.applySnapshot(snapshot);
-    metrics.applySnapshot(snapshot);
+    if (!defaults.isDirty()) {
+      defaults.applySnapshot(snapshot);
+    }
+    if (!metrics.isDirty()) {
+      metrics.applySnapshot(snapshot);
+    }
     hidden.applySnapshot(snapshot);
+    if (!progression.isDirty()) {
+      progression.applySnapshot(snapshot);
+    }
   }
 
   function showAccountLoadError(error: "profile" | "hidden" | "exercises" | "defaults") {
@@ -123,9 +133,7 @@ export default function AccountPage() {
         setIsChecking(false);
         return;
       }
-      if (!metrics.isDirty()) {
-        applyAccountSnapshot(result.snapshot);
-      }
+      applyAccountSnapshot(result.snapshot);
       setIsChecking(false);
     }
 
@@ -193,6 +201,7 @@ export default function AccountPage() {
         <>
           <AccountHiddenExercisesSection exerciseOptions={exerciseOptions} hidden={hidden} />
           <AccountExerciseDefaultsSection exerciseOptions={exerciseOptions} defaults={defaults} />
+          <AccountDoubleProgressionSection progression={progression} />
         </>
       ) : null}
     </PageShell>

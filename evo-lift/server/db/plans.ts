@@ -1,7 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Json } from "@/lib/supabase/database.types";
 import { duplicatePlanName, validatePlanSave, type PlanSaveInput } from "@/lib/plan-draft";
-import { PLAN_ALREADY_OPEN_MESSAGE } from "@/lib/plan-cycle";
+import { PLAN_ALREADY_OPEN_MESSAGE, planSessionBlocksAnotherDay } from "@/lib/plan-cycle";
+import { getTodayYyyyMmDd } from "@/lib/session-date";
 import type { Database } from "@/lib/supabase/database.types";
 import { ApiHttpError, MAX_SESSION_NOTES_LENGTH } from "@/server/api/http";
 import { createWorkoutSession, requireWorkoutSessionDetail } from "@/server/db/workouts";
@@ -327,16 +328,27 @@ export async function instantiatePlanDay(
     throw new ApiHttpError(400, "Add at least one exercise to this day.");
   }
 
-  const { count: openPlanSessions, error: openPlanError } = await client
+  const today = getTodayYyyyMmDd();
+  const { data: openPlanSessions, error: openPlanError } = await client
     .from("workout_sessions")
-    .select("id", { count: "exact", head: true })
+    .select("plan_day_id, performed_on, completed_at")
     .eq("user_id", input.userId)
     .eq("plan_id", input.planId)
     .is("completed_at", null);
   if (openPlanError) {
     throw new Error("Could not check the plan.");
   }
-  if ((openPlanSessions ?? 0) >= 1) {
+  const blockingPlanSession = (openPlanSessions ?? []).some((row) =>
+    planSessionBlocksAnotherDay(
+      {
+        planDayId: row.plan_day_id,
+        performedOn: row.performed_on,
+        completedAt: row.completed_at,
+      },
+      today,
+    ),
+  );
+  if (blockingPlanSession) {
     throw new ApiHttpError(409, PLAN_ALREADY_OPEN_MESSAGE);
   }
 

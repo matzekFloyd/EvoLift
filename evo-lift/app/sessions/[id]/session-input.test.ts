@@ -8,6 +8,7 @@ import {
   parseSessionTargets,
   PLANNED_SESSION_SETS_MESSAGE,
   TARGETS_EXERCISE_MISSING,
+  upcomingSessionLogMessage,
 } from "./session-input";
 
 describe("session input", () => {
@@ -17,6 +18,10 @@ describe("session input", () => {
       "Upcoming workouts cannot have sets yet. Log sets on or after the session date.",
     );
     assert.equal(TARGETS_EXERCISE_MISSING, "Could not determine which exercise targets to update.");
+    assert.equal(
+      upcomingSessionLogMessage("Mar 6, 2028"),
+      "Sets can be logged on Mar 6, 2028. Move this session to today to log it now.",
+    );
   });
 
   it("requires reps and treats a blank weight as bodyweight only", () => {

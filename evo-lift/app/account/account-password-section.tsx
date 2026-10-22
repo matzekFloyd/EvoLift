@@ -13,6 +13,7 @@ export function AccountPasswordSection({ password }: { password: AccountPassword
     confirmNewPassword,
     setConfirmNewPassword,
     isSaving,
+    canSave,
     notice,
     hasPassword,
     handleSubmit,
@@ -81,7 +82,7 @@ export function AccountPasswordSection({ password }: { password: AccountPassword
             )}
             <button
               type="submit"
-              disabled={isSaving}
+              disabled={isSaving || !canSave}
               className="inline-flex h-10 w-full items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-3 py-2 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60 sm:w-40"
             >
               <Check className="h-3.5 w-3.5 text-white" />

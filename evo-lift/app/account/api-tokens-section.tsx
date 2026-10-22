@@ -52,7 +52,7 @@ export function AccountApiTokensSection({ accessToken }: AccountApiTokensSection
   const [isCreating, setIsCreating] = useState(false);
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
-  const [messageTone, setMessageTone] = useState<"error" | "success" | "warning">("success");
+  const [messageTone, setMessageTone] = useState<"error" | "warning">("warning");
   const [plaintextToken, setPlaintextToken] = useState<string | null>(null);
 
   useEffect(() => {
@@ -111,8 +111,6 @@ export function AccountApiTokensSection({ accessToken }: AccountApiTokensSection
     }
     try {
       await navigator.clipboard.writeText(plaintextToken);
-      setMessageTone("success");
-      setMessage("Token copied.");
     } catch {
       setMessageTone("error");
       setMessage("Could not copy the token. Select it and copy manually.");
@@ -125,8 +123,6 @@ export function AccountApiTokensSection({ accessToken }: AccountApiTokensSection
     try {
       await revokeUserApiToken({ accessToken, tokenId });
       setTokens((prev) => prev.filter((row) => row.id !== tokenId));
-      setMessageTone("success");
-      setMessage("API token revoked.");
     } catch (error) {
       setMessageTone("error");
       setMessage(error instanceof Error ? error.message : "Could not revoke API token.");
@@ -172,7 +168,12 @@ export function AccountApiTokensSection({ accessToken }: AccountApiTokensSection
             ) : (
               <div className="hidden sm:block sm:flex-1" />
             )}
-            <ActionButton type="submit" variant="primary" disabled={isCreating} className="w-full sm:w-40">
+            <ActionButton
+              type="submit"
+              variant="primary"
+              disabled={isCreating || name.trim() === ""}
+              className="w-full sm:w-40"
+            >
               <Plus className="h-3.5 w-3.5" />
               Create token
             </ActionButton>

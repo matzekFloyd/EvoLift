@@ -32,6 +32,7 @@ import {
   latestSessionByPlanDay,
   nextPlanDayId,
   openSessionByPlanDay,
+  upcomingSessionOnPlanDay,
 } from "@/lib/plan-cycle";
 import { getTodayYyyyMmDd } from "@/lib/session-date";
 import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
@@ -52,6 +53,7 @@ type PlanSessionView = {
   performedOn: string;
   createdAt: string;
   completedAt: string | null;
+  notes: string | null;
 };
 
 type ActivePlanView = {
@@ -125,7 +127,7 @@ export function ActivePlanPanel({
 
       const { data: sessionRows, error: sessionsError } = await supabaseBrowserClient
         .from("workout_sessions")
-        .select("id, plan_day_id, performed_on, created_at, completed_at")
+        .select("id, plan_day_id, performed_on, created_at, completed_at, notes")
         .eq("plan_id", data.id);
 
       if (!isMounted) {
@@ -145,6 +147,7 @@ export function ActivePlanPanel({
           performedOn: row.performed_on,
           createdAt: row.created_at,
           completedAt: row.completed_at,
+          notes: row.notes,
         })),
       );
       setLoadError(null);
@@ -157,9 +160,10 @@ export function ActivePlanPanel({
     };
   }, []);
 
-  const continuable = continuablePlanSession(sessions);
+  const today = getTodayYyyyMmDd();
+  const continuable = continuablePlanSession(sessions, today);
   const nextDayId =
-    continuable?.planDayId ?? (plan ? nextPlanDayId(plan.days, sessions) : null);
+    continuable?.planDayId ?? (plan ? nextPlanDayId(plan.days, sessions, today) : null);
   const latestByDay = latestSessionByPlanDay(sessions);
   const openByDay = openSessionByPlanDay(sessions);
   const nextDay = plan?.days.find((day) => day.id === nextDayId) ?? null;
@@ -174,6 +178,9 @@ export function ActivePlanPanel({
       );
   const scheduledLabel = plan ? "Also scheduled" : "Scheduled";
   const startDay = plan?.days.find((day) => day.id === startDayId) ?? null;
+  const startReusesUpcoming = startDay
+    ? upcomingSessionOnPlanDay(sessions, startDay.id, today) != null
+    : false;
   const planHeaderCtaVariant = homeCompetingCtaVariant(hasStandaloneInProgress);
 
   useEffect(() => {
@@ -187,7 +194,7 @@ export function ActivePlanPanel({
     for (const session of openSessionByPlanDay(sessions).values()) {
       ids.add(session.id);
     }
-    const openPlanSession = continuablePlanSession(sessions);
+    const openPlanSession = continuablePlanSession(sessions, getTodayYyyyMmDd());
     if (openPlanSession) {
       ids.add(openPlanSession.id);
     }
@@ -216,7 +223,8 @@ export function ActivePlanPanel({
     }
     setStartDayId(dayId);
     setPerformedOn(getTodayYyyyMmDd());
-    setSessionNotes("");
+    const upcoming = upcomingSessionOnPlanDay(sessions, dayId, getTodayYyyyMmDd());
+    setSessionNotes(upcoming?.notes ?? "");
     setMessage(null);
   }
 
@@ -236,6 +244,26 @@ export function ActivePlanPanel({
     setIsStarting(true);
     setMessage(null);
     try {
+      const upcoming = upcomingSessionOnPlanDay(sessions, startDay.id, getTodayYyyyMmDd());
+      if (upcoming) {
+        const notes = sessionNotes.trim() ? sessionNotes.trim() : null;
+        const { error } = await supabaseBrowserClient
+          .from("workout_sessions")
+          .update({ performed_on: performedOn, notes })
+          .eq("id", upcoming.id);
+        if (error) {
+          if (/open plan session limit/i.test(error.message)) {
+            setMessage(PLAN_ALREADY_OPEN_MESSAGE);
+          } else {
+            setMessage("Could not start session.");
+          }
+          return;
+        }
+        invalidateLoggedHistoryCaches();
+        setStartDayId(null);
+        router.push(appPath(`/sessions/${upcoming.id}`));
+        return;
+      }
       const sessionId = await instantiateUserPlanDay({
         accessToken: session.access_token,
         planId: plan.id,
@@ -483,8 +511,9 @@ export function ActivePlanPanel({
             Start session from {startDay.name}
           </SectionHeading>
           <p className="mt-1 text-xs text-zinc-600">
-            Creates a workout session with this day&apos;s exercises and targets. You can still
-            change loads and reps before logging sets.
+            {startReusesUpcoming
+              ? "This day already has an upcoming session. The date below replaces that session date. You can log sets once the date is today or earlier."
+              : "Creates a workout session with this day's exercises and targets. You can still change loads and reps before logging sets."}
           </p>
           {message ? (
             <StatusNotice

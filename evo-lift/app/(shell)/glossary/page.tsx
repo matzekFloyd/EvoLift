@@ -38,6 +38,11 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
       "A named step in a plan, such as Day A or Push. It has its own exercises and targets. Days repeat in order.",
   },
   {
+    term: "Double progression",
+    definition:
+      "An optional target suggestion for the next session. It stays off until you turn it on under Account. When every working set hits the rep target, the next suggestion adds 2 reps at the same weight. After that higher target is hit, the next suggestion adds weight and goes back to the lower reps.",
+  },
+  {
     term: "Exercise",
     definition: "A movement inside a workout session, such as Barbell Back Squat.",
   },
@@ -146,7 +151,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Upcoming session",
     definition:
-      "A workout session dated after today. On Home it is the date on its plan day. A session that is not part of the active plan is listed under the plan. You cannot log sets until that day.",
+      "A workout session dated after today. On Home it is the date on its plan day, and it does not block the next day. A session that is not part of the active plan is listed under the plan. You cannot log sets until that day. Move to today on the session to log it now.",
   },
   {
     term: "Warmup",

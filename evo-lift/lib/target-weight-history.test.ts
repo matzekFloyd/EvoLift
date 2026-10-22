@@ -56,7 +56,7 @@ describe("loadTargetWeightHistory", () => {
         auth: { data: { user: { id: "user-1" } }, error: null },
         tables: {
           workout_session_exercises: {
-            data: [{ id: "se-1", session_id: "session-1", target_weight_kg: 60 }],
+            data: [{ id: "se-1", session_id: "session-1", target_weight_kg: 60, target_reps: 8 }],
             error: null,
           },
           workout_sessions: {
@@ -89,6 +89,7 @@ describe("loadTargetWeightHistory", () => {
         loadedKg: 60,
         isWarmup: false,
         targetWeightKg: 60,
+        targetReps: 8,
       },
     ]);
   });

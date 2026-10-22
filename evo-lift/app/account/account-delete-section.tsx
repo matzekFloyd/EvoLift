@@ -148,7 +148,12 @@ export function AccountDeleteSection({ accessToken, userEmail, hasPassword }: Ac
                 </ActionButton>
               </div>
             ) : (
-              <ActionButton type="submit" variant="danger" className="w-full sm:w-40">
+              <ActionButton
+                type="submit"
+                variant="danger"
+                disabled={currentPassword.length === 0}
+                className="w-full sm:w-40"
+              >
                 <Trash2 className="h-3.5 w-3.5" />
                 Delete account
               </ActionButton>

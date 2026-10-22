@@ -3,12 +3,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { ActionButton } from "@/app/components/action-button";
 import { StatusNotice } from "@/app/components/status-notice";
+import { loadDoubleProgressionPreference } from "@/lib/double-progression-preference";
 import { loadTargetWeightHistory } from "@/lib/target-weight-history";
-import { formatKgAmount } from "@/lib/milestone-progress";
+import { formatKgAmount, formatRepCount } from "@/lib/milestone-progress";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import {
   formatSuggestedTargetInput,
-  suggestionMatchesField,
+  suggestionMatchesTarget,
   suggestTargetWeight,
   targetSuggestionsEnabled,
   type TargetWeightHistorySet,
@@ -20,16 +21,18 @@ type TargetWeightSuggestionProps = {
   exerciseId: string;
   plannedReps: string;
   currentWeightKg: string;
+  currentReps?: string;
   excludeSessionId?: string | null;
-  /** Account preference. Missing stays on. */
+  /** Per-exercise suggest-target preference. Missing stays on. */
   enabled?: boolean;
-  onApply: (weightKg: string) => void;
+  onApply: (next: { weightKg: string; reps: string | null }) => void;
 };
 
 export function TargetWeightSuggestion({
   exerciseId,
   plannedReps,
   currentWeightKg,
+  currentReps = "",
   excludeSessionId = null,
   enabled = true,
   onApply,
@@ -37,6 +40,7 @@ export function TargetWeightSuggestion({
   const [history, setHistory] = useState<{
     exerciseId: string;
     sets: TargetWeightHistorySet[];
+    doubleProgression: boolean;
   } | null>(null);
   const [error, setError] = useState<{ exerciseId: string; message: string } | null>(null);
 
@@ -47,10 +51,13 @@ export function TargetWeightSuggestion({
       return;
     }
     let cancelled = false;
-    void loadTargetWeightHistory(supabaseBrowserClient, exerciseId)
-      .then((sets) => {
+    void Promise.all([
+      loadTargetWeightHistory(supabaseBrowserClient, exerciseId),
+      loadDoubleProgressionPreference(supabaseBrowserClient),
+    ])
+      .then(([sets, doubleProgression]) => {
         if (!cancelled) {
-          setHistory({ exerciseId, sets });
+          setHistory({ exerciseId, sets, doubleProgression });
           setError(null);
         }
       })
@@ -74,6 +81,7 @@ export function TargetWeightSuggestion({
       plannedReps: parsePlannedReps(plannedReps),
       excludeSessionId,
       today: getTodayYyyyMmDd(),
+      doubleProgression: history.doubleProgression,
     });
   }, [excludeSessionId, exerciseId, history, plannedReps]);
 
@@ -93,23 +101,39 @@ export function TargetWeightSuggestion({
     return <p className="mt-2 text-xs text-zinc-600">{suggestion.message}</p>;
   }
 
-  if (suggestionMatchesField(currentWeightKg, suggestion.weightKg)) {
+  if (
+    suggestionMatchesTarget({
+      currentWeightKg,
+      suggestedKg: suggestion.weightKg,
+      currentReps,
+      suggestedReps: suggestion.reps,
+    })
+  ) {
     return null;
   }
+
+  const suggestedLabel =
+    suggestion.reps == null
+      ? formatKgAmount(suggestion.weightKg)
+      : `${formatRepCount(suggestion.reps)} at ${formatKgAmount(suggestion.weightKg)}`;
 
   return (
     <div className="mt-2 space-y-1">
       <div className="flex flex-wrap items-center gap-2">
         <p className="text-xs text-zinc-700">
-          Suggested target:{" "}
-          <span className="font-medium text-zinc-900">{formatKgAmount(suggestion.weightKg)}</span>
+          Suggested target: <span className="font-medium text-zinc-900">{suggestedLabel}</span>
         </p>
         <ActionButton
           type="button"
           variant="secondary"
           size="sm"
           className="h-8 px-2 font-normal"
-          onClick={() => onApply(formatSuggestedTargetInput(suggestion.weightKg))}
+          onClick={() =>
+            onApply({
+              weightKg: formatSuggestedTargetInput(suggestion.weightKg),
+              reps: suggestion.reps == null ? null : String(suggestion.reps),
+            })
+          }
         >
           Apply
         </ActionButton>

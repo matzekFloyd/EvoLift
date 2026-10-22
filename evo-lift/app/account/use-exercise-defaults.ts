@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { AccountProfileSnapshot } from "@/lib/account-profile-cache";
 import { isCompoundExercise } from "@/lib/compound-exercise";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
@@ -9,7 +9,11 @@ import {
   exerciseDefaultsSaveError,
   parseMaxWarmupSets,
 } from "@/app/account/account-form";
-import { exerciseDefaultsFormValues } from "@/app/account/account-profile-form";
+import {
+  exerciseDefaultsFormValues,
+  type ExerciseDefaultsFormValues,
+} from "@/app/account/account-profile-form";
+import { accountFieldsChanged } from "@/app/account/account-section-dirty";
 import type { AccountSectionId } from "@/app/account/account-section";
 import { useAccountNotice } from "@/app/account/use-account-notice";
 
@@ -28,6 +32,10 @@ export function useExerciseDefaults({
     Map<string, Database["public"]["Tables"]["user_exercise_defaults"]["Row"]>
   >(() => new Map((cachedAccount?.defaults ?? []).map((row) => [row.exercise_id, row])));
   const [selectedExerciseId, setSelectedExerciseId] = useState("");
+  const [loadedExerciseId, setLoadedExerciseId] = useState("");
+  const savedFormRef = useRef<ExerciseDefaultsFormValues | null>(null);
+  const currentFormRef = useRef<ExerciseDefaultsFormValues | null>(null);
+  const readyRef = useRef(false);
   const [defaultBaseWeightKg, setDefaultBaseWeightKg] = useState("");
   const [defaultTargetSets, setDefaultTargetSets] = useState("");
   const [defaultTargetReps, setDefaultTargetReps] = useState("");
@@ -37,7 +45,7 @@ export function useExerciseDefaults({
   const [suggestTarget, setSuggestTarget] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
-  const notice = useAccountNotice("success");
+  const notice = useAccountNotice("error");
   const clearNotice = notice.clear;
 
   function applySnapshot(snapshot: AccountProfileSnapshot) {
@@ -61,6 +69,7 @@ export function useExerciseDefaults({
     setSuggestWarmups(values.suggestWarmups);
     setSuggestTarget(values.suggestTarget);
     setMaxWarmupSets(values.maxWarmupSets);
+    setLoadedExerciseId(selectedExerciseId);
   }, [defaultsByExerciseId, exerciseOptions, selectedExerciseId]);
 
   useEffect(() => {
@@ -125,9 +134,7 @@ export function useExerciseDefaults({
       next.set(data.exercise_id, data);
       return next;
     });
-    const selectedExerciseLabel =
-      exerciseOptions.find((option) => option.id === selectedExerciseId)?.label ?? "Exercise";
-    notice.show("success", `Defaults saved for ${selectedExerciseLabel}.`);
+    notice.clear();
     refillAccountCache(userId);
     setIsSaving(false);
   }
@@ -188,6 +195,31 @@ export function useExerciseDefaults({
     setIsClearing(false);
   }
 
+  const slug = exerciseOptions.find((option) => option.id === selectedExerciseId)?.slug;
+  const savedForm = exerciseDefaultsFormValues({
+    saved: defaultsByExerciseId.get(selectedExerciseId),
+    exerciseId: selectedExerciseId,
+    slug,
+  });
+  const clearedForm = exerciseDefaultsFormValues({
+    saved: undefined,
+    exerciseId: selectedExerciseId,
+    slug,
+  });
+  const currentForm: ExerciseDefaultsFormValues = {
+    baseWeightKg: defaultBaseWeightKg,
+    targetSets: defaultTargetSets,
+    targetReps: defaultTargetReps,
+    targetWeightKg: defaultTargetWeightKg,
+    suggestWarmups,
+    suggestTarget,
+    maxWarmupSets,
+  };
+  const formsReady = selectedExerciseId !== "" && loadedExerciseId === selectedExerciseId;
+  savedFormRef.current = savedForm;
+  currentFormRef.current = currentForm;
+  readyRef.current = formsReady;
+
   return {
     selectedExerciseId,
     setSelectedExerciseId,
@@ -207,7 +239,14 @@ export function useExerciseDefaults({
     setSuggestTarget,
     isSaving,
     isClearing,
+    canSave: formsReady && accountFieldsChanged(savedForm, currentForm),
+    canClear: formsReady && accountFieldsChanged(clearedForm, savedForm),
     notice,
+    isDirty: () =>
+      readyRef.current &&
+      savedFormRef.current != null &&
+      currentFormRef.current != null &&
+      accountFieldsChanged(savedFormRef.current, currentFormRef.current),
     applySnapshot,
     handleSave,
     handleClear,

@@ -31,6 +31,8 @@ export function AccountExerciseDefaultsSection({
     setSuggestTarget,
     isSaving,
     isClearing,
+    canSave,
+    canClear,
     notice,
     handleSave,
     handleClear,
@@ -171,7 +173,7 @@ export function AccountExerciseDefaultsSection({
               <button
                 type="button"
                 onClick={handleClear}
-                disabled={isClearing || !selectedExerciseId}
+                disabled={isClearing || !canClear}
                 className="inline-flex h-10 min-w-0 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-1.5 py-0 text-xs font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100 disabled:opacity-60 sm:px-2 sm:text-sm"
               >
                 <Eraser className="h-3.5 w-3.5 shrink-0 text-amber-600" />
@@ -181,7 +183,7 @@ export function AccountExerciseDefaultsSection({
               </button>
               <button
                 type="submit"
-                disabled={isSaving}
+                disabled={isSaving || !canSave}
                 className="inline-flex h-10 min-w-0 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-1.5 py-0 text-xs font-medium text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60 sm:px-2 sm:text-sm"
               >
                 <Save className="h-3.5 w-3.5 shrink-0 text-white" />

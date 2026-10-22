@@ -11,12 +11,12 @@ export function AccountEmailSection({
   userEmail: string | null;
   email: AccountEmailState;
 }) {
-  const { newEmail, setNewEmail, isSaving, notice, handleSubmit } = email;
+  const { newEmail, setNewEmail, isSaving, canSave, notice, handleSubmit } = email;
   return (
     <SettingsSection>
       <SettingsSectionHeader
         title="Email"
-        description="Update the email address used to sign in."
+        description="Update the email address used to sign in. Confirm it from the message sent to the new address."
         icon={<Mail className="h-4 w-4 text-zinc-500" />}
       />
       <SettingsSectionBody>
@@ -54,7 +54,7 @@ export function AccountEmailSection({
             )}
             <button
               type="submit"
-              disabled={isSaving}
+              disabled={isSaving || !canSave}
               className="inline-flex h-10 w-full items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-3 py-2 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60 sm:w-40"
             >
               <Check className="h-3.5 w-3.5 text-white" />

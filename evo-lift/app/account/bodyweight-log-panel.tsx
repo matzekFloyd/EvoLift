@@ -14,6 +14,7 @@ import {
 import { DateInput } from "@/app/components/date-input";
 import { StatusNotice } from "@/app/components/status-notice";
 import { TableRowActions } from "@/app/components/table-row-actions";
+import { accountFieldsChanged } from "@/app/account/account-section-dirty";
 import {
   bodyweightLogEntryError,
   parseBodyweightKg,
@@ -38,7 +39,7 @@ export function BodyweightLogPanel({ entries, today, onSave, onRemove }: Bodywei
   const [editDate, setEditDate] = useState("");
   const [editWeight, setEditWeight] = useState("");
   const [message, setMessage] = useState<string | null>(null);
-  const [messageTone, setMessageTone] = useState<"error" | "success">("error");
+  const [messageTone, setMessageTone] = useState<"error">("error");
   const [busyId, setBusyId] = useState<string | null>(null);
 
   const rows = [...entries].sort((left, right) => right.loggedOn.localeCompare(left.loggedOn));
@@ -75,8 +76,6 @@ export function BodyweightLogPanel({ entries, today, onSave, onRemove }: Bodywei
       showError(saveError);
       return;
     }
-    setMessageTone("success");
-    setMessage("Bodyweight saved.");
     setEditingId(null);
   }
 
@@ -92,8 +91,6 @@ export function BodyweightLogPanel({ entries, today, onSave, onRemove }: Bodywei
     if (editingId === id) {
       setEditingId(null);
     }
-    setMessageTone("success");
-    setMessage("Bodyweight removed.");
   }
 
   return (
@@ -122,6 +119,10 @@ export function BodyweightLogPanel({ entries, today, onSave, onRemove }: Bodywei
           <tbody className="divide-y divide-zinc-100">
             {rows.map((row) => {
               const isEditing = editingId === row.id;
+              const entryChanged = accountFieldsChanged(
+                { loggedOn: row.loggedOn.slice(0, 10), bodyweightKg: String(row.bodyweightKg) },
+                { loggedOn: editDate, bodyweightKg: editWeight },
+              );
               return (
                 <tr key={row.id} className={appTableRowClassName}>
                   <td className={appTableTdClassName}>
@@ -157,7 +158,7 @@ export function BodyweightLogPanel({ entries, today, onSave, onRemove }: Bodywei
                           <ActionButton
                             type="button"
                             size="sm"
-                            disabled={busyId != null}
+                            disabled={busyId != null || !entryChanged}
                             onClick={() =>
                               void saveEntry({ id: row.id, loggedOn: editDate, bodyweightKg: editWeight })
                             }
