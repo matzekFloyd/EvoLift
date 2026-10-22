@@ -12,6 +12,8 @@ import {
 } from "recharts";
 import type { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
 import { ChartResponsiveContainer } from "@/app/components/chart-responsive-container";
+import { ChartTextAlternative } from "@/app/components/chart-text-alternative";
+import { exerciseE1rmChartText } from "@/app/components/chart-text-data";
 import { formatKgTick } from "@/app/components/exercise-weight-progress-format";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import {
@@ -92,9 +94,14 @@ export function ExerciseSessionE1rmChart({ points }: ExerciseSessionE1rmChartPro
       <div
         className="exercise-session-e1rm-chart relative h-52 w-full sm:h-64"
         style={{ WebkitTapHighlightColor: "transparent" }}
+        aria-hidden
       >
         <ChartResponsiveContainer initialDimension={{ width: 320, height: 208 }}>
-          <LineChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 4 }}>
+          <LineChart
+            accessibilityLayer={false}
+            data={chartData}
+            margin={{ top: 8, right: 8, left: 0, bottom: 4 }}
+          >
             <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
             <XAxis
               dataKey="xTickLabel"
@@ -123,6 +130,7 @@ export function ExerciseSessionE1rmChart({ points }: ExerciseSessionE1rmChartPro
           </LineChart>
         </ChartResponsiveContainer>
       </div>
+      <ChartTextAlternative model={exerciseE1rmChartText(points)} />
     </div>
   );
 }

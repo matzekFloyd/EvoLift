@@ -48,6 +48,21 @@ export function exerciseProgressPaceBuckets(
   });
 }
 
+export function exerciseProgressPaceTotalLabel(total: number): string {
+  return `${total} ${total === 1 ? "lift" : "lifts"}`;
+}
+
+/** One line per pace slice so the mix is readable without the donut colors. */
+export function exerciseProgressPaceTextRows(
+  buckets: readonly ExerciseProgressPaceBucket[],
+): { read: ExerciseProgressPaceBucket["read"]; label: string; countLabel: string }[] {
+  return buckets.map((bucket) => ({
+    read: bucket.read,
+    label: bucket.label,
+    countLabel: `${bucket.count} (${bucket.percent}%)`,
+  }));
+}
+
 export function exerciseProgressPaceChartLabel(buckets: readonly ExerciseProgressPaceBucket[]): string {
   if (buckets.length === 0) {
     return "No exercise progress buckets yet.";

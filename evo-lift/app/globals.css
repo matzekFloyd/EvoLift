@@ -133,61 +133,49 @@ button:disabled {
 }
 
 .compact-activity-chart .recharts-surface,
-.compact-activity-chart .recharts-wrapper {
-  outline: none !important;
-}
-
-.compact-activity-chart :focus-visible {
+.compact-activity-chart .recharts-wrapper,
+.compact-activity-chart .recharts-surface:focus-visible,
+.compact-activity-chart .recharts-wrapper:focus-visible {
   outline: none !important;
   box-shadow: none !important;
 }
 
 .insights-weekly-chart .recharts-surface,
-.insights-weekly-chart .recharts-wrapper {
-  outline: none !important;
-}
-
-.insights-weekly-chart :focus-visible {
+.insights-weekly-chart .recharts-wrapper,
+.insights-weekly-chart .recharts-surface:focus-visible,
+.insights-weekly-chart .recharts-wrapper:focus-visible {
   outline: none !important;
   box-shadow: none !important;
 }
 
 .exercise-weight-progress-chart .recharts-surface,
-.exercise-weight-progress-chart .recharts-wrapper {
-  outline: none !important;
-}
-
-.exercise-weight-progress-chart :focus-visible {
+.exercise-weight-progress-chart .recharts-wrapper,
+.exercise-weight-progress-chart .recharts-surface:focus-visible,
+.exercise-weight-progress-chart .recharts-wrapper:focus-visible {
   outline: none !important;
   box-shadow: none !important;
 }
 
 .exercise-session-volume-chart .recharts-surface,
-.exercise-session-volume-chart .recharts-wrapper {
-  outline: none !important;
-}
-
-.exercise-session-volume-chart :focus-visible {
+.exercise-session-volume-chart .recharts-wrapper,
+.exercise-session-volume-chart .recharts-surface:focus-visible,
+.exercise-session-volume-chart .recharts-wrapper:focus-visible {
   outline: none !important;
   box-shadow: none !important;
 }
 
 .exercise-session-e1rm-chart .recharts-surface,
-.exercise-session-e1rm-chart .recharts-wrapper {
-  outline: none !important;
-}
-
-.exercise-session-e1rm-chart :focus-visible {
+.exercise-session-e1rm-chart .recharts-wrapper,
+.exercise-session-e1rm-chart .recharts-surface:focus-visible,
+.exercise-session-e1rm-chart .recharts-wrapper:focus-visible {
   outline: none !important;
   box-shadow: none !important;
 }
 
 .insights-compound-e1rm-chart .recharts-surface,
-.insights-compound-e1rm-chart .recharts-wrapper {
-  outline: none !important;
-}
-
-.insights-compound-e1rm-chart :focus-visible {
+.insights-compound-e1rm-chart .recharts-wrapper,
+.insights-compound-e1rm-chart .recharts-surface:focus-visible,
+.insights-compound-e1rm-chart .recharts-wrapper:focus-visible {
   outline: none !important;
   box-shadow: none !important;
 }

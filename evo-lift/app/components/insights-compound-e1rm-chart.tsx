@@ -12,6 +12,8 @@ import {
 } from "recharts";
 import type { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
 import { ChartResponsiveContainer } from "@/app/components/chart-responsive-container";
+import { ChartTextAlternative } from "@/app/components/chart-text-alternative";
+import { compoundE1rmChartText } from "@/app/components/chart-text-data";
 import { formatKgTick } from "@/app/components/exercise-weight-progress-format";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import type { InsightsCompoundE1rmSeries } from "@/lib/insights-compound-e1rm";
@@ -97,9 +99,14 @@ function CompoundE1rmMiniChart({ item }: { item: InsightsCompoundE1rmSeries }) {
       <div
         className="insights-compound-e1rm-chart relative mt-2 h-36 w-full sm:h-40"
         style={{ WebkitTapHighlightColor: "transparent" }}
+        aria-hidden
       >
         <ChartResponsiveContainer initialDimension={{ width: 280, height: 144 }}>
-          <LineChart data={chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+          <LineChart
+            accessibilityLayer={false}
+            data={chartData}
+            margin={{ top: 4, right: 4, left: 0, bottom: 0 }}
+          >
             <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
             <XAxis
               dataKey="xTickLabel"
@@ -127,6 +134,9 @@ function CompoundE1rmMiniChart({ item }: { item: InsightsCompoundE1rmSeries }) {
             />
           </LineChart>
         </ChartResponsiveContainer>
+      </div>
+      <div className="mt-2">
+        <ChartTextAlternative model={compoundE1rmChartText(item.shortLabel, item.points)} />
       </div>
     </div>
   );

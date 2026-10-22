@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState } from "react";
 import {
   CartesianGrid,
-  Legend,
   Line,
   LineChart,
   Tooltip,
@@ -13,6 +12,8 @@ import {
 } from "recharts";
 import type { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
 import { ChartResponsiveContainer } from "@/app/components/chart-responsive-container";
+import { ChartSeriesLegend, ChartTextAlternative } from "@/app/components/chart-text-alternative";
+import { exerciseWeightChartText } from "@/app/components/chart-text-data";
 import { SegmentedTabs } from "@/app/components/segmented-tabs";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { formatKgTick } from "@/app/components/exercise-weight-progress-format";
@@ -138,6 +139,7 @@ export function ExerciseWeightProgressChart({
             value={seriesMode}
             onChange={setSeriesMode}
             className="w-auto min-w-[10.5rem] shrink-0"
+            tabListAriaLabel="Chart series"
             buttonLayout="equal-row"
             buttonMinWidthClassName="min-w-0"
             options={[
@@ -149,12 +151,26 @@ export function ExerciseWeightProgressChart({
         )}
       </div>
 
+      {effectiveMode === "both" ? (
+        <ChartSeriesLegend
+          items={[
+            { key: "loaded", label: LINE_LOADED, swatchClassName: "h-0.5 w-4 bg-teal-700" },
+            { key: "total", label: LINE_TOTAL, swatchClassName: "h-0.5 w-4 bg-sky-600" },
+          ]}
+        />
+      ) : null}
+
       <div
         className="exercise-weight-progress-chart relative h-52 w-full sm:h-64"
         style={{ WebkitTapHighlightColor: "transparent" }}
+        aria-hidden
       >
         <ChartResponsiveContainer initialDimension={{ width: 320, height: 208 }}>
-          <LineChart data={chartData} margin={{ top: 8, right: 8, left: 0, bottom: 4 }}>
+          <LineChart
+            accessibilityLayer={false}
+            data={chartData}
+            margin={{ top: 8, right: 8, left: 0, bottom: 4 }}
+          >
             <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
             <XAxis
               dataKey="xTickLabel"
@@ -170,12 +186,6 @@ export function ExerciseWeightProgressChart({
               width={isCompactView ? 56 : 64}
             />
             <Tooltip content={renderTooltip} />
-            {effectiveMode === "both" ? (
-              <Legend
-                wrapperStyle={{ fontSize: 12 }}
-                formatter={(value) => <span className="text-zinc-700">{String(value)}</span>}
-              />
-            ) : null}
             {showTotal ? (
               <Line
                 type="monotone"
@@ -203,6 +213,7 @@ export function ExerciseWeightProgressChart({
           </LineChart>
         </ChartResponsiveContainer>
       </div>
+      <ChartTextAlternative model={exerciseWeightChartText(points, effectiveMode, assistance)} />
     </div>
   );
 }
