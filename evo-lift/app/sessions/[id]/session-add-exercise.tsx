@@ -72,12 +72,18 @@ function AddExerciseSuggestion({
     <TargetWeightSuggestion
       exerciseId={draft.exerciseId}
       plannedReps={draft.targetReps}
+      currentReps={draft.targetReps}
       currentWeightKg={draft.targetWeightKg}
       excludeSessionId={props.sessionId ?? null}
       enabled={targetSuggestionsEnabled(
         !props.targetSuggestionsDisabledExerciseIds.has(draft.exerciseId),
       )}
-      onApply={(weightKg) => setField("targetWeightKg", weightKg)}
+      onApply={({ weightKg, reps }) => {
+        setField("targetWeightKg", weightKg);
+        if (reps != null) {
+          setField("targetReps", reps);
+        }
+      }}
     />
   );
 }

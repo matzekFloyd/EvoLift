@@ -5,6 +5,7 @@ import type { AccountProfileSnapshot } from "@/lib/account-profile-cache";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { refillAccountCache } from "@/app/account/account-cache";
 import { localIsoDate } from "@/app/account/account-profile-form";
+import { accountFieldsChanged } from "@/app/account/account-section-dirty";
 import type { AccountSectionId } from "@/app/account/account-section";
 import type { BodyweightLogRow } from "@/app/account/bodyweight-log-panel";
 import { useAccountNotice } from "@/app/account/use-account-notice";
@@ -18,7 +19,14 @@ export function useAccountMetrics({
   cachedAccount: AccountProfileSnapshot | null;
   activeSection: AccountSectionId;
 }) {
-  const dirtyRef = useRef(false);
+  const initialFields = {
+    bodyweightKg: cachedAccount?.bodyweightKg ?? "",
+    heightCm: cachedAccount?.heightCm ?? "",
+    sex: cachedAccount?.sex ?? "",
+    dateOfBirth: cachedAccount?.dateOfBirth ?? "",
+  };
+  const savedRef = useRef(initialFields);
+  const currentRef = useRef(initialFields);
   const [, setHasProfileMetrics] = useState(cachedAccount?.hasProfileMetrics ?? false);
   const [bodyweightKg, setBodyweightKg] = useState(cachedAccount?.bodyweightKg ?? "");
   const [bodyweightLog, setBodyweightLog] = useState<BodyweightLogRow[]>(cachedAccount?.bodyweightLog ?? []);
@@ -27,14 +35,28 @@ export function useAccountMetrics({
   const [dateOfBirth, setDateOfBirth] = useState(cachedAccount?.dateOfBirth ?? "");
   const [birthYearFallback, setBirthYearFallback] = useState<number | null>(cachedAccount?.birthYearFallback ?? null);
   const [isSaving, setIsSaving] = useState(false);
-  const notice = useAccountNotice("success");
+  const notice = useAccountNotice("error");
   const clearNotice = notice.clear;
+  const currentFields = { bodyweightKg, heightCm, sex, dateOfBirth };
+  currentRef.current = currentFields;
+  const canSave = accountFieldsChanged(savedRef.current, currentFields);
 
   useEffect(() => {
     clearNotice();
   }, [activeSection, clearNotice]);
 
+  function rememberSaved(next: typeof initialFields) {
+    savedRef.current = next;
+    currentRef.current = next;
+  }
+
   function applySnapshot(snapshot: AccountProfileSnapshot) {
+    rememberSaved({
+      bodyweightKg: snapshot.bodyweightKg,
+      heightCm: snapshot.heightCm,
+      sex: snapshot.sex,
+      dateOfBirth: snapshot.dateOfBirth,
+    });
     setHasProfileMetrics(snapshot.hasProfileMetrics);
     setBodyweightLog(snapshot.bodyweightLog);
     setBodyweightKg(snapshot.bodyweightKg);
@@ -125,12 +147,13 @@ export function useAccountMetrics({
       }
     }
 
-    notice.show("success", "Body metrics saved.");
-    setBodyweightKg(latestBodyweight == null ? "" : String(latestBodyweight.bodyweightKg));
+    const displayedBodyweight = latestBodyweight == null ? "" : String(latestBodyweight.bodyweightKg);
+    rememberSaved({ bodyweightKg: displayedBodyweight, heightCm, sex, dateOfBirth });
+    setBodyweightKg(displayedBodyweight);
     if (parsed.value.date_of_birth) {
       setBirthYearFallback(null);
     }
-    dirtyRef.current = false;
+    notice.clear();
     refillAccountCache(userId);
     setIsSaving(false);
   }
@@ -159,7 +182,9 @@ export function useAccountMetrics({
       }
       setHasProfileMetrics(true);
     }
-    setBodyweightKg(bodyweight_kg == null ? "" : String(bodyweight_kg));
+    const displayedBodyweight = bodyweight_kg == null ? "" : String(bodyweight_kg);
+    setBodyweightKg(displayedBodyweight);
+    savedRef.current = { ...savedRef.current, bodyweightKg: displayedBodyweight };
     refillAccountCache(userId);
     return null;
   }
@@ -228,11 +253,9 @@ export function useAccountMetrics({
     setDateOfBirth,
     birthYearFallback,
     isSaving,
+    canSave,
     notice,
-    isDirty: () => dirtyRef.current,
-    markDirty: () => {
-      dirtyRef.current = true;
-    },
+    isDirty: () => accountFieldsChanged(savedRef.current, currentRef.current),
     applySnapshot,
     handleSubmit,
     saveBodyweightEntry,

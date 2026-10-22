@@ -45,6 +45,7 @@ describe("account profile cache", () => {
         error: null,
       },
       user_exercise_defaults: { data: [], error: null },
+      app_users: { data: { double_progression: true }, error: null },
     });
     const first = await loadAccountProfile(client as never, "user-1");
     const second = await loadAccountProfile(client as never, "user-1");
@@ -56,6 +57,7 @@ describe("account profile cache", () => {
     assert.equal(peekAccountProfile("user-1")?.birthYearFallback, 1990);
     assert.deepEqual(peekAccountProfile("user-1")?.hiddenExerciseIds, ["ex-1"]);
     assert.equal(peekAccountProfile("user-1")?.exerciseOptions[0]?.label, "Back Squat");
+    assert.equal(peekAccountProfile("user-1")?.doubleProgression, true);
   });
 
   it("names a profile load failure", async () => {
@@ -66,6 +68,7 @@ describe("account profile cache", () => {
       user_bodyweight_log: { data: [], error: null },
       user_hidden_exercises: { data: [], error: null },
       user_exercise_defaults: { data: [], error: null },
+      app_users: { data: null, error: null },
     });
     assert.equal((await loadAccountProfile(client as never, "user-1")).error, "profile");
   });

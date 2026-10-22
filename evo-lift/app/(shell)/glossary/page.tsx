@@ -38,6 +38,11 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
       "A named step in a plan, such as Day A or Push. It has its own exercises and targets. Days repeat in order.",
   },
   {
+    term: "Double progression",
+    definition:
+      "An optional target suggestion for the next session. It stays off until you turn it on under Account. When every working set hits the rep target, the next suggestion adds 2 reps at the same weight. After that higher target is hit, the next suggestion adds weight and goes back to the lower reps.",
+  },
+  {
     term: "Exercise",
     definition: "A movement inside a workout session, such as Barbell Back Squat.",
   },

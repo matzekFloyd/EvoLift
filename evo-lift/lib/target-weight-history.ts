@@ -10,6 +10,7 @@ type SessionExerciseHistoryRow = {
   id: string;
   session_id: string;
   target_weight_kg: number | null;
+  target_reps: number | null;
 };
 
 type SetHistoryRow = {
@@ -42,7 +43,7 @@ export async function loadTargetWeightHistory(
     (from, to) =>
       client
         .from("workout_session_exercises")
-        .select("id, session_id, target_weight_kg")
+        .select("id, session_id, target_weight_kg, target_reps")
         .eq("exercise_id", exerciseId)
         .order("id", { ascending: true })
         .range(from, to),
@@ -104,6 +105,10 @@ export async function loadTargetWeightHistory(
       loadedKg: setRow.weight_kg,
       isWarmup: setRow.is_warmup,
       targetWeightKg: sessionExercise.target_weight_kg,
+      targetReps:
+        sessionExercise.target_reps == null || !Number.isFinite(Number(sessionExercise.target_reps))
+          ? null
+          : Number(sessionExercise.target_reps),
     });
   }
   return history;

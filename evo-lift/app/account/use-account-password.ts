@@ -3,6 +3,7 @@ import { friendlyAuthError } from "@/lib/friendly-auth-error";
 import { reportSecurityEvent } from "@/lib/report-security-event";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { accountPasswordUpdateError, CURRENT_PASSWORD_INCORRECT } from "@/app/account/account-form";
+import { accountPasswordChanged } from "@/app/account/account-section-dirty";
 import type { AccountSectionId } from "@/app/account/account-section";
 import { useAccountNotice } from "@/app/account/use-account-notice";
 
@@ -77,7 +78,7 @@ export function useAccountPassword({
       });
     }
 
-    notice.show("success", "Password updated successfully.");
+    notice.clear();
     setCurrentPassword("");
     setNewPassword("");
     setConfirmNewPassword("");
@@ -92,6 +93,7 @@ export function useAccountPassword({
     confirmNewPassword,
     setConfirmNewPassword,
     isSaving,
+    canSave: accountPasswordChanged({ currentPassword, newPassword, confirmNewPassword }),
     notice,
     handleSubmit,
   };

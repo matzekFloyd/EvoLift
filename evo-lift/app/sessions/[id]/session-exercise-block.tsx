@@ -286,10 +286,16 @@ export function SessionExerciseBlock({
           <TargetWeightSuggestion
             exerciseId={sessionExercise.exercise_id}
             plannedReps={targetsReps}
+            currentReps={targetsReps}
             currentWeightKg={targetsWeightKg}
             excludeSessionId={sessionId}
             enabled={targetSuggestionsEnabled(suggestTarget)}
-            onApply={onTargetsWeightChange}
+            onApply={({ weightKg, reps }) => {
+              onTargetsWeightChange(weightKg);
+              if (reps != null) {
+                onTargetsRepsChange(reps);
+              }
+            }}
           />
           <div className="mt-3 flex justify-end gap-2">
             <button

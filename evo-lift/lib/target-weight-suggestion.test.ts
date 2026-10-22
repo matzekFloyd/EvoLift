@@ -2,10 +2,14 @@ import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 import {
   LOG_WORKING_SET_MESSAGE,
+  MIXED_LOAD_MESSAGE,
+  MIXED_REPS_MESSAGE,
   NEED_TARGET_REPS_MESSAGE,
   REP_TARGET_MISMATCH_RATIONALE,
   THIN_HISTORY_MESSAGE,
+  doubleProgressionEnabled,
   suggestTargetWeight,
+  suggestionMatchesTarget,
   targetSuggestionsEnabled,
   type TargetWeightHistorySet,
 } from "./target-weight-suggestion";
@@ -28,6 +32,7 @@ function historySet(overrides: Partial<TargetWeightHistorySet> = {}): TargetWeig
     loadedKg: 60,
     isWarmup: false,
     targetWeightKg: 60,
+    targetReps: null,
     ...overrides,
   };
 }
@@ -36,8 +41,15 @@ function suggest(
   sets: TargetWeightHistorySet[],
   plannedReps: number | null = 8,
   excludeSessionId: string | null = null,
+  doubleProgression = false,
 ) {
-  return suggestTargetWeight({ sets, plannedReps, excludeSessionId, today: TODAY });
+  return suggestTargetWeight({
+    sets,
+    plannedReps,
+    excludeSessionId,
+    today: TODAY,
+    doubleProgression,
+  });
 }
 
 describe("targetSuggestionsEnabled", () => {
@@ -45,6 +57,38 @@ describe("targetSuggestionsEnabled", () => {
     assert.equal(targetSuggestionsEnabled(undefined), true);
     assert.equal(targetSuggestionsEnabled(true), true);
     assert.equal(targetSuggestionsEnabled(false), false);
+  });
+});
+
+describe("doubleProgressionEnabled", () => {
+  it("stays off unless the account turns it on", () => {
+    assert.equal(doubleProgressionEnabled(undefined), false);
+    assert.equal(doubleProgressionEnabled(null), false);
+    assert.equal(doubleProgressionEnabled(false), false);
+    assert.equal(doubleProgressionEnabled(true), true);
+  });
+});
+
+describe("suggestionMatchesTarget", () => {
+  it("treats a rep change as not yet applied", () => {
+    assert.equal(
+      suggestionMatchesTarget({
+        currentWeightKg: "60",
+        suggestedKg: 60,
+        currentReps: "10",
+        suggestedReps: 12,
+      }),
+      false,
+    );
+    assert.equal(
+      suggestionMatchesTarget({
+        currentWeightKg: "60",
+        suggestedKg: 60,
+        currentReps: "12",
+        suggestedReps: 12,
+      }),
+      true,
+    );
   });
 });
 
@@ -436,6 +480,24 @@ describe("suggestTargetWeight", () => {
     assert.deepEqual(result, { status: "message", message: NEED_TARGET_REPS_MESSAGE });
   });
 
+  it("keeps the weight-only rule when double progression is off", () => {
+    const result = suggest(
+      [
+        historySet({ sessionId: "older", performedOn: daysBefore(14), sessionCreatedAt: `${daysBefore(14)}T10:00:00Z` }),
+        historySet({ sessionId: "newer", performedOn: daysBefore(3), sessionCreatedAt: `${daysBefore(3)}T10:00:00Z` }),
+      ],
+      8,
+      null,
+      false,
+    );
+
+    assert.deepEqual(result, {
+      status: "suggestion",
+      weightKg: 62.5,
+      rationale: "Last 2 sessions hit 8 reps at 60 kg.",
+    });
+  });
+
   it("treats loads within 0.25 kg as the same load", () => {
     const result = suggest([
       historySet({
@@ -458,5 +520,195 @@ describe("suggestTargetWeight", () => {
     if (result.status === "suggestion") {
       assert.equal(result.weightKg, 62.5);
     }
+  });
+});
+
+describe("double progression", () => {
+  function workingSets(
+    sessionId: string,
+    days: number,
+    reps: number[],
+    targetReps: number,
+    loadedKg = 60,
+  ): TargetWeightHistorySet[] {
+    return reps.map((setReps, index) =>
+      historySet({
+        sessionId,
+        performedOn: daysBefore(days),
+        sessionCreatedAt: `${daysBefore(days)}T10:00:00Z`,
+        setNumber: index + 1,
+        reps: setReps,
+        targetReps,
+        loadedKg,
+        targetWeightKg: loadedKg,
+      }),
+    );
+  }
+
+  it("suggests 2 more reps at the same weight when every working set hits 10", () => {
+    const result = suggest(workingSets("latest", 3, [10, 10, 10], 10), 10, null, true);
+
+    assert.deepEqual(result, {
+      status: "suggestion",
+      weightKg: 60,
+      reps: 12,
+      rationale: "Last session hit 10 reps at 60 kg. Next target is 12 reps at the same weight.",
+    });
+  });
+
+  it("adds weight and resets reps after the higher rep target is hit", () => {
+    const result = suggest(
+      [
+        ...workingSets("older", 14, [10, 10], 10),
+        ...workingSets("newer", 3, [12, 12], 12),
+      ],
+      12,
+      null,
+      true,
+    );
+
+    assert.deepEqual(result, {
+      status: "suggestion",
+      weightKg: 62.5,
+      reps: 10,
+      rationale: "Last session hit 12 reps at 60 kg. Next target is 10 reps at 62.5 kg.",
+    });
+  });
+
+  it("starts the rep step again after the weight increase", () => {
+    const result = suggest(
+      [
+        ...workingSets("first", 21, [10, 10], 10, 60),
+        ...workingSets("second", 14, [12, 12], 12, 60),
+        ...workingSets("third", 3, [10, 10], 10, 62.5),
+      ],
+      10,
+      null,
+      true,
+    );
+
+    assert.deepEqual(result, {
+      status: "suggestion",
+      weightKg: 62.5,
+      reps: 12,
+      rationale: "Last session hit 10 reps at 62.5 kg. Next target is 12 reps at the same weight.",
+    });
+  });
+
+  it("holds the rep target when one working set is one rep short", () => {
+    const result = suggest(workingSets("latest", 3, [10, 10, 9], 10), 10, null, true);
+
+    assert.deepEqual(result, {
+      status: "suggestion",
+      weightKg: 60,
+      reps: 10,
+      rationale: "Hold 10 reps at 60 kg until every working set hits it.",
+    });
+  });
+
+  it("lowers the weight when a working set misses by 2 reps", () => {
+    const result = suggest(workingSets("latest", 3, [10, 8], 10), 10, null, true);
+
+    assert.deepEqual(result, {
+      status: "suggestion",
+      weightKg: 57.5,
+      reps: 10,
+      rationale: "Last session missed 10 reps at 60 kg.",
+    });
+  });
+
+  it("ignores a heavier warmup when the working sets hit", () => {
+    const result = suggest(
+      [
+        historySet({
+          sessionId: "latest",
+          performedOn: daysBefore(3),
+          sessionCreatedAt: `${daysBefore(3)}T10:00:00Z`,
+          setNumber: 1,
+          reps: 5,
+          loadedKg: 100,
+          isWarmup: true,
+          targetReps: 10,
+        }),
+        ...workingSets("latest", 3, [10, 10], 10),
+      ],
+      10,
+      null,
+      true,
+    );
+
+    assert.equal(result.status, "suggestion");
+    if (result.status === "suggestion") {
+      assert.equal(result.reps, 12);
+      assert.equal(result.weightKg, 60);
+    }
+  });
+
+  it("does not suggest a target when the last session mixed loads", () => {
+    const result = suggest(
+      [
+        historySet({
+          sessionId: "latest",
+          setNumber: 1,
+          reps: 10,
+          loadedKg: 60,
+          targetReps: 10,
+          performedOn: daysBefore(3),
+          sessionCreatedAt: `${daysBefore(3)}T10:00:00Z`,
+        }),
+        historySet({
+          sessionId: "latest",
+          setNumber: 2,
+          reps: 10,
+          loadedKg: 70,
+          targetReps: 10,
+          performedOn: daysBefore(3),
+          sessionCreatedAt: `${daysBefore(3)}T10:00:00Z`,
+        }),
+      ],
+      10,
+      null,
+      true,
+    );
+
+    assert.deepEqual(result, { status: "message", message: MIXED_LOAD_MESSAGE });
+  });
+
+  it("does not suggest a target when working sets do not share a rep target", () => {
+    const result = suggest(
+      [
+        historySet({
+          sessionId: "latest",
+          setNumber: 1,
+          reps: 10,
+          targetReps: 10,
+          performedOn: daysBefore(3),
+          sessionCreatedAt: `${daysBefore(3)}T10:00:00Z`,
+        }),
+        historySet({
+          sessionId: "latest",
+          setNumber: 2,
+          reps: 8,
+          targetReps: 8,
+          performedOn: daysBefore(3),
+          sessionCreatedAt: `${daysBefore(3)}T10:00:00Z`,
+        }),
+      ],
+      10,
+      null,
+      true,
+    );
+
+    assert.deepEqual(result, { status: "message", message: MIXED_REPS_MESSAGE });
+  });
+
+  it("still asks for a logged working set when history is empty", () => {
+    const result = suggest([], 10, null, true);
+    assert.deepEqual(result, { status: "message", message: LOG_WORKING_SET_MESSAGE });
+  });
+
+  it("ignores sessions older than 8 weeks", () => {
+    const result = suggest(workingSets("old", 57, [10, 10], 10), 10, null, true);
+    assert.deepEqual(result, { status: "message", message: THIN_HISTORY_MESSAGE });
   });
 });

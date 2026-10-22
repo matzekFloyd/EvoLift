@@ -60,10 +60,16 @@ export function SessionTargetsSheet({
         <TargetWeightSuggestion
           exerciseId={exerciseId}
           plannedReps={targetsReps}
+          currentReps={targetsReps}
           currentWeightKg={targetsWeightKg}
           excludeSessionId={sessionId ?? null}
           enabled={targetSuggestionsEnabled(!targetSuggestionsDisabledExerciseIds.has(exerciseId))}
-          onApply={onTargetsWeightChange}
+          onApply={({ weightKg, reps }) => {
+            onTargetsWeightChange(weightKg);
+            if (reps != null) {
+              onTargetsRepsChange(reps);
+            }
+          }}
         />
       ) : null}
       <div className="mt-4 flex gap-2">

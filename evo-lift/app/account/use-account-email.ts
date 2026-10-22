@@ -4,14 +4,17 @@ import { friendlyAuthError } from "@/lib/friendly-auth-error";
 import { reportSecurityEvent } from "@/lib/report-security-event";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { accountEmailUpdateError, normalizeAccountEmail } from "@/app/account/account-form";
+import { accountEmailChanged } from "@/app/account/account-section-dirty";
 import type { AccountSectionId } from "@/app/account/account-section";
 import { useAccountNotice } from "@/app/account/use-account-notice";
 
 export function useAccountEmail({
   accessToken,
+  userEmail,
   activeSection,
 }: {
   accessToken: string | null;
+  userEmail: string | null;
   activeSection: AccountSectionId;
 }) {
   const [newEmail, setNewEmail] = useState("");
@@ -57,12 +60,19 @@ export function useAccountEmail({
       });
     }
 
-    notice.show("success", "Email update requested. Please check your inbox to confirm the change.");
+    notice.clear();
     setNewEmail("");
     setIsSaving(false);
   }
 
-  return { newEmail, setNewEmail, isSaving, notice, handleSubmit };
+  return {
+    newEmail,
+    setNewEmail,
+    isSaving,
+    canSave: accountEmailChanged(userEmail, newEmail),
+    notice,
+    handleSubmit,
+  };
 }
 
 export type AccountEmailState = ReturnType<typeof useAccountEmail>;

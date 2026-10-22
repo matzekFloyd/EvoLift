@@ -20,8 +20,8 @@ export function AccountMetricsSection({ metrics }: { metrics: AccountMetricsStat
     setDateOfBirth,
     birthYearFallback,
     isSaving,
+    canSave,
     notice,
-    markDirty,
     handleSubmit,
     saveBodyweightEntry,
     removeBodyweightEntry,
@@ -38,7 +38,7 @@ export function AccountMetricsSection({ metrics }: { metrics: AccountMetricsStat
         icon={<UserRound className="h-4 w-4 text-zinc-500" />}
       />
       <SettingsSectionBody>
-        <form onSubmit={handleSubmit} onChange={markDirty} className="space-y-3">
+        <form onSubmit={handleSubmit} className="space-y-3">
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block text-sm font-medium">
               Sex
@@ -110,7 +110,7 @@ export function AccountMetricsSection({ metrics }: { metrics: AccountMetricsStat
               <div className="hidden sm:block" aria-hidden />
               <button
                 type="submit"
-                disabled={isSaving}
+                disabled={isSaving || !canSave}
                 className="inline-flex h-10 w-full items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-3 py-2 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60"
               >
                 <Save className="h-3.5 w-3.5 text-white" />

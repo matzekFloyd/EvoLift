@@ -212,8 +212,14 @@ export function WorkoutExerciseDraftList({
       <TargetWeightSuggestion
         exerciseId={row.exerciseId}
         plannedReps={row.targetReps}
+        currentReps={row.targetReps}
         currentWeightKg={row.targetWeightKg}
-        onApply={(weightKg) => updateExerciseRow(index, "targetWeightKg", weightKg)}
+        onApply={({ weightKg, reps }) => {
+          updateExerciseRow(index, "targetWeightKg", weightKg);
+          if (reps != null) {
+            updateExerciseRow(index, "targetReps", reps);
+          }
+        }}
       />
     );
   }

@@ -23,6 +23,8 @@ export type AccountProfileSnapshot = {
   sex: string;
   dateOfBirth: string;
   birthYearFallback: number | null;
+  /** Account switch. Missing or false stays off. */
+  doubleProgression: boolean;
 };
 
 export type AccountProfileLoadFailure = "profile" | "hidden" | "exercises" | "defaults";
@@ -80,7 +82,7 @@ async function fetchAccountProfile(
     throw new Error("exercises");
   }
 
-  const [profileResult, hiddenResult, logResult, defaultsResult] = await Promise.all([
+  const [profileResult, hiddenResult, logResult, defaultsResult, userResult] = await Promise.all([
     client
       .from("user_profile_metrics")
       .select("bodyweight_kg,height_cm,birth_year,sex,date_of_birth")
@@ -93,9 +95,10 @@ async function fetchAccountProfile(
       .eq("user_id", userId)
       .order("logged_on", { ascending: false }),
     client.from("user_exercise_defaults").select("*").eq("user_id", userId),
+    client.from("app_users").select("double_progression").eq("id", userId).maybeSingle(),
   ]);
 
-  if (profileResult.error || logResult.error) {
+  if (profileResult.error || logResult.error || userResult.error) {
     throw new Error("profile");
   }
   if (hiddenResult.error) {
@@ -128,5 +131,6 @@ async function fetchAccountProfile(
     sex: profile?.sex ?? "",
     dateOfBirth: profile?.date_of_birth ?? "",
     birthYearFallback: profile?.date_of_birth ? null : (profile?.birth_year ?? null),
+    doubleProgression: userResult.data?.double_progression === true,
   };
 }
