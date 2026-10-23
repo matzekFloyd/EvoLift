@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
-import { ArrowLeft, Dumbbell, LayoutList, LineChart } from "lucide-react";
+import { Dumbbell, LayoutList, LineChart } from "lucide-react";
 import { ContentPlaceholder } from "@/app/components/content-placeholder";
 import {
   EXERCISE_CHART_HEIGHT_CLASS,
@@ -41,6 +40,8 @@ import {
 } from "@/app/exercises/[slug]/exercise-chart-sections";
 import { ExerciseFiltersSection } from "@/app/exercises/[slug]/exercise-filters-section";
 import { ExerciseSetHistorySection } from "@/app/exercises/[slug]/exercise-set-history-section";
+import { MuscleAreaFigure } from "@/app/components/muscle-area-figure";
+import { exerciseDetailMuscleArea } from "@/app/exercises/[slug]/exercise-muscle-area-header";
 import { ExerciseSummarySection } from "@/app/exercises/[slug]/exercise-summary-section";
 import { ExerciseInsightPanel } from "@/app/components/lift-comparison-panel";
 import { DocumentTitle } from "@/app/components/document-title";
@@ -66,7 +67,6 @@ import { buildExerciseSessionE1rmChartPoints } from "@/lib/exercise-session-e1rm
 import { buildExerciseSessionVolumeChartPoints } from "@/lib/exercise-session-volume-chart";
 import { buildExerciseSessionWeightChartPoints } from "@/lib/exercise-session-weight-chart";
 import { createPageLoadPerfTracker } from "@/lib/page-load-perf";
-import { appPath } from "@/lib/app-paths";
 import { resolveLifterAge } from "@/lib/body-metrics";
 import { buildExerciseProgressReport, type LifterProfile } from "@/lib/exercise-progress-insights";
 import {
@@ -558,30 +558,33 @@ export default function ExerciseDetailPage() {
     setHistoryPage(1);
   }
 
+  const muscleArea = slug ? exerciseDetailMuscleArea(slug) : null;
+  const exerciseTitle = (
+    <h1 className="inline-flex min-w-0 max-w-full items-center gap-2 text-xl font-semibold tracking-tight">
+      <Dumbbell className="h-5 w-5 shrink-0 text-sky-700" aria-hidden />
+      <span className="inline-flex h-6 min-w-8 shrink-0 items-center justify-center rounded border border-zinc-300 bg-zinc-50 px-1 text-[10px] font-semibold tracking-wide text-zinc-700">
+        {slug ? toExerciseBadge(slug) : "EX"}
+      </span>
+      <span className="min-w-0 truncate">{exerciseLabel || slug}</span>
+    </h1>
+  );
+
   return (
     <PageShell>
       <DocumentTitle page={exerciseLabel.trim() ? exerciseLabel : null} />
       <section>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex min-w-0 items-center gap-2">
-            <h1 className="inline-flex min-w-0 items-center gap-2 text-xl font-semibold tracking-tight">
-              <Dumbbell className="h-5 w-5 shrink-0 text-sky-700" />
-              <span className="inline-flex h-6 min-w-8 shrink-0 items-center justify-center rounded border border-zinc-300 bg-zinc-50 px-1 text-[10px] font-semibold tracking-wide text-zinc-700">
-                {slug ? toExerciseBadge(slug) : "EX"}
-              </span>
-              <span className="truncate">{exerciseLabel || slug}</span>
-            </h1>
-          </div>
-          {isCompactView ? null : (
-            <Link
-              href={appPath("/exercises")}
-              className="inline-flex h-9 items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 text-sm text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
-            >
-              <ArrowLeft className="h-3.5 w-3.5 text-sky-700" />
-              Back to exercises
-            </Link>
-          )}
-        </div>
+        {muscleArea ? (
+          <MuscleAreaFigure
+            title={exerciseTitle}
+            label={muscleArea.label}
+            primaryLabel={muscleArea.primary}
+            secondaryLabel={muscleArea.secondary}
+            primary={muscleArea.primaryArea}
+            secondary={muscleArea.secondaryArea}
+          />
+        ) : (
+          exerciseTitle
+        )}
       </section>
 
       <section className="panel p-5">
