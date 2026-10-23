@@ -27,6 +27,7 @@ import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { buildExerciseProgressReport, type LifterProfile } from "@/lib/exercise-progress-insights";
 import { buildInsightsComparisonSentence } from "@/lib/insights-chart-summary";
+import { visibleInsightExerciseSets } from "@/lib/hidden-exercise-lists";
 import { buildInsightsCompoundE1rmSeries } from "@/lib/insights-compound-e1rm";
 import { resolveLifterAge } from "@/lib/body-metrics";
 import { loadExerciseMetadata } from "@/lib/exercise-metadata-cache";
@@ -84,6 +85,7 @@ export default function InsightsPage() {
   const [catalogExercises, setCatalogExercises] = useState<
     Array<{ id: string; slug: string; label: string }>
   >([]);
+  const [hiddenExerciseIds, setHiddenExerciseIds] = useState<Set<string>>(() => new Set());
   const [lifterProfile, setLifterProfile] = useState<LifterProfile>(emptyLifterProfile);
   const isMountedRef = useRef(true);
   const loadRequestRef = useRef(0);
@@ -110,13 +112,20 @@ export default function InsightsPage() {
       }
 
       try {
-        const [history, profile, catalog] = await Promise.all([
+        const [history, profile, catalog, hiddenResult] = await Promise.all([
           loadCachedInsightsHistory(supabaseBrowserClient, session.user.id, historyWindow, {
             fresh: mode === "refresh",
           }),
           loadUserStrengthProfile(supabaseBrowserClient, session.user.id),
           loadExerciseMetadata(supabaseBrowserClient, { ttlMs: 5 * 60 * 1000 }),
+          supabaseBrowserClient
+            .from("user_hidden_exercises")
+            .select("exercise_id")
+            .eq("user_id", session.user.id),
         ]);
+        if (hiddenResult.error) {
+          throw new Error("Could not load exercise visibility.");
+        }
         const points = history.activity;
         const weekly = history.weekly;
         const sets = history.exerciseSets;
@@ -131,6 +140,7 @@ export default function InsightsPage() {
         setWeeklyVolumeBase(weekly);
         setExerciseSets(sets);
         setCatalogExercises(catalog.map((row) => ({ id: row.id, slug: row.slug, label: row.label })));
+        setHiddenExerciseIds(new Set((hiddenResult.data ?? []).map((row) => row.exercise_id)));
         setLifterProfile({
           sex: profile.sex,
           bodyweightKg: profile.bodyweightKg,
@@ -306,13 +316,18 @@ export default function InsightsPage() {
     [comparisonPeriodName, dateFrom, dateTo, weeklyVolumeBase, weeklyVolumeFiltered],
   );
 
+  const listedExerciseSets = useMemo(
+    () => visibleInsightExerciseSets(exerciseSets, hiddenExerciseIds),
+    [exerciseSets, hiddenExerciseIds],
+  );
+
   const exerciseProgress = useMemo(
-    () => buildExerciseProgressReport(exerciseSets, { from: dateFrom, to: dateTo }, lifterProfile),
-    [dateFrom, dateTo, exerciseSets, lifterProfile],
+    () => buildExerciseProgressReport(listedExerciseSets, { from: dateFrom, to: dateTo }, lifterProfile),
+    [dateFrom, dateTo, listedExerciseSets, lifterProfile],
   );
 
   const compoundE1rmSeries = useMemo(() => {
-    const inRange = exerciseSets.filter((sample) => {
+    const inRange = listedExerciseSets.filter((sample) => {
       if (dateFrom && sample.performedOn < dateFrom) {
         return false;
       }
@@ -322,12 +337,12 @@ export default function InsightsPage() {
       return true;
     });
     return buildInsightsCompoundE1rmSeries(inRange);
-  }, [dateFrom, dateTo, exerciseSets]);
+  }, [dateFrom, dateTo, listedExerciseSets]);
 
   const personalBestRows = useMemo(
     () =>
-      buildPersonalBestRows(catalogExercises, exerciseSets),
-    [catalogExercises, exerciseSets],
+      buildPersonalBestRows(catalogExercises, listedExerciseSets),
+    [catalogExercises, listedExerciseSets],
   );
 
   const hasTrendChartData = weeklyVolumeFiltered.length > 0;
