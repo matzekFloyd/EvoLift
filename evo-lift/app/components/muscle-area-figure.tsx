@@ -1,6 +1,10 @@
 "use client";
 
 import { useId, type ReactNode } from "react";
+import {
+  MUSCLE_AREA_PRIMARY_FILLS,
+  type MuscleAreaMark,
+} from "@/lib/muscle-area-coverage";
 import type { MuscleArea } from "@/lib/muscle-areas";
 import {
   BODY_ELLIPSES,
@@ -37,33 +41,44 @@ function HatchPattern({ id, size }: { id: string; size: number }) {
   );
 }
 
-function regionPaint(role: MuscleFigureRole, pattern: string): { className: string; fill?: string } {
-  if (role === "primary") {
-    return { className: "fill-sky-600 stroke-sky-800" };
+type RegionPaint = {
+  role: MuscleFigureRole;
+  /** Primary fill. Omitted primary uses the single-exercise sky. */
+  className?: string;
+};
+
+function regionPaint(paint: RegionPaint, pattern: string): { className: string; fill?: string } {
+  if (paint.role === "primary") {
+    return { className: paint.className ?? "fill-sky-600 stroke-sky-800" };
   }
-  if (role === "secondary") {
+  if (paint.role === "secondary") {
     return { className: "stroke-sky-700", fill: `url(#${pattern})` };
   }
   return { className: "fill-white stroke-zinc-500" };
 }
 
+function backSpineClass(paint: RegionPaint): string {
+  const primaryClass = paint.className ?? "fill-sky-600";
+  const darkPrimary = paint.role === "primary" && /sky-[6-9]00/.test(primaryClass);
+  return darkPrimary ? "fill-none stroke-white" : "fill-none stroke-zinc-500";
+}
+
 function BodySvg({
   side,
   muscles,
-  primary,
-  secondary,
+  paintFor,
+  figureClassName = "h-16 w-auto",
 }: {
   side: MuscleFigureSide;
   muscles: readonly MuscleEllipse[];
-  primary: MuscleArea;
-  secondary: MuscleArea | null;
+  paintFor: (area: MuscleArea) => RegionPaint;
+  figureClassName?: string;
 }) {
   const pattern = hatchId(useId());
-  const tagged = { primary, secondary };
-  const needsHatch = muscles.some((shape) => muscleFigureRole(shape.area, tagged) === "secondary");
+  const needsHatch = muscles.some((shape) => paintFor(shape.area).role === "secondary");
 
   return (
-    <svg viewBox={MUSCLE_FIGURE_VIEW_BOX} className="h-16 w-auto" aria-hidden>
+    <svg viewBox={MUSCLE_FIGURE_VIEW_BOX} className={figureClassName} aria-hidden>
       {needsHatch ? (
         <defs>
           <HatchPattern id={pattern} size={8} />
@@ -81,7 +96,7 @@ function BodySvg({
         />
       ))}
       {muscles.map((shape) => {
-        const paint = regionPaint(muscleFigureRole(shape.area, tagged), pattern);
+        const paint = regionPaint(paintFor(shape.area), pattern);
         return (
           <ellipse
             key={`${shape.area}-${shape.cx}-${shape.cy}`}
@@ -100,9 +115,7 @@ function BodySvg({
       ) : (
         <path
           d="M60 62 v48"
-          className={
-            muscleFigureRole("back", tagged) === "rest" ? "fill-none stroke-zinc-500" : "fill-none stroke-white"
-          }
+          className={backSpineClass(paintFor("back"))}
           strokeWidth="2"
           strokeLinecap="round"
         />
@@ -113,7 +126,7 @@ function BodySvg({
 
 function MuscleSwatch({ role }: { role: "primary" | "secondary" }) {
   const pattern = hatchId(useId());
-  const paint = regionPaint(role, pattern);
+  const paint = regionPaint({ role }, pattern);
   return (
     <svg aria-hidden viewBox="0 0 12 12" className="h-3 w-3 shrink-0">
       {role === "secondary" ? (
@@ -164,6 +177,13 @@ function MuscleLegend({
   );
 }
 
+function exercisePaint(primary: MuscleArea, secondary: MuscleArea | null) {
+  return (area: MuscleArea): RegionPaint => {
+    const role = muscleFigureRole(area, { primary, secondary });
+    return { role };
+  };
+}
+
 function MuscleBodies({
   primary,
   secondary,
@@ -171,16 +191,93 @@ function MuscleBodies({
   primary: MuscleArea;
   secondary: MuscleArea | null;
 }) {
+  const paintFor = exercisePaint(primary, secondary);
   return (
     <div className="flex shrink-0 items-end gap-2">
       <div className="flex flex-col items-center">
-        <BodySvg side="front" muscles={FRONT_MUSCLE_PATHS} primary={primary} secondary={secondary} />
+        <BodySvg side="front" muscles={FRONT_MUSCLE_PATHS} paintFor={paintFor} />
         <span className="text-[11px] leading-none text-zinc-600">Front</span>
       </div>
       <div className="flex flex-col items-center">
-        <BodySvg side="rear" muscles={REAR_MUSCLE_PATHS} primary={primary} secondary={secondary} />
+        <BodySvg side="rear" muscles={REAR_MUSCLE_PATHS} paintFor={paintFor} />
         <span className="text-[11px] leading-none text-zinc-600">Rear</span>
       </div>
+    </div>
+  );
+}
+
+type CoverageAreaPaint = {
+  area: MuscleArea;
+  mark: MuscleAreaMark;
+  shade: number;
+};
+
+function coveragePaint(areas: readonly CoverageAreaPaint[]) {
+  const byArea = new Map(areas.map((item) => [item.area, item]));
+  return (area: MuscleArea): RegionPaint => {
+    const item = byArea.get(area);
+    if (!item || item.mark === "missing") {
+      return { role: "rest" };
+    }
+    if (item.mark === "secondary") {
+      return { role: "secondary" };
+    }
+    return {
+      role: "primary",
+      className: MUSCLE_AREA_PRIMARY_FILLS[item.shade] ?? MUSCLE_AREA_PRIMARY_FILLS.at(-1),
+    };
+  };
+}
+
+/** Front and rear body for every area in a plan or template. */
+export function MuscleAreaCoverageBodies({ areas }: { areas: readonly CoverageAreaPaint[] }) {
+  const paintFor = coveragePaint(areas);
+  return (
+    <div className="flex w-fit items-center justify-self-center gap-4 sm:flex-col sm:items-start sm:justify-self-start sm:gap-2">
+      <div className="flex items-end gap-3">
+        <div className="flex flex-col items-center">
+          <BodySvg
+            side="front"
+            muscles={FRONT_MUSCLE_PATHS}
+            paintFor={paintFor}
+            figureClassName="h-40 w-auto"
+          />
+          <span className="text-[11px] leading-none text-zinc-600">Front</span>
+        </div>
+        <div className="flex flex-col items-center">
+          <BodySvg
+            side="rear"
+            muscles={REAR_MUSCLE_PATHS}
+            paintFor={paintFor}
+            figureClassName="h-40 w-auto"
+          />
+          <span className="text-[11px] leading-none text-zinc-600">Rear</span>
+        </div>
+      </div>
+      <ul className="flex flex-col gap-1.5 text-xs text-zinc-600 sm:flex-row sm:flex-wrap sm:gap-x-3 sm:gap-y-1">
+        <li className="inline-flex items-center gap-1.5">
+          <MuscleSwatch role="primary" />
+          Primary
+        </li>
+        <li className="inline-flex items-center gap-1.5">
+          <MuscleSwatch role="secondary" />
+          Secondary
+        </li>
+        <li className="inline-flex items-center gap-1.5">
+          <svg aria-hidden viewBox="0 0 12 12" className="h-3 w-3 shrink-0">
+            <rect
+              x="0.6"
+              y="0.6"
+              width="10.8"
+              height="10.8"
+              rx="1.5"
+              className="fill-white stroke-zinc-500"
+              strokeWidth="1"
+            />
+          </svg>
+          Missing
+        </li>
+      </ul>
     </div>
   );
 }

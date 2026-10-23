@@ -1,10 +1,15 @@
 "use client";
 
-import { ArrowLeft, FileStack } from "lucide-react";
-import Link from "next/link";
-import { useEffect, useState } from "react";
+import { ArrowLeft } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
+import {
+  EditorHeading,
+  OptionalNotesField,
+  RequiredMark,
+} from "@/app/components/editor-chrome";
+import { editorTitle } from "@/app/components/editor-fields";
 import { ContentPlaceholder } from "@/app/components/content-placeholder";
 import {
   EDITOR_PLACEHOLDER_CLASS,
@@ -27,7 +32,11 @@ import {
   createUserTemplate,
   updateUserTemplate,
 } from "@/server/actions/templates";
-import { getTemplateDraftStorageKey, templateSaveError } from "@/app/templates/template-draft";
+import {
+  getTemplateDraftStorageKey,
+  templateDraftChanged,
+  templateSaveError,
+} from "@/app/templates/template-draft";
 import type { WorkoutTemplateWithExercises } from "@/server/db/templates";
 
 type ExerciseDefaultsRow = Database["public"]["Tables"]["user_exercise_defaults"]["Row"];
@@ -68,9 +77,23 @@ export function TemplateEditorClient(props: Props) {
   const [message, setMessage] = useState<string | null>(null);
   const [messageTone, setMessageTone] = useState<"error" | "success">("error");
   const [isSaving, setIsSaving] = useState(false);
+  const savedTemplate = useRef(
+    props.mode === "edit"
+      ? {
+          name: props.initial.name,
+          notes: props.initial.notes ?? "",
+          exerciseRows: exerciseDraftRowsFromTemplateLines(props.initial.exercises),
+        }
+      : null,
+  );
+  const canSave =
+    props.mode === "create" ||
+    (savedTemplate.current != null &&
+      templateDraftChanged(savedTemplate.current, { name, notes, exerciseRows }));
 
   const maxNotesLength = 500;
-  const title = props.mode === "create" ? "New template" : "Edit template";
+  const fallbackTitle = props.mode === "create" ? "New template" : "Edit template";
+  const title = editorTitle(name, fallbackTitle);
 
   function showError(text: string) {
     setMessageTone("error");
@@ -272,28 +295,20 @@ export function TemplateEditorClient(props: Props) {
     router.push(appPath("/templates"));
   }
 
+  const back = (
+    <ActionButton type="button" onClick={goBack} variant="secondary" size="md">
+      <ArrowLeft className="h-4 w-4" />
+      Back
+    </ActionButton>
+  );
+
   if (isChecking) {
     return (
       <PageShell>
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="inline-flex items-center gap-2 text-2xl font-semibold tracking-tight">
-            <FileStack className="h-6 w-6 text-sky-700" />
-            {title}
-          </h1>
-          <ActionButton type="button" onClick={goBack} variant="secondary" size="md" className="max-md:hidden">
-            <ArrowLeft className="h-4 w-4 text-sky-700" />
-            Back
-          </ActionButton>
-        </div>
-        <p className="mt-2 text-sm text-zinc-600">
-          Templates save exercise order, targets, and notes so you can start a workout session quickly.
-          <Link
-            href={appPath("/sessions/new")}
-            className="ml-1 font-medium text-sky-800 underline-offset-2 hover:underline"
-          >
-            Plan a session
-          </Link>
-        </p>
+        <EditorHeading title={title} back={back} />
+        {props.mode === "create" ? (
+          <p className="mt-2 text-sm text-zinc-600">Add the exercises in the order you train them.</p>
+        ) : null}
         <ContentPlaceholder
           label="Checking session..."
           rows={EDITOR_PLACEHOLDER_ROWS}
@@ -306,34 +321,15 @@ export function TemplateEditorClient(props: Props) {
 
   return (
     <PageShell>
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="inline-flex items-center gap-2 text-2xl font-semibold tracking-tight">
-          <FileStack className="h-6 w-6 text-sky-700" />
-          {title}
-        </h1>
-        <ActionButton type="button" onClick={goBack} variant="secondary" size="md" className="max-md:hidden">
-          <ArrowLeft className="h-4 w-4 text-sky-700" />
-          Back
-        </ActionButton>
-      </div>
-
-      <p className="mt-2 text-sm text-zinc-600">
-        Templates save exercise order, targets, and notes so you can start a workout session quickly.
-        <Link
-          href={appPath("/sessions/new")}
-          className="ml-1 font-medium text-sky-800 underline-offset-2 hover:underline"
-        >
-          Plan a session
-        </Link>
-      </p>
+      <EditorHeading title={title} back={back} />
+      {props.mode === "create" ? (
+        <p className="mt-2 text-sm text-zinc-600">Add the exercises in the order you train them.</p>
+      ) : null}
 
       <form onSubmit={(e) => void handleSubmit(e)} className="mt-6 space-y-4 text-sm">
         <label className="block font-medium">
           Template name
-          <span className="text-sky-700" aria-hidden>
-            {" "}
-            *
-          </span>
+          <RequiredMark />
           <input
             required
             value={name}
@@ -344,19 +340,13 @@ export function TemplateEditorClient(props: Props) {
           />
         </label>
 
-        <label className="block font-medium">
-          Template notes (optional)
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            className="mt-1 h-24 w-full rounded-md border px-3 py-2 text-sm"
-            maxLength={maxNotesLength}
-            placeholder="Optional notes for this template"
-          />
-          <span className="mt-1 block text-xs text-zinc-500">
-            {notes.length}/{maxNotesLength}
-          </span>
-        </label>
+        <OptionalNotesField
+          addLabel="Add template notes"
+          value={notes}
+          onChange={setNotes}
+          maxLength={maxNotesLength}
+          placeholder="Optional notes for this template"
+        />
 
         {message ? (
           <StatusNotice message={message} tone={messageTone} onDismiss={clearMessage} />
@@ -378,8 +368,8 @@ export function TemplateEditorClient(props: Props) {
           onClearDraft={clearDraft}
         />
 
-        <div className="flex flex-wrap justify-end gap-2">
-          <ActionButton type="submit" variant="primary" size="md" disabled={isSaving}>
+        <div className="flex justify-end">
+          <ActionButton type="submit" variant="primary" size="md" disabled={isSaving || !canSave}>
             {isSaving ? "Saving…" : "Save template"}
           </ActionButton>
         </div>

@@ -1,10 +1,15 @@
 "use client";
 
-import { ArrowLeft, ChevronDown, ChevronUp, ListOrdered, Plus, Trash2 } from "lucide-react";
-import Link from "next/link";
+import { ArrowLeft, ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { ActionButton } from "@/app/components/action-button";
+import { useEffect, useRef, useState } from "react";
+import { ActionButton, ActionLink } from "@/app/components/action-button";
+import {
+  EditorHeading,
+  OptionalNotesField,
+  RequiredMark,
+} from "@/app/components/editor-chrome";
+import { editorTitle } from "@/app/components/editor-fields";
 import { ContentPlaceholder } from "@/app/components/content-placeholder";
 import {
   EDITOR_PLACEHOLDER_CLASS,
@@ -15,7 +20,14 @@ import { PageShell } from "@/app/components/page-shell";
 import { StatusNotice } from "@/app/components/status-notice";
 import { MuscleAreaCoverageChart } from "@/app/components/muscle-area-coverage-chart";
 import { WorkoutExerciseDraftList } from "@/app/components/workout-exercise-draft-list";
-import { createDayDraft, daysFromPlan, type DayDraft } from "@/app/plans/plan-day-draft";
+import {
+  createDayDraft,
+  daysFromPlan,
+  planDayExerciseLabels,
+  planDaySummary,
+  planDraftChanged,
+  type DayDraft,
+} from "@/app/plans/plan-day-draft";
 import { appPath } from "@/lib/app-paths";
 import { normalizePlanDraft } from "@/lib/plan-draft";
 import type { Database } from "@/lib/supabase/database.types";
@@ -29,6 +41,62 @@ type ExerciseDefaultsRow = Database["public"]["Tables"]["user_exercise_defaults"
 type Props =
   | { mode: "create" }
   | { mode: "edit"; planId: string; initial: WorkoutPlanWithDays };
+
+function DayOrderActions({
+  dayName,
+  index,
+  dayCount,
+  besideSummary,
+  onUp,
+  onDown,
+  onRemove,
+}: {
+  dayName: string;
+  index: number;
+  dayCount: number;
+  besideSummary: boolean;
+  onUp: () => void;
+  onDown: () => void;
+  onRemove: () => void;
+}) {
+  const label = dayName.trim() || "day";
+  return (
+    <div
+      className={
+        besideSummary
+          ? "flex w-[6.75rem] shrink-0 flex-col gap-1.5 sm:w-auto sm:flex-row sm:gap-2 max-sm:[&>*]:w-full"
+          : "flex w-full gap-2 sm:w-auto max-sm:[&>*]:min-w-0 max-sm:[&>*]:flex-1"
+      }
+    >
+      <ActionButton
+        type="button"
+        variant="secondary"
+        size="sm"
+        onClick={onUp}
+        disabled={index === 0}
+        aria-label={`Move ${label} up`}
+      >
+        <ChevronUp className="h-3.5 w-3.5" />
+        Up
+      </ActionButton>
+      <ActionButton
+        type="button"
+        variant="secondary"
+        size="sm"
+        onClick={onDown}
+        disabled={index === dayCount - 1}
+        aria-label={`Move ${label} down`}
+      >
+        <ChevronDown className="h-3.5 w-3.5" />
+        Down
+      </ActionButton>
+      <ActionButton type="button" variant="danger" size="sm" onClick={onRemove}>
+        <Trash2 className="h-3.5 w-3.5" />
+        Remove
+      </ActionButton>
+    </div>
+  );
+}
 
 export function PlanEditorClient(props: Props) {
   const router = useRouter();
@@ -54,9 +122,37 @@ export function PlanEditorClient(props: Props) {
   const [messageTone, setMessageTone] = useState<"error" | "success">("error");
   const [isSaving, setIsSaving] = useState(false);
   const [dayKeyPendingRemoval, setDayKeyPendingRemoval] = useState<string | null>(null);
+  const [expandedDayKey, setExpandedDayKey] = useState<string | null>(null);
+  const pendingDayFocusKey = useRef<string | null>(null);
+  const savedPlan = useRef(
+    props.mode === "edit"
+      ? {
+          name: props.initial.name,
+          notes: props.initial.notes ?? "",
+          isActive: props.initial.is_active,
+          days: daysFromPlan(props.initial),
+        }
+      : { name: "", notes: "", isActive: false, days: [] },
+  );
+  const canSave = planDraftChanged(savedPlan.current, { name, notes, isActive, days });
 
   const maxNotesLength = 500;
-  const title = props.mode === "create" ? "New plan" : "Edit plan";
+  const fallbackTitle = props.mode === "create" ? "New plan" : "Edit plan";
+  const title = editorTitle(name, fallbackTitle);
+
+  useEffect(() => {
+    const key = pendingDayFocusKey.current;
+    if (!key || expandedDayKey) {
+      return;
+    }
+    pendingDayFocusKey.current = null;
+    document.getElementById(`plan-day-${key}`)?.focus();
+  }, [expandedDayKey]);
+
+  function collapseDay(key: string) {
+    pendingDayFocusKey.current = key;
+    setExpandedDayKey(null);
+  }
 
   function showError(text: string) {
     setMessageTone("error");
@@ -65,6 +161,23 @@ export function PlanEditorClient(props: Props) {
 
   function clearMessage() {
     setMessage(null);
+  }
+
+  function clearDraft() {
+    clearMessage();
+    setDayKeyPendingRemoval(null);
+    setExpandedDayKey(null);
+    if (props.mode === "edit") {
+      setName(props.initial.name);
+      setNotes(props.initial.notes ?? "");
+      setIsActive(props.initial.is_active);
+      setDays(daysFromPlan(props.initial));
+      return;
+    }
+    setName("");
+    setNotes("");
+    setIsActive(false);
+    setDays([]);
   }
 
   useEffect(() => {
@@ -211,26 +324,20 @@ export function PlanEditorClient(props: Props) {
     }
   }
 
+  const back = (
+    <ActionLink href={appPath("/plans")} variant="secondary" size="md">
+      <ArrowLeft className="h-4 w-4" />
+      Back
+    </ActionLink>
+  );
+
   if (isChecking) {
     return (
       <PageShell>
-        <div className="flex items-center justify-between gap-3">
-          <h1 className="inline-flex items-center gap-2 text-2xl font-semibold tracking-tight">
-            <ListOrdered className="h-6 w-6 text-sky-700" />
-            {title}
-          </h1>
-          <Link
-            href={appPath("/plans")}
-            className="inline-flex h-10 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100 max-md:hidden"
-          >
-            <ArrowLeft className="h-4 w-4 text-sky-700" />
-            Back
-          </Link>
-        </div>
-        <p className="mt-2 text-sm text-zinc-600">
-          A plan is an ordered cycle of days. Each day keeps its own exercises and targets. Starting a
-          day copies them into a new workout session. Editing a template does not change this plan.
-        </p>
+        <EditorHeading title={title} back={back} />
+        {props.mode === "create" ? (
+          <p className="mt-2 text-sm text-zinc-600">Add the days in the order you train them.</p>
+        ) : null}
         <ContentPlaceholder
           label="Checking session..."
           rows={EDITOR_PLACEHOLDER_ROWS}
@@ -243,32 +350,15 @@ export function PlanEditorClient(props: Props) {
 
   return (
     <PageShell>
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="inline-flex items-center gap-2 text-2xl font-semibold tracking-tight">
-          <ListOrdered className="h-6 w-6 text-sky-700" />
-          {title}
-        </h1>
-        <Link
-          href={appPath("/plans")}
-          className="inline-flex h-10 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100 max-md:hidden"
-        >
-          <ArrowLeft className="h-4 w-4 text-sky-700" />
-          Back
-        </Link>
-      </div>
-
-      <p className="mt-2 text-sm text-zinc-600">
-        A plan is an ordered cycle of days. Each day keeps its own exercises and targets. Starting a
-        day copies them into a new workout session. Editing a template does not change this plan.
-      </p>
+      <EditorHeading title={title} back={back} />
+      {props.mode === "create" ? (
+        <p className="mt-2 text-sm text-zinc-600">Add the days in the order you train them.</p>
+      ) : null}
 
       <form onSubmit={(event) => void handleSubmit(event)} className="mt-6 space-y-4 text-sm">
         <label className="block font-medium">
           Plan name
-          <span className="text-sky-700" aria-hidden>
-            {" "}
-            *
-          </span>
+          <RequiredMark />
           <input
             required
             value={name}
@@ -279,19 +369,13 @@ export function PlanEditorClient(props: Props) {
           />
         </label>
 
-        <label className="block font-medium">
-          Plan notes (optional)
-          <textarea
-            value={notes}
-            onChange={(event) => setNotes(event.target.value)}
-            className="mt-1 h-24 w-full rounded-md border px-3 py-2 text-sm"
-            maxLength={maxNotesLength}
-            placeholder="Optional notes for this plan"
-          />
-          <span className="mt-1 block text-xs font-normal text-zinc-500">
-            {notes.length}/{maxNotesLength}
-          </span>
-        </label>
+        <OptionalNotesField
+          addLabel="Add plan notes"
+          value={notes}
+          onChange={setNotes}
+          maxLength={maxNotesLength}
+          placeholder="Optional notes for this plan"
+        />
 
         <label className="flex items-start gap-2 font-medium">
           <input
@@ -320,100 +404,138 @@ export function PlanEditorClient(props: Props) {
         />
 
         <div className="space-y-3">
-          {days.map((day, index) => (
-            <section key={day.key} className="rounded-md border border-zinc-200 bg-white p-3">
-              <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-                <label className="block min-w-0 flex-1 font-medium">
-                  Day name
-                  <span className="text-sky-700" aria-hidden>
-                    {" "}
-                    *
-                  </span>
-                  <input
-                    required
-                    value={day.name}
-                    onChange={(event) =>
-                      setDays((prev) =>
-                        prev.map((item) =>
-                          item.key === day.key ? { ...item, name: event.target.value } : item,
-                        ),
-                      )
-                    }
-                    className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
-                    placeholder="e.g. Day A, Push"
-                    maxLength={80}
-                  />
-                </label>
-                <div className="flex flex-wrap gap-2">
-                  <ActionButton
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => moveDay(index, -1)}
-                    disabled={index === 0}
-                    aria-label={`Move ${day.name || "day"} up`}
+          {days.map((day, index) => {
+            const summary = planDaySummary({
+              position: index + 1,
+              name: day.name,
+              exerciseLabels: planDayExerciseLabels(day.exerciseRows, exerciseOptions),
+            });
+            const expanded = expandedDayKey === day.key;
+            const orderActions = (
+              <DayOrderActions
+                dayName={day.name}
+                index={index}
+                dayCount={days.length}
+                besideSummary={!expanded}
+                onUp={() => moveDay(index, -1)}
+                onDown={() => moveDay(index, 1)}
+                onRemove={() => setDayKeyPendingRemoval(day.key)}
+              />
+            );
+            return (
+              <section key={day.key} className="rounded-md border border-zinc-200 bg-white p-3">
+                <div
+                  className={
+                    expanded
+                      ? "flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-2"
+                      : "flex items-center gap-2"
+                  }
+                >
+                  <div
+                    className={`flex min-w-0 flex-1 items-center gap-1 ${
+                      expanded ? "max-sm:min-h-[7.5rem]" : ""
+                    }`}
                   >
-                    <ChevronUp className="h-3.5 w-3.5" />
-                    Up
-                  </ActionButton>
-                  <ActionButton
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => moveDay(index, 1)}
-                    disabled={index === days.length - 1}
-                    aria-label={`Move ${day.name || "day"} down`}
-                  >
-                    <ChevronDown className="h-3.5 w-3.5" />
-                    Down
-                  </ActionButton>
-                  <ActionButton
-                    type="button"
-                    variant="danger"
-                    size="sm"
-                    onClick={() => setDayKeyPendingRemoval(day.key)}
-                  >
-                    <Trash2 className="h-3.5 w-3.5" />
-                    Remove
-                  </ActionButton>
+                    {expanded ? (
+                      <button
+                        type="button"
+                        onClick={() => collapseDay(day.key)}
+                        className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60"
+                        aria-label={`Collapse ${summary.name}`}
+                        aria-expanded
+                      >
+                        <ChevronUp className="h-4 w-4" aria-hidden />
+                      </button>
+                    ) : null}
+                    {expanded ? (
+                      <div className="min-w-0 flex-1">
+                        <label htmlFor={`plan-day-name-${day.key}`} className="block font-medium">
+                          Day name
+                          <RequiredMark />
+                        </label>
+                        <input
+                          id={`plan-day-name-${day.key}`}
+                          required
+                          autoFocus
+                          value={day.name}
+                          onChange={(event) =>
+                            setDays((prev) =>
+                              prev.map((item) =>
+                                item.key === day.key ? { ...item, name: event.target.value } : item,
+                              ),
+                            )
+                          }
+                          className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+                          placeholder="e.g. Day A, Push"
+                          maxLength={80}
+                        />
+                      </div>
+                    ) : (
+                      <button
+                        id={`plan-day-${day.key}`}
+                        type="button"
+                        onClick={() => setExpandedDayKey(day.key)}
+                        className="flex min-w-0 flex-1 items-center gap-1 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60"
+                        aria-expanded={false}
+                      >
+                        <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center" aria-hidden>
+                          <ChevronDown className="h-4 w-4" />
+                        </span>
+                        <span className="min-w-0">
+                          <span className="block text-xs text-zinc-600">{summary.positionLabel}</span>
+                          <span className="mt-0.5 block font-medium text-zinc-900">{summary.name}</span>
+                          <span className="mt-0.5 block text-sm text-zinc-600">{summary.exercises}</span>
+                        </span>
+                      </button>
+                    )}
+                  </div>
+                  <div className={expanded ? "pl-7 sm:pl-0 sm:self-end" : undefined}>{orderActions}</div>
                 </div>
-              </div>
-              <div className="mt-3">
-                <WorkoutExerciseDraftList
-                  exerciseRows={day.exerciseRows}
-                  setExerciseRows={(updater) => {
-                    setDays((prev) =>
-                      prev.map((item) => {
-                        if (item.key !== day.key) {
-                          return item;
-                        }
-                        const exerciseRows =
-                          typeof updater === "function" ? updater(item.exerciseRows) : updater;
-                        return { ...item, exerciseRows };
-                      }),
-                    );
-                  }}
-                  exerciseOptions={exerciseOptions}
-                  hiddenExerciseIds={hiddenExerciseIds}
-                  exerciseDefaultsById={exerciseDefaultsById}
-                  maxNotesLength={maxNotesLength}
-                />
-              </div>
-            </section>
-          ))}
+                {expanded ? (
+                  <div className="mt-6 pl-7">
+                      <WorkoutExerciseDraftList
+                        heading="field"
+                        exerciseRows={day.exerciseRows}
+                        setExerciseRows={(updater) => {
+                          setDays((prev) =>
+                            prev.map((item) => {
+                              if (item.key !== day.key) {
+                                return item;
+                              }
+                              const exerciseRows =
+                                typeof updater === "function" ? updater(item.exerciseRows) : updater;
+                              return { ...item, exerciseRows };
+                            }),
+                          );
+                        }}
+                        exerciseOptions={exerciseOptions}
+                        hiddenExerciseIds={hiddenExerciseIds}
+                        exerciseDefaultsById={exerciseDefaultsById}
+                        maxNotesLength={maxNotesLength}
+                        onClearDraft={clearDraft}
+                      />
+                  </div>
+                ) : null}
+              </section>
+            );
+          })}
         </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
           <ActionButton
             type="button"
             variant="secondary"
             size="md"
-            onClick={() => setDays((prev) => [...prev, createDayDraft()])}
+            onClick={() => {
+              const day = createDayDraft();
+              setDays((prev) => [...prev, day]);
+              setExpandedDayKey(day.key);
+            }}
           >
             <Plus className="h-4 w-4" />
             Add day
           </ActionButton>
-          <ActionButton type="submit" variant="primary" size="md" disabled={isSaving}>
+          <ActionButton type="submit" variant="primary" size="md" disabled={isSaving || !canSave}>
             {isSaving ? "Saving…" : "Save plan"}
           </ActionButton>
         </div>
@@ -447,6 +569,7 @@ export function PlanEditorClient(props: Props) {
               size="md"
               onClick={() => {
                 setDays((prev) => prev.filter((day) => day.key !== dayKeyPendingRemoval));
+                setExpandedDayKey((current) => (current === dayKeyPendingRemoval ? null : current));
                 setDayKeyPendingRemoval(null);
               }}
             >

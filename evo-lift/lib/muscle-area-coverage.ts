@@ -5,21 +5,20 @@ import {
   type MuscleArea,
 } from "@/lib/muscle-areas";
 
-/** One sky ramp. 0 is the lightest. The last step is the brand emphasis shade. */
-export const MUSCLE_AREA_SHADE_CLASSES = [
-  "border-sky-200 bg-sky-100 text-zinc-900",
-  "border-sky-300 bg-sky-200 text-zinc-900",
-  "border-sky-400 bg-sky-300 text-zinc-900",
-  "border-sky-500 bg-sky-400 text-sky-950",
-  "border-sky-700 bg-sky-600 text-white",
-  "border-sky-800 bg-sky-700 text-white",
+/**
+ * Sky fills for a primary count. Index 0 is unused: a primary count starts at 1.
+ * The last step is the brand emphasis shade.
+ */
+export const MUSCLE_AREA_PRIMARY_FILLS = [
+  "fill-sky-100 stroke-sky-300",
+  "fill-sky-200 stroke-sky-400",
+  "fill-sky-300 stroke-sky-500",
+  "fill-sky-400 stroke-sky-600",
+  "fill-sky-600 stroke-sky-800",
+  "fill-sky-700 stroke-sky-900",
 ] as const;
 
-export const MUSCLE_AREA_COVERAGE_NOTE =
-  "The number counts primary exercises. A secondary area is included and does not add to it.";
-
-/** A gap. Not a step on the sky ramp. */
-export const MUSCLE_AREA_MISSING_CLASS = "border-amber-200 bg-amber-50 text-amber-800";
+export type MuscleAreaMark = "primary" | "secondary" | "missing";
 
 export type MuscleAreaCoverageScope = "plan" | "template";
 
@@ -30,9 +29,9 @@ export type MuscleAreaCoverageArea = {
   included: boolean;
   /** Primary count, "Secondary", or "Missing". */
   valueText: string;
-  /** Index into the sky ramp. 0 is the lightest. Missing areas stay at 0 and use their own fill. */
+  /** Index into the primary fill ramp. 0 when this area is not a primary count. */
   shade: number;
-  shadeClass: string;
+  mark: MuscleAreaMark;
 };
 
 export type MuscleAreaCoverage = {
@@ -67,8 +66,18 @@ export function exerciseRowSlugs(
   return slugs;
 }
 
+function markFor(included: boolean, primaryCount: number): MuscleAreaMark {
+  if (!included) {
+    return "missing";
+  }
+  if (primaryCount === 0) {
+    return "secondary";
+  }
+  return "primary";
+}
+
 function shadeForCount(primaryCount: number, maxPrimaryCount: number): number {
-  const darkest = MUSCLE_AREA_SHADE_CLASSES.length - 1;
+  const darkest = MUSCLE_AREA_PRIMARY_FILLS.length - 1;
   if (primaryCount <= 0 || maxPrimaryCount <= 0) {
     return 0;
   }
@@ -84,13 +93,6 @@ function valueText(included: boolean, primaryCount: number): string {
     return "Secondary";
   }
   return String(primaryCount);
-}
-
-function fillClass(included: boolean, shade: number): string {
-  if (!included) {
-    return MUSCLE_AREA_MISSING_CLASS;
-  }
-  return MUSCLE_AREA_SHADE_CLASSES[shade];
 }
 
 /** Coverage for the exercise rows in a plan or a template. */
@@ -128,7 +130,7 @@ export function muscleAreaCoverage(slugs: readonly string[]): MuscleAreaCoverage
       included: areaIncluded,
       valueText: valueText(areaIncluded, count),
       shade,
-      shadeClass: fillClass(areaIncluded, shade),
+      mark: markFor(areaIncluded, count),
     };
   });
 

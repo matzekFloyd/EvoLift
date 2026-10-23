@@ -1,7 +1,7 @@
 "use client";
 
-import { ListOrdered } from "lucide-react";
 import { useEffect, useState } from "react";
+import { EditorHeading } from "@/app/components/editor-chrome";
 import { useParams, useRouter } from "next/navigation";
 import { ContentPlaceholder } from "@/app/components/content-placeholder";
 import {
@@ -69,10 +69,7 @@ export default function EditPlanPage() {
   if (!initial) {
     return (
       <PageShell>
-        <h1 className="inline-flex items-center gap-2 text-2xl font-semibold tracking-tight">
-          <ListOrdered className="h-6 w-6 text-sky-700" />
-          Edit plan
-        </h1>
+        <EditorHeading title="Edit plan" />
         <ContentPlaceholder
           label="Loading plan..."
           rows={EDITOR_PLACEHOLDER_ROWS}

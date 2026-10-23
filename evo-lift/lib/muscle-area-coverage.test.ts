@@ -5,9 +5,7 @@ import { fileURLToPath } from "node:url";
 import { describe, it } from "vitest";
 import { MUSCLE_AREAS } from "@/lib/muscle-areas";
 import {
-  MUSCLE_AREA_COVERAGE_NOTE,
-  MUSCLE_AREA_MISSING_CLASS,
-  MUSCLE_AREA_SHADE_CLASSES,
+  MUSCLE_AREA_PRIMARY_FILLS,
   exerciseRowSlugs,
   muscleAreaCoverage,
   muscleAreaCoverageSummary,
@@ -38,7 +36,7 @@ describe("muscle area coverage", () => {
       assert.equal(item.included, false);
       assert.equal(item.primaryCount, 0);
       assert.equal(item.shade, 0);
-      assert.equal(item.shadeClass, MUSCLE_AREA_MISSING_CLASS);
+      assert.equal(item.mark, "missing");
     }
     assert.equal(muscleAreaCoverageSummary("plan", 0), "0 of 10 areas in this plan.");
     assert.equal(muscleAreaCoverageSummary("template", 0), "0 of 10 areas in this template.");
@@ -53,19 +51,16 @@ describe("muscle area coverage", () => {
     assert.equal(coverage.includedCount, 2);
     assert.equal(hamstrings.valueText, "1");
     assert.equal(hamstrings.primaryCount, 1);
-    assert.equal(hamstrings.shade, MUSCLE_AREA_SHADE_CLASSES.length - 1);
+    assert.equal(hamstrings.shade, MUSCLE_AREA_PRIMARY_FILLS.length - 1);
+    assert.equal(hamstrings.mark, "primary");
     assert.equal(back.valueText, "Secondary");
     assert.equal(back.included, true);
     assert.equal(back.primaryCount, 0);
     assert.equal(back.shade, 0);
-    assert.equal(back.shadeClass, MUSCLE_AREA_SHADE_CLASSES[0]);
+    assert.equal(back.mark, "secondary");
     assert.equal(chest.valueText, "Missing");
-    assert.equal(chest.shadeClass, MUSCLE_AREA_MISSING_CLASS);
-    assert.notEqual(back.shadeClass, chest.shadeClass);
-    assert.equal(
-      MUSCLE_AREA_COVERAGE_NOTE,
-      "The number counts primary exercises. A secondary area is included and does not add to it.",
-    );
+    assert.equal(chest.mark, "missing");
+    assert.notEqual(back.mark, chest.mark);
   });
 
   it("counts the same exercise on two days as two primary rows", () => {
@@ -124,10 +119,11 @@ describe("muscle area coverage", () => {
   });
 
   it("uses one sky ramp and no other hue", () => {
-    const levels = MUSCLE_AREA_SHADE_CLASSES.map((shadeClass) => {
-      const match = shadeClass.match(/bg-sky-(\d+)/);
-      assert.ok(match, shadeClass);
-      assert.match(shadeClass, /^border-sky-\d+ bg-sky-\d+ text-/);
+    const levels = MUSCLE_AREA_PRIMARY_FILLS.map((fill) => {
+      const match = fill.match(/fill-sky-(\d+)/);
+      assert.ok(match, fill);
+      assert.match(fill, /^fill-sky-\d+ stroke-sky-\d+$/);
+      assert.equal(fill.includes("amber"), false);
       return Number(match[1]);
     });
     for (let index = 1; index < levels.length; index += 1) {
@@ -151,11 +147,13 @@ describe("muscle area coverage", () => {
     assert.match(template, /scope="template"/);
     assert.match(chart, /area\.label/);
     assert.match(chart, /area\.valueText/);
-    assert.match(chart, /MUSCLE_AREA_COVERAGE_NOTE/);
+    assert.match(chart, /area\.mark === "primary"/);
+    assert.match(chart, /tabular-nums/);
+    assert.match(chart, /MuscleAreaCoverageBodies/);
+    assert.equal(chart.includes("MUSCLE_AREA_COVERAGE_NOTE"), false);
+    assert.equal(chart.includes("amber"), false);
     assert.equal(chart.includes("None"), false);
     assert.equal(chart.includes("Leaving an area out"), false);
-    assert.match(MUSCLE_AREA_MISSING_CLASS, /bg-amber-/);
-    assert.equal(MUSCLE_AREA_MISSING_CLASS.includes("sky"), false);
     assert.equal(chart.includes("per day"), false);
     assert.equal(chart.includes("kg"), false);
   });
