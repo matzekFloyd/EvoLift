@@ -133,6 +133,7 @@ export function NewSessionDraftCallout({ userId }: NewSessionDraftCalloutProps) 
             type="button"
             variant="secondary"
             size="sm"
+            iconColor="sky"
             onClick={discard}
             aria-label="Discard draft"
             title="Discard draft"

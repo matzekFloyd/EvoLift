@@ -38,7 +38,7 @@ alwaysApply: false
 ## Buttons and icons
 
 - Prefer **`ActionButton`** with `variant`: `primary` (sky fill), `secondary` (zinc outline/soft), `danger` (soft red).
-- Icons: **`lucide-react`**; compact sizes **`h-3`–`h-4`** (`w-*` match); tint aligns with intent (sky / zinc / red / white on primary).
+- Icons: **`lucide-react`**. Follow **Iconography** in `evo-lift/BRAND_GUIDELINES.md`: `h-3.5` on small buttons, `h-4` on medium. `ActionButton` colors the icon: white on primary, zinc on secondary, red on danger. `iconColor="amber"` when the control discards work. Add exercise and Add next use a soft sky surface and `iconColor="sky"`. Done stays zinc.
 - Thumb-friendly hit targets on mobile (`min-h` / `h-10`–`h-11` where appropriate).
 
 ## Feedback

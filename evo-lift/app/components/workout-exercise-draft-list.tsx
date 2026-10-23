@@ -3,11 +3,13 @@
 import {
   Check,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   ChevronUp,
   Eraser,
   NotebookPen,
   Plus,
+  Trash2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ActionButton } from "@/app/components/action-button";
@@ -20,6 +22,8 @@ import { NotesTextareaField } from "@/app/components/notes-textarea-field";
 import { TargetWeightSuggestion } from "@/app/components/target-weight-suggestion";
 import {
   createEmptyExerciseRow,
+  insertExerciseRowAfter,
+  shiftIndexesAfterInsert,
   type ExerciseDefaultsRow,
   type ExerciseDraftRow,
 } from "@/lib/workout-exercise-draft";
@@ -40,6 +44,10 @@ function ExerciseScanText({ name, details }: { name: string; details: string }) 
 function filledExerciseIds(rows: ExerciseDraftRow[]): Set<string> {
   return new Set(rows.filter((row) => row.exerciseId).map((row) => row.rowId));
 }
+
+/** Same weight as Remove's soft red. Save stays the filled sky button. */
+const buildActionClassName =
+  "!border-sky-300 !bg-sky-50 !text-sky-800 hover:!border-sky-400 hover:!bg-sky-100";
 
 export type WorkoutExerciseDraftListProps = {
   exerciseRows: ExerciseDraftRow[];
@@ -94,8 +102,15 @@ export function WorkoutExerciseDraftList({
     exerciseOptions.map((option) => [option.id, option.slug] as const),
   );
 
-  function addExerciseRow() {
-    setExerciseRows((prev) => [...prev, createEmptyExerciseRow()]);
+  function addExerciseRow(afterIndex?: number) {
+    const row = createEmptyExerciseRow();
+    if (afterIndex == null) {
+      setExerciseRows((prev) => [...prev, row]);
+      return;
+    }
+    const insertAt = afterIndex + 1;
+    setExerciseRows((prev) => insertExerciseRowAfter(prev, afterIndex, row));
+    setExpandedExerciseNotes((prev) => shiftIndexesAfterInsert(prev, insertAt));
   }
 
   function removeExerciseRow(index: number) {
@@ -287,19 +302,19 @@ export function WorkoutExerciseDraftList({
               className="px-2 py-1 text-xs font-normal"
               iconColor="amber"
             >
-              <Eraser className="h-3 w-3 text-amber-600" />
+              <Eraser className="h-3.5 w-3.5" aria-hidden />
               Clear draft
             </ActionButton>
           ) : null}
           <ActionButton
             type="button"
-            onClick={addExerciseRow}
+            onClick={() => addExerciseRow()}
             variant="secondary"
             size="sm"
-            className="px-2 py-1 text-xs font-normal"
-            iconColor="zinc"
+            iconColor="sky"
+            className={`px-2 py-1 text-xs ${buildActionClassName}`}
           >
-            <Plus className="h-3 w-3" />
+            <Plus className="h-3.5 w-3.5" aria-hidden />
             Add exercise
           </ActionButton>
         </div>
@@ -307,25 +322,31 @@ export function WorkoutExerciseDraftList({
       {isCompactView ? (
         <div className="grid grid-cols-2 gap-2">
           {onClearDraft ? (
-            <button
+            <ActionButton
               type="button"
               onClick={onClearDraft}
-              className="inline-flex h-12 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 text-xs leading-tight text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
+              variant="secondary"
+              size="sm"
+              fullWidth
+              iconColor="amber"
+              className="!h-12 px-2 text-xs font-normal leading-tight"
             >
-              <Eraser className="h-3.5 w-3.5 text-amber-600" />
+              <Eraser className="h-4 w-4" aria-hidden />
               Clear draft
-            </button>
+            </ActionButton>
           ) : null}
-          <button
+          <ActionButton
             type="button"
-            onClick={addExerciseRow}
-            className={`inline-flex h-12 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 text-xs leading-tight text-zinc-800 hover:border-sky-300 hover:bg-zinc-100 ${
-              onClearDraft ? "" : "col-span-2"
-            }`}
+            onClick={() => addExerciseRow()}
+            variant="secondary"
+            size="sm"
+            fullWidth
+            iconColor="sky"
+            className={`!h-12 px-2 text-xs leading-tight ${buildActionClassName} ${onClearDraft ? "" : "col-span-2"}`}
           >
-            <Plus className="h-3.5 w-3.5 text-zinc-600" />
+            <Plus className="h-4 w-4" aria-hidden />
             Add exercise
-          </button>
+          </ActionButton>
         </div>
       ) : null}
       {visibleExerciseRows.map(({ row, index }) => {
@@ -384,25 +405,15 @@ export function WorkoutExerciseDraftList({
               </button>
             )}
             <div className="inline-flex min-h-6 items-center gap-2">
-              {isCompactView ? (
-                exerciseRows.length > 1 ? (
-                  <button
-                    type="button"
-                    onClick={() => removeExerciseRow(index)}
-                    className="inline-flex h-8 w-24 items-center justify-center rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
-                  >
-                    Remove
-                  </button>
-                ) : null
-              ) : exerciseRows.length > 1 ? (
+              {exerciseRows.length > 1 ? (
                 <ActionButton
                   type="button"
                   onClick={() => removeExerciseRow(index)}
-                  variant="secondary"
+                  variant="danger"
                   size="sm"
-                  className="h-8 w-24 px-2 py-1 text-xs font-normal"
-                  iconColor="zinc"
+                  className="h-8 px-2 py-1 text-xs font-normal"
                 >
+                  <Trash2 className="h-3.5 w-3.5" aria-hidden />
                   Remove
                 </ActionButton>
               ) : null}
@@ -554,18 +565,18 @@ export function WorkoutExerciseDraftList({
                     variant="secondary"
                     size="sm"
                     fullWidth
-                    className="font-normal"
-                    iconColor="zinc"
+                    iconColor="sky"
+                    className={buildActionClassName}
                     disabled={!row.exerciseId}
                     onClick={() => {
                       collapseExercise(row.rowId);
-                      addExerciseRow();
-                      const nextRowIndex = exerciseRows.length;
+                      const nextRowIndex = index + 1;
+                      addExerciseRow(index);
                       setActiveExerciseIndex(nextRowIndex);
                       focusExercisePicker(nextRowIndex);
                     }}
                   >
-                    <Plus className="h-3.5 w-3.5" />
+                    <Plus className="h-3.5 w-3.5" aria-hidden />
                     Add next
                   </ActionButton>
                 </div>
@@ -580,6 +591,7 @@ export function WorkoutExerciseDraftList({
                       disabled={activeExerciseIndex === 0}
                       onClick={() => setActiveExerciseIndex((prev) => Math.max(0, prev - 1))}
                     >
+                      <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
                       Previous exercise
                     </ActionButton>
                     {activeExerciseIndex < exerciseRows.length - 1 ? (
@@ -596,7 +608,7 @@ export function WorkoutExerciseDraftList({
                           )
                         }
                       >
-                        <ChevronRight className="h-3.5 w-3.5 text-sky-700" />
+                        <ChevronRight className="h-3.5 w-3.5" aria-hidden />
                         Next exercise
                       </ActionButton>
                     ) : null}
@@ -750,28 +762,29 @@ export function WorkoutExerciseDraftList({
                     type="button"
                     variant="secondary"
                     size="sm"
-                    className="font-normal sm:flex-1"
-                    iconColor="zinc"
+                    className="sm:flex-1"
                     disabled={!row.exerciseId}
                     onClick={() => collapseExercise(row.rowId)}
                   >
-                    <Check className="h-3.5 w-3.5" />
+                    <Check className="h-3.5 w-3.5" aria-hidden />
                     Done
                   </ActionButton>
                   <ActionButton
                     type="button"
                     variant="secondary"
                     size="sm"
-                    className="font-normal sm:flex-1"
-                    iconColor="zinc"
+                    iconColor="sky"
+                    className={`sm:flex-1 ${buildActionClassName}`}
                     disabled={!row.exerciseId}
                     onClick={() => {
                       collapseExercise(row.rowId);
-                      addExerciseRow();
-                      focusExercisePicker(exerciseRows.length);
+                      const nextRowIndex = index + 1;
+                      addExerciseRow(index);
+                      setActiveExerciseIndex(nextRowIndex);
+                      focusExercisePicker(nextRowIndex);
                     }}
                   >
-                    <Plus className="h-3.5 w-3.5" />
+                    <Plus className="h-3.5 w-3.5" aria-hidden />
                     Add next
                   </ActionButton>
                 </div>

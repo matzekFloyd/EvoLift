@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft, ChevronDown, ChevronUp, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, ChevronDown, ChevronUp, Plus, Save, Trash2 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ActionButton, ActionLink } from "@/app/components/action-button";
@@ -76,7 +76,7 @@ function DayOrderActions({
         disabled={index === 0}
         aria-label={`Move ${label} up`}
       >
-        <ChevronUp className="h-3.5 w-3.5" />
+        <ChevronUp className="h-3.5 w-3.5" aria-hidden />
         Up
       </ActionButton>
       <ActionButton
@@ -87,11 +87,11 @@ function DayOrderActions({
         disabled={index === dayCount - 1}
         aria-label={`Move ${label} down`}
       >
-        <ChevronDown className="h-3.5 w-3.5" />
+        <ChevronDown className="h-3.5 w-3.5" aria-hidden />
         Down
       </ActionButton>
       <ActionButton type="button" variant="danger" size="sm" onClick={onRemove}>
-        <Trash2 className="h-3.5 w-3.5" />
+        <Trash2 className="h-3.5 w-3.5" aria-hidden />
         Remove
       </ActionButton>
     </div>
@@ -161,23 +161,6 @@ export function PlanEditorClient(props: Props) {
 
   function clearMessage() {
     setMessage(null);
-  }
-
-  function clearDraft() {
-    clearMessage();
-    setDayKeyPendingRemoval(null);
-    setExpandedDayKey(null);
-    if (props.mode === "edit") {
-      setName(props.initial.name);
-      setNotes(props.initial.notes ?? "");
-      setIsActive(props.initial.is_active);
-      setDays(daysFromPlan(props.initial));
-      return;
-    }
-    setName("");
-    setNotes("");
-    setIsActive(false);
-    setDays([]);
   }
 
   useEffect(() => {
@@ -326,7 +309,7 @@ export function PlanEditorClient(props: Props) {
 
   const back = (
     <ActionLink href={appPath("/plans")} variant="secondary" size="md">
-      <ArrowLeft className="h-4 w-4" />
+      <ArrowLeft className="h-4 w-4" aria-hidden />
       Back
     </ActionLink>
   );
@@ -512,7 +495,6 @@ export function PlanEditorClient(props: Props) {
                         hiddenExerciseIds={hiddenExerciseIds}
                         exerciseDefaultsById={exerciseDefaultsById}
                         maxNotesLength={maxNotesLength}
-                        onClearDraft={clearDraft}
                       />
                   </div>
                 ) : null}
@@ -532,10 +514,11 @@ export function PlanEditorClient(props: Props) {
               setExpandedDayKey(day.key);
             }}
           >
-            <Plus className="h-4 w-4" />
+            <Plus className="h-4 w-4" aria-hidden />
             Add day
           </ActionButton>
           <ActionButton type="submit" variant="primary" size="md" disabled={isSaving || !canSave}>
+            <Save className="h-4 w-4" aria-hidden />
             {isSaving ? "Saving…" : "Save plan"}
           </ActionButton>
         </div>
@@ -573,6 +556,7 @@ export function PlanEditorClient(props: Props) {
                 setDayKeyPendingRemoval(null);
               }}
             >
+              <Trash2 className="h-4 w-4" aria-hidden />
               Remove
             </ActionButton>
           </div>

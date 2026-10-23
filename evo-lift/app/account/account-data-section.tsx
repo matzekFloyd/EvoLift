@@ -121,6 +121,7 @@ export function AccountDataSection({ accessToken, onImported }: AccountDataSecti
             <ActionButton
               type="button"
               variant="secondary"
+              iconColor="sky"
               disabled={isWorking}
               onClick={() => void download("json")}
               className="sm:flex-1"
@@ -131,6 +132,7 @@ export function AccountDataSection({ accessToken, onImported }: AccountDataSecti
             <ActionButton
               type="button"
               variant="secondary"
+              iconColor="sky"
               disabled={isWorking}
               onClick={() => void download("csv")}
               className="sm:flex-1"
@@ -141,6 +143,7 @@ export function AccountDataSection({ accessToken, onImported }: AccountDataSecti
             <ActionButton
               type="button"
               variant="secondary"
+              iconColor="sky"
               disabled={isWorking}
               onClick={() => fileInputRef.current?.click()}
               className="sm:flex-1"

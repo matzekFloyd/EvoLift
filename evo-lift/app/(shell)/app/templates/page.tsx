@@ -243,7 +243,7 @@ export default function TemplatesPage() {
                 <ActionButton
                   type="button"
                   size="sm"
-                  variant="primary"
+                  variant="secondary"
                   onClick={() => openUseDialog(row.id)}
                 >
                   <Play className="h-3.5 w-3.5 shrink-0" aria-hidden />

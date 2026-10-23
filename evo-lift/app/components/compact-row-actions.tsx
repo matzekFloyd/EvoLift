@@ -32,11 +32,11 @@ export function CompactRowActions({
   if (isEditing) {
     return (
       <TableRowActions>
-        <ActionButton type="button" size="sm" variant="secondary" onClick={onSave}>
+        <ActionButton type="button" size="sm" variant="secondary" iconColor="sky" onClick={onSave}>
           <Check className="h-3 w-3" aria-hidden />
           {saveLabel}
         </ActionButton>
-        <ActionButton type="button" size="sm" variant="secondary" onClick={onCancel}>
+        <ActionButton type="button" size="sm" variant="secondary" iconColor="sky" onClick={onCancel}>
           <X className="h-3 w-3" aria-hidden />
           {cancelLabel}
         </ActionButton>
@@ -52,7 +52,7 @@ export function CompactRowActions({
           {secondaryLabel}
         </ActionButton>
       ) : null}
-      <ActionButton type="button" size="sm" variant="secondary" onClick={onEdit}>
+      <ActionButton type="button" size="sm" variant="secondary" iconColor="sky" onClick={onEdit}>
         <Pencil className="h-3 w-3" aria-hidden />
         {editLabel}
       </ActionButton>

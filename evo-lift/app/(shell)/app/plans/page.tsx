@@ -245,6 +245,7 @@ export default function PlansPage() {
                   type="button"
                   size="sm"
                   variant="secondary"
+                  iconColor="sky"
                   disabled={pendingPlanId === row.id}
                   onClick={() => void changeActive(row.id, !row.isActive)}
                 >
@@ -259,6 +260,7 @@ export default function PlansPage() {
                   type="button"
                   size="sm"
                   variant="secondary"
+                  iconColor="sky"
                   disabled={pendingPlanId === row.id}
                   onClick={() => void duplicate(row.id)}
                 >

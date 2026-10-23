@@ -14,6 +14,21 @@ export type ExerciseDefaultsRow = Database["public"]["Tables"]["user_exercise_de
 
 let nextExerciseRowId = 1;
 
+/** Place `row` immediately after `afterIndex`. An index at the end appends. */
+export function insertExerciseRowAfter<T>(rows: readonly T[], afterIndex: number, row: T): T[] {
+  const insertAt = Math.min(rows.length, Math.max(0, afterIndex + 1));
+  return [...rows.slice(0, insertAt), row, ...rows.slice(insertAt)];
+}
+
+/** Keep per-row indexes aligned when a row is inserted at `insertAt`. */
+export function shiftIndexesAfterInsert(indexes: Iterable<number>, insertAt: number): Set<number> {
+  const next = new Set<number>();
+  for (const current of indexes) {
+    next.add(current >= insertAt ? current + 1 : current);
+  }
+  return next;
+}
+
 export function createEmptyExerciseRow(): ExerciseDraftRow {
   return {
     rowId: `exercise-row-${nextExerciseRowId++}`,

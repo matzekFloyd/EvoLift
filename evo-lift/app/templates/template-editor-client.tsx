@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Save } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
@@ -102,24 +102,6 @@ export function TemplateEditorClient(props: Props) {
 
   function clearMessage() {
     setMessage(null);
-  }
-
-  function resetDraftState() {
-    setName(props.mode === "edit" ? props.initial.name : "");
-    setNotes(props.mode === "edit" ? (props.initial.notes ?? "") : "");
-    setExerciseRows(
-      props.mode === "edit"
-        ? exerciseDraftRowsFromTemplateLines(props.initial.exercises)
-        : [createEmptyExerciseRow()],
-    );
-  }
-
-  function clearDraft() {
-    if (userId) {
-      window.localStorage.removeItem(getTemplateDraftStorageKey(userId, draftScope));
-    }
-    clearMessage();
-    resetDraftState();
   }
 
   useEffect(() => {
@@ -297,7 +279,7 @@ export function TemplateEditorClient(props: Props) {
 
   const back = (
     <ActionButton type="button" onClick={goBack} variant="secondary" size="md">
-      <ArrowLeft className="h-4 w-4" />
+      <ArrowLeft className="h-4 w-4" aria-hidden />
       Back
     </ActionButton>
   );
@@ -365,11 +347,11 @@ export function TemplateEditorClient(props: Props) {
           hiddenExerciseIds={hiddenExerciseIds}
           exerciseDefaultsById={exerciseDefaultsById}
           maxNotesLength={maxNotesLength}
-          onClearDraft={clearDraft}
         />
 
         <div className="flex justify-end">
           <ActionButton type="submit" variant="primary" size="md" disabled={isSaving || !canSave}>
+            <Save className="h-4 w-4" aria-hidden />
             {isSaving ? "Saving…" : "Save template"}
           </ActionButton>
         </div>

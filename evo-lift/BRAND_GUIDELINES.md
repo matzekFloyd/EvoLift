@@ -140,16 +140,20 @@ Pace mixes and similar status breakdowns may use semantic fills (e.g. on-track â
 ## Iconography
 
 - Prefer Lucide for actions and nav. Do not swap icon libraries for novelty.
-- High-frequency **actions** should have an icon if space allows (Save, Delete, Continue, Create session, sticky bar controls).
-- Do **not** put an icon on every section heading. If the title already scans, text alone is enough. Icons beside titles are chrome, not meaning.
 - Brand identity uses `EvoLiftMark` (plate mark), not a generic dumbbell glyph as the logo.
-- Keep icon size compact (`h-3` to `h-4` depending on button size).
-- Match icon color to intent (Tailwind tokens):
-  - primary/action: `sky-*`
-  - destructive: `red-*`
-  - success/save: `emerald-*` or white on filled primary buttons
-  - caution: `amber-*`
-  - neutral/cancel: `zinc-*`
+- Do **not** put an icon on every section heading. If the title already scans, text alone is enough. Icons beside titles are chrome, not meaning.
+- A button gets an icon when its verb is Save, Add, Remove, Delete, Back, Up, Down, Done, Next, Previous, or Clear draft. Disclosure chevrons on a row stay. Cancel in a dialog stays words only. The icon sits beside the word.
+- Keep icon size compact: `h-3.5` on a small button, `h-4` on a medium button.
+- `ActionButton` colors the icon from the variant. Do not set a color class on the icon itself.
+
+| Variant | Icon color | Use |
+| --- | --- | --- |
+| Primary | White | The filled sky button is already the forward action. |
+| Secondary | Zinc | Back, Add beside Save, reorder, Done, Next, Previous. |
+| Danger | Red | Remove and Delete. |
+| `iconColor="amber"` | Amber | The control discards in-progress work (Clear draft, clear filters). |
+| `iconColor="sky"` | Sky | A forward action that is not the filled page button. Add exercise and Add next use it on a soft sky surface, the same weight as Remove's soft red. Done stays zinc: it closes the exercise you are editing. The page-header add is sky because on a phone it is icon-only. |
+
 - Do not rely on color alone; pair with text and/or a distinct icon where state matters (e.g. warmup vs working).
 
 ## Button conventions
@@ -157,6 +161,8 @@ Pace mixes and similar status breakdowns may use semantic fills (e.g. on-track â
 - Primary submit/save buttons use filled sky styling.
 - Secondary buttons use neutral outline styling (`border-zinc-300`, soft `bg-zinc-50`).
 - Destructive actions remain outline/soft-red unless explicitly critical.
+- Add exercise and Add next use a soft sky surface so they have the same weight as Remove. Done stays a zinc secondary button. Save stays the filled sky button.
+- `ActionButton` paints its icon from the variant (white, zinc, or red). Override only with `iconColor="amber"` or `iconColor="sky"`, as in **Iconography**.
 - On mobile, prioritize thumb-friendly hit targets and concise labels.
 
 ### Nested surfaces
@@ -211,7 +217,7 @@ Hold every new screen to this bar. A keyboard and a screen reader get the same n
 - Are nested groups using `PanelInset` / **Nested surfaces** (no hand-rolled muted fills)?
 - Does color follow **Color intent** (sky for forward; emerald/amber/red only for status; teal chart-only)?
 - Is there roughly one filled sky CTA in the focal area, not sky decoration everywhere?
-- Are icons on actions/nav, not on every section heading?
+- Are icons on the named action verbs, zinc on quiet secondary buttons (including Done), white on the filled primary, and soft sky on Add exercise and Add next?
 - Do chart series use **Charts and data visualization** roles (no one-off hues)?
 - Is compact/mobile behavior still usable with one hand?
 - Is success/error feedback shown near the triggering control?

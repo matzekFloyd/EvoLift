@@ -39,5 +39,9 @@ describe("editor fields", () => {
     assert.equal(template.includes("Templates save exercise order"), false);
     assert.match(plan, /Add the days in the order you train them\./);
     assert.match(template, /Add the exercises in the order you train them\./);
+    assert.equal(plan.includes("onClearDraft"), false);
+    assert.equal(template.includes("onClearDraft"), false);
+    assert.equal(template.includes("Clear draft"), false);
+    assert.equal(plan.includes("Clear draft"), false);
   });
 });
