@@ -18,7 +18,7 @@ export function AccountHiddenExercisesSection({
     <SettingsSection>
       <SettingsSectionHeader
         title="Hidden exercises"
-        description="Hidden exercises will not appear when you choose exercises for new workout entries. Your past workout sessions stay the same, and you can still set defaults for all exercises below."
+        description="Hidden exercises stay out of pickers for new workout entries, Insights lists, and Exercises. Past sessions stay the same, and you can still set defaults for all exercises below."
         icon={<EyeOff className="h-4 w-4 text-zinc-500" />}
       />
       <SettingsSectionBody>

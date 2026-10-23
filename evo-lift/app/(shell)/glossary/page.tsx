@@ -76,6 +76,11 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
       "A strength target for one exercise. Progress uses working sets you have already logged. You can aim for a Total (kg) or a multiple of your bodyweight, with a minimum number of reps. New accounts start with bodyweight goals on Barbell Back Squat, Barbell Bench Press, Barbell Deadlift, and Barbell Overhead Press. You can edit or delete them. Progress on a bodyweight goal needs a bodyweight entry on Account.",
   },
   {
+    term: "Hidden exercise",
+    definition:
+      "An exercise you hide on Account. It stays out of pickers for new workout entries, Insights lists, and Exercises. Past sessions and exercise defaults stay.",
+  },
+  {
     term: "In progress",
     definition:
       "A workout session you have not finished. Home shows Continue for it, including before the first set. Logging a set starts it. You can have 3 sessions with logged sets open at a time.",

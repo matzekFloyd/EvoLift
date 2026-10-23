@@ -11,6 +11,7 @@ import { ExerciseFilteredList } from "@/app/components/exercise-filtered-list";
 import { PageShell } from "@/app/components/page-shell";
 import { panelInsetClass } from "@/app/components/panel-inset";
 import { StatusNotice } from "@/app/components/status-notice";
+import { exercisesForList } from "@/lib/hidden-exercise-lists";
 import {
   getExerciseMetadataCacheStatus,
   loadExerciseMetadata,
@@ -88,6 +89,7 @@ function ExercisesMain() {
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [exercises, setExercises] = useState<ExerciseListItem[]>([]);
+  const [hiddenExerciseIds, setHiddenExerciseIds] = useState<Set<string>>(() => new Set());
   const [searchText, setSearchText] = useState("");
   const prefetchedExerciseHrefs = useRef(new Set<string>());
 
@@ -162,9 +164,16 @@ function ExercisesMain() {
               p_through: getTodayYyyyMmDd(),
             }),
           );
-      const [metadataResult, countsResult] = await Promise.all([
+      const hiddenPromise = perf.trackQuery("user_hidden_exercises.selectByUserId", () =>
+        supabaseBrowserClient
+          .from("user_hidden_exercises")
+          .select("exercise_id")
+          .eq("user_id", session.user.id),
+      );
+      const [metadataResult, countsResult, hiddenResult] = await Promise.all([
         metadataPromise,
         countsPromise ?? Promise.resolve(null),
+        hiddenPromise,
       ]);
 
       if (!isMounted) {
@@ -181,6 +190,12 @@ function ExercisesMain() {
       }
       if (countsResult?.error) {
         setErrorMessage("Could not load exercise history.");
+        setIsLoading(false);
+        perf.flush();
+        return;
+      }
+      if (hiddenResult.error) {
+        setErrorMessage("Could not load exercise visibility.");
         setIsLoading(false);
         perf.flush();
         return;
@@ -207,6 +222,7 @@ function ExercisesMain() {
       }));
 
       setExercises(nextItems);
+      setHiddenExerciseIds(new Set((hiddenResult.data ?? []).map((row) => row.exercise_id)));
       setIsLoading(false);
       perf.flush();
     }
@@ -218,8 +234,8 @@ function ExercisesMain() {
   }, [router]);
 
   const displayItems = useMemo(
-    () => (scopeAll ? exercises : exercises.filter((item) => item.sessionCount > 0)),
-    [exercises, scopeAll],
+    () => exercisesForList(exercises, hiddenExerciseIds, scopeAll ? "all" : "used"),
+    [exercises, hiddenExerciseIds, scopeAll],
   );
 
   function setScope(next: "used" | "all") {

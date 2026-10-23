@@ -4,6 +4,7 @@ import {
   buildExerciseProgressReport,
   type LifterProfile,
 } from "@/lib/exercise-progress-insights";
+import { visibleInsightExerciseSets } from "@/lib/hidden-exercise-lists";
 import { buildInsightsComparisonSentence } from "@/lib/insights-chart-summary";
 import {
   applyInsightsRange,
@@ -187,8 +188,11 @@ export function buildInsightsPayload(input: {
   today: Date;
   history: InsightsHistory;
   profile: UserStrengthProfile;
+  /** Omitted from exercise progress and lift comparison. Session totals stay. */
+  hiddenExerciseIds?: ReadonlySet<string>;
 }) {
   const { query, today, history, profile } = input;
+  const exerciseSets = visibleInsightExerciseSets(history.exerciseSets, input.hiddenExerciseIds ?? new Set());
   const activity = filterActivity(history.activity, query.range, query.from, query.to);
   const weekly = withMovingAverage(filterWeekly(history.weekly, query.range, query.from, query.to));
   const totals = activity.reduce(
@@ -201,7 +205,7 @@ export function buildInsightsPayload(input: {
   );
   const name = periodName(query.range, query.from, query.to, today);
   const progress = buildExerciseProgressReport(
-    history.exerciseSets,
+    exerciseSets,
     { from: query.from, to: query.to },
     lifterProfile(profile, today),
   );
