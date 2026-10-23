@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 import {
   friendlyAuthError,
+  loginControlLabel,
   loginEmailError,
   loginPasswordError,
   loginResetPasswordError,
@@ -90,6 +91,22 @@ describe("login form", () => {
       }),
       null,
     );
+  });
+
+  it("keeps the submit label busy until the page can leave", () => {
+    assert.equal(loginControlLabel("login", null), "Log in");
+    assert.equal(loginControlLabel("login", "login"), "Logging in…");
+    assert.equal(loginControlLabel("login", "social"), "Log in");
+    assert.equal(loginControlLabel("register", null), "Register");
+    assert.equal(loginControlLabel("register", "register"), "Registering…");
+    assert.equal(loginControlLabel("register", "login"), "Logging in…");
+    assert.equal(loginControlLabel("forgot", null), "Send reset link");
+    assert.equal(loginControlLabel("forgot", "forgot"), "Sending reset link…");
+    assert.equal(loginControlLabel("reset", null), "Set new password");
+    assert.equal(loginControlLabel("reset", "reset"), "Setting new password…");
+    assert.equal(loginControlLabel("mfa", null), "Verify");
+    assert.equal(loginControlLabel("mfa", "mfa"), "Verifying…");
+    assert.equal(loginControlLabel("mfa", "login"), "Verify");
   });
 
   it("rewrites known auth failures and never returns raw provider text", () => {

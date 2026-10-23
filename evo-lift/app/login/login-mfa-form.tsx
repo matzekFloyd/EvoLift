@@ -5,6 +5,7 @@ import { ActionButton } from "@/app/components/action-button";
 import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
 import { actionLinkClassName } from "@/app/components/inline-link-class";
+import { loginControlLabel } from "@/app/login/login-form";
 import { LOST_AUTHENTICATOR_MESSAGE } from "@/lib/mfa-assurance";
 
 const codeInputClassName =
@@ -49,7 +50,7 @@ export function LoginMfaForm({
         </label>
         {message ? <StatusNotice tone="error" message={message} /> : null}
         <ActionButton type="submit" variant="primary" fullWidth disabled={isLoading} className="!h-11">
-          Verify
+          {loginControlLabel("mfa", isLoading ? "mfa" : null)}
         </ActionButton>
         <button type="button" onClick={onUseDifferentAccount} className={actionLinkClassName}>
           Use a different account
