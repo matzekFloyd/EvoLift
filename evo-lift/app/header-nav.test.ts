@@ -8,6 +8,7 @@ import {
   compactMenuButtonClassName,
   compactMenuButtonLabel,
   compactMenuFocusable,
+  compactMenuInitialFocusVisible,
   compactNavTileClassName,
   focusHeaderControl,
 } from "./header-nav";
@@ -43,7 +44,12 @@ describe("compact menu names and focus", () => {
     assert.deepEqual(compactMenuFocusable({ logo: null, trigger: null, dialogItems: [home] }), [home]);
   });
 
-  it("asks the browser to show the focus ring", () => {
+  it("shows the opening focus ring only for keyboard activation", () => {
+    assert.equal(compactMenuInitialFocusVisible(0), true);
+    assert.equal(compactMenuInitialFocusVisible(1), false);
+  });
+
+  it("asks the browser to show the focus ring unless a tap opened the menu", () => {
     const calls: FocusOptions[] = [];
     const element = {
       focus(options?: FocusOptions) {
@@ -54,9 +60,10 @@ describe("compact menu names and focus", () => {
     } as HTMLElement;
 
     focusHeaderControl(element);
+    focusHeaderControl(element, { focusVisible: false });
     focusHeaderControl(null);
 
-    assert.deepEqual(calls, [{ focusVisible: true }]);
+    assert.deepEqual(calls, [{ focusVisible: true }, { focusVisible: false }]);
   });
 });
 
@@ -70,6 +77,8 @@ describe("header keyboard contract", () => {
     assert.match(header, /compactMenuFocusable/);
     assert.match(header, /returnFocus: true/);
     assert.match(header, /focusHeaderControl/);
+    assert.match(header, /compactMenuInitialFocusVisible\(event\.detail\)/);
+    assert.match(header, /focusVisible: compactMenuInitialFocusVisibleRef\.current/);
     assert.match(header, /aria-label="Main"/);
     assert.match(header, /aria-label="Navigation menu"/);
     assert.match(header, /aria-label="Legal"/);
