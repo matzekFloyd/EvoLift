@@ -48,9 +48,7 @@ export { isAssistanceExercise };
 export function buildPersonalBestRows(
   catalog: readonly PersonalBestCatalogExercise[],
   samples: readonly PersonalBestSetSample[],
-  options?: { hideEmpty?: boolean },
 ): PersonalBestRow[] {
-  const hideEmpty = options?.hideEmpty ?? true;
   const byExercise = new Map<string, PersonalBestSetSample[]>();
   for (const sample of samples) {
     const list = byExercise.get(sample.exerciseId) ?? [];
@@ -63,7 +61,7 @@ export function buildPersonalBestRows(
     const sets = byExercise.get(exercise.id) ?? [];
     const bestSet = pickBestSet(sets);
     const heaviestLoad = pickHeaviestLoad(sets);
-    if (hideEmpty && bestSet == null && heaviestLoad == null) {
+    if (bestSet == null && heaviestLoad == null) {
       continue;
     }
     rows.push({

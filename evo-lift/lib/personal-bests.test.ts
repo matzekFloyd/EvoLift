@@ -82,7 +82,7 @@ describe("personal bests", () => {
     assert.equal(rows[0]?.heaviestLoad?.performedOn, "2026-01-20");
   });
 
-  it("hides empty exercises by default and can show the full catalog", () => {
+  it("lists only exercises with a logged best", () => {
     const samples = [
       sample({
         exerciseId: "squat",
@@ -93,8 +93,10 @@ describe("personal bests", () => {
         totalKg: 100,
       }),
     ];
-    assert.equal(buildPersonalBestRows(catalog, samples).length, 1);
-    assert.equal(buildPersonalBestRows(catalog, samples, { hideEmpty: false }).length, 3);
+    const rows = buildPersonalBestRows(catalog, samples);
+    assert.equal(rows.length, 1);
+    assert.equal(rows[0]?.exerciseId, "squat");
+    assert.equal(buildPersonalBestRows(catalog, []).length, 0);
   });
 
   it("marks assistance exercises and formats cells", () => {
