@@ -12,8 +12,8 @@ import {
 } from "@/app/components/content-placeholder-layout";
 import { CollapsibleSection } from "@/app/components/collapsible-section";
 import { KpiBadge } from "@/app/components/kpi-badge";
+import { kpiBadgeTone } from "@/app/components/kpi-badge-tone";
 import { ExerciseProgressPanel } from "@/app/components/exercise-progress-panel";
-import { MuscleAreaInsightsSection } from "@/app/components/muscle-area-insights";
 import {
   InsightsCompoundE1rmChart,
   InsightsWeeklyVolumeChart,
@@ -27,7 +27,6 @@ import { StatusNotice } from "@/app/components/status-notice";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { buildExerciseProgressReport, type LifterProfile } from "@/lib/exercise-progress-insights";
-import { muscleAreaRangeCoverage } from "@/lib/muscle-area-range-coverage";
 import { buildInsightsComparisonSentence } from "@/lib/insights-chart-summary";
 import { visibleInsightExerciseSets } from "@/lib/hidden-exercise-lists";
 import { buildInsightsCompoundE1rmSeries } from "@/lib/insights-compound-e1rm";
@@ -60,10 +59,6 @@ const rangeOptions: RangeOption[] = [
   { value: "all", label: "All" },
 ];
 const defaultInsightsRange: InsightsRange = "12w";
-
-/** Grey inset fill for summary KPI panels on the white Insights panel. */
-const insightsKpiClassName =
-  "border-zinc-200 bg-zinc-50/80 shadow-none hover:shadow-none";
 
 const emptyLifterProfile: LifterProfile = {
   sex: null,
@@ -328,22 +323,6 @@ export default function InsightsPage() {
     [dateFrom, dateTo, listedExerciseSets, lifterProfile],
   );
 
-  const muscleCoverage = useMemo(
-    () =>
-      muscleAreaRangeCoverage(
-        listedExerciseSets.filter((sample) => {
-          if (dateFrom && sample.performedOn < dateFrom) {
-            return false;
-          }
-          if (dateTo && sample.performedOn > dateTo) {
-            return false;
-          }
-          return true;
-        }),
-      ),
-    [dateFrom, dateTo, listedExerciseSets],
-  );
-
   const compoundE1rmSeries = useMemo(() => {
     const inRange = listedExerciseSets.filter((sample) => {
       if (dateFrom && sample.performedOn < dateFrom) {
@@ -465,28 +444,24 @@ export default function InsightsPage() {
               <KpiBadge
                 label="Workouts"
                 value={String(summary.workouts)}
-                icon={<Dumbbell className="h-4 w-4 text-zinc-600" />}
+                icon={<Dumbbell className="h-4 w-4" />}
                 description="Total workout sessions in the selected filter window."
-                tone="neutral"
-                className={insightsKpiClassName}
+                tone={kpiBadgeTone("count")}
               />
               <KpiBadge
                 label="Sets"
                 value={String(summary.sets)}
-                icon={<Hash className="h-4 w-4 text-zinc-600" />}
+                icon={<Hash className="h-4 w-4" />}
                 description="Total logged sets in the selected filter window."
-                tone="neutral"
-                className={insightsKpiClassName}
+                tone={kpiBadgeTone("count")}
               />
               <KpiBadge
                 label="Volume (kg)"
                 value={summary.loadedKg.toFixed(1)}
-                icon={<Weight className="h-4 w-4 text-zinc-600" />}
+                icon={<Weight className="h-4 w-4" />}
                 description="Total weekly training volume (loaded kg × reps) in the selected filter window."
-                tone="neutral"
-                className={insightsKpiClassName}
+                tone={kpiBadgeTone("count")}
               />
-              <MuscleAreaInsightsSection coverage={muscleCoverage} className="sm:col-span-3" />
             </div>
             <ExerciseProgressPanel report={exerciseProgress} />
             <CollapsibleSection title="Estimated one-rep max (1RM)" defaultOpen={false}>

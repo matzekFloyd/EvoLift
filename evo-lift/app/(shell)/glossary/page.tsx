@@ -103,7 +103,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Muscle area",
     definition:
-      "The part of the body an exercise trains. Each exercise has a primary muscle area and sometimes a secondary one. On Insights, an area counts as trained from either. Volume for a date range is added to the primary only.",
+      "The part of the body an exercise trains. Each exercise has a primary muscle area and sometimes a secondary one.",
   },
   {
     term: "Personal best",

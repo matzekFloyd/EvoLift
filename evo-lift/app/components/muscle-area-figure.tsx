@@ -260,20 +260,8 @@ function FigurePair({
   );
 }
 
-const DEFAULT_COVERAGE_LEGEND = {
-  primary: "Primary",
-  secondary: "Secondary",
-  missing: "Missing",
-} as const;
-
-/** Front and rear body for every area. Plans use the default legend. Insights renames the same marks. */
-export function MuscleAreaCoverageBodies({
-  areas,
-  legend = DEFAULT_COVERAGE_LEGEND,
-}: {
-  areas: readonly CoverageAreaPaint[];
-  legend?: { primary: string; secondary: string; missing: string };
-}) {
+/** Front and rear body for every area on a plan or a template. */
+export function MuscleAreaCoverageBodies({ areas }: { areas: readonly CoverageAreaPaint[] }) {
   const paintFor = coveragePaint(areas);
   return (
     <div className="flex w-fit max-w-full flex-col items-center justify-self-center gap-2 @min-[56rem]:items-start @min-[56rem]:justify-self-start">
@@ -281,11 +269,11 @@ export function MuscleAreaCoverageBodies({
       <ul className="flex max-w-full flex-wrap justify-center gap-x-3 gap-y-1 text-xs text-zinc-600 @min-[56rem]:justify-start">
         <li className="inline-flex items-center gap-1.5">
           <MuscleSwatch role="primary" />
-          {legend.primary}
+          Primary
         </li>
         <li className="inline-flex items-center gap-1.5">
           <MuscleSwatch role="secondary" />
-          {legend.secondary}
+          Secondary
         </li>
         <li className="inline-flex items-center gap-1.5">
           <svg aria-hidden viewBox="0 0 12 12" className="h-3 w-3 shrink-0">
@@ -299,7 +287,7 @@ export function MuscleAreaCoverageBodies({
               strokeWidth="1"
             />
           </svg>
-          {legend.missing}
+          Missing
         </li>
       </ul>
     </div>
