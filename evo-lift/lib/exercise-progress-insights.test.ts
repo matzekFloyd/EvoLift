@@ -174,4 +174,30 @@ describe("buildExerciseProgressReport", () => {
     assert.match(deadlift?.meta ?? "", /1\.0× bodyweight/);
     assert.equal(press, undefined);
   });
+
+  it("keeps a missing-pattern note and does not list body parts as not trained", () => {
+    const bench = (sessionId: string, performedOn: string) =>
+      sample({
+        exerciseId: "ex-bench",
+        slug: "barbell-bench-press",
+        label: "Barbell Bench Press",
+        sessionId,
+        performedOn,
+        totalKg: 80,
+        reps: 5,
+      });
+    const report = buildExerciseProgressReport(
+      [bench("s1", "2026-01-01"), bench("s2", "2026-01-15"), bench("s3", "2026-02-01")],
+      RANGE,
+      NO_PROFILE,
+    );
+    const pattern = report.balanceNotes.find((note) => note.id === "pattern-horizontal-press-horizontal-pull");
+    assert.equal(pattern?.badge, "Missing");
+    assert.match(pattern?.detail ?? "", /horizontal pull/);
+    assert.equal(
+      report.balanceNotes.some((note) => note.badge === "Not trained" || note.title === "Arms" || note.title === "Legs"),
+      false,
+    );
+    assert.equal(report.publicNotes.some((note) => note.badge === "Not trained"), false);
+  });
 });

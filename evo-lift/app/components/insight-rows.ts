@@ -50,9 +50,6 @@ export function progressBadgeDescription(read: ProgressRead): string {
 }
 
 export function comparisonBadgeDescription(note: LiftBalanceNote): string {
-  if (note.kind === "coverage") {
-    return "None of the exercises for this body part have a loaded working set in this range.";
-  }
   if (note.badge === "Below usual") {
     return "This estimated 1RM sits outside the usual ratio to the other lift.";
   }
@@ -69,9 +66,6 @@ export function comparisonBadgeDescription(note: LiftBalanceNote): string {
 }
 
 export function comparisonBadgeTone(note: LiftBalanceNote): StatusBadgeTone {
-  if (note.kind === "coverage") {
-    return "danger";
-  }
   if (note.kind === "balance") {
     return "warning";
   }

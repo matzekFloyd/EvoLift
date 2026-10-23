@@ -13,6 +13,7 @@ import {
 import { CollapsibleSection } from "@/app/components/collapsible-section";
 import { KpiBadge } from "@/app/components/kpi-badge";
 import { ExerciseProgressPanel } from "@/app/components/exercise-progress-panel";
+import { MuscleAreaInsightsSection } from "@/app/components/muscle-area-insights";
 import {
   InsightsCompoundE1rmChart,
   InsightsWeeklyVolumeChart,
@@ -26,6 +27,7 @@ import { StatusNotice } from "@/app/components/status-notice";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { buildExerciseProgressReport, type LifterProfile } from "@/lib/exercise-progress-insights";
+import { muscleAreaRangeCoverage } from "@/lib/muscle-area-range-coverage";
 import { buildInsightsComparisonSentence } from "@/lib/insights-chart-summary";
 import { visibleInsightExerciseSets } from "@/lib/hidden-exercise-lists";
 import { buildInsightsCompoundE1rmSeries } from "@/lib/insights-compound-e1rm";
@@ -326,6 +328,22 @@ export default function InsightsPage() {
     [dateFrom, dateTo, listedExerciseSets, lifterProfile],
   );
 
+  const muscleCoverage = useMemo(
+    () =>
+      muscleAreaRangeCoverage(
+        listedExerciseSets.filter((sample) => {
+          if (dateFrom && sample.performedOn < dateFrom) {
+            return false;
+          }
+          if (dateTo && sample.performedOn > dateTo) {
+            return false;
+          }
+          return true;
+        }),
+      ),
+    [dateFrom, dateTo, listedExerciseSets],
+  );
+
   const compoundE1rmSeries = useMemo(() => {
     const inRange = listedExerciseSets.filter((sample) => {
       if (dateFrom && sample.performedOn < dateFrom) {
@@ -468,6 +486,7 @@ export default function InsightsPage() {
                 tone="neutral"
                 className={insightsKpiClassName}
               />
+              <MuscleAreaInsightsSection coverage={muscleCoverage} className="sm:col-span-3" />
             </div>
             <ExerciseProgressPanel report={exerciseProgress} />
             <CollapsibleSection title="Estimated one-rep max (1RM)" defaultOpen={false}>

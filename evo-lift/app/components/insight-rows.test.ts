@@ -69,9 +69,7 @@ describe("progress insight rows", () => {
 });
 
 describe("comparison insight rows", () => {
-  it("maps coverage, balance, and ExRx badges to tone and description", () => {
-    assert.equal(comparisonBadgeTone(note({ kind: "coverage", badge: "None" })), "danger");
-    assert.match(comparisonBadgeDescription(note({ kind: "coverage", badge: "None" })), /None of the exercises/);
+  it("maps balance and ExRx badges to tone and description", () => {
     assert.equal(comparisonBadgeTone(note({ kind: "balance", badge: "Below usual" })), "warning");
     assert.match(comparisonBadgeDescription(note({ kind: "balance", badge: "Below usual" })), /outside the usual ratio/);
     assert.match(comparisonBadgeDescription(note({ kind: "public", badge: "Missing" })), /none of them appear/);
