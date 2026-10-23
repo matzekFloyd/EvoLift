@@ -36,7 +36,21 @@ export function compactMenuFocusable(args: {
   return [args.logo, args.trigger, ...args.dialogItems].filter((el): el is HTMLElement => el != null);
 }
 
-/** Move focus and keep the ring visible. Programmatic focus would otherwise skip `:focus-visible`. */
-export function focusHeaderControl(element: HTMLElement | null) {
-  element?.focus({ focusVisible: true });
+/**
+ * Keyboard activation of the menu button reports click detail 0 and should show the ring
+ * on the first tile. A tap or click reports a positive detail and should move focus without it.
+ */
+export function compactMenuInitialFocusVisible(clickDetail: number): boolean {
+  return clickDetail === 0;
+}
+
+/**
+ * Move focus. Programmatic focus skips `:focus-visible` unless `focusVisible` is true.
+ * The compact menu forces the ring for keyboard focus and skips it after a tap.
+ */
+export function focusHeaderControl(
+  element: HTMLElement | null,
+  options?: { focusVisible?: boolean },
+) {
+  element?.focus({ focusVisible: options?.focusVisible ?? true });
 }

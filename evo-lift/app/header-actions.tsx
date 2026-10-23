@@ -33,6 +33,7 @@ import {
   compactMenuButtonClassName,
   compactMenuButtonLabel,
   compactMenuFocusable,
+  compactMenuInitialFocusVisible,
   compactNavTileClassName,
   focusHeaderControl,
 } from "@/app/header-nav";
@@ -70,6 +71,7 @@ export function HeaderActions() {
   const compactMenuTriggerRef = useRef<HTMLButtonElement | null>(null);
   const compactMenuRef = useRef<HTMLDivElement | null>(null);
   const compactMenuFirstItemRef = useRef<HTMLAnchorElement | null>(null);
+  const compactMenuInitialFocusVisibleRef = useRef(true);
 
   const compactNavItems = HEADER_NAV.map((item) => ({
     ...item,
@@ -152,7 +154,9 @@ export function HeaderActions() {
     };
     window.addEventListener("keydown", onKeyDown);
     const focusTimer = window.setTimeout(() => {
-      focusHeaderControl(compactMenuFirstItemRef.current);
+      focusHeaderControl(compactMenuFirstItemRef.current, {
+        focusVisible: compactMenuInitialFocusVisibleRef.current,
+      });
     }, 0);
     return () => {
       root.style.overflow = previousOverflow;
@@ -229,7 +233,12 @@ export function HeaderActions() {
           <button
             ref={compactMenuTriggerRef}
             type="button"
-            onClick={() => setIsCompactMenuOpen((prev) => !prev)}
+            onClick={(event) => {
+              if (!isCompactMenuOpen) {
+                compactMenuInitialFocusVisibleRef.current = compactMenuInitialFocusVisible(event.detail);
+              }
+              setIsCompactMenuOpen((prev) => !prev);
+            }}
             className={compactMenuButtonClassName}
             aria-label={compactMenuButtonLabel(isCompactMenuOpen)}
             aria-expanded={isCompactMenuOpen}
