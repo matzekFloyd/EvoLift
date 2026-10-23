@@ -1,3 +1,5 @@
+import type { MuscleArea } from "../muscle-areas";
+
 export type Json =
   | string
   | number
@@ -42,18 +44,24 @@ export type Database = {
         Row: {
           id: string;
           slug: string;
+          primary_muscle_area: MuscleArea;
+          secondary_muscle_area: MuscleArea | null;
           created_at: string;
           updated_at: string;
         };
         Insert: {
           id?: string;
           slug: string;
+          primary_muscle_area: MuscleArea;
+          secondary_muscle_area?: MuscleArea | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           id?: string;
           slug?: string;
+          primary_muscle_area?: MuscleArea;
+          secondary_muscle_area?: MuscleArea | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -681,6 +689,7 @@ export type Database = {
     };
     Enums: {
       language_code: LanguageCode;
+      muscle_area: MuscleArea;
       profile_sex: "female" | "male";
       strength_milestone_type: "absolute" | "bodyweight_multiple";
     };
