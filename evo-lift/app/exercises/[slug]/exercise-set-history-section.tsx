@@ -21,13 +21,14 @@ import {
   historyRowTitle,
   historyValueClass,
 } from "@/app/exercises/[slug]/exercise-history-display";
+import {
+  compactHistoryAssistanceGridClassName,
+  compactHistoryCellPaddingClassName,
+  compactHistoryFrameClassName,
+  compactHistoryGridClassName,
+  historyTableClassName,
+} from "@/app/exercises/[slug]/exercise-set-history-layout";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
-
-const COMPACT_HISTORY_GRID =
-  "grid grid-cols-[minmax(6.75rem,1fr)_minmax(2.75rem,3.5rem)_2.75rem_3.25rem_2.125rem] gap-x-1.5 @min-[22rem]:grid-cols-[minmax(6.75rem,1fr)_3.5rem_minmax(1.75rem,2.25rem)_2.75rem_3.25rem_2.125rem]";
-
-const COMPACT_HISTORY_GRID_ASSISTANCE =
-  "grid grid-cols-[minmax(6.75rem,1fr)_minmax(2.75rem,3.5rem)_2.75rem_2.125rem] gap-x-1.5 @min-[22rem]:grid-cols-[minmax(6.75rem,1fr)_3.5rem_minmax(1.75rem,2.25rem)_2.75rem_2.125rem]";
 
 const COMPACT_HISTORY_TYPE_CELL = "hidden @min-[22rem]:flex @min-[22rem]:justify-center @min-[22rem]:items-center";
 
@@ -122,9 +123,9 @@ export function ExerciseSetHistorySection({
           </ActionButton>
         </div>
       ) : isCompactView ? (
-        <div className="@container overflow-x-auto rounded-md border border-zinc-200 bg-white">
+        <div className={compactHistoryFrameClassName}>
           <div
-            className={`${assistance ? COMPACT_HISTORY_GRID_ASSISTANCE : COMPACT_HISTORY_GRID} border-b bg-zinc-50 px-2 py-1.5 text-[10px] font-medium uppercase tracking-wide text-zinc-500`}
+            className={`${assistance ? compactHistoryAssistanceGridClassName : compactHistoryGridClassName} ${compactHistoryCellPaddingClassName} border-b bg-zinc-50 py-1.5 text-[10px] font-medium uppercase tracking-wide text-zinc-500`}
           >
             <span>Date</span>
             <span className={COMPACT_HISTORY_TYPE_CELL}>Type</span>
@@ -143,7 +144,7 @@ export function ExerciseSetHistorySection({
           {pagedCompactRows.map((row, index) => (
             <article
               key={`${row.sessionId}-${row.setNumber}-${index}`}
-              className={`cursor-pointer border-b px-2 py-1.5 text-xs last:border-b-0 ${historyRowSurfaceClass(
+              className={`cursor-pointer border-b ${compactHistoryCellPaddingClassName} py-1.5 text-xs last:border-b-0 ${historyRowSurfaceClass(
                 `${row.sessionId}-${row.setNumber}` === topRepsRowKey,
                 Boolean(row.goalLabel),
               )}`}
@@ -156,10 +157,13 @@ export function ExerciseSetHistorySection({
                 const isGoalRow = Boolean(row.goalLabel);
                 return (
                   <div
-                    className={`${assistance ? COMPACT_HISTORY_GRID_ASSISTANCE : COMPACT_HISTORY_GRID} items-center text-zinc-700`}
+                    className={`${assistance ? compactHistoryAssistanceGridClassName : compactHistoryGridClassName} items-center text-zinc-700`}
                   >
                     <div className="flex min-w-0 items-center gap-1">
-                      <span className="truncate font-medium tabular-nums text-zinc-900">
+                      <span
+                        className="truncate font-medium tabular-nums text-zinc-900"
+                        title={formatDateOnlyForLocale(row.performedOn)}
+                      >
                         {formatDateOnlyForLocale(row.performedOn)}
                       </span>
                       {isTopRepsRow ? (
@@ -205,26 +209,26 @@ export function ExerciseSetHistorySection({
           ))}
         </div>
       ) : (
-        <AppTable tableClassName="min-w-[760px]">
+        <AppTable tableClassName={historyTableClassName}>
           <thead>
             <tr className="border-b">
               <th className="px-2 py-2 font-medium">
-                <button type="button" onClick={() => onSort("performedOn")} className="inline-flex items-center gap-1">
+                <button type="button" onClick={() => onSort("performedOn")} className="inline-flex max-w-full flex-wrap items-center gap-1 text-left">
                   Session date {renderSortIndicator("performedOn")}
                 </button>
               </th>
               <th className="px-2 py-2 font-medium">
-                <button type="button" onClick={() => onSort("isWarmup")} className="inline-flex items-center gap-1">
+                <button type="button" onClick={() => onSort("isWarmup")} className="inline-flex max-w-full flex-wrap items-center gap-1 text-left">
                   Type {renderSortIndicator("isWarmup")}
                 </button>
               </th>
               <th className="px-2 py-2 font-medium">
-                <button type="button" onClick={() => onSort("setNumber")} className="inline-flex items-center gap-1">
+                <button type="button" onClick={() => onSort("setNumber")} className="inline-flex max-w-full flex-wrap items-center gap-1 text-left">
                   Set # {renderSortIndicator("setNumber")}
                 </button>
               </th>
               <th className="px-2 py-2 font-medium">
-                <button type="button" onClick={() => onSort("weightKg")} className="inline-flex items-center gap-1">
+                <button type="button" onClick={() => onSort("weightKg")} className="inline-flex max-w-full flex-wrap items-center gap-1 text-left">
                   {loadColumnLabel} {renderSortIndicator("weightKg")}
                 </button>
               </th>
@@ -233,7 +237,7 @@ export function ExerciseSetHistorySection({
                   <button
                     type="button"
                     onClick={() => onSort("totalKg")}
-                    className="inline-flex items-center gap-1"
+                    className="inline-flex max-w-full flex-wrap items-center gap-1 text-left"
                     title="Loaded weight plus optional base weight for this exercise on that session."
                   >
                     Total (kg) {renderSortIndicator("totalKg")}
@@ -241,7 +245,7 @@ export function ExerciseSetHistorySection({
                 </th>
               )}
               <th className="px-2 py-2 font-medium">
-                <button type="button" onClick={() => onSort("reps")} className="inline-flex items-center gap-1">
+                <button type="button" onClick={() => onSort("reps")} className="inline-flex max-w-full flex-wrap items-center gap-1 text-left">
                   Reps {renderSortIndicator("reps")}
                 </button>
               </th>
@@ -261,7 +265,7 @@ export function ExerciseSetHistorySection({
                     title={historyRowTitle(row, isTopRepsRow)}
                   >
                     <td className="px-2 py-2">
-                      <span className="inline-flex items-center gap-1">
+                      <span className="inline-flex max-w-full flex-wrap items-center gap-1 text-left">
                         {formatDateOnlyForLocale(row.performedOn)}
                         {isTopRepsRow ? (
                           <Medal className="h-3.5 w-3.5 shrink-0 text-amber-600" aria-hidden />

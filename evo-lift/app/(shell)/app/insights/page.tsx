@@ -84,7 +84,6 @@ export default function InsightsPage() {
   const [catalogExercises, setCatalogExercises] = useState<
     Array<{ id: string; slug: string; label: string }>
   >([]);
-  const [hideEmptyPersonalBests, setHideEmptyPersonalBests] = useState(true);
   const [lifterProfile, setLifterProfile] = useState<LifterProfile>(emptyLifterProfile);
   const isMountedRef = useRef(true);
   const loadRequestRef = useRef(0);
@@ -327,10 +326,8 @@ export default function InsightsPage() {
 
   const personalBestRows = useMemo(
     () =>
-      buildPersonalBestRows(catalogExercises, exerciseSets, {
-        hideEmpty: hideEmptyPersonalBests,
-      }),
-    [catalogExercises, exerciseSets, hideEmptyPersonalBests],
+      buildPersonalBestRows(catalogExercises, exerciseSets),
+    [catalogExercises, exerciseSets],
   );
 
   const hasTrendChartData = weeklyVolumeFiltered.length > 0;
@@ -472,11 +469,7 @@ export default function InsightsPage() {
               </div>
             </CollapsibleSection>
             <LiftComparisonPanel report={exerciseProgress} />
-            <PersonalBestsPanel
-              rows={personalBestRows}
-              hideEmpty={hideEmptyPersonalBests}
-              onHideEmptyChange={setHideEmptyPersonalBests}
-            />
+            <PersonalBestsPanel rows={personalBestRows} />
             <CollapsibleSection title="Weekly sessions, volume & sets" defaultOpen={false}>
               {!hasTrendChartData ? (
                 <p className="text-xs text-zinc-500">

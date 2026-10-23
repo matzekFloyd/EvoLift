@@ -1,7 +1,6 @@
 "use client";
 
 import Link from "next/link";
-import { History, LayoutGrid } from "lucide-react";
 import { CollapsibleSection } from "@/app/components/collapsible-section";
 import {
   formatPersonalBestDate,
@@ -12,15 +11,8 @@ import {
 
 type PersonalBestsPanelProps = {
   rows: PersonalBestRow[];
-  hideEmpty: boolean;
-  onHideEmptyChange: (hideEmpty: boolean) => void;
   defaultOpen?: boolean;
 };
-
-const pillBase =
-  "rounded-md border px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40";
-const pillActive = "border-sky-600 bg-sky-100 text-sky-950";
-const pillInactive = "border-zinc-300 bg-white text-zinc-700 hover:border-zinc-400 hover:bg-zinc-100";
 
 function rowDetail(row: PersonalBestRow): string {
   const best = formatPersonalBestSet(row.bestSet);
@@ -60,16 +52,12 @@ function MarkBlock({
 
 export function PersonalBestsPanel({
   rows,
-  hideEmpty,
-  onHideEmptyChange,
   defaultOpen = false,
 }: PersonalBestsPanelProps) {
   return (
     <CollapsibleSection title="Personal bests" defaultOpen={defaultOpen}>
       <p className="text-sm text-zinc-800">
-        {hideEmpty
-          ? `${rows.length} exercise${rows.length === 1 ? "" : "s"} with a logged best in this range.`
-          : `${rows.length} exercise${rows.length === 1 ? "" : "s"} in the catalog.`}
+        {rows.length} exercise{rows.length === 1 ? "" : "s"} with a logged best in this range.
       </p>
       <p className="mt-1 text-xs text-zinc-500">
         Best set uses Total (kg), then reps. Heaviest load uses Loaded (kg).
@@ -84,34 +72,9 @@ export function PersonalBestsPanel({
         </p>
       </details>
 
-      <div className="mt-3 grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={() => onHideEmptyChange(true)}
-          className={`flex w-full flex-col items-center justify-center gap-1.5 text-center leading-tight ${pillBase} ${
-            hideEmpty ? pillActive : pillInactive
-          }`}
-        >
-          <History className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
-          <span>With logged sets</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => onHideEmptyChange(false)}
-          className={`flex w-full flex-col items-center justify-center gap-1.5 text-center leading-tight ${pillBase} ${
-            !hideEmpty ? pillActive : pillInactive
-          }`}
-        >
-          <LayoutGrid className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
-          <span>All exercises</span>
-        </button>
-      </div>
-
       {rows.length === 0 ? (
         <p className="mt-3 text-sm text-zinc-600">
-          {hideEmpty
-            ? "No working sets with a logged load in this range yet."
-            : "No exercises in the catalog."}
+          No working sets with a logged load in this range yet.
         </p>
       ) : (
         <ul className="mt-3 divide-y divide-zinc-200 rounded-md border border-zinc-200 bg-white">
