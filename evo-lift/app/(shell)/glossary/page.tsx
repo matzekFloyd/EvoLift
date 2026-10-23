@@ -101,6 +101,11 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
       "The external weight on a set, such as plates or a dumbbell. Base weight stays separate. On Assisted Dip and Assisted Pull-Up, use Assistance (kg) instead.",
   },
   {
+    term: "Muscle area",
+    definition:
+      "The part of the body an exercise trains. Each exercise has a primary muscle area and sometimes a secondary one. On Insights, an area counts as trained from either. Volume for a date range is added to the primary only.",
+  },
+  {
     term: "Personal best",
     definition:
       "On Insights, your strongest working sets in the selected date range. Best set is the highest Total (kg), then reps. Heaviest load is the highest Loaded (kg). Each mark shows the date it was first hit. Warmups do not count. Assisted Dip and Assisted Pull-Up list assistance, not strength load.",
