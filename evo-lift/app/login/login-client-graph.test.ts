@@ -69,7 +69,7 @@ describe("login client graph", () => {
     assert.doesNotMatch(buttons, /already has an EvoLift account/);
     assert.match(social, /Sign in with Google/);
     assert.match(social, /Sign in with Apple/);
-    assert.match(social, /google: false/);
+    assert.match(social, /google: true/);
     assert.match(social, /apple: false/);
     assert.doesNotMatch(`${login}\n${buttons}\n${social}`, /magic link|signInWithOtp/i);
   });

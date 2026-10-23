@@ -8,12 +8,11 @@ export const SOCIAL_SIGN_IN_PROVIDERS = [
 export type SocialSignInProvider = (typeof SOCIAL_SIGN_IN_PROVIDERS)[number]["provider"];
 
 /**
- * Per-provider switch. Both stay off until the consoles are configured.
- * Google: https://github.com/matzekFloyd/EvoLift/issues/379
- * Apple: https://github.com/matzekFloyd/EvoLift/issues/380
+ * Per-provider switch. Google is on for the hosted project.
+ * Apple stays off until https://github.com/matzekFloyd/EvoLift/issues/380
  */
 export const SOCIAL_SIGN_IN_ENABLED: Record<SocialSignInProvider, boolean> = {
-  google: false,
+  google: true,
   apple: false,
 };
 

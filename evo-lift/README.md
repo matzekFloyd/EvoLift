@@ -198,7 +198,7 @@ Confirm signup (`Confirm your EvoLift email`) and Reset password (`Reset your Ev
 
 ### Google and Apple sign-in
 
-Email and password stay on `/login`. Magic link is not offered. The panel shows **Sign in with Google** and **Sign in with Apple** under the email form. Both buttons stay disabled until their provider is configured ([#379](https://github.com/matzekFloyd/EvoLift/issues/379), [#380](https://github.com/matzekFloyd/EvoLift/issues/380)). Then set that provider to `true` in `SOCIAL_SIGN_IN_ENABLED` (`evo-lift/app/login/social-sign-in.ts`). A verified provider email joins the existing EvoLift account (Supabase automatic linking). Keep **Confirm email** enabled on the hosted project.
+Email and password stay on `/login`. Magic link is not offered. The panel shows **Sign in with Google** under the email form. **Sign in with Apple** stays off until [#380](https://github.com/matzekFloyd/EvoLift/issues/380). Each provider is switched in `SOCIAL_SIGN_IN_ENABLED` (`evo-lift/app/login/social-sign-in.ts`). A verified provider email joins the existing EvoLift account (Supabase automatic linking). Keep **Confirm email** enabled on the hosted project.
 
 **Account actions.** API tokens use the session only. An account with no password can set one on Account → Login, and can delete the account there without a password. After a password exists, changing it, changing email through `PATCH /api/account/email`, and deleting the account require the current password.
 
@@ -238,7 +238,7 @@ Restart local Supabase after editing `config.toml` (`supabase stop`, then `supab
 7. Confirm hosted Auth uses Resend SMTP (`no-reply@auth.evolift.at` via `smtp.resend.com`). The email burst cap stays at 30 per hour. Confirm signup and Reset password templates still match `supabase/templates/`.
 8. Redeploy application.
 9. Smoke test:
-   - `/login` (email and password, plus Sign in with Google and Sign in with Apple)
+   - `/login` (email and password, plus Sign in with Google; Sign in with Apple stays off)
    - Account → Login → Set up authenticator, then log in again and enter the code. An account with it off still logs in with the password only.
    - register from an address that is not an organization member → the confirm link opens `https://evolift.at/login?verified=1`, and the message is from EvoLift at `no-reply@auth.evolift.at`
    - forgot password → recovery link opens `/login?recovery=1` on the production host and sets a new password
