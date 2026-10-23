@@ -2,6 +2,41 @@ import { passwordStrengthError } from "@/lib/password-policy";
 
 export type LoginPanelMode = "login" | "register" | "forgot" | "reset";
 
+export type LoginSubmitAction = LoginPanelMode | "mfa";
+
+/** Which control is in flight. Social sign-in keeps its own label. */
+export type LoginPending = LoginSubmitAction | "social" | null;
+
+const LOGIN_SUBMIT_IDLE_LABEL: Record<LoginSubmitAction, string> = {
+  login: "Log in",
+  register: "Register",
+  forgot: "Send reset link",
+  reset: "Set new password",
+  mfa: "Verify",
+};
+
+const LOGIN_SUBMIT_BUSY_LABEL: Record<LoginSubmitAction, string> = {
+  login: "Logging in…",
+  register: "Registering…",
+  forgot: "Sending reset link…",
+  reset: "Setting new password…",
+  mfa: "Verifying…",
+};
+
+/**
+ * Busy label for the control that was submitted. A tab change while the request
+ * runs keeps that label. Social sign-in does not relabel the email form.
+ */
+export function loginControlLabel(control: LoginSubmitAction, pending: LoginPending): string {
+  if (control === "mfa") {
+    return pending === "mfa" ? LOGIN_SUBMIT_BUSY_LABEL.mfa : LOGIN_SUBMIT_IDLE_LABEL.mfa;
+  }
+  if (pending === "login" || pending === "register" || pending === "forgot" || pending === "reset") {
+    return LOGIN_SUBMIT_BUSY_LABEL[pending];
+  }
+  return LOGIN_SUBMIT_IDLE_LABEL[control];
+}
+
 export function normalizeLoginEmail(email: string): string {
   return email.trim().toLowerCase();
 }

@@ -21,11 +21,13 @@ import { StatusNotice } from "@/app/components/status-notice";
 import { actionLinkClassName, quietLinkClassName } from "@/app/components/inline-link-class";
 import {
   friendlyAuthError,
+  loginControlLabel,
   loginEmailError,
   loginPasswordError,
   loginResetPasswordError,
   normalizeLoginEmail,
   type LoginPanelMode,
+  type LoginPending,
 } from "@/app/login/login-form";
 import { LoginMfaForm } from "@/app/login/login-mfa-form";
 import { loginNeedsAuthenticatorChallenge } from "@/app/login/login-mfa";
@@ -62,7 +64,8 @@ export default function LoginPage() {
   const [message, setMessage] = useState<string | null>(null);
   const [successEmail, setSuccessEmail] = useState<string | null>(null);
   const [successKind, setSuccessKind] = useState<"confirm" | "forgot" | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const [pending, setPending] = useState<LoginPending>(null);
+  const isLoading = pending !== null;
   const [isVerifiedNotice, setIsVerifiedNotice] = useState(false);
   const [oauthNotice, setOauthNotice] = useState<string | null>(null);
   const [recoveryReady, setRecoveryReady] = useState(false);
@@ -238,7 +241,7 @@ export default function LoginPage() {
       return;
     }
 
-    setIsLoading(true);
+    setPending("login");
     setMessage(null);
     setOauthNotice(null);
     setSuccessEmail(null);
@@ -252,7 +255,7 @@ export default function LoginPage() {
     if (error) {
       void reportSecurityEvent({ type: "login_failed", email: normalizedEmail });
       setMessage(friendlyAuthError(error.message, "login"));
-      setIsLoading(false);
+      setPending(null);
       return;
     }
 
@@ -266,12 +269,11 @@ export default function LoginPage() {
       setMfaChallenge(true);
       setMfaCode("");
       setMessage(null);
-      setIsLoading(false);
+      setPending(null);
       return;
     }
 
     router.replace(APP_HOME_PATH);
-    setIsLoading(false);
   }
 
   async function handleMfa(event: FormEvent<HTMLFormElement>) {
@@ -282,20 +284,20 @@ export default function LoginPage() {
       return;
     }
 
-    setIsLoading(true);
+    setPending("mfa");
     setMessage(null);
     const listed = await supabaseBrowserClient.auth.mfa.listFactors();
     const factorId = verifiedTotpFactorId(listed.data?.all);
     if (listed.error || !factorId) {
       setMessage(friendlyAuthError(listed.error?.message ?? "missing factor", "mfa"));
-      setIsLoading(false);
+      setPending(null);
       return;
     }
 
     const challenge = await supabaseBrowserClient.auth.mfa.challenge({ factorId });
     if (challenge.error || !challenge.data) {
       setMessage(friendlyAuthError(challenge.error?.message ?? "challenge failed", "mfa"));
-      setIsLoading(false);
+      setPending(null);
       return;
     }
 
@@ -311,14 +313,12 @@ export default function LoginPage() {
         email: normalizeLoginEmail(email || userData.user?.email || ""),
       });
       setMessage(friendlyAuthError(verified.error.message, "mfa"));
-      setIsLoading(false);
+      setPending(null);
       return;
     }
 
     mfaChallengeRef.current = false;
-    setMfaChallenge(false);
     router.replace(APP_HOME_PATH);
-    setIsLoading(false);
   }
 
   async function useDifferentAccount() {
@@ -346,7 +346,7 @@ export default function LoginPage() {
       return;
     }
 
-    setIsLoading(true);
+    setPending("register");
     setMessage(null);
     setOauthNotice(null);
     setSuccessEmail(null);
@@ -364,14 +364,14 @@ export default function LoginPage() {
 
     if (error) {
       setMessage(friendlyAuthError(error.message, "register"));
-      setIsLoading(false);
+      setPending(null);
       return;
     }
 
     setSuccessEmail(normalizedEmail);
     setSuccessKind("confirm");
     setMessage(null);
-    setIsLoading(false);
+    setPending(null);
     setMode("login");
     setPassword("");
     setConfirmPassword("");
@@ -386,7 +386,7 @@ export default function LoginPage() {
       return;
     }
 
-    setIsLoading(true);
+    setPending("forgot");
     setMessage(null);
     setOauthNotice(null);
     setSuccessEmail(null);
@@ -404,14 +404,14 @@ export default function LoginPage() {
 
     if (error) {
       setMessage(friendlyAuthError(error.message, "forgot"));
-      setIsLoading(false);
+      setPending(null);
       return;
     }
 
     setSuccessEmail(normalizedEmail);
     setSuccessKind("forgot");
     setMessage(null);
-    setIsLoading(false);
+    setPending(null);
     setMode("login");
   }
 
@@ -423,7 +423,7 @@ export default function LoginPage() {
       return;
     }
 
-    setIsLoading(true);
+    setPending("reset");
     setMessage(null);
     setOauthNotice(null);
 
@@ -433,7 +433,7 @@ export default function LoginPage() {
 
     if (error) {
       setMessage(friendlyAuthError(error.message, "reset"));
-      setIsLoading(false);
+      setPending(null);
       return;
     }
 
@@ -445,7 +445,6 @@ export default function LoginPage() {
       });
     }
 
-    setIsLoading(false);
     router.replace(APP_HOME_PATH);
   }
 
@@ -454,7 +453,7 @@ export default function LoginPage() {
       return;
     }
 
-    setIsLoading(true);
+    setPending("social");
     setMessage(null);
     setOauthNotice(null);
     setSuccessEmail(null);
@@ -467,7 +466,7 @@ export default function LoginPage() {
     const blocked = socialSignInBlockedMessage(settings, provider);
     if (blocked) {
       setMessage(blocked);
-      setIsLoading(false);
+      setPending(null);
       return;
     }
 
@@ -477,7 +476,7 @@ export default function LoginPage() {
     });
     if (!redirectTo) {
       setMessage(friendlyOAuthError("missing redirect", provider));
-      setIsLoading(false);
+      setPending(null);
       return;
     }
 
@@ -491,7 +490,7 @@ export default function LoginPage() {
 
     if (error) {
       setMessage(friendlyOAuthError(error.message, provider));
-      setIsLoading(false);
+      setPending(null);
     }
   }
 
@@ -534,7 +533,7 @@ export default function LoginPage() {
                 code={mfaCode}
                 onCodeChange={setMfaCode}
                 message={message}
-                isLoading={isLoading}
+                isLoading={pending === "mfa"}
                 onSubmit={(event) => void handleMfa(event)}
                 onUseDifferentAccount={() => void useDifferentAccount()}
               />
@@ -671,7 +670,7 @@ export default function LoginPage() {
                     disabled={isLoading}
                     className="!h-11"
                   >
-                    {mode === "login" ? "Log in" : "Register"}
+                    {loginControlLabel(mode === "login" ? "login" : "register", pending)}
                   </ActionButton>
                 ) : (
                   <div className="flex w-full items-center gap-3">
@@ -695,7 +694,7 @@ export default function LoginPage() {
                       }
                       className="ml-auto shrink-0"
                     >
-                      {mode === "forgot" ? "Send reset link" : "Set new password"}
+                      {loginControlLabel(mode === "forgot" ? "forgot" : "reset", pending)}
                     </ActionButton>
                   </div>
                 )}
