@@ -26,7 +26,7 @@ export type LiftBalanceNote = {
   title: string;
   titleSlug: string | null;
   badge: string;
-  kind: "public" | "balance" | "coverage";
+  kind: "public" | "balance";
   detail: string;
   /** When set, the words “ExRx table” in `detail` link here. */
   tableHref: string | null;
@@ -426,164 +426,6 @@ function buildPatternNotes(samples: ExerciseWorkingSetSample[], rows: ExercisePr
   return notes.slice(0, 4);
 }
 
-type BodyPart = {
-  id: string;
-  name: string;
-  exampleLabel: string;
-  slugs: string[];
-};
-
-const BODY_PARTS: BodyPart[] = [
-  {
-    id: "chest",
-    name: "Chest",
-    exampleLabel: "Barbell Bench Press",
-    slugs: [
-      "barbell-bench-press",
-      "barbell-incline-press",
-      "close-grip-bench-press",
-      "dumbbell-bench-press",
-      "dumbbell-floor-press",
-      "dumbbell-incline-press",
-      "dumbbell-flye",
-      "machine-chest-press",
-      "machine-incline-chest-press",
-      "cable-flye",
-      "pec-deck",
-      "assisted-dip",
-      "push-up",
-    ],
-  },
-  {
-    id: "back",
-    name: "Back",
-    exampleLabel: "Barbell Bent Over Row",
-    slugs: [
-      "barbell-bent-over-row",
-      "dumbbell-row",
-      "cable-seated-row",
-      "chest-supported-row",
-      "chest-supported-t-bar-row",
-      "lat-pulldown",
-      "neutral-grip-pulldown",
-      "reverse-grip-lat-pulldown",
-      "single-arm-pulldown",
-      "pull-up",
-      "chin-up",
-      "assisted-pull-up",
-      "deadlift",
-      "sumo-deadlift",
-      "trap-bar-deadlift",
-      "barbell-romanian-deadlift",
-      "dumbbell-romanian-deadlift",
-      "back-extension",
-    ],
-  },
-  {
-    id: "shoulders",
-    name: "Shoulders",
-    exampleLabel: "Barbell Overhead Press",
-    slugs: [
-      "overhead-press",
-      "dumbbell-overhead-press",
-      "dumbbell-seated-shoulder-press",
-      "arnold-press",
-      "dumbbell-lateral-raise",
-      "cable-lateral-raise",
-      "machine-lateral-raise",
-      "cable-reverse-flye",
-      "bent-over-reverse-dumbbell-flye",
-      "reverse-pec-deck",
-      "seated-face-pull",
-    ],
-  },
-  {
-    id: "arms",
-    name: "Arms",
-    exampleLabel: "EZ Bar Curl",
-    slugs: [
-      "dumbbell-supinated-curl",
-      "ez-bar-curl",
-      "barbell-curl",
-      "cable-curl",
-      "hammer-curl",
-      "single-arm-cable-curl",
-      "cable-tricep-kickback",
-      "cable-tricep-pushdown",
-      "dumbbell-skull-crusher",
-      "single-arm-rope-tricep-extension",
-      "close-grip-bench-press",
-      "assisted-dip",
-    ],
-  },
-  {
-    id: "legs",
-    name: "Legs",
-    exampleLabel: "Barbell Back Squat",
-    slugs: [
-      "back-squat",
-      "front-squat",
-      "goblet-squat",
-      "hack-squat",
-      "bulgarian-split-squat",
-      "dumbbell-walking-lunge",
-      "leg-press",
-      "leg-extension",
-      "single-leg-leg-extension",
-      "lying-leg-curl",
-      "seated-leg-curl",
-      "single-leg-lying-leg-curl",
-      "barbell-hip-thrust",
-      "dumbbell-single-leg-hip-thrust",
-      "glute-bridge",
-      "cable-pull-through",
-      "deadlift",
-      "sumo-deadlift",
-      "trap-bar-deadlift",
-      "barbell-romanian-deadlift",
-      "dumbbell-romanian-deadlift",
-      "machine-seated-hip-abduction",
-    ],
-  },
-  {
-    id: "core",
-    name: "Core",
-    exampleLabel: "Plank",
-    slugs: ["crunch", "bicycle-crunch", "cable-crunch", "hanging-leg-raise", "plank", "pallof-press"],
-  },
-  {
-    id: "calves",
-    name: "Calves",
-    exampleLabel: "Standing Calf Raise",
-    slugs: ["standing-calf-raise", "seated-calf-raise"],
-  },
-];
-
-function buildCoverageNotes(samples: ExerciseWorkingSetSample[]): LiftBalanceNote[] {
-  if (samples.length === 0) {
-    return [];
-  }
-  const logged = new Set(samples.map((sample) => sample.slug));
-  const notes: LiftBalanceNote[] = [];
-  for (const part of BODY_PARTS) {
-    if (part.slugs.some((slug) => logged.has(slug))) {
-      continue;
-    }
-    notes.push({
-      id: `coverage-${part.id}`,
-      slugs: [],
-      title: part.name,
-      titleSlug: null,
-      badge: "Not trained",
-      kind: "coverage",
-      detail: `No loaded working sets for ${part.name.toLowerCase()} in this range. An example is ${part.exampleLabel}.`,
-      tableHref: null,
-      meta: null,
-    });
-  }
-  return notes;
-}
-
 function bodyweightForEstimate(profile: LifterProfile, performedOn: string | null): number | null {
   if (profile.bodyweightEntries.length > 0) {
     if (!performedOn) {
@@ -823,7 +665,7 @@ export function buildExerciseProgressReport(
   return {
     summary: buildSummary(rows),
     rows,
-    balanceNotes: [...buildBalanceNotes(rows), ...buildPatternNotes(filtered, rows), ...buildCoverageNotes(filtered)],
+    balanceNotes: [...buildBalanceNotes(rows), ...buildPatternNotes(filtered, rows)],
     publicNotes: comparison.publicNotes,
     comparisonHint: comparison.comparisonHint,
   };

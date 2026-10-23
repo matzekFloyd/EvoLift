@@ -229,39 +229,63 @@ function coveragePaint(areas: readonly CoverageAreaPaint[]) {
   };
 }
 
-/** Front and rear body for every area in a plan or template. */
-export function MuscleAreaCoverageBodies({ areas }: { areas: readonly CoverageAreaPaint[] }) {
+function FigurePair({
+  paintFor,
+  figureClassName,
+}: {
+  paintFor: (area: MuscleArea) => RegionPaint;
+  figureClassName: string;
+}) {
+  return (
+    <div className="flex items-end gap-3">
+      <div className="flex flex-col items-center">
+        <BodySvg
+          side="front"
+          muscles={FRONT_MUSCLE_PATHS}
+          paintFor={paintFor}
+          figureClassName={figureClassName}
+        />
+        <span className="text-[11px] leading-none text-zinc-600">Front</span>
+      </div>
+      <div className="flex flex-col items-center">
+        <BodySvg
+          side="rear"
+          muscles={REAR_MUSCLE_PATHS}
+          paintFor={paintFor}
+          figureClassName={figureClassName}
+        />
+        <span className="text-[11px] leading-none text-zinc-600">Rear</span>
+      </div>
+    </div>
+  );
+}
+
+const DEFAULT_COVERAGE_LEGEND = {
+  primary: "Primary",
+  secondary: "Secondary",
+  missing: "Missing",
+} as const;
+
+/** Front and rear body for every area. Plans use the default legend. Insights renames the same marks. */
+export function MuscleAreaCoverageBodies({
+  areas,
+  legend = DEFAULT_COVERAGE_LEGEND,
+}: {
+  areas: readonly CoverageAreaPaint[];
+  legend?: { primary: string; secondary: string; missing: string };
+}) {
   const paintFor = coveragePaint(areas);
   return (
-    <div className="flex w-fit items-center justify-self-center gap-4 sm:flex-col sm:items-start sm:justify-self-start sm:gap-2">
-      <div className="flex items-end gap-3">
-        <div className="flex flex-col items-center">
-          <BodySvg
-            side="front"
-            muscles={FRONT_MUSCLE_PATHS}
-            paintFor={paintFor}
-            figureClassName="h-40 w-auto"
-          />
-          <span className="text-[11px] leading-none text-zinc-600">Front</span>
-        </div>
-        <div className="flex flex-col items-center">
-          <BodySvg
-            side="rear"
-            muscles={REAR_MUSCLE_PATHS}
-            paintFor={paintFor}
-            figureClassName="h-40 w-auto"
-          />
-          <span className="text-[11px] leading-none text-zinc-600">Rear</span>
-        </div>
-      </div>
-      <ul className="flex flex-col gap-1.5 text-xs text-zinc-600 sm:flex-row sm:flex-wrap sm:gap-x-3 sm:gap-y-1">
+    <div className="flex w-fit max-w-full flex-col items-center justify-self-center gap-2 @min-[56rem]:items-start @min-[56rem]:justify-self-start">
+      <FigurePair paintFor={paintFor} figureClassName="h-40 w-auto" />
+      <ul className="flex max-w-full flex-wrap justify-center gap-x-3 gap-y-1 text-xs text-zinc-600 @min-[56rem]:justify-start">
         <li className="inline-flex items-center gap-1.5">
           <MuscleSwatch role="primary" />
-          Primary
+          {legend.primary}
         </li>
         <li className="inline-flex items-center gap-1.5">
           <MuscleSwatch role="secondary" />
-          Secondary
+          {legend.secondary}
         </li>
         <li className="inline-flex items-center gap-1.5">
           <svg aria-hidden viewBox="0 0 12 12" className="h-3 w-3 shrink-0">
@@ -275,7 +299,7 @@ export function MuscleAreaCoverageBodies({ areas }: { areas: readonly CoverageAr
               strokeWidth="1"
             />
           </svg>
-          Missing
+          {legend.missing}
         </li>
       </ul>
     </div>

@@ -44,9 +44,7 @@ export function LiftComparisonPanel({
           <p>
             Machine, dumbbell, and leg-press loads are not turned into a ratio against a barbell, because
             the kilogram is not the same kind of number. Those exercises still count when a whole pattern
-            is missing: a press with no pull, or a squat with no hinge, and the reverse. A body part with no
-            loaded working sets in this range is marked not trained. That check covers chest, back,
-            shoulders, arms, legs, core, and calves.
+            is missing: a press with no pull, or a squat with no hinge, and the reverse.
           </p>
           <p>
             The general-public level uses the{" "}
