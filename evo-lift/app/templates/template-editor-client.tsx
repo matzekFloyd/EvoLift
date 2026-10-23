@@ -12,6 +12,7 @@ import {
 } from "@/app/components/content-placeholder-layout";
 import { PageShell } from "@/app/components/page-shell";
 import { StatusNotice } from "@/app/components/status-notice";
+import { MuscleAreaCoverageChart } from "@/app/components/muscle-area-coverage-chart";
 import { WorkoutExerciseDraftList } from "@/app/components/workout-exercise-draft-list";
 import type { Database } from "@/lib/supabase/database.types";
 import { appPath } from "@/lib/app-paths";
@@ -360,6 +361,12 @@ export function TemplateEditorClient(props: Props) {
         {message ? (
           <StatusNotice message={message} tone={messageTone} onDismiss={clearMessage} />
         ) : null}
+
+        <MuscleAreaCoverageChart
+          scope="template"
+          rows={exerciseRows}
+          exerciseOptions={exerciseOptions}
+        />
 
         <WorkoutExerciseDraftList
           exerciseRows={exerciseRows}

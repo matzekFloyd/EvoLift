@@ -13,6 +13,7 @@ import {
 import { AppDialog } from "@/app/components/app-dialog";
 import { PageShell } from "@/app/components/page-shell";
 import { StatusNotice } from "@/app/components/status-notice";
+import { MuscleAreaCoverageChart } from "@/app/components/muscle-area-coverage-chart";
 import { WorkoutExerciseDraftList } from "@/app/components/workout-exercise-draft-list";
 import { createDayDraft, daysFromPlan, type DayDraft } from "@/app/plans/plan-day-draft";
 import { appPath } from "@/lib/app-paths";
@@ -311,6 +312,12 @@ export function PlanEditorClient(props: Props) {
         {message ? (
           <StatusNotice message={message} tone={messageTone} onDismiss={clearMessage} />
         ) : null}
+
+        <MuscleAreaCoverageChart
+          scope="plan"
+          rows={days.flatMap((day) => day.exerciseRows)}
+          exerciseOptions={exerciseOptions}
+        />
 
         <div className="space-y-3">
           {days.map((day, index) => (
