@@ -1,11 +1,17 @@
 import { Hash, TrendingUp, Weight } from "lucide-react";
 import { KpiBadge } from "@/app/components/kpi-badge";
+import { kpiBadgeTone } from "@/app/components/kpi-badge-tone";
 import { panelInsetClass } from "@/app/components/panel-inset";
 import { SectionHeading } from "@/app/components/section-heading";
 import {
   formatKgValue,
   type ExerciseHistoryStats,
 } from "@/app/exercises/[slug]/exercise-history-display";
+import {
+  exerciseSummaryGridClassName,
+  exerciseSummaryLoadCardClassName,
+  exerciseSummarySetCardClassName,
+} from "@/app/exercises/[slug]/exercise-summary-layout";
 
 type ExerciseSummarySectionProps = {
   loggedSetCount: number;
@@ -27,9 +33,6 @@ export function ExerciseSummarySection({
 
   return (
     <>
-      {/*
-        Narrow: 3–2–2 rows (6-col grid). Mid: neutral row + load/total row (12-col). Wide: one row (7-col).
-      */}
       <section
         className={panelInsetClass("p-4 sm:p-5")}
         aria-labelledby="exercise-detail-summary-heading"
@@ -38,36 +41,37 @@ export function ExerciseSummarySection({
           Summary
         </SectionHeading>
         <div className="@container">
-          <div className="grid w-full grid-cols-6 gap-2 @min-[28rem]:grid-cols-12 @min-[56rem]:grid-cols-7">
+          <div className={exerciseSummaryGridClassName(assistance)}>
             <KpiBadge
               label="Logged sets"
               value={String(loggedSetCount)}
-              icon={<Hash className="h-4 w-4 text-zinc-600" />}
-              tone="neutral"
-              className="col-span-2 min-w-0 @min-[28rem]:col-span-4 @min-[56rem]:col-span-1"
+              icon={<Hash className="h-4 w-4" />}
+              tone={kpiBadgeTone("count")}
+              className={exerciseSummarySetCardClassName}
               description="Sets in the current date range. Warmups are included unless “Hide warmups” is on."
             />
             <KpiBadge
               label="Avg sets"
               value={avgSetsText}
-              icon={<Hash className="h-4 w-4 text-zinc-600" />}
-              tone="neutral"
-              className="col-span-2 min-w-0 @min-[28rem]:col-span-4 @min-[56rem]:col-span-1"
+              icon={<Hash className="h-4 w-4" />}
+              tone={kpiBadgeTone("count")}
+              className={exerciseSummarySetCardClassName}
               description="Average sets per session within the current filters (respects date range and “Hide warmups”)."
             />
             <KpiBadge
               label="Max sets"
               value={maxSetsText}
-              icon={<Hash className="h-4 w-4 text-zinc-600" />}
-              tone="neutral"
-              className="col-span-2 min-w-0 @min-[28rem]:col-span-4 @min-[56rem]:col-span-1"
+              icon={<Hash className="h-4 w-4" />}
+              tone={kpiBadgeTone("count")}
+              className={exerciseSummarySetCardClassName}
               description="Most sets in one session within the current filters (respects date range and “Hide warmups”)."
             />
             <KpiBadge
               label={assistance ? "Avg assistance (kg)" : "Avg loaded (kg)"}
               value={averageLoadedText}
-              icon={<Weight className="h-4 w-4 text-sky-700" />}
-              className="col-span-3 min-w-0 @min-[28rem]:col-span-3 @min-[56rem]:col-span-1"
+              icon={<Weight className="h-4 w-4" />}
+              tone={kpiBadgeTone("strength")}
+              className={exerciseSummaryLoadCardClassName(assistance)}
               description={
                 assistance
                   ? "Average assistance on working sets (no warmups). Blank or 0 is unassisted bodyweight."
@@ -77,31 +81,32 @@ export function ExerciseSummarySection({
             <KpiBadge
               label={assistance ? "Max assistance (kg)" : "Max loaded (kg)"}
               value={maxLoadedText}
-              icon={<Weight className="h-4 w-4 text-emerald-700" />}
-              className="col-span-3 min-w-0 @min-[28rem]:col-span-3 @min-[56rem]:col-span-1"
+              icon={<Weight className="h-4 w-4" />}
+              tone={kpiBadgeTone("strength")}
+              className={exerciseSummaryLoadCardClassName(assistance)}
               description={
                 assistance
                   ? "Highest assistance on a single working set (no warmups). Only sets with logged assistance."
                   : "Heaviest single working set by loaded weight (no warmups). Only sets with logged weight."
               }
-              tone="success"
             />
             {assistance ? null : (
               <>
                 <KpiBadge
                   label="Avg total (kg)"
                   value={averageTotalText}
-                  icon={<TrendingUp className="h-4 w-4 text-sky-700" />}
-                  className="col-span-3 min-w-0 @min-[28rem]:col-span-3 @min-[56rem]:col-span-1"
+                  icon={<TrendingUp className="h-4 w-4" />}
+                  tone={kpiBadgeTone("strength")}
+                  className={exerciseSummaryLoadCardClassName(assistance)}
                   description="Mean of each working set’s Total (kg)—loaded plus base for that session—same column as in set history. No warmups; only sets with logged load."
                 />
                 <KpiBadge
                   label="Max total (kg)"
                   value={maxTotalText}
-                  icon={<TrendingUp className="h-4 w-4 text-emerald-700" />}
-                  className="col-span-3 min-w-0 @min-[28rem]:col-span-3 @min-[56rem]:col-span-1"
+                  icon={<TrendingUp className="h-4 w-4" />}
+                  tone={kpiBadgeTone("strength")}
+                  className={exerciseSummaryLoadCardClassName(assistance)}
                   description="Heaviest single working set by Total (kg) in set history (loaded plus base). No warmups; only sets with logged load."
-                  tone="success"
                 />
               </>
             )}

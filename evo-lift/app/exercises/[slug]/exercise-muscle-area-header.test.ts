@@ -13,7 +13,7 @@ function readRepo(...parts: string[]): string {
 }
 
 const MUSCLE_AREA_DEFINITION =
-  "The part of the body an exercise trains. Each exercise has a primary muscle area and sometimes a secondary one. On Insights, an area counts as trained from either. Volume for a date range is added to the primary only.";
+  "The part of the body an exercise trains. Each exercise has a primary muscle area and sometimes a secondary one.";
 
 describe("exercise detail muscle area", () => {
   it("shows the catalog primary and the secondary by name", () => {

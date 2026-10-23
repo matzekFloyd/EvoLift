@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
+import type { KpiBadgeTone } from "@/app/components/kpi-badge-tone";
 
 type KpiBadgeProps = {
   label: string;
   value: string;
   icon?: ReactNode;
   description?: string;
-  tone?: "sky" | "neutral" | "success";
+  tone?: KpiBadgeTone;
   className?: string;
 };
 
@@ -17,24 +18,25 @@ export function KpiBadge({
   tone = "sky",
   className,
 }: KpiBadgeProps) {
+  const emerald = tone === "success";
   const shellClasses =
     tone === "neutral"
       ? "border-zinc-300 bg-white"
-      : tone === "success"
+      : emerald
         ? "border-emerald-300 bg-emerald-50"
-      : "border-sky-300 bg-sky-50";
+        : "border-sky-300 bg-sky-50";
   const labelClasses =
     tone === "neutral"
       ? "text-zinc-700"
-      : tone === "success"
+      : emerald
         ? "text-emerald-800"
-      : "text-sky-800";
+        : "text-sky-800";
   const valueClasses =
     tone === "neutral"
       ? "text-zinc-900"
-      : tone === "success"
+      : emerald
         ? "text-emerald-900"
-      : "text-sky-900";
+        : "text-sky-900";
 
   return (
     <div
