@@ -24,14 +24,18 @@ describe("social sign-in", () => {
       SOCIAL_SIGN_IN_PROVIDERS.map((item) => item.label),
       ["Sign in with Google", "Sign in with Apple"],
     );
-    assert.equal(SOCIAL_SIGN_IN_ENABLED.google, false);
+    assert.equal(SOCIAL_SIGN_IN_ENABLED.google, true);
     assert.equal(SOCIAL_SIGN_IN_ENABLED.apple, false);
-    assert.equal(socialSignInControlDisabled({ provider: "google", busy: false }), true);
+    assert.equal(socialSignInControlDisabled({ provider: "google", busy: false }), false);
+    assert.equal(socialSignInControlDisabled({ provider: "google", busy: true }), true);
     assert.equal(socialSignInControlDisabled({ provider: "apple", busy: false }), true);
   });
 
   it("shows a provider button and the divider only when that provider is on", () => {
-    assert.deepEqual(visibleSocialSignIn(), { providers: [], showDivider: false });
+    assert.deepEqual(visibleSocialSignIn(), {
+      providers: [SOCIAL_SIGN_IN_PROVIDERS[0]],
+      showDivider: true,
+    });
     assert.deepEqual(visibleSocialSignIn({ google: true, apple: false }), {
       providers: [SOCIAL_SIGN_IN_PROVIDERS[0]],
       showDivider: true,
