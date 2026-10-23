@@ -401,6 +401,7 @@ export function SessionExerciseSets({
                 <ActionButton
                   type="button"
                   variant="secondary"
+                  iconColor="sky"
                   fullWidth
                   className="mt-2"
                   disabled={isMarkingCompleted || isSavingSet}
@@ -414,6 +415,7 @@ export function SessionExerciseSets({
                 <ActionButton
                   type="button"
                   variant={onMarkCompleted ? "secondary" : "primary"}
+                  iconColor={onMarkCompleted ? "sky" : "auto"}
                   fullWidth
                   className="mt-2"
                   onClick={onAddExercise}
@@ -425,6 +427,7 @@ export function SessionExerciseSets({
               <ActionButton
                 type="button"
                 variant="secondary"
+                iconColor="sky"
                 size="sm"
                 fullWidth
                 className="mt-2"
@@ -717,6 +720,7 @@ export function SessionExerciseSets({
                       <ActionButton
                         type="button"
                         variant="secondary"
+                        iconColor="sky"
                         size="sm"
                         title="Show the add-set row to log more sets."
                         onClick={onExpandFullAddSetRow}

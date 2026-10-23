@@ -110,7 +110,7 @@ export function GoalCard({
       {note ? <p className="mt-2 text-sm text-zinc-600">{note}</p> : null}
 
       <div className="mt-4 flex flex-wrap gap-2">
-        <ActionButton type="button" variant="secondary" size="sm" onClick={onEdit}>
+        <ActionButton type="button" variant="secondary" size="sm" iconColor="sky" onClick={onEdit}>
           <Pencil className="h-3.5 w-3.5" aria-hidden />
           Edit
         </ActionButton>

@@ -3,16 +3,17 @@
 import {
   Check,
   ChevronDown,
+  ChevronLeft,
   ChevronRight,
   ChevronUp,
-  Dumbbell,
   Eraser,
-  ListChecks,
   NotebookPen,
   Plus,
+  Trash2,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { ActionButton } from "@/app/components/action-button";
+import { RequiredMark } from "@/app/components/editor-chrome";
 import { panelInsetClass } from "@/app/components/panel-inset";
 import { SectionHeading } from "@/app/components/section-heading";
 import { ExerciseSearchSelect } from "@/app/components/exercise-search-select";
@@ -21,13 +22,32 @@ import { NotesTextareaField } from "@/app/components/notes-textarea-field";
 import { TargetWeightSuggestion } from "@/app/components/target-weight-suggestion";
 import {
   createEmptyExerciseRow,
+  insertExerciseRowAfter,
+  shiftIndexesAfterInsert,
   type ExerciseDefaultsRow,
   type ExerciseDraftRow,
 } from "@/lib/workout-exercise-draft";
 import { isAssistanceExercise, targetWeightFieldLabel } from "@/lib/assistance-exercise";
-import { toExerciseBadge } from "@/lib/exercise-badge";
+import { exerciseDraftScan } from "@/lib/exercise-draft-scan";
 import { targetSuggestionsEnabled } from "@/lib/target-weight-suggestion";
 import { exerciseOptionsForPicker } from "@/lib/exercise-picker-options";
+
+function ExerciseScanText({ name, details }: { name: string; details: string }) {
+  return (
+    <span className="inline-flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5">
+      <span className="font-medium text-zinc-800">{name}</span>
+      {details ? <span className="font-normal text-zinc-600">{details}</span> : null}
+    </span>
+  );
+}
+
+function filledExerciseIds(rows: ExerciseDraftRow[]): Set<string> {
+  return new Set(rows.filter((row) => row.exerciseId).map((row) => row.rowId));
+}
+
+/** Same weight as Remove's soft red. Save stays the filled sky button. */
+const buildActionClassName =
+  "!border-sky-300 !bg-sky-50 !text-sky-800 hover:!border-sky-400 hover:!bg-sky-100";
 
 export type WorkoutExerciseDraftListProps = {
   exerciseRows: ExerciseDraftRow[];
@@ -39,6 +59,8 @@ export type WorkoutExerciseDraftListProps = {
   onClearDraft?: () => void;
   /** Session planning only. Template editing leaves this off. */
   showTargetWeightSuggestion?: boolean;
+  /** `field` matches a nearby field label. `section` is the page heading. */
+  heading?: "section" | "field";
 };
 
 export function WorkoutExerciseDraftList({
@@ -50,9 +72,12 @@ export function WorkoutExerciseDraftList({
   maxNotesLength = 500,
   onClearDraft,
   showTargetWeightSuggestion = false,
+  heading = "section",
 }: WorkoutExerciseDraftListProps) {
   const [expandedExerciseNotes, setExpandedExerciseNotes] = useState<Set<number>>(new Set());
-  const [collapsedExercises, setCollapsedExercises] = useState<Set<string>>(new Set());
+  const [collapsedExercises, setCollapsedExercises] = useState<Set<string>>(() =>
+    filledExerciseIds(exerciseRows),
+  );
   const [isSmallPhone, setIsSmallPhone] = useState(false);
   const [activeExerciseIndex, setActiveExerciseIndex] = useState(0);
 
@@ -77,8 +102,15 @@ export function WorkoutExerciseDraftList({
     exerciseOptions.map((option) => [option.id, option.slug] as const),
   );
 
-  function addExerciseRow() {
-    setExerciseRows((prev) => [...prev, createEmptyExerciseRow()]);
+  function addExerciseRow(afterIndex?: number) {
+    const row = createEmptyExerciseRow();
+    if (afterIndex == null) {
+      setExerciseRows((prev) => [...prev, row]);
+      return;
+    }
+    const insertAt = afterIndex + 1;
+    setExerciseRows((prev) => insertExerciseRowAfter(prev, afterIndex, row));
+    setExpandedExerciseNotes((prev) => shiftIndexesAfterInsert(prev, insertAt));
   }
 
   function removeExerciseRow(index: number) {
@@ -199,6 +231,7 @@ export function WorkoutExerciseDraftList({
       next.add(rowId);
       return next;
     });
+    document.getElementById(`exercise-toggle-${rowId}`)?.focus();
   }
 
   function renderTargetWeightSuggestion(row: ExerciseDraftRow, index: number) {
@@ -249,12 +282,13 @@ export function WorkoutExerciseDraftList({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <SectionHeading className="inline-flex items-center gap-1">
-          <Dumbbell className="h-3.5 w-3.5 text-zinc-500" />
-          Exercises
-        </SectionHeading>
+        {heading === "field" ? (
+          <h2 className="text-sm font-medium text-zinc-900">Exercises</h2>
+        ) : (
+          <SectionHeading>Exercises</SectionHeading>
+        )}
         {isCompactView && exerciseRows.length > 0 ? (
-          <span className="rounded-md border border-sky-200 bg-sky-50 px-2 py-1 text-xs font-semibold text-sky-800">
+          <span className="rounded-md border border-zinc-200 bg-white px-2 py-1 text-xs font-medium text-zinc-700">
             Exercise {activeExerciseIndex + 1} of {exerciseRows.length}
           </span>
         ) : null}
@@ -268,18 +302,19 @@ export function WorkoutExerciseDraftList({
               className="px-2 py-1 text-xs font-normal"
               iconColor="amber"
             >
-              <Eraser className="h-3 w-3 text-amber-600" />
+              <Eraser className="h-3.5 w-3.5" aria-hidden />
               Clear draft
             </ActionButton>
           ) : null}
           <ActionButton
             type="button"
-            onClick={addExerciseRow}
-            variant="primary"
+            onClick={() => addExerciseRow()}
+            variant="secondary"
             size="sm"
-            className="px-2 py-1 text-xs font-normal"
+            iconColor="sky"
+            className={`px-2 py-1 text-xs ${buildActionClassName}`}
           >
-            <Plus className="h-3 w-3 text-white" />
+            <Plus className="h-3.5 w-3.5" aria-hidden />
             Add exercise
           </ActionButton>
         </div>
@@ -287,30 +322,48 @@ export function WorkoutExerciseDraftList({
       {isCompactView ? (
         <div className="grid grid-cols-2 gap-2">
           {onClearDraft ? (
-            <button
+            <ActionButton
               type="button"
               onClick={onClearDraft}
-              className="inline-flex h-12 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 text-xs leading-tight text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
+              variant="secondary"
+              size="sm"
+              fullWidth
+              iconColor="amber"
+              className="!h-12 px-2 text-xs font-normal leading-tight"
             >
-              <Eraser className="h-3.5 w-3.5 text-amber-600" />
+              <Eraser className="h-4 w-4" aria-hidden />
               Clear draft
-            </button>
+            </ActionButton>
           ) : null}
-          <button
+          <ActionButton
             type="button"
-            onClick={addExerciseRow}
-            className={`inline-flex h-12 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 text-xs leading-tight text-zinc-800 hover:border-sky-300 hover:bg-zinc-100 ${
-              onClearDraft ? "" : "col-span-2"
-            }`}
+            onClick={() => addExerciseRow()}
+            variant="secondary"
+            size="sm"
+            fullWidth
+            iconColor="sky"
+            className={`!h-12 px-2 text-xs leading-tight ${buildActionClassName} ${onClearDraft ? "" : "col-span-2"}`}
           >
-            <Plus className="h-3.5 w-3.5 text-sky-700" />
+            <Plus className="h-4 w-4" aria-hidden />
             Add exercise
-          </button>
+          </ActionButton>
         </div>
       ) : null}
       {visibleExerciseRows.map(({ row, index }) => {
         const rowSlug = row.exerciseId ? exerciseSlugById.get(row.exerciseId) : undefined;
         const rowUsesAssistance = isAssistanceExercise(rowSlug);
+        const selectedLabel = row.exerciseId
+          ? (exerciseOptions.find((option) => option.id === row.exerciseId)?.label ?? null)
+          : null;
+        const scan = exerciseDraftScan({
+          label: selectedLabel,
+          baseWeightKg: row.baseWeightKg,
+          targetSets: row.targetSets,
+          targetWeightKg: row.targetWeightKg,
+          targetReps: row.targetReps,
+          usesAssistance: rowUsesAssistance,
+        });
+        const exerciseCollapsed = collapsedExercises.has(row.rowId);
         return (
         <div
           key={row.rowId}
@@ -324,100 +377,43 @@ export function WorkoutExerciseDraftList({
         >
           <div className="mb-2 mt-1 flex items-center justify-between">
             {isCompactView ? (
-              <div className="inline-flex min-h-6 items-center leading-none text-base font-bold text-zinc-900">
-                {(() => {
-                  const selectedOption = row.exerciseId
-                    ? exerciseOptions.find((option) => option.id === row.exerciseId)
-                    : null;
-                  const selectedBadge = selectedOption ? toExerciseBadge(selectedOption.slug) : null;
-                  const baseTitle = selectedBadge ?? `Exercise ${index + 1}`;
-                  const targetDetails = [
-                    !rowUsesAssistance && row.baseWeightKg
-                      ? `base ${row.baseWeightKg} kg`
-                      : null,
-                    row.targetSets ? `${row.targetSets} sets` : null,
-                    row.targetWeightKg
-                      ? `${rowUsesAssistance ? "assistance" : "weight"} ${row.targetWeightKg} kg`
-                      : null,
-                    row.targetReps ? `${row.targetReps} reps` : null,
-                  ]
-                    .filter(Boolean)
-                    .join(", ");
-                  const mobileTitle = targetDetails ? `${baseTitle} - ${targetDetails}` : baseTitle;
-                  return <span>{mobileTitle}</span>;
-                })()}
+              <div className="min-w-0 text-left text-sm">
+                <span className="block font-medium text-zinc-800">{scan.name}</span>
+                <span
+                  className="mt-0.5 block font-normal text-zinc-600"
+                  {...(scan.details ? {} : { "aria-hidden": true })}
+                >
+                  {scan.details || "-"}
+                </span>
               </div>
             ) : (
               <button
+                id={`exercise-toggle-${row.rowId}`}
                 type="button"
                 onClick={() => toggleExerciseCollapsed(row.rowId)}
-                className="inline-flex min-h-6 items-center gap-1 rounded px-1 py-0.5 text-left hover:bg-zinc-100 hover:text-zinc-800"
-                aria-label={
-                  collapsedExercises.has(row.rowId) ? "Expand exercise" : "Collapse exercise"
-                }
-                title={collapsedExercises.has(row.rowId) ? "Expand exercise" : "Collapse exercise"}
+                className="inline-flex min-h-6 min-w-0 items-center gap-1 rounded px-1 py-0.5 text-left hover:bg-zinc-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60"
+                aria-expanded={!exerciseCollapsed}
               >
-                <span className="inline-flex h-6 w-6 items-center justify-center">
-                  {collapsedExercises.has(row.rowId) ? (
+                <span className="inline-flex h-6 w-6 shrink-0 items-center justify-center" aria-hidden>
+                  {exerciseCollapsed ? (
                     <ChevronDown className="h-4 w-4" />
                   ) : (
                     <ChevronUp className="h-4 w-4" />
                   )}
                 </span>
-                <span className="inline-flex h-6 items-center leading-none text-sm font-semibold text-zinc-800">
-                  {(() => {
-                    const baseTitle = `Exercise #${index + 1}`;
-                    const label = row.exerciseId
-                      ? (exerciseOptions.find((option) => option.id === row.exerciseId)?.label ??
-                        row.exerciseId)
-                      : null;
-                    const details = [
-                      !rowUsesAssistance && row.baseWeightKg
-                        ? `base ${row.baseWeightKg} kg`
-                        : null,
-                      row.targetSets ? `${row.targetSets} sets` : null,
-                      row.targetWeightKg
-                        ? `${rowUsesAssistance ? "assistance" : "weight"} ${row.targetWeightKg} kg`
-                        : null,
-                      row.targetReps ? `${row.targetReps} reps` : null,
-                    ]
-                      .filter(Boolean)
-                      .join(", ");
-
-                    let desktopTitle = baseTitle;
-                    if (label && details) {
-                      desktopTitle = [baseTitle, `${label} (${details})`].join(" - ");
-                    } else if (label) {
-                      desktopTitle = [baseTitle, label].join(" - ");
-                    } else if (details) {
-                      desktopTitle = [baseTitle, details].join(" - ");
-                    }
-
-                    return <span>{desktopTitle}</span>;
-                  })()}
-                </span>
+                <ExerciseScanText name={scan.name} details={scan.details} />
               </button>
             )}
             <div className="inline-flex min-h-6 items-center gap-2">
-              {isCompactView ? (
-                exerciseRows.length > 1 ? (
-                  <button
-                    type="button"
-                    onClick={() => removeExerciseRow(index)}
-                    className="inline-flex h-8 w-24 items-center justify-center rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
-                  >
-                    Remove
-                  </button>
-                ) : null
-              ) : exerciseRows.length > 1 ? (
+              {exerciseRows.length > 1 ? (
                 <ActionButton
                   type="button"
                   onClick={() => removeExerciseRow(index)}
-                  variant="secondary"
+                  variant="danger"
                   size="sm"
-                  className="h-8 w-24 px-2 py-1 text-xs font-normal"
-                  iconColor="zinc"
+                  className="h-8 px-2 py-1 text-xs font-normal"
                 >
+                  <Trash2 className="h-3.5 w-3.5" aria-hidden />
                   Remove
                 </ActionButton>
               ) : null}
@@ -430,11 +426,8 @@ export function WorkoutExerciseDraftList({
                   className={`${rowUsesAssistance ? "col-span-12" : "col-span-8"} block text-xs font-medium`}
                 >
                   <span className="inline-flex items-center gap-1">
-                    <ListChecks className="h-3 w-3 text-zinc-500" />
                     Exercise
-                    <span aria-hidden className="text-sky-700">
-                      *
-                    </span>
+                    <RequiredMark />
                   </span>
                   <ExerciseSearchSelect
                     required
@@ -569,21 +562,22 @@ export function WorkoutExerciseDraftList({
                 <div className="flex flex-col gap-2 sm:flex-row">
                   <ActionButton
                     type="button"
-                    variant="primary"
+                    variant="secondary"
                     size="sm"
                     fullWidth
-                    className="font-normal"
+                    iconColor="sky"
+                    className={buildActionClassName}
                     disabled={!row.exerciseId}
                     onClick={() => {
                       collapseExercise(row.rowId);
-                      addExerciseRow();
-                      const nextRowIndex = exerciseRows.length;
+                      const nextRowIndex = index + 1;
+                      addExerciseRow(index);
                       setActiveExerciseIndex(nextRowIndex);
                       focusExercisePicker(nextRowIndex);
                     }}
                   >
-                    <Plus className="h-3.5 w-3.5 text-white" />
-                    Save & add next
+                    <Plus className="h-3.5 w-3.5" aria-hidden />
+                    Add next
                   </ActionButton>
                 </div>
                 {exerciseRows.length > 1 ? (
@@ -597,6 +591,7 @@ export function WorkoutExerciseDraftList({
                       disabled={activeExerciseIndex === 0}
                       onClick={() => setActiveExerciseIndex((prev) => Math.max(0, prev - 1))}
                     >
+                      <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
                       Previous exercise
                     </ActionButton>
                     {activeExerciseIndex < exerciseRows.length - 1 ? (
@@ -613,7 +608,7 @@ export function WorkoutExerciseDraftList({
                           )
                         }
                       >
-                        <ChevronRight className="h-3.5 w-3.5 text-sky-700" />
+                        <ChevronRight className="h-3.5 w-3.5" aria-hidden />
                         Next exercise
                       </ActionButton>
                     ) : null}
@@ -629,11 +624,8 @@ export function WorkoutExerciseDraftList({
                     className={`${rowUsesAssistance ? "col-span-12" : "col-span-8"} block text-sm font-medium`}
                   >
                     <span className="inline-flex items-center gap-1">
-                      <ListChecks className="h-3.5 w-3.5 text-zinc-500" />
                       Exercise
-                      <span aria-hidden className="text-sky-700">
-                        *
-                      </span>
+                      <RequiredMark />
                     </span>
                     <ExerciseSearchSelect
                       required
@@ -770,27 +762,30 @@ export function WorkoutExerciseDraftList({
                     type="button"
                     variant="secondary"
                     size="sm"
-                    className="font-normal sm:flex-1"
+                    className="sm:flex-1"
                     disabled={!row.exerciseId}
                     onClick={() => collapseExercise(row.rowId)}
                   >
-                    <Check className="h-3.5 w-3.5 text-sky-700" />
-                    Save exercise
+                    <Check className="h-3.5 w-3.5" aria-hidden />
+                    Done
                   </ActionButton>
                   <ActionButton
                     type="button"
-                    variant="primary"
+                    variant="secondary"
                     size="sm"
-                    className="font-normal sm:flex-1"
+                    iconColor="sky"
+                    className={`sm:flex-1 ${buildActionClassName}`}
                     disabled={!row.exerciseId}
                     onClick={() => {
                       collapseExercise(row.rowId);
-                      addExerciseRow();
-                      focusExercisePicker(exerciseRows.length);
+                      const nextRowIndex = index + 1;
+                      addExerciseRow(index);
+                      setActiveExerciseIndex(nextRowIndex);
+                      focusExercisePicker(nextRowIndex);
                     }}
                   >
-                    <Plus className="h-3.5 w-3.5 text-white" />
-                    Save & add next
+                    <Plus className="h-3.5 w-3.5" aria-hidden />
+                    Add next
                   </ActionButton>
                 </div>
               </div>

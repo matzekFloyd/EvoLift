@@ -395,6 +395,7 @@ export function ActivePlanPanel({
                 <ActionButton
                   type="button"
                   variant="secondary"
+                  iconColor="sky"
                   size="sm"
                   className="shrink-0"
                   disabled={continuable != null || day.exerciseCount === 0}
@@ -458,6 +459,7 @@ export function ActivePlanPanel({
             <ActionButton
               type="button"
               variant={planHeaderCtaVariant}
+              iconColor={planHeaderCtaVariant === "secondary" ? "sky" : "auto"}
               size="md"
               className="shrink-0"
               disabled={

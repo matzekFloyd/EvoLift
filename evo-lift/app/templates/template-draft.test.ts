@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
-import { getTemplateDraftStorageKey, templateSaveError } from "./template-draft";
+import { getTemplateDraftStorageKey, templateDraftChanged, templateSaveError } from "./template-draft";
 
 const ready = {
   isLoggedIn: true,
@@ -36,5 +36,39 @@ describe("template draft", () => {
       "Please enter a valid base weight for each exercise.",
     );
     assert.equal(templateSaveError(ready), null);
+  });
+
+  it("stays unchanged until a saved field differs", () => {
+    const saved = {
+      name: "Lower Strength",
+      notes: "Squat day",
+      exerciseRows: [
+        {
+          exerciseId: "ex-1",
+          baseWeightKg: "20",
+          targetSets: "4",
+          targetReps: "5",
+          targetWeightKg: "80",
+          notes: "",
+        },
+      ],
+    };
+    assert.equal(
+      templateDraftChanged(saved, {
+        ...saved,
+        name: " Lower Strength ",
+        exerciseRows: [{ ...saved.exerciseRows[0], notes: "  " }],
+      }),
+      false,
+    );
+    assert.equal(templateDraftChanged(saved, { ...saved, notes: "Bench day" }), true);
+    assert.equal(templateDraftChanged(saved, { ...saved, exerciseRows: [] }), true);
+    assert.equal(
+      templateDraftChanged(saved, {
+        ...saved,
+        exerciseRows: [{ ...saved.exerciseRows[0], targetWeightKg: "85" }],
+      }),
+      true,
+    );
   });
 });

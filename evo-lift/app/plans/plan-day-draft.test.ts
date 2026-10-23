@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
-import { createDayDraft, daysFromPlan } from "./plan-day-draft";
+import {
+  createDayDraft,
+  daysFromPlan,
+  planDayExerciseLabels,
+  planDaySummary,
+  planDraftChanged,
+} from "./plan-day-draft";
 
 describe("plan day drafts", () => {
   it("starts a new day with a blank name and one empty exercise", () => {
@@ -48,5 +54,79 @@ describe("plan day drafts", () => {
     assert.equal(days[0]?.exerciseRows[0]?.targetWeightKg, "100");
     assert.equal(days[1]?.exerciseRows[0]?.exerciseId, "");
     assert.notEqual(days[0]?.key, days[1]?.key);
+  });
+
+  it("summarizes a day as its position, name, and lifts", () => {
+    const labels = planDayExerciseLabels(
+      [{ exerciseId: "" }, { exerciseId: "ex-1" }, { exerciseId: "missing" }],
+      [{ id: "ex-1", label: "Barbell Back Squat" }],
+    );
+    assert.deepEqual(labels, ["Barbell Back Squat"]);
+    assert.deepEqual(
+      planDaySummary({ position: 1, name: " Squat Bench ", exerciseLabels: labels }),
+      {
+        positionLabel: "Day 1",
+        name: "Squat Bench",
+        exercises: "Barbell Back Squat",
+      },
+    );
+    assert.deepEqual(planDaySummary({ position: 2, name: "  ", exerciseLabels: [] }), {
+      positionLabel: "Day 2",
+      name: "Unnamed day",
+      exercises: "No exercises",
+    });
+  });
+
+  it("stays unchanged until a saved field differs", () => {
+    const saved = {
+      name: "3-Day Strength",
+      notes: "Local demo",
+      isActive: true,
+      days: [
+        createDayDraft({
+          id: "day-1",
+          name: "Squat Bench",
+          exerciseRows: [
+            {
+              rowId: "saved-row",
+              exerciseId: "ex-1",
+              baseWeightKg: "20",
+              targetSets: "4",
+              targetReps: "5",
+              targetWeightKg: "80",
+              notes: "",
+            },
+          ],
+        }),
+      ],
+    };
+    const sameDay = createDayDraft({
+      id: "day-1",
+      name: " Squat Bench ",
+      exerciseRows: [
+        {
+          rowId: "other-row",
+          exerciseId: "ex-1",
+          baseWeightKg: "20",
+          targetSets: "4",
+          targetReps: "5",
+          targetWeightKg: "80",
+          notes: "  ",
+        },
+      ],
+    });
+    assert.equal(planDraftChanged(saved, { ...saved, days: [sameDay] }), false);
+    assert.equal(planDraftChanged(saved, { ...saved, name: "Upper" }), true);
+    assert.equal(planDraftChanged(saved, { ...saved, isActive: false }), true);
+    assert.equal(planDraftChanged(saved, { ...saved, days: [] }), true);
+    assert.equal(
+      planDraftChanged(saved, {
+        ...saved,
+        days: saved.days.map((day, index) =>
+          index === 0 ? { ...day, name: "Deadlift Row" } : day,
+        ),
+      }),
+      true,
+    );
   });
 });

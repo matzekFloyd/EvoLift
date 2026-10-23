@@ -1,19 +1,12 @@
 "use client";
 
-import { FileStack, Pencil, Play, Trash2 } from "lucide-react";
+import { FileStack, Play, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
 import { AppDialog } from "@/app/components/app-dialog";
-import {
-  AppTable,
-  AppTableActionsHeader,
-  appTableHeadRowClassName,
-  appTableRowClassName,
-  appTableTdClassName,
-  appTableThClassName,
-} from "@/app/components/app-table";
+import { NamedListTable, NamedListTableRow } from "@/app/components/named-list-table";
 import { ContentPlaceholder } from "@/app/components/content-placeholder";
 import { NAMED_LIST_PLACEHOLDER_ROWS } from "@/app/components/content-placeholder-layout";
 import { PageAddAction } from "@/app/components/page-add-action";
@@ -22,10 +15,6 @@ import { DateInput } from "@/app/components/date-input";
 import { PageShell } from "@/app/components/page-shell";
 import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
-import {
-  TableRowActions,
-  tableRowActionLinkClassName,
-} from "@/app/components/table-row-actions";
 import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
 import { confirmSignedInUser } from "@/lib/confirm-signed-in-user";
 import { rememberedUserId } from "@/lib/signed-in-memory";
@@ -233,69 +222,45 @@ export default function TemplatesPage() {
         ) : templates.length === 0 ? (
           <p className="mt-4 text-center text-sm text-zinc-600">No templates yet.</p>
         ) : (
-          <AppTable className="mt-4">
-            <thead>
-              <tr className={appTableHeadRowClassName}>
-                <th className={appTableThClassName}>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setNameSortDirection((prev) => toggleNamedListSortDirection(prev))
-                    }
-                    className="inline-flex items-center gap-1"
-                  >
-                    Name <span>{nameSortDirection === "asc" ? "↑" : "↓"}</span>
-                  </button>
-                </th>
-                <th className={`${appTableThClassName} w-14 whitespace-nowrap sm:w-24`}>
-                  <span className="sm:hidden">Ex.</span>
-                  <span className="hidden sm:inline">Exercises</span>
-                </th>
-                <AppTableActionsHeader />
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-zinc-100">
-              {sortedTemplates.map((row) => (
-                <tr key={row.id} className={appTableRowClassName}>
-                  <td
-                    className={`${appTableTdClassName} break-words whitespace-normal font-medium text-zinc-900`}
-                  >
-                    {row.name}
-                  </td>
-                  <td className={`${appTableTdClassName} text-zinc-600`}>{row.exerciseCount}</td>
-                  <td className={appTableTdClassName}>
-                    <TableRowActions stackUntil="md">
-                      <ActionButton
-                        type="button"
-                        size="sm"
-                        variant="primary"
-                        onClick={() => openUseDialog(row.id)}
-                      >
-                        <Play className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                        Use
-                      </ActionButton>
-                      <Link
-                        href={appPath(`/templates/${row.id}/edit`)}
-                        className={tableRowActionLinkClassName}
-                      >
-                        <Pencil className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                        Edit
-                      </Link>
-                      <ActionButton
-                        type="button"
-                        size="sm"
-                        variant="danger"
-                        onClick={() => setDeleteTargetId(row.id)}
-                      >
-                        <Trash2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                        Delete
-                      </ActionButton>
-                    </TableRowActions>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </AppTable>
+          <NamedListTable
+            className="mt-4"
+            sortDirection={nameSortDirection}
+            onToggleSort={() => setNameSortDirection((prev) => toggleNamedListSortDirection(prev))}
+            countHeading={
+              <>
+                <span className="sm:hidden">Ex.</span>
+                <span className="hidden sm:inline">Exercises</span>
+              </>
+            }
+          >
+            {sortedTemplates.map((row) => (
+              <NamedListTableRow
+                key={row.id}
+                name={row.name}
+                href={appPath(`/templates/${row.id}/edit`)}
+                count={row.exerciseCount}
+              >
+                <ActionButton
+                  type="button"
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => openUseDialog(row.id)}
+                >
+                  <Play className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  Use
+                </ActionButton>
+                <ActionButton
+                  type="button"
+                  size="sm"
+                  variant="danger"
+                  onClick={() => setDeleteTargetId(row.id)}
+                >
+                  <Trash2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
+                  Delete
+                </ActionButton>
+              </NamedListTableRow>
+            ))}
+          </NamedListTable>
         )}
       </section>
 

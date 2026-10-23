@@ -186,7 +186,13 @@ export function AccountApiTokensSection({ accessToken }: AccountApiTokensSection
             <code className="block break-all rounded-md border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-800">
               {plaintextToken}
             </code>
-            <ActionButton type="button" variant="secondary" size="sm" onClick={() => void handleCopy()}>
+            <ActionButton
+              type="button"
+              variant="secondary"
+              size="sm"
+              iconColor="sky"
+              onClick={() => void handleCopy()}
+            >
               <Copy className="h-3 w-3" />
               Copy token
             </ActionButton>

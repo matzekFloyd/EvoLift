@@ -1,6 +1,11 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
-import { createEmptyExerciseRow, exerciseDraftRowsFromTemplateLines } from "./workout-exercise-draft";
+import {
+  createEmptyExerciseRow,
+  exerciseDraftRowsFromTemplateLines,
+  insertExerciseRowAfter,
+  shiftIndexesAfterInsert,
+} from "./workout-exercise-draft";
 
 function line(
   position: number,
@@ -42,6 +47,18 @@ describe("workout exercise drafts", () => {
         notes: "",
       },
     );
+  });
+
+  it("inserts the next exercise after the one that is open", () => {
+    const rows = ["squat", "bench", "row"];
+    assert.deepEqual(insertExerciseRowAfter(rows, 0, "next"), ["squat", "next", "bench", "row"]);
+    assert.deepEqual(insertExerciseRowAfter(rows, 1, "next"), ["squat", "bench", "next", "row"]);
+    assert.deepEqual(insertExerciseRowAfter(rows, 2, "next"), ["squat", "bench", "row", "next"]);
+  });
+
+  it("keeps later note indexes on the same rows after an insert", () => {
+    assert.deepEqual([...shiftIndexesAfterInsert([0, 2], 1)].sort(), [0, 3]);
+    assert.deepEqual([...shiftIndexesAfterInsert([1], 2)].sort(), [1]);
   });
 
   it("orders template lines and drops targets that are not usable", () => {

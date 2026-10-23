@@ -2,11 +2,14 @@
 
 import Link from "next/link";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
+import {
+  resolveActionButtonIconColor,
+  type ActionButtonIconColor,
+  type ActionButtonVariant,
+} from "@/app/components/action-button-icon";
 import { usePanelInsetSurface } from "@/app/components/panel-inset";
 
-type ActionButtonVariant = "primary" | "secondary" | "danger";
 type ActionButtonSize = "sm" | "md";
-type ActionButtonIconColor = "auto" | "sky" | "zinc" | "amber" | "red" | "white";
 
 type ActionButtonProps = {
   variant?: ActionButtonVariant;
@@ -47,12 +50,6 @@ const iconClassByType: Record<Exclude<ActionButtonIconColor, "auto">, string> = 
   white: "[&_svg]:text-white",
 };
 
-const autoIconColorByVariant: Record<ActionButtonVariant, Exclude<ActionButtonIconColor, "auto">> = {
-  primary: "white",
-  secondary: "sky",
-  danger: "red",
-};
-
 /**
  * Global `a:hover` recolors every link. A filled control must keep its own text color.
  */
@@ -71,8 +68,7 @@ function actionControlClassName(input: {
   iconColor: ActionButtonIconColor;
   className: string;
 }): string {
-  const resolvedIconColor =
-    input.iconColor === "auto" ? autoIconColorByVariant[input.variant] : input.iconColor;
+  const resolvedIconColor = resolveActionButtonIconColor(input.variant, input.iconColor);
   const widthClass = input.fullWidth ? "w-full" : "w-fit";
   const useRaised =
     input.variant === "secondary" &&

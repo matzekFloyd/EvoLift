@@ -3,6 +3,59 @@ type TemplateExerciseRow = {
   baseWeightKg: string;
 };
 
+type TemplateDraftComparable = {
+  name: string;
+  notes: string;
+  exerciseRows: Array<{
+    exerciseId: string;
+    baseWeightKg: string;
+    targetSets: string;
+    targetReps: string;
+    targetWeightKg: string;
+    notes: string;
+  }>;
+};
+
+function comparableExercise(row: TemplateDraftComparable["exerciseRows"][number]) {
+  return {
+    exerciseId: row.exerciseId,
+    baseWeightKg: row.baseWeightKg.trim(),
+    targetSets: row.targetSets.trim(),
+    targetReps: row.targetReps.trim(),
+    targetWeightKg: row.targetWeightKg.trim(),
+    notes: row.notes.trim(),
+  };
+}
+
+/** True when the editor differs from the template that was opened, ignoring row keys. */
+export function templateDraftChanged(
+  saved: TemplateDraftComparable,
+  current: TemplateDraftComparable,
+): boolean {
+  if (saved.name.trim() !== current.name.trim() || saved.notes.trim() !== current.notes.trim()) {
+    return true;
+  }
+  if (saved.exerciseRows.length !== current.exerciseRows.length) {
+    return true;
+  }
+  return saved.exerciseRows.some((savedRow, index) => {
+    const currentRow = current.exerciseRows[index];
+    if (!currentRow) {
+      return true;
+    }
+    const left = comparableExercise(savedRow);
+    const right = comparableExercise(currentRow);
+    return (
+      left.exerciseId !== right.exerciseId ||
+      left.baseWeightKg !== right.baseWeightKg ||
+      left.targetSets !== right.targetSets ||
+      left.targetReps !== right.targetReps ||
+      left.targetWeightKg !== right.targetWeightKg ||
+      left.notes !== right.notes
+    );
+  });
+}
+
 export function getTemplateDraftStorageKey(userId: string, scope: string): string {
   return `evolift:template-draft:${userId}:${scope}`;
 }

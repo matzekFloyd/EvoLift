@@ -181,6 +181,7 @@ export function BodyweightLogPanel({ entries, today, onSave, onRemove }: Bodywei
                             type="button"
                             size="sm"
                             variant="secondary"
+                            iconColor="sky"
                             disabled={busyId != null}
                             onClick={() => {
                               setEditingId(row.id);

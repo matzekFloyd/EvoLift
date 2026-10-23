@@ -484,8 +484,8 @@ function NewSessionPageContent() {
           New workout session
         </h1>
         {isCompactView ? null : (
-          <ActionButton type="button" onClick={goBack} variant="secondary" size="md">
-            <ArrowLeft className="h-4 w-4 text-sky-700" />
+          <ActionButton type="button" onClick={goBack} variant="secondary" size="md" iconColor="sky">
+            <ArrowLeft className="h-4 w-4" aria-hidden />
             Back
           </ActionButton>
         )}
@@ -687,11 +687,12 @@ function NewSessionPageContent() {
                 disabled={isSaving}
                 onClick={() => setCreateMode("home")}
                 variant="secondary"
+                iconColor="sky"
                 size="md"
                 fullWidth
                 className="sm:w-44"
               >
-                <Check className="h-3.5 w-3.5 text-sky-700" />
+                <Check className="h-3.5 w-3.5" aria-hidden />
                 Create
               </ActionButton>
               <ActionButton
