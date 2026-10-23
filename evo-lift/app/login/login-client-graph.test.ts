@@ -91,6 +91,18 @@ describe("login client graph", () => {
     assert.doesNotMatch(`${login}\n${form}\n${account}`, /required to (log in|sign up|continue)/i);
   });
 
+  it("keeps auth submit labels busy until navigation leaves the login page", () => {
+    const login = readFileSync(join(appDir, "login", "page.tsx"), "utf8");
+    const form = readFileSync(join(appDir, "login", "login-mfa-form.tsx"), "utf8");
+
+    assert.match(login, /loginControlLabel\(mode === "login" \? "login" : "register", pending\)/);
+    assert.match(login, /loginControlLabel\(mode === "forgot" \? "forgot" : "reset", pending\)/);
+    assert.match(form, /loginControlLabel\("mfa", isLoading \? "mfa" : null\)/);
+    assert.doesNotMatch(login, /router\.replace\(APP_HOME_PATH\);\s*\n\s*setPending\(null\)/);
+    assert.doesNotMatch(login, /setPending\(null\);\s*\n\s*router\.replace\(APP_HOME_PATH\)/);
+    assert.doesNotMatch(login, /setMfaChallenge\(false\);\s*\n\s*router\.replace\(APP_HOME_PATH\)/);
+  });
+
   it("wires keyboard and screen-reader affordances on log in and register", () => {
     const login = readFileSync(join(appDir, "login", "page.tsx"), "utf8");
     const statusNotice = readFileSync(join(appDir, "components", "status-notice.tsx"), "utf8");
