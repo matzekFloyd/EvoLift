@@ -13,6 +13,7 @@ type PageAddActionProps = (
 ) & {
   /** Defaults to primary. Use secondary when another filled sky CTA owns the focal area. */
   variant?: "primary" | "secondary";
+  id?: string;
 };
 
 /** Page-header add action. Label hides below the `sm` breakpoint; the accessible name stays. */
@@ -28,7 +29,13 @@ export function PageAddAction(props: PageAddActionProps) {
 
   if ("href" in props) {
     return (
-      <Link href={props.href} className={className} aria-label={props.label} title={props.label}>
+      <Link
+        id={props.id}
+        href={props.href}
+        className={className}
+        aria-label={props.label}
+        title={props.label}
+      >
         {content}
       </Link>
     );
@@ -37,6 +44,7 @@ export function PageAddAction(props: PageAddActionProps) {
   return (
     <button
       type="button"
+      id={props.id}
       className={className}
       aria-label={props.label}
       title={props.label}

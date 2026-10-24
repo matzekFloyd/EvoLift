@@ -23,6 +23,7 @@ import { draftFromRow } from "@/app/goals/goal-draft";
 import { definitionFromRow, storedFromRow } from "@/app/goals/goal-row";
 import { emptyGoalDraft, GoalEditorDialog, type GoalDraft } from "@/app/goals/goal-editor-dialog";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
+import { PRODUCT_TOUR_TARGET_IDS } from "@/lib/product-tour";
 import { exerciseOptionsForPicker, type ExercisePickerOption } from "@/lib/exercise-picker-options";
 import {
   formatBestSet,
@@ -311,7 +312,7 @@ export default function GoalsPage() {
       </div>
 
       <section className="panel p-5">
-        <p className="text-sm text-zinc-600">
+        <p id={PRODUCT_TOUR_TARGET_IDS.goals} className="text-sm text-zinc-600">
           Set a strength goal for one exercise. Progress uses working sets you have already logged. New
           accounts start with bodyweight goals on the main barbell lifts. Edit or delete them anytime.
           Bodyweight goals need a bodyweight entry on Account.

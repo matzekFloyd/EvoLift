@@ -1,6 +1,7 @@
 import { Save, UserRound } from "lucide-react";
 import { BodyweightLogPanel } from "@/app/account/bodyweight-log-panel";
 import { accountAgeDisplay, localIsoDate } from "@/app/account/account-profile-form";
+import { PRODUCT_TOUR_TARGET_IDS } from "@/lib/product-tour";
 import type { AccountMetricsState } from "@/app/account/use-account-metrics";
 import { DateInput } from "@/app/components/date-input";
 import { SettingsSection, SettingsSectionBody } from "@/app/components/settings-section";
@@ -82,7 +83,7 @@ export function AccountMetricsSection({ metrics }: { metrics: AccountMetricsStat
                 placeholder="Optional"
               />
             </label>
-            <label className="block text-sm font-medium">
+            <label id={PRODUCT_TOUR_TARGET_IDS.bodyweight} className="block text-sm font-medium">
               Bodyweight (kg)
               <input
                 type="number"

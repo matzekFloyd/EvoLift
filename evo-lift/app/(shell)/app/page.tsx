@@ -19,6 +19,7 @@ import { WorkoutActivityChart } from "@/app/components/chart-dynamic";
 import { activityDayOpen, activityDaySessionIds } from "@/app/home-activity-day";
 import { sessionDetailExercisePath } from "@/app/sessions/[id]/session-detail-query";
 import { appPath } from "@/lib/app-paths";
+import { PRODUCT_TOUR_TARGET_IDS } from "@/lib/product-tour";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { loadGoalReachedSessionDates } from "@/lib/goal-reached-dates";
 import {
@@ -447,6 +448,7 @@ export default function Home() {
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Workout sessions</h1>
         <PageAddAction
+          id={PRODUCT_TOUR_TARGET_IDS.createSession}
           href={appPath("/sessions/new")}
           label="Create session"
           variant={homeCompetingCtaVariant(standaloneInProgressSessions.length > 0)}
