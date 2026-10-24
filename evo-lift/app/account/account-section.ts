@@ -7,3 +7,9 @@ export const ACCOUNT_SECTIONS = [
 ] as const;
 
 export type AccountSectionId = (typeof ACCOUNT_SECTIONS)[number]["id"];
+
+/** `?section=` on Account. Unknown values stay on the default Login tab. */
+export function accountSectionFromSearchParam(value: string | null): AccountSectionId | null {
+  const match = ACCOUNT_SECTIONS.find((section) => section.id === value);
+  return match?.id ?? null;
+}

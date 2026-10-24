@@ -179,3 +179,27 @@ button:disabled {
   outline: none !important;
   box-shadow: none !important;
 }
+
+/*
+ * First-login tour card. NextStep anchors the card to the spotlight; these
+ * variables place it under the target (full width on a phone, with side space).
+ * Hidden until placement runs so it does not flash at the spotlight origin.
+ */
+[data-name="nextstep-card"] {
+  position: absolute !important;
+  top: var(--evolift-tour-card-top, 0px) !important;
+  left: var(--evolift-tour-card-left, 0px) !important;
+  width: var(--evolift-tour-card-width, 20rem) !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  right: auto !important;
+  bottom: auto !important;
+  transform: none !important;
+  margin: 0 !important;
+  visibility: hidden;
+}
+
+html[data-evolift-tour-card="ready"] [data-name="nextstep-card"],
+html[data-evolift-tour-card="center"] [data-name="nextstep-card"] {
+  visibility: visible;
+}
