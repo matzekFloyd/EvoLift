@@ -1,7 +1,7 @@
 "use client";
 
 import { Files, Lock, SlidersHorizontal, UserRound } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import {
@@ -59,7 +59,7 @@ function accountTabIcon(id: AccountSectionId) {
   return <Files aria-hidden className={ACCOUNT_TAB_ICON_CLASS} />;
 }
 
-export default function AccountPage() {
+function AccountPageContent() {
   const router = useRouter();
   const [cachedAccount] = useState(() => {
     const id = rememberedUserId();
@@ -184,7 +184,7 @@ export default function AccountPage() {
   const accountChrome = (
     <>
       <h1 className="inline-flex items-center gap-2 text-2xl font-semibold tracking-tight">
-        <UserRound className="h-6 w-6 text-sky-700" />
+        <UserRound aria-hidden className="h-6 w-6 text-sky-700" />
         User information
       </h1>
       <SegmentedTabs
@@ -262,5 +262,29 @@ export default function AccountPage() {
         </>
       ) : null}
     </PageShell>
+  );
+}
+
+function AccountPageFallback() {
+  return (
+    <PageShell>
+      <h1 className="inline-flex items-center gap-2 text-2xl font-semibold tracking-tight">
+        <UserRound aria-hidden className="h-6 w-6 text-sky-700" />
+        User information
+      </h1>
+      <ContentPlaceholder
+        label="Checking session..."
+        rows={ACCOUNT_PLACEHOLDER_ROWS}
+        rowClassName={ACCOUNT_PLACEHOLDER_CLASS}
+      />
+    </PageShell>
+  );
+}
+
+export default function AccountPage() {
+  return (
+    <Suspense fallback={<AccountPageFallback />}>
+      <AccountPageContent />
+    </Suspense>
   );
 }

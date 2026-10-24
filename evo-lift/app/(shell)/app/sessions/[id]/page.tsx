@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   peekOpenedSession,
@@ -73,7 +73,7 @@ function openedSessionFor(sessionId: string | undefined): OpenedSessionSnapshot 
   return peekOpenedSession(userId, sessionId);
 }
 
-export default function SessionDetailPage() {
+function SessionDetailPageContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -646,5 +646,26 @@ export default function SessionDetailPage() {
         />
       ) : null}
     </PageShell>
+  );
+}
+
+function SessionDetailFallback() {
+  return (
+    <PageShell>
+      <h1 className="text-2xl font-semibold tracking-tight">Workout session</h1>
+      <ContentPlaceholder
+        label="Loading workout session..."
+        rows={SESSION_LOG_PLACEHOLDER_ROWS}
+        rowClassName={SESSION_LOG_PLACEHOLDER_CLASS}
+      />
+    </PageShell>
+  );
+}
+
+export default function SessionDetailPage() {
+  return (
+    <Suspense fallback={<SessionDetailFallback />}>
+      <SessionDetailPageContent />
+    </Suspense>
   );
 }
