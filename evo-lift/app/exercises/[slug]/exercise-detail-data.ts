@@ -124,7 +124,7 @@ export function buildExerciseSetHistoryRows(input: {
   return sortExerciseHistoryRowsCanonical(history);
 }
 
-/** “Clear filters” uses the full span of loaded sets for this exercise (not the 4-week landing default). */
+/** “Clear filters” uses the full span of loaded sets for this exercise (not the 3-month landing default). */
 export function fullHistoryClearDateRange(
   rows: readonly { performedOn: string }[],
   today: string,

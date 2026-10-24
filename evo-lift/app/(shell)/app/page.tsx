@@ -524,7 +524,6 @@ export default function Home() {
             ) : (
               <WorkoutActivityChart
                 data={workoutActivityData}
-                isCompactView={isSmallPhone}
                 highlightedDates={highlightedActivityDates}
                 onHighlightDatesChange={setHighlightedActivityDates}
                 goalReachedByDate={goalReachedByDate}

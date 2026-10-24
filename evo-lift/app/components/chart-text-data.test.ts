@@ -4,7 +4,6 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, it } from "vitest";
 import {
-  compactActivityChartText,
   compoundE1rmChartText,
   exerciseE1rmChartText,
   exerciseVolumeChartText,
@@ -191,21 +190,6 @@ describe("insights chart text alternatives", () => {
 });
 
 describe("home activity chart text alternatives", () => {
-  it("lists weekly set counts, including this week", () => {
-    const model = compactActivityChartText([
-      { weekStart: "2026-09-29", weekLabel: "Sep 29-Oct 5", sets: 20 },
-      { weekStart: "2026-10-06", weekLabel: "This week", sets: 8 },
-    ]);
-    assert.equal(model.caption, "Sets by week");
-    assert.deepEqual(
-      model.rows.map((row) => row.cells),
-      [
-        { week: "Sep 29-Oct 5", sets: "20" },
-        { week: "This week", sets: "8" },
-      ],
-    );
-  });
-
   it("lists in-range days with status text, today, and a reached goal", () => {
     const model = heatmapActivityChartText(
       [
@@ -253,7 +237,6 @@ describe("chart text alternative wiring", () => {
     "exercise-session-volume-chart.tsx",
     "insights-weekly-volume-chart.tsx",
     "insights-compound-e1rm-chart.tsx",
-    "workout-activity-chart.tsx",
   ];
 
   it("gives each chart a data table and does not use the SVG as the text alternative", () => {
@@ -275,8 +258,11 @@ describe("chart text alternative wiring", () => {
     assert.doesNotMatch(table, /role="img"/);
 
     const activity = readFileSync(join(componentsDir, "workout-activity-chart.tsx"), "utf8");
+    assert.match(activity, /ChartTextAlternative/);
     assert.match(activity, /tabIndex=\{canOpen \? 0 : undefined\}/);
     assert.match(activity, /focus-visible:ring-sky-700/);
+    assert.doesNotMatch(activity, /BarChart/);
+    assert.doesNotMatch(activity, /isCompactView/);
 
     const css = readFileSync(join(componentsDir, "..", "globals.css"), "utf8");
     assert.doesNotMatch(css, /\.compact-activity-chart :focus-visible/);

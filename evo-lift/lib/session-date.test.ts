@@ -30,16 +30,16 @@ describe("session dates", () => {
     assert.equal(getTodayYyyyMmDd(), localToday());
   });
 
-  it("opens on four weeks through today", () => {
+  it("opens on about three months through today", () => {
     assert.deepEqual(getDefaultDateRange(new Date(2026, 9, 14)), {
-      from: "2026-09-17",
+      from: "2026-07-23",
       to: "2026-10-14",
     });
   });
 
-  it("crosses a month boundary", () => {
+  it("crosses a year boundary", () => {
     assert.deepEqual(getDefaultDateRange(new Date(2026, 2, 1)), {
-      from: "2026-02-02",
+      from: "2025-12-08",
       to: "2026-03-01",
     });
   });

@@ -59,7 +59,7 @@ const rangeOptions: RangeOption[] = [
   { value: "6m", label: "6m" },
   { value: "all", label: "All" },
 ];
-const defaultInsightsRange: InsightsRange = "4w";
+const defaultInsightsRange: InsightsRange = "12w";
 
 const emptyLifterProfile: LifterProfile = {
   sex: null,
