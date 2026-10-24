@@ -2,7 +2,7 @@
 
 import { Files, Lock, SlidersHorizontal, UserRound } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import {
   accountProfileEpoch,
@@ -30,7 +30,11 @@ import { AccountHiddenExercisesSection } from "@/app/account/account-hidden-exer
 import { AccountMetricsSection } from "@/app/account/account-metrics-section";
 import { AccountMfaSection } from "@/app/account/account-mfa-section";
 import { AccountPasswordSection } from "@/app/account/account-password-section";
-import { ACCOUNT_SECTIONS, type AccountSectionId } from "@/app/account/account-section";
+import {
+  ACCOUNT_SECTIONS,
+  accountSectionFromSearchParam,
+  type AccountSectionId,
+} from "@/app/account/account-section";
 import { AccountApiTokensSection } from "@/app/account/api-tokens-section";
 import { useAccountEmail } from "@/app/account/use-account-email";
 import { useAccountMetrics } from "@/app/account/use-account-metrics";
@@ -67,7 +71,15 @@ export default function AccountPage() {
   const [userEmail, setUserEmail] = useState<string | null>(rememberedUserEmail);
   const [hasPassword, setHasPassword] = useState(true);
   const [exerciseOptions, setExerciseOptions] = useState(cachedAccount?.exerciseOptions ?? []);
-  const [activeSection, setActiveSection] = useState<AccountSectionId>("security");
+  const searchParams = useSearchParams();
+  const requestedSection = accountSectionFromSearchParam(searchParams.get("section"));
+  const [activeSection, setActiveSection] = useState<AccountSectionId>(requestedSection ?? "security");
+
+  useEffect(() => {
+    if (requestedSection) {
+      setActiveSection(requestedSection);
+    }
+  }, [requestedSection]);
 
   const email = useAccountEmail({ accessToken, userEmail, activeSection });
   const password = useAccountPassword({
