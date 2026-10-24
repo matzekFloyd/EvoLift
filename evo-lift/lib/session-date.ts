@@ -22,12 +22,12 @@ export function formatDateToYyyyMmDd(date: Date): string {
 }
 
 /**
- * Date filters open on the last 4 weeks, through today.
- * The start is 27 days back so the inclusive span is 28 days.
+ * Date filters open on about 3 months, through today.
+ * The start is 83 days back so the inclusive span is 84 days, matching the 12-week preset.
  */
 export function getDefaultDateRange(today: Date): { from: string; to: string } {
   const fromDate = new Date(today);
-  fromDate.setDate(today.getDate() - 27);
+  fromDate.setDate(today.getDate() - 83);
   return {
     from: formatDateToYyyyMmDd(fromDate),
     to: formatDateToYyyyMmDd(today),

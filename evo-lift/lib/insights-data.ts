@@ -54,11 +54,11 @@ function startOfWeekMonday(value: Date): Date {
 function getRangeStart(range: InsightsRange, today: Date): string | null {
   const start = new Date(today);
   if (range === "4w") {
-    return getDefaultDateRange(today).from;
+    start.setDate(start.getDate() - 27);
+    return toYyyyMmDd(start);
   }
   if (range === "12w") {
-    start.setDate(start.getDate() - 83);
-    return toYyyyMmDd(start);
+    return getDefaultDateRange(today).from;
   }
   if (range === "6m") {
     start.setMonth(start.getMonth() - 6);

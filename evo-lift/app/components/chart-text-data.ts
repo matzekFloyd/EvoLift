@@ -211,25 +211,6 @@ export function compoundE1rmChartText(
   };
 }
 
-export function compactActivityChartText(
-  weeks: readonly { weekStart: string; weekLabel: string; sets: number }[],
-): ChartTextAlternativeModel {
-  return {
-    caption: "Sets by week",
-    columns: [
-      { key: "week", label: "Week" },
-      { key: "sets", label: "Sets" },
-    ],
-    rows: weeks.map((week) => ({
-      key: week.weekStart,
-      cells: {
-        week: week.weekLabel,
-        sets: count(week.sets),
-      },
-    })),
-  };
-}
-
 export function heatmapActivityChartText(
   days: readonly HeatmapChartTextDay[],
   goalReachedByDate: Readonly<Record<string, string>>,

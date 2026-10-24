@@ -69,6 +69,7 @@ function historyTables() {
 describe("applyInsightsRange", () => {
   it("drops future days and days outside the selected span", () => {
     const points: WorkoutActivityPoint[] = [
+      { date: shiftDays(-90), workouts: 1, sets: 1, loadedKg: 1 },
       { date: shiftDays(-40), workouts: 1, sets: 1, loadedKg: 1 },
       { date: shiftDays(-1), workouts: 1, sets: 2, loadedKg: 2 },
       { date: shiftDays(2), workouts: 1, sets: 3, loadedKg: 3 },
@@ -76,11 +77,15 @@ describe("applyInsightsRange", () => {
     assert.deepEqual(applyInsightsRange([], "all"), []);
     assert.deepEqual(
       applyInsightsRange(points, "all").map((point) => point.date),
-      [shiftDays(-40), shiftDays(-1)],
+      [shiftDays(-90), shiftDays(-40), shiftDays(-1)],
     );
     assert.deepEqual(
       applyInsightsRange(points, "4w").map((point) => point.date),
       [shiftDays(-1)],
+    );
+    assert.deepEqual(
+      applyInsightsRange(points, "12w").map((point) => point.date),
+      [shiftDays(-40), shiftDays(-1)],
     );
   });
 });

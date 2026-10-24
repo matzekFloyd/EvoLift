@@ -1,27 +1,14 @@
 "use client";
 
 import { ArrowDown, ArrowUp, Hash, Minus, Trophy } from "lucide-react";
-import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  XAxis,
-  YAxis,
-} from "recharts";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ChartResponsiveContainer } from "@/app/components/chart-responsive-container";
+import { useMemo, type ReactNode } from "react";
 import { useDisplayLocale } from "@/app/components/use-display-locale";
 import { ChartTextAlternative } from "@/app/components/chart-text-alternative";
-import {
-  compactActivityChartText,
-  heatmapActivityChartText,
-} from "@/app/components/chart-text-data";
+import { heatmapActivityChartText } from "@/app/components/chart-text-data";
 import {
   activityDateKey,
   activityDateToLocalDate,
   buildActivityHeatmapWeeks,
-  buildCompactActivityWeeks,
   currentWeekStartKey,
 } from "@/app/components/workout-activity-weeks";
 import {
@@ -42,7 +29,6 @@ type WorkoutActivityPoint = {
 
 type WorkoutActivityHeatmapProps = {
   data: WorkoutActivityPoint[];
-  isCompactView?: boolean;
   highlightedDates?: string[] | null;
   onHighlightDatesChange?: (dates: string[] | null) => void;
   /** Opens the workout session for a day that has at least one session. */
@@ -94,7 +80,6 @@ function ActivityComparisonLine({
 
 export function WorkoutActivityChart({
   data,
-  isCompactView = false,
   highlightedDates = null,
   onHighlightDatesChange,
   onDayClick,
@@ -105,31 +90,7 @@ export function WorkoutActivityChart({
   const totalWorkouts = sortedData.reduce((sum, item) => sum + item.workouts, 0);
   const totalSets = sortedData.reduce((sum, item) => sum + item.sets, 0);
   const locale = useDisplayLocale();
-  const [selectedCompactWeekStart, setSelectedCompactWeekStart] = useState<string | null>(null);
-  const compactChartRef = useRef<HTMLDivElement | null>(null);
   const highlightedDateSet = useMemo(() => new Set(highlightedDates ?? []), [highlightedDates]);
-
-  useEffect(() => {
-    if (!isCompactView || !selectedCompactWeekStart) {
-      return;
-    }
-    function handlePointerDown(event: MouseEvent | TouchEvent) {
-      const target = event.target as Node | null;
-      if (!target) {
-        return;
-      }
-      if (!compactChartRef.current?.contains(target)) {
-        setSelectedCompactWeekStart(null);
-              onHighlightDatesChange?.(null);
-      }
-    }
-    document.addEventListener("mousedown", handlePointerDown);
-    document.addEventListener("touchstart", handlePointerDown);
-    return () => {
-      document.removeEventListener("mousedown", handlePointerDown);
-      document.removeEventListener("touchstart", handlePointerDown);
-    };
-  }, [isCompactView, onHighlightDatesChange, selectedCompactWeekStart]);
 
   if (sortedData.length === 0) {
     return (
@@ -144,89 +105,6 @@ export function WorkoutActivityChart({
   const todayKey = activityDateKey(today);
   const currentWeekStart = currentWeekStartKey(today);
   const comparison = buildActivityComparison(sortedData, todayKey);
-
-  if (isCompactView) {
-    const compactData = buildCompactActivityWeeks(sortedData, today, locale);
-    const currentWeekInCompact = compactData.some((item) => item.isCurrentWeek);
-    const selectedWeek = compactData.find((item) => item.weekStart === selectedCompactWeekStart);
-
-    return (
-      <div>
-        <div className="mb-2 flex flex-col gap-1">
-          <ActivityRangeLine
-            sentence={`${totalSets} sets across ${totalWorkouts} workouts in the last 10 weeks`}
-          />
-          <ActivityComparisonLine sentence={comparison.sentence} setTrend={comparison.setTrend} />
-          {headerAside ? <div className="w-full pt-1 sm:w-fit sm:self-end">{headerAside}</div> : null}
-        </div>
-        <div
-          ref={compactChartRef}
-          className="compact-activity-chart relative h-36 w-full"
-          style={{ WebkitTapHighlightColor: "transparent" }}
-          aria-hidden
-          onClick={(event) => {
-            const target = event.target as HTMLElement;
-            const clickedBar = target.closest(".recharts-bar-rectangle, .recharts-rectangle");
-            if (!clickedBar) {
-              setSelectedCompactWeekStart(null);
-                onHighlightDatesChange?.(null);
-            }
-          }}
-        >
-          {selectedWeek ? (
-            <div className="pointer-events-none absolute right-2 top-2 z-10 rounded-md border border-zinc-300 bg-white/95 px-2 py-1 text-[11px] text-zinc-700 shadow-sm">
-              {selectedWeek.weekLabel}: {selectedWeek.sets} set{selectedWeek.sets === 1 ? "" : "s"}
-            </div>
-          ) : null}
-          <ChartResponsiveContainer initialDimension={{ width: 320, height: 144 }}>
-            <BarChart
-              accessibilityLayer={false}
-              data={compactData}
-              margin={{ top: 4, right: 8, bottom: 0, left: -16 }}
-            >
-              <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
-              <XAxis dataKey="weekLabel" tick={{ fill: "#52525b", fontSize: 10 }} minTickGap={10} />
-              <YAxis allowDecimals={false} tick={{ fill: "#52525b", fontSize: 10 }} />
-              <Bar
-                dataKey="sets"
-                fill="#0284c7"
-                radius={[3, 3, 0, 0]}
-                isAnimationActive={false}
-                onClick={(entry: { weekStart?: string; payload?: { weekStart?: string } }) => {
-                  const weekStart = entry.weekStart ?? entry.payload?.weekStart;
-                  if (weekStart) {
-                    setSelectedCompactWeekStart(weekStart);
-                    const weekStartDate = activityDateToLocalDate(weekStart);
-                    const weekEndDate = new Date(weekStartDate);
-                    weekEndDate.setDate(weekStartDate.getDate() + 6);
-                    const weekStartKey = activityDateKey(weekStartDate);
-                    const weekEndKey = activityDateKey(weekEndDate);
-                    const weekDates = sortedData
-                      .map((item) => item.date)
-                      .filter((date) => date >= weekStartKey && date <= weekEndKey);
-                    onHighlightDatesChange?.(weekDates);
-                  }
-                }}
-              >
-                {compactData.map((item) => (
-                  <Cell
-                    key={item.weekStart}
-                    fill={
-                      item.isCurrentWeek ? "#0369a1" : currentWeekInCompact ? "#7dd3fc" : "#0284c7"
-                    }
-                  />
-                ))}
-              </Bar>
-            </BarChart>
-          </ChartResponsiveContainer>
-        </div>
-        <div className="mt-2">
-          <ChartTextAlternative model={compactActivityChartText(compactData)} />
-        </div>
-      </div>
-    );
-  }
-
   const visibleWeeks = buildActivityHeatmapWeeks(sortedData);
   const heatmapTrackStyle = {
     gridTemplateColumns: `repeat(${visibleWeeks.length}, minmax(0, 1fr))`,

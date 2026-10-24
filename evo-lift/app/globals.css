@@ -132,14 +132,6 @@ button:disabled {
   background: #ffffff;
 }
 
-.compact-activity-chart .recharts-surface,
-.compact-activity-chart .recharts-wrapper,
-.compact-activity-chart .recharts-surface:focus-visible,
-.compact-activity-chart .recharts-wrapper:focus-visible {
-  outline: none !important;
-  box-shadow: none !important;
-}
-
 .insights-weekly-chart .recharts-surface,
 .insights-weekly-chart .recharts-wrapper,
 .insights-weekly-chart .recharts-surface:focus-visible,
