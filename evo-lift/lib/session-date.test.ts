@@ -3,7 +3,7 @@ import { describe, it } from "vitest";
 import {
   coalesceNewSessionDraftPerformedOn,
   formatDateToYyyyMmDd,
-  getDefaultRollingYearDateRange,
+  getDefaultDateRange,
   getTodayYyyyMmDd,
   isFutureSessionDate,
   normalizeSessionDateOnly,
@@ -30,13 +30,17 @@ describe("session dates", () => {
     assert.equal(getTodayYyyyMmDd(), localToday());
   });
 
-  it("uses today and one local year back as the default range", () => {
-    const today = new Date();
-    const oneYearAgo = new Date(today);
-    oneYearAgo.setFullYear(today.getFullYear() - 1);
-    assert.deepEqual(getDefaultRollingYearDateRange(), {
-      from: formatDateToYyyyMmDd(oneYearAgo),
-      to: formatDateToYyyyMmDd(today),
+  it("opens on four weeks through today", () => {
+    assert.deepEqual(getDefaultDateRange(new Date(2026, 9, 14)), {
+      from: "2026-09-17",
+      to: "2026-10-14",
+    });
+  });
+
+  it("crosses a month boundary", () => {
+    assert.deepEqual(getDefaultDateRange(new Date(2026, 2, 1)), {
+      from: "2026-02-02",
+      to: "2026-03-01",
     });
   });
 
