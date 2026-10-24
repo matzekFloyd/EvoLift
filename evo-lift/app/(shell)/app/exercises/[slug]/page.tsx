@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Dumbbell, LayoutList, LineChart } from "lucide-react";
 import { ContentPlaceholder } from "@/app/components/content-placeholder";
@@ -108,7 +108,7 @@ const EXERCISE_DETAIL_A11Y_PREFIX = "exercise-detail";
 
 type ExerciseDetailPanelTab = "data" | "charts";
 
-export default function ExerciseDetailPage() {
+function ExerciseDetailPageContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -696,5 +696,33 @@ export default function ExerciseDetailPage() {
         )}
       </section>
     </PageShell>
+  );
+}
+
+function ExerciseDetailFallback() {
+  return (
+    <PageShell>
+      <h1 className="inline-flex min-w-0 max-w-full items-center gap-2 text-xl font-semibold tracking-tight">
+        <Dumbbell className="h-5 w-5 shrink-0 text-sky-700" aria-hidden />
+        Exercise
+      </h1>
+      <section className="panel p-5">
+        <div className="space-y-3">
+          <ContentPlaceholder
+            label="Loading exercise history..."
+            rowClassName={EXERCISE_CHART_HEIGHT_CLASS}
+          />
+          <ContentPlaceholder rows={EXERCISE_HISTORY_PLACEHOLDER_ROWS} />
+        </div>
+      </section>
+    </PageShell>
+  );
+}
+
+export default function ExerciseDetailPage() {
+  return (
+    <Suspense fallback={<ExerciseDetailFallback />}>
+      <ExerciseDetailPageContent />
+    </Suspense>
   );
 }
