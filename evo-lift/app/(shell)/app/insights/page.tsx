@@ -24,6 +24,7 @@ import { DateInput } from "@/app/components/date-input";
 import { PageShell } from "@/app/components/page-shell";
 import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
+import { PRODUCT_TOUR_TARGET_IDS } from "@/lib/product-tour";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { buildExerciseProgressReport, type LifterProfile } from "@/lib/exercise-progress-insights";
@@ -58,7 +59,7 @@ const rangeOptions: RangeOption[] = [
   { value: "6m", label: "6m" },
   { value: "all", label: "All" },
 ];
-const defaultInsightsRange: InsightsRange = "12w";
+const defaultInsightsRange: InsightsRange = "4w";
 
 const emptyLifterProfile: LifterProfile = {
   sex: null,
@@ -346,7 +347,7 @@ export default function InsightsPage() {
 
   return (
     <PageShell>
-      <section>
+      <section id={PRODUCT_TOUR_TARGET_IDS.insights}>
         <h1 className="text-2xl font-semibold tracking-tight">Insights</h1>
         <p className="mt-1 text-sm text-zinc-600">
           See which lifts are moving, and which ones have more room than a steady rate.

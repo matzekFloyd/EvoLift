@@ -20,6 +20,7 @@ import {
 } from "@/app/home-next-action-layout";
 import { homeExerciseBadgeTone } from "@/app/home-sessions";
 import { appPath } from "@/lib/app-paths";
+import { PRODUCT_TOUR_TARGET_IDS } from "@/lib/product-tour";
 import { continueSessionExerciseId } from "@/lib/continue-session-exercise";
 import {
   scheduledSessionsBesidePlan,
@@ -422,24 +423,24 @@ export function ActivePlanPanel({
 
   return (
     <section className="panel p-5">
-      <div className="mb-2">
-        <SectionHeading>Plan</SectionHeading>
-      </div>
+      <div id={PRODUCT_TOUR_TARGET_IDS.plan}>
+        <div className="mb-2">
+          <SectionHeading>Plan</SectionHeading>
+        </div>
 
-      {isLoading ? (
-        <ContentPlaceholder label="Loading plan..." rowClassName={HOME_PLAN_LOADING_CLASSNAME} />
-      ) : loadError ? (
-        <p className="text-sm text-red-600">{loadError}</p>
-      ) : !plan ? (
-        <p className="text-sm text-zinc-600">
-          No active plan.{" "}
-          <Link href={appPath("/plans")} className="font-medium text-sky-800 underline-offset-2 hover:underline">
-            Choose a plan
-          </Link>{" "}
-          or start a workout session without one.
-        </p>
-      ) : (
-        <div className="space-y-3">
+        {isLoading ? (
+          <ContentPlaceholder label="Loading plan..." rowClassName={HOME_PLAN_LOADING_CLASSNAME} />
+        ) : loadError ? (
+          <p className="text-sm text-red-600">{loadError}</p>
+        ) : !plan ? (
+          <p className="text-sm text-zinc-600">
+            No active plan.{" "}
+            <Link href={appPath("/plans")} className="font-medium text-sky-800 underline-offset-2 hover:underline">
+              Choose a plan
+            </Link>{" "}
+            or start a workout session without one.
+          </p>
+        ) : (
           <div className="flex items-center justify-between gap-2">
             <div className="min-w-0">
               <Link
@@ -508,6 +509,10 @@ export function ActivePlanPanel({
                 : "Start session"}
             </ActionButton>
           </div>
+        )}
+      </div>
+      {plan && !isLoading && !loadError ? (
+        <div className="mt-3 space-y-3">
           {message && !startDay ? (
             <StatusNotice message={message} tone="warning" onDismiss={() => setMessage(null)} />
           ) : null}
@@ -527,7 +532,7 @@ export function ActivePlanPanel({
             </CollapsibleSection>
           ) : null}
         </div>
-      )}
+      ) : null}
 
       {besidePlan.length > 0 ? (
         <div className="mt-3 space-y-2">

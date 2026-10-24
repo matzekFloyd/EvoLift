@@ -19,6 +19,7 @@ import { WorkoutActivityChart } from "@/app/components/chart-dynamic";
 import { activityDayOpen, activityDaySessionIds } from "@/app/home-activity-day";
 import { sessionDetailExercisePath } from "@/app/sessions/[id]/session-detail-query";
 import { appPath } from "@/lib/app-paths";
+import { PRODUCT_TOUR_TARGET_IDS } from "@/lib/product-tour";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { loadGoalReachedSessionDates } from "@/lib/goal-reached-dates";
 import {
@@ -30,7 +31,6 @@ import { confirmSignedInUser } from "@/lib/confirm-signed-in-user";
 import { rememberedUserId } from "@/lib/signed-in-memory";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { homeExerciseBadgeTone, homeExerciseBadges, homeSetCount } from "@/app/home-sessions";
-import { getDefaultHomeDateRange } from "@/app/home-date-range";
 import {
   homeCompetingCtaVariant,
   homeSessionTableStartsOpen,
@@ -39,6 +39,7 @@ import { HOME_PAST_WORKOUT_PLACEHOLDER_ROWS } from "@/app/home-loading-layout";
 import type { ScheduledHomeSession } from "@/app/home-scheduled-sessions";
 import {
   formatDateToYyyyMmDd,
+  getDefaultDateRange,
   getTodayYyyyMmDd,
   normalizeSessionDateOnly,
 } from "@/lib/session-date";
@@ -92,7 +93,7 @@ function initialHomeView() {
 export default function Home() {
   const router = useRouter();
   const todayYyyyMmDd = getTodayYyyyMmDd();
-  const defaultDateRange = useMemo(() => getDefaultHomeDateRange(new Date()), []);
+  const defaultDateRange = useMemo(() => getDefaultDateRange(new Date()), []);
   const [cachedHome] = useState(initialHomeView);
   const [isSmallPhone, setIsSmallPhone] = useState(false);
   const [isChecking, setIsChecking] = useState(cachedHome == null);
@@ -447,6 +448,7 @@ export default function Home() {
       <div className="flex items-center justify-between gap-3">
         <h1 className="text-2xl font-semibold tracking-tight">Workout sessions</h1>
         <PageAddAction
+          id={PRODUCT_TOUR_TARGET_IDS.createSession}
           href={appPath("/sessions/new")}
           label="Create session"
           variant={homeCompetingCtaVariant(standaloneInProgressSessions.length > 0)}

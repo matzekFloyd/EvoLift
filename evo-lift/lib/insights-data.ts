@@ -1,5 +1,6 @@
 import { isAssistanceExercise } from "@/lib/assistance-exercise";
 import { latestBodyweightEntry, type BodyweightLogEntry } from "@/lib/bodyweight-log";
+import { getDefaultDateRange } from "@/lib/session-date";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fetchAllPages, fetchInChunks } from "@/lib/supabase/chunked-query";
 import type { Database } from "@/lib/supabase/database.types";
@@ -53,8 +54,7 @@ function startOfWeekMonday(value: Date): Date {
 function getRangeStart(range: InsightsRange, today: Date): string | null {
   const start = new Date(today);
   if (range === "4w") {
-    start.setDate(start.getDate() - 27);
-    return toYyyyMmDd(start);
+    return getDefaultDateRange(today).from;
   }
   if (range === "12w") {
     start.setDate(start.getDate() - 83);
