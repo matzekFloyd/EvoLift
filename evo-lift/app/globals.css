@@ -199,6 +199,7 @@ button:disabled {
   visibility: hidden;
 }
 
-html[data-evolift-tour-card="ready"] [data-name="nextstep-card"] {
+html[data-evolift-tour-card="ready"] [data-name="nextstep-card"],
+html[data-evolift-tour-card="center"] [data-name="nextstep-card"] {
   visibility: visible;
 }

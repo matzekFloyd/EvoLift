@@ -16,8 +16,8 @@ type ProductTourRuntimeProps = {
 
 /**
  * Starts the first-login tour on Home. The NextStep bundle loads only then.
- * Session routes unmount the overlay so logging stays available. Skip or Done
- * stores a per-account flag in this browser.
+ * The tour also opens Goals, Insights, and Account. Session routes unmount the
+ * overlay so logging stays available. Skip or Done stores a per-account flag.
  */
 export function ProductTourHost() {
   const pathname = usePathname();

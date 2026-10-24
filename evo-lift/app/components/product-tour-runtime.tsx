@@ -13,6 +13,7 @@ import {
   isProductTourFinished,
   markProductTourFinished,
   productTourCardBox,
+  productTourCenteredCardBox,
   productTourScrollDelta,
   productTourSelector,
   productTourSteps,
@@ -34,11 +35,42 @@ function browserFlagStore(): ProductTourFlagStore {
  * Place the NextStep card under the highlighted control. On a phone the card
  * is almost the full viewport width. A low target scrolls up until the card fits.
  */
+function writeProductTourCardBox(card: HTMLElement, box: { top: number; left: number; width: number }, mode: "ready" | "center") {
+  const pointer = card.parentElement;
+  if (!pointer) {
+    return;
+  }
+  const pointerRect = pointer.getBoundingClientRect();
+  const root = document.documentElement;
+  root.style.setProperty(PRODUCT_TOUR_CARD_TOP_VAR, `${box.top - pointerRect.top}px`);
+  root.style.setProperty(PRODUCT_TOUR_CARD_LEFT_VAR, `${box.left - pointerRect.left}px`);
+  root.style.setProperty(PRODUCT_TOUR_CARD_WIDTH_VAR, `${box.width}px`);
+  root.setAttribute(TOUR_CARD_READY_ATTR, mode);
+}
+
+/** Closing step. No spotlight; the card sits in the middle of Home. */
+function placeCenteredProductTourCard() {
+  const card = document.querySelector<HTMLElement>("[data-name='nextstep-card']");
+  if (!card) {
+    return;
+  }
+  const measuredHeight = card.getBoundingClientRect().height;
+  const cardHeight = measuredHeight > 0 ? measuredHeight : PRODUCT_TOUR_CARD_FALLBACK_HEIGHT_PX;
+  writeProductTourCardBox(
+    card,
+    productTourCenteredCardBox({
+      viewportWidth: window.innerWidth,
+      viewportHeight: window.innerHeight,
+      cardHeight,
+    }),
+    "center",
+  );
+}
+
 function placeProductTourCard(selector: string) {
   const card = document.querySelector<HTMLElement>("[data-name='nextstep-card']");
   const target = document.querySelector(selector);
-  const pointer = card?.parentElement;
-  if (!card || !target || !pointer) {
+  if (!card || !target) {
     return;
   }
 
@@ -62,18 +94,16 @@ function placeProductTourCard(selector: string) {
     }
   }
 
-  const box = productTourCardBox({
-    viewportWidth: window.innerWidth,
-    targetLeft: placedTarget.left,
-    targetWidth: placedTarget.width,
-    targetBottom: placedTarget.bottom,
-  });
-  const pointerRect = pointer.getBoundingClientRect();
-  const root = document.documentElement;
-  root.style.setProperty(PRODUCT_TOUR_CARD_TOP_VAR, `${box.top - pointerRect.top}px`);
-  root.style.setProperty(PRODUCT_TOUR_CARD_LEFT_VAR, `${box.left - pointerRect.left}px`);
-  root.style.setProperty(PRODUCT_TOUR_CARD_WIDTH_VAR, `${box.width}px`);
-  root.setAttribute(TOUR_CARD_READY_ATTR, "ready");
+  writeProductTourCardBox(
+    card,
+    productTourCardBox({
+      viewportWidth: window.innerWidth,
+      targetLeft: placedTarget.left,
+      targetWidth: placedTarget.width,
+      targetBottom: placedTarget.bottom,
+    }),
+    "ready",
+  );
 }
 
 function clearProductTourCardPlacement() {
@@ -97,12 +127,12 @@ function ProductTourController({ userId, onFinished }: ProductTourRuntimeProps) 
         steps: steps.map((step) => ({
           title: step.title,
           content: step.body,
-          selector: productTourSelector(step.targetId),
+          selector: step.targetId ? productTourSelector(step.targetId) : undefined,
           side: "bottom" as const,
           disableInteraction: false,
           blockKeyboardControl: true,
-          pointerPadding: 8,
-          pointerRadius: 8,
+          pointerPadding: step.targetId ? 8 : 0,
+          pointerRadius: step.targetId ? 8 : 0,
           nextRoute: step.nextPath ?? undefined,
           prevRoute: step.prevPath ?? undefined,
           selectorRetryAttempts: 25,
@@ -152,8 +182,13 @@ function ProductTourController({ userId, onFinished }: ProductTourRuntimeProps) 
     if (!step) {
       return;
     }
-    const selector = productTourSelector(step.targetId);
-    const tick = () => placeProductTourCard(selector);
+    const tick = () => {
+      if (step.targetId) {
+        placeProductTourCard(productTourSelector(step.targetId));
+      } else {
+        placeCenteredProductTourCard();
+      }
+    };
     tick();
     const intervalId = window.setInterval(tick, 200);
     window.addEventListener("resize", tick);

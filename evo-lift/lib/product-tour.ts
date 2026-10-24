@@ -23,16 +23,25 @@ export const PRODUCT_TOUR_CARD_WIDTH_VAR = "--evolift-tour-card-width";
 export const PRODUCT_TOUR_TARGET_IDS = {
   createSession: "tour-create-session",
   plan: "tour-plan",
+  goals: "tour-goals",
+  insights: "tour-insights",
   bodyweight: "tour-bodyweight",
 } as const;
 
-export type ProductTourStepId = "create-session" | "plan" | "bodyweight";
+export type ProductTourStepId =
+  | "create-session"
+  | "plan"
+  | "goals"
+  | "insights"
+  | "bodyweight"
+  | "ready";
 
 export type ProductTourStep = {
   id: ProductTourStepId;
   title: string;
   body: string;
-  targetId: string;
+  /** Null centers the card, with no highlighted control. */
+  targetId: string | null;
   /** Open this path when advancing. Null stays on the current page. */
   nextPath: string | null;
   /** Open this path when going back. Null stays on the current page. */
@@ -55,6 +64,19 @@ export function productTourAccountPath(): string {
   return `${appPath("/account")}?section=profile`;
 }
 
+export function productTourGoalsPath(): string {
+  return appPath("/goals");
+}
+
+export function productTourInsightsPath(): string {
+  return appPath("/insights");
+}
+
+/**
+ * Logging, then a plan, then why bodyweight exists (Goals, then Insights),
+ * then the field, then a closer on Home. Lift comparison is not on screen
+ * until sessions exist, so the Insights step points at the page.
+ */
 export function productTourSteps(): readonly ProductTourStep[] {
   return [
     {
@@ -70,16 +92,40 @@ export function productTourSteps(): readonly ProductTourStep[] {
       title: "Plan",
       body: "A plan is an ordered cycle of days. One plan can be active. Starting a day copies its exercises and targets into a new workout session.",
       targetId: PRODUCT_TOUR_TARGET_IDS.plan,
-      nextPath: productTourAccountPath(),
+      nextPath: productTourGoalsPath(),
       prevPath: null,
+    },
+    {
+      id: "goals",
+      title: "Goals",
+      body: "You already have goals on the main barbell lifts. They are multiples of bodyweight.",
+      targetId: PRODUCT_TOUR_TARGET_IDS.goals,
+      nextPath: productTourInsightsPath(),
+      prevPath: APP_HOME_PATH,
+    },
+    {
+      id: "insights",
+      title: "Insights",
+      body: "After you log, Lift comparison on this page uses bodyweight, sex, and date of birth.",
+      targetId: PRODUCT_TOUR_TARGET_IDS.insights,
+      nextPath: productTourAccountPath(),
+      prevPath: productTourGoalsPath(),
     },
     {
       id: "bodyweight",
       title: "Bodyweight (kg)",
-      body: "Enter it here. Default goals are already on Goals. It does not change the weights you log.",
+      body: "Enter it here. It does not change the weights you log.",
       targetId: PRODUCT_TOUR_TARGET_IDS.bodyweight,
+      nextPath: APP_HOME_PATH,
+      prevPath: productTourInsightsPath(),
+    },
+    {
+      id: "ready",
+      title: "You're set",
+      body: "Create a session when you're ready to log.",
+      targetId: null,
       nextPath: null,
-      prevPath: APP_HOME_PATH,
+      prevPath: productTourAccountPath(),
     },
   ];
 }
@@ -88,9 +134,14 @@ export function isProductTourPhoneWidth(viewportWidth: number): boolean {
   return viewportWidth < PRODUCT_TOUR_PHONE_MAX_WIDTH_PX;
 }
 
-/** Home and Account are the only pages the tour stays open on. */
+/** Pages the tour opens. Session routes stay off so logging is not covered. */
 export function isProductTourPath(pathname: string): boolean {
-  return pathname === APP_HOME_PATH || pathname === appPath("/account");
+  return (
+    pathname === APP_HOME_PATH ||
+    pathname === appPath("/account") ||
+    pathname === productTourGoalsPath() ||
+    pathname === productTourInsightsPath()
+  );
 }
 
 /**
@@ -164,6 +215,25 @@ export function productTourCardBox(input: {
     left,
     width,
   };
+}
+
+/** Closing card, centered, with the same side space as the other phone cards. */
+export function productTourCenteredCardBox(input: {
+  viewportWidth: number;
+  viewportHeight: number;
+  cardHeight: number;
+  cardWidth?: number;
+  margin?: number;
+}): ProductTourCardBox {
+  const margin = input.margin ?? PRODUCT_TOUR_CARD_MARGIN_PX;
+  const preferredWidth = input.cardWidth ?? PRODUCT_TOUR_DESKTOP_CARD_WIDTH_PX;
+  const phone = isProductTourPhoneWidth(input.viewportWidth);
+  const width = phone
+    ? Math.max(0, input.viewportWidth - margin * 2)
+    : Math.min(preferredWidth, Math.max(0, input.viewportWidth - margin * 2));
+  const left = Math.max(margin, (input.viewportWidth - width) / 2);
+  const top = Math.max(margin, (input.viewportHeight - input.cardHeight) / 2);
+  return { top, left, width };
 }
 
 /**
