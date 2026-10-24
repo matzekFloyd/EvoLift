@@ -22,14 +22,14 @@ export function formatDateToYyyyMmDd(date: Date): string {
 }
 
 /**
- * Exercise history window: local calendar, one year back through today.
+ * Date filters open on the last 4 weeks, through today.
+ * The start is 27 days back so the inclusive span is 28 days.
  */
-export function getDefaultRollingYearDateRange(): { from: string; to: string } {
-  const today = new Date();
-  const oneYearAgo = new Date(today);
-  oneYearAgo.setFullYear(today.getFullYear() - 1);
+export function getDefaultDateRange(today: Date): { from: string; to: string } {
+  const fromDate = new Date(today);
+  fromDate.setDate(today.getDate() - 27);
   return {
-    from: formatDateToYyyyMmDd(oneYearAgo),
+    from: formatDateToYyyyMmDd(fromDate),
     to: formatDateToYyyyMmDd(today),
   };
 }

@@ -1,4 +1,5 @@
 import type { InsightsRange } from "@/lib/insights-data";
+import { getDefaultDateRange } from "@/lib/session-date";
 
 function toYyyyMmDd(value: Date): string {
   const year = value.getFullYear();
@@ -9,12 +10,11 @@ function toYyyyMmDd(value: Date): string {
 
 /** Insights date presets. `all` leaves the start open and ends today. */
 export function getInsightsPresetRange(range: InsightsRange, today: Date): { from: string; to: string } {
+  if (range === "4w") {
+    return getDefaultDateRange(today);
+  }
   const to = toYyyyMmDd(today);
   const fromDate = new Date(today);
-  if (range === "4w") {
-    fromDate.setDate(fromDate.getDate() - 27);
-    return { from: toYyyyMmDd(fromDate), to };
-  }
   if (range === "12w") {
     fromDate.setDate(fromDate.getDate() - 83);
     return { from: toYyyyMmDd(fromDate), to };

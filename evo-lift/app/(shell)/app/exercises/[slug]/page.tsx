@@ -75,10 +75,7 @@ import {
   peekInsightsExerciseSets,
   type ExerciseWorkingSetSample,
 } from "@/lib/insights-data";
-import {
-  getDefaultRollingYearDateRange,
-  getTodayYyyyMmDd,
-} from "@/lib/session-date";
+import { getDefaultDateRange, getTodayYyyyMmDd } from "@/lib/session-date";
 
 type ExerciseRow = {
   id: string;
@@ -127,7 +124,7 @@ export default function ExerciseDetailPage() {
   const [trackedSlug, setTrackedSlug] = useState(slug);
   const assistance = isAssistanceExercise(slug);
   const loadColumnLabel = externalLoadFieldLabel(slug);
-  const defaultDateRange = useMemo(() => getDefaultRollingYearDateRange(), []);
+  const defaultDateRange = useMemo(() => getDefaultDateRange(new Date()), []);
   const [isLoading, setIsLoading] = useState(openedHistory == null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isNotFound, setIsNotFound] = useState(false);
@@ -459,7 +456,7 @@ export default function ExerciseDetailPage() {
     return () => mediaQuery.removeEventListener("change", onChange);
   }, []);
 
-  /** “Clear filters” uses the full span of loaded sets for this exercise (not the 1-year landing default). */
+  /** “Clear filters” uses the full span of loaded sets for this exercise (not the 4-week landing default). */
   const fullHistoryClearDateRange = useMemo(
     () => computeFullHistoryClearDateRange(historyRows, getTodayYyyyMmDd()),
     [historyRows],
