@@ -20,22 +20,20 @@ import {
   listDialogFocusable,
   resolveDialogKeyAction,
 } from "@/app/components/app-dialog-focus";
-import {
-  AppHeaderNavCaption,
-  AppHeaderNavLink,
-  appHeaderNavIconInactiveClassName,
-  appHeaderNavIconInactiveGlyphClassName,
-} from "@/app/components/app-header-nav-link";
+import { AppHeaderNavButton, AppHeaderNavLink } from "@/app/components/app-header-nav-link";
 import { APP_LEGAL_LINKS, legalLinkAriaCurrent, legalLinkClassNameFor } from "@/app/components/app-legal-links";
 import { EvoLiftMark } from "@/app/components/evo-lift-logo";
 import {
+  DESKTOP_NAV_MEDIA_QUERY,
   HEADER_LOG_OUT_LABEL,
   compactMenuButtonClassName,
   compactMenuButtonLabel,
   compactMenuFocusable,
   compactMenuInitialFocusVisible,
-  compactNavTileClassName,
+  compactMenuShouldClose,
   focusHeaderControl,
+  headerLogOutGroupClassName,
+  headerNavGlyphClassName,
 } from "@/app/header-nav";
 import { APP_HOME_PATH, appPath, isAppNavItemActive, type AppNavMatch } from "@/lib/app-paths";
 import { prefetchHomeSessionSummaries } from "@/lib/home-session-cache";
@@ -165,6 +163,17 @@ export function HeaderActions() {
     };
   }, [isCompactMenuOpen]);
 
+  useEffect(() => {
+    const media = window.matchMedia(DESKTOP_NAV_MEDIA_QUERY);
+    const onChange = () => {
+      if (compactMenuShouldClose(media.matches)) {
+        setIsCompactMenuOpen(false);
+      }
+    };
+    media.addEventListener("change", onChange);
+    return () => media.removeEventListener("change", onChange);
+  }, []);
+
   if (!isReady || !isLoggedIn) {
     return null;
   }
@@ -184,6 +193,13 @@ export function HeaderActions() {
     }
   }
 
+  function accountTitle(href: string): string | undefined {
+    if (href !== appPath("/account")) {
+      return undefined;
+    }
+    return userEmail ? `Account — ${userEmail}` : "Account";
+  }
+
   return (
     <header className="bg-gradient-to-l from-sky-200 via-sky-100 to-sky-50 pt-[env(safe-area-inset-top,0px)]">
       <nav
@@ -194,15 +210,13 @@ export function HeaderActions() {
       >
         <Link
           ref={compactLogoRef}
-          className="group inline-flex items-center gap-2 rounded-md px-1.5 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 focus-visible:ring-offset-2 focus-visible:ring-offset-sky-100"
+          className="inline-flex items-center gap-2 rounded-md px-1.5 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 focus-visible:ring-offset-2 focus-visible:ring-offset-sky-100"
           href={APP_HOME_PATH}
         >
-          <EvoLiftMark className="h-8 w-8 shrink-0 transition-transform duration-150 group-hover:scale-110" />
-          <span className="origin-left text-lg leading-none font-bold tracking-[-0.04em] text-sky-900 transition-transform duration-150 group-hover:scale-110">
-            EvoLift
-          </span>
+          <EvoLiftMark className="h-8 w-8 shrink-0" />
+          <span className="text-lg leading-none font-bold tracking-[-0.04em] text-sky-900">EvoLift</span>
         </Link>
-        <div className="hidden shrink-0 items-center justify-end gap-1 sm:gap-2 md:flex">
+        <div className="hidden shrink-0 items-center justify-end gap-1 lg:flex">
           {compactNavItems.map((item) => (
             <AppHeaderNavLink
               key={item.href}
@@ -210,26 +224,20 @@ export function HeaderActions() {
               label={item.label}
               isActive={item.isActive}
               icon={item.icon}
-              title={
-                item.href === appPath("/account")
-                  ? userEmail
-                    ? `Account — ${userEmail}`
-                    : "Account"
-                  : undefined
-              }
+              title={accountTitle(item.href)}
             />
           ))}
-          <button
-            type="button"
-            onClick={handleAuthClick}
-            className={`${appHeaderNavIconInactiveClassName} header-nav-logout`}
-            aria-label={HEADER_LOG_OUT_LABEL}
-          >
-            <LogOut className={appHeaderNavIconInactiveGlyphClassName} aria-hidden />
-            <AppHeaderNavCaption label={HEADER_LOG_OUT_LABEL} />
-          </button>
+          <div className={headerLogOutGroupClassName()}>
+            <AppHeaderNavButton
+              icon={LogOut}
+              label={HEADER_LOG_OUT_LABEL}
+              onClick={() => {
+                void handleAuthClick();
+              }}
+            />
+          </div>
         </div>
-        <div className="md:hidden">
+        <div className="lg:hidden">
           <button
             ref={compactMenuTriggerRef}
             type="button"
@@ -245,9 +253,9 @@ export function HeaderActions() {
             aria-controls="compact-header-menu"
           >
             {isCompactMenuOpen ? (
-              <X className={appHeaderNavIconInactiveGlyphClassName} aria-hidden />
+              <X className={headerNavGlyphClassName} aria-hidden />
             ) : (
-              <Menu className={appHeaderNavIconInactiveGlyphClassName} aria-hidden />
+              <Menu className={headerNavGlyphClassName} aria-hidden />
             )}
           </button>
         </div>
@@ -259,40 +267,32 @@ export function HeaderActions() {
           role="dialog"
           aria-modal="true"
           aria-label="Navigation menu"
-          className="fixed inset-0 z-[80] flex flex-col bg-gradient-to-b from-sky-100 via-sky-50 to-zinc-100 md:hidden"
+          className="fixed inset-0 z-[80] flex flex-col bg-gradient-to-b from-sky-100 via-sky-50 to-zinc-100 lg:hidden"
         >
-          <div className="flex min-h-0 flex-1 flex-col px-4 pt-[calc(4.5rem+env(safe-area-inset-top,0px))] pb-[max(1.25rem,env(safe-area-inset-bottom,0px))]">
+          <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-4 pt-[calc(4.5rem+env(safe-area-inset-top,0px))] pb-[max(1.25rem,env(safe-area-inset-bottom,0px))]">
             <div className="grid grid-cols-2 gap-3">
-              {compactNavItems.map((item, index) => {
-                const Icon = item.icon;
-                return (
-                  <Link
-                    key={item.href}
-                    ref={index === 0 ? compactMenuFirstItemRef : undefined}
-                    href={item.href}
-                    onClick={() => closeCompactMenu({ returnFocus: false })}
-                    aria-current={item.isActive ? "page" : undefined}
-                    className={compactNavTileClassName(item.isActive)}
-                  >
-                    <Icon
-                      className={`h-6 w-6 shrink-0 ${item.isActive ? "text-white" : "text-sky-700"}`}
-                      aria-hidden
-                    />
-                    {item.label}
-                  </Link>
-                );
-              })}
-              <button
-                type="button"
-                onClick={async () => {
+              {compactNavItems.map((item, index) => (
+                <AppHeaderNavLink
+                  key={item.href}
+                  ref={index === 0 ? compactMenuFirstItemRef : undefined}
+                  href={item.href}
+                  label={item.label}
+                  isActive={item.isActive}
+                  icon={item.icon}
+                  title={accountTitle(item.href)}
+                  layout="tile"
+                  onClick={() => closeCompactMenu({ returnFocus: false })}
+                />
+              ))}
+              <AppHeaderNavButton
+                layout="tile"
+                icon={LogOut}
+                label={HEADER_LOG_OUT_LABEL}
+                onClick={() => {
                   closeCompactMenu({ returnFocus: false });
-                  await handleAuthClick();
+                  void handleAuthClick();
                 }}
-                className={compactNavTileClassName(false)}
-              >
-                <LogOut className="h-6 w-6 shrink-0 text-sky-700" aria-hidden />
-                {HEADER_LOG_OUT_LABEL}
-              </button>
+              />
             </div>
             <nav
               aria-label="Legal"

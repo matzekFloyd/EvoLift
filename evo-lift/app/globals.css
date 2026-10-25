@@ -84,12 +84,6 @@ a:hover {
   color: var(--accent-strong);
 }
 
-/* Log out is a button, so it misses `a:hover` and the caption stays zinc. */
-button.header-nav-logout:hover,
-button.header-nav-logout:focus-visible {
-  color: var(--accent-strong);
-}
-
 a:focus-visible {
   border-radius: 4px;
 }

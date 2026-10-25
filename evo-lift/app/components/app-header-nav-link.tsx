@@ -1,54 +1,101 @@
 import Link from "next/link";
 import type { LucideIcon } from "lucide-react";
+import type { Ref } from "react";
+import {
+  headerNavGlyphClassName,
+  headerNavItemClassName,
+  headerNavTileClassName,
+  headerNavTileGlyphClassName,
+} from "@/app/header-nav";
+
+export type HeaderNavLayout = "row" | "tile";
+
+type AppHeaderNavVisualProps = {
+  label: string;
+  icon: LucideIcon;
+  layout: HeaderNavLayout;
+  isActive: boolean;
+};
+
+function headerNavControlClassName(isActive: boolean, className?: string): string {
+  return [headerNavItemClassName(isActive), className].filter(Boolean).join(" ");
+}
+
+/** Icon and visible name. The name is the accessible name — it is not clipped. */
+function AppHeaderNavVisual({ label, icon: Icon, layout, isActive }: AppHeaderNavVisualProps) {
+  const glyphClassName =
+    layout === "tile"
+      ? `${headerNavTileGlyphClassName} ${isActive ? "text-white" : "text-sky-700"}`
+      : headerNavGlyphClassName;
+  return (
+    <>
+      <Icon className={glyphClassName} aria-hidden />
+      <span>{label}</span>
+    </>
+  );
+}
 
 type AppHeaderNavLinkProps = {
   href: string;
   label: string;
-  isActive: boolean;
   icon: LucideIcon;
+  isActive: boolean;
   /** Extra tooltip, such as the account email. The visible label is the control text. */
   title?: string;
+  /** Row on the desktop header. Tile in the compact menu. */
+  layout?: HeaderNavLayout;
+  className?: string;
+  onClick?: () => void;
+  ref?: Ref<HTMLAnchorElement>;
 };
 
-const appHeaderNavControlClassName =
-  "group inline-flex items-center rounded-md p-2 leading-none transition-[background-color,color] duration-150 focus-visible:outline-none";
-
-/** Inactive nav icon control (shared by links and log out) so surfaces stay consistent. */
-export const appHeaderNavIconInactiveClassName = `${appHeaderNavControlClassName} bg-white text-zinc-700 hover:bg-zinc-200/80 hover:text-zinc-900 focus-visible:ring-2 focus-visible:ring-sky-600 focus-visible:ring-offset-2 focus-visible:ring-offset-white`;
-
-const appHeaderNavIconActiveClassName = `${appHeaderNavControlClassName} bg-sky-700 text-white hover:bg-sky-600 hover:!text-white focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-sky-700`;
-
-export const appHeaderNavIconInactiveGlyphClassName = "h-4 w-4 shrink-0 text-sky-800";
-
-/** Label revealed when the desktop nav control is hovered or focused. */
-export function AppHeaderNavCaption({ label }: { label: string }) {
+/**
+ * Nav destination. The row sits on the sky header. The tile is the compact-menu cell.
+ */
+export function AppHeaderNavLink({
+  href,
+  label,
+  isActive,
+  icon,
+  title,
+  layout = "row",
+  className,
+  onClick,
+  ref,
+}: AppHeaderNavLinkProps) {
   return (
-    <span className="grid grid-cols-[0fr] transition-[grid-template-columns] duration-150 group-hover:grid-cols-[1fr] group-focus-visible:grid-cols-[1fr]">
-      <span className="min-w-0 overflow-hidden">
-        <span className="ps-1.5 text-sm leading-4 font-medium whitespace-nowrap">{label}</span>
-      </span>
-    </span>
+    <Link
+      ref={ref}
+      href={href}
+      aria-current={isActive ? "page" : undefined}
+      title={title}
+      onClick={onClick}
+      className={
+        layout === "tile" ? headerNavTileClassName(isActive) : headerNavControlClassName(isActive, className)
+      }
+    >
+      <AppHeaderNavVisual label={label} icon={icon} layout={layout} isActive={isActive} />
+    </Link>
   );
 }
 
-/**
- * Desktop header nav control. Resting state is the icon. Hover and keyboard focus reveal the
- * label beside the icon without changing the control’s height. Active: filled sky; icon and label
- * stay `text-white` on hover so the global link hover color cannot darken the caption. Focus:
- * inactive uses sky ring + white offset; active uses white ring + sky offset so the glyph
- * stays visible. The resting control is the icon, so the accessible name is `label`.
- */
-export function AppHeaderNavLink({ href, label, isActive, icon: Icon, title }: AppHeaderNavLinkProps) {
+type AppHeaderNavButtonProps = {
+  label: string;
+  icon: LucideIcon;
+  layout?: HeaderNavLayout;
+  className?: string;
+  onClick: () => void;
+};
+
+/** Same item as a nav link, for an action such as Log out. It is never the current page. */
+export function AppHeaderNavButton({ label, icon, layout = "row", className, onClick }: AppHeaderNavButtonProps) {
   return (
-    <Link
-      href={href}
-      aria-label={label}
-      aria-current={isActive ? "page" : undefined}
-      title={title}
-      className={isActive ? appHeaderNavIconActiveClassName : appHeaderNavIconInactiveClassName}
+    <button
+      type="button"
+      onClick={onClick}
+      className={layout === "tile" ? headerNavTileClassName(false) : headerNavControlClassName(false, className)}
     >
-      <Icon className={isActive ? "h-4 w-4 shrink-0 text-white" : appHeaderNavIconInactiveGlyphClassName} aria-hidden />
-      <AppHeaderNavCaption label={label} />
-    </Link>
+      <AppHeaderNavVisual label={label} icon={icon} layout={layout} isActive={false} />
+    </button>
   );
 }
