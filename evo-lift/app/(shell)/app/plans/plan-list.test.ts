@@ -78,9 +78,9 @@ describe("plan list", () => {
     assert.equal(page.includes("Deactivate"), false);
     assert.equal(page.includes("ListOrdered"), false);
     assert.match(templates, /<NamedListTable/);
-    assert.match(templates, /href=\{appPath\(`\/templates\/\$\{row\.id\}\/edit`\)\}/);
-    assert.match(templates, /countHeading=/);
-    assert.equal(templates.includes("embedActions"), false);
+    assert.match(templates, /templateEditHref\(row\.id\)/);
+    assert.match(templates, /embedActions/);
+    assert.match(templates, /tracks: "count"/);
     assert.equal(templates.includes("statusLabel"), false);
     assert.equal(templates.includes(">Edit<"), false);
     assert.match(table, /statusLabel \? /);

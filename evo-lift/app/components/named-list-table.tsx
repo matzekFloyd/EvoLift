@@ -13,7 +13,9 @@ import {
 import { TableRowActions } from "@/app/components/table-row-actions";
 import type { NamedListSortDirection } from "@/lib/named-list-sort";
 
-const NamedListLayoutContext = createContext(false);
+type NamedListLayout = "columns" | "embed" | "plan" | "count";
+
+const NamedListLayoutContext = createContext<NamedListLayout>("columns");
 
 const nameLinkClassName = "group font-medium text-sky-800";
 const nameLinkTextClassName = "underline-offset-2 group-hover:underline";
@@ -21,6 +23,13 @@ const nameLinkTextClassName = "underline-offset-2 group-hover:underline";
 /** Shared by the plans header and each plan row so Days lines up with the day count. */
 const planListRowGridClassName =
   "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 md:grid-cols-[minmax(0,1fr)_5.5rem_max-content_17.5rem] md:gap-x-6";
+
+/**
+ * Name, exercise count, and actions. The count lines up with its heading.
+ * `min-h-10` matches the Active plan checkbox, so the header and rows are the same height as Plans.
+ */
+const countListRowGridClassName =
+  "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 md:min-h-10 md:grid-cols-[minmax(0,1fr)_7rem_auto] md:gap-x-6";
 
 /**
  * Same width as the Active plan checkbox and the paired row actions.
@@ -37,6 +46,11 @@ type NamedListCountSort = {
   active: boolean;
   direction: NamedListSortDirection;
   onToggle: () => void;
+  /**
+   * `plan` reserves the Active plan column. `count` is name, count, and actions.
+   * Defaults to `plan`.
+   */
+  tracks?: "plan" | "count";
 };
 
 type NamedListTableProps = {
@@ -89,15 +103,23 @@ export function NamedListTable({
   children,
   className,
 }: NamedListTableProps) {
-  const showCountColumn = !embedActions && countHeading != null;
+  const layout: NamedListLayout = !embedActions
+    ? "columns"
+    : countSort?.tracks === "count"
+      ? "count"
+      : countSort
+        ? "plan"
+        : "embed";
+  const showCountColumn = layout === "columns" && countHeading != null;
+  const rowGridClassName = layout === "count" ? countListRowGridClassName : planListRowGridClassName;
   return (
-    <NamedListLayoutContext.Provider value={embedActions}>
+    <NamedListLayoutContext.Provider value={layout}>
       <AppTable className={className} rowTone="group">
         <thead>
           <tr className={appTableHeadRowClassName}>
             <th className={appTableThClassName}>
               {countSort ? (
-                <div className={planListRowGridClassName}>
+                <div className={rowGridClassName}>
                   <SortHeading
                     label="Name"
                     active={nameSortActive}
@@ -111,10 +133,12 @@ export function NamedListTable({
                     onToggle={countSort.onToggle}
                     className="justify-self-end md:justify-self-start"
                   />
-                  <span aria-hidden className={`${planListHeaderReserveClassName} min-h-10 items-center gap-2 text-sm font-medium`}>
-                    <span className="inline-flex h-4 w-4 shrink-0" />
-                    Active plan
-                  </span>
+                  {layout === "plan" ? (
+                    <span aria-hidden className={`${planListHeaderReserveClassName} min-h-10 items-center gap-2 text-sm font-medium`}>
+                      <span className="inline-flex h-4 w-4 shrink-0" />
+                      Active plan
+                    </span>
+                  ) : null}
                   <span aria-hidden className={`${planListHeaderReserveClassName} w-[17.5rem]`} />
                 </div>
               ) : (
@@ -126,7 +150,7 @@ export function NamedListTable({
             {showCountColumn ? (
               <th className={`${appTableThClassName} w-16 whitespace-nowrap sm:w-24`}>{countHeading}</th>
             ) : null}
-            {embedActions ? null : <AppTableActionsHeader />}
+            {layout === "columns" ? <AppTableActionsHeader /> : null}
           </tr>
         </thead>
         {children}
@@ -161,7 +185,8 @@ export function NamedListTableRow({
   detailInline = false,
   children,
 }: NamedListTableRowProps) {
-  const embedActions = useContext(NamedListLayoutContext);
+  const layout = useContext(NamedListLayoutContext);
+  const embedActions = layout !== "columns";
   const showCount = !embedActions && count != null;
   const nameLink = (
     <Link href={href} className={nameLinkClassName}>
@@ -184,12 +209,13 @@ export function NamedListTableRow({
     </>
   );
 
-  if (embedActions && detailInline) {
+  if ((layout === "plan" || layout === "count") && detailInline) {
+    const rowGridClassName = layout === "count" ? countListRowGridClassName : planListRowGridClassName;
     return (
       <tbody>
         <tr className={appTableRowClassName}>
           <td className={`${appTableTdClassName} break-words whitespace-normal`}>
-            <div className={planListRowGridClassName}>
+            <div className={rowGridClassName}>
               <Link
                 href={href}
                 className={`${nameLinkClassName} relative flex min-w-0 items-center self-stretch break-words before:absolute before:-top-3 before:right-0 before:-left-4 before:bottom-0 before:content-[''] md:before:-bottom-3`}
