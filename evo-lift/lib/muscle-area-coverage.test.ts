@@ -143,7 +143,7 @@ describe("muscle area coverage", () => {
     assert.ok(plan.indexOf("{days.map") < plan.indexOf("<MuscleAreaCoverageChart"));
     assert.match(plan, /scope="plan"/);
     assert.match(plan, /days\.flatMap\(\(day\) => day\.exerciseRows\)/);
-    assert.ok(template.indexOf("<MuscleAreaCoverageChart") < template.indexOf("<WorkoutExerciseDraftList"));
+    assert.ok(template.indexOf("<WorkoutExerciseDraftList") < template.indexOf("<MuscleAreaCoverageChart"));
     assert.match(template, /scope="template"/);
     const row = readRepo("evo-lift", "app", "components", "muscle-area-coverage-row.tsx");
     assert.match(chart, /area\.label/);
