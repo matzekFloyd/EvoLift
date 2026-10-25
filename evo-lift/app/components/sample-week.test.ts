@@ -8,6 +8,7 @@ import {
   SAMPLE_WEEK_HEADING,
   SAMPLE_WEEK_REST_LABEL,
   sampleWeek,
+  sampleWeekDayCountLabel,
   type SampleWeekCell,
 } from "./sample-week";
 
@@ -51,9 +52,19 @@ describe("sampleWeek", () => {
       kind: "longer",
       message: "This cycle runs longer than one week. 8 days.",
     });
+    assert.equal(sampleWeekDayCountLabel(8), "8 days");
   });
 
-  it("shows the draft day count on Plans and in the plan editor", () => {
+  it("places the day count beside the sample week and hides it when there are no days", () => {
+    assert.equal(sampleWeekDayCountLabel(0), null);
+    assert.equal(sampleWeekDayCountLabel(1), "1 day");
+    assert.equal(sampleWeekDayCountLabel(4), "4 days");
+    const row = readFileSync(path.join(repoRoot, "evo-lift/app/components/sample-week-row.tsx"), "utf8");
+    assert.match(row, /sampleWeekDayCountLabel/);
+    assert.match(row, /\{view\.message\}/);
+  });
+
+  it("shows the sample week in the plan editor, not on the plans list", () => {
     const plans = readFileSync(
       path.join(repoRoot, "evo-lift/app/(shell)/app/plans/page.tsx"),
       "utf8",
@@ -62,7 +73,8 @@ describe("sampleWeek", () => {
       path.join(repoRoot, "evo-lift/app/plans/plan-editor-client.tsx"),
       "utf8",
     );
-    assert.match(plans, /<SampleWeek dayCount=\{row\.dayCount\}/);
+    assert.equal(plans.includes("<SampleWeek"), false);
+    assert.match(plans, /sampleWeekDayCountLabel/);
     assert.match(editor, /<SampleWeek dayCount=\{days\.length\}/);
     assert.equal(SAMPLE_WEEK_HEADING, "Sample week");
   });

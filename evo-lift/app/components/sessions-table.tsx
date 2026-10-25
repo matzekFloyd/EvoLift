@@ -10,6 +10,9 @@ import { formatDateOnlyForLocale } from "@/lib/date-format";
 
 type SortDirection = "asc" | "desc";
 
+/** Same left edge as the cell content. */
+const sessionsTableThClassName = "px-2 py-2 text-left font-medium text-zinc-700";
+
 export type SessionsTableBadge = {
   slug: string;
   hasLoggedSet: boolean;
@@ -115,7 +118,7 @@ export function SessionsTable({
           </colgroup>
           <thead>
             <tr className="border-b border-zinc-200 bg-zinc-200/60">
-              <th className="px-2 py-2 font-medium text-zinc-700">
+              <th className={sessionsTableThClassName}>
                 <button
                   type="button"
                   onClick={togglePerformedOnSort}
@@ -124,9 +127,9 @@ export function SessionsTable({
                   {dateHeaderLabel} {renderPerformedOnSortIndicator()}
                 </button>
               </th>
-              <th className="px-2 py-2 font-medium text-zinc-700">Exercises</th>
+              <th className={sessionsTableThClassName}>Exercises</th>
               {showNotesColumn ? (
-                <th className="px-2 py-2 font-medium text-zinc-700">Notes</th>
+                <th className={sessionsTableThClassName}>Notes</th>
               ) : null}
             </tr>
           </thead>

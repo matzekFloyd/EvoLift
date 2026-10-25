@@ -1,13 +1,14 @@
 "use client";
 
-import { CircleCheck, CircleOff, Copy, ListOrdered, Trash2 } from "lucide-react";
+import { Copy, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
 import { AppDialog } from "@/app/components/app-dialog";
+import { Checkbox } from "@/app/components/checkbox";
 import { NamedListTable, NamedListTableRow } from "@/app/components/named-list-table";
-import { SampleWeek } from "@/app/components/sample-week-row";
+import { sampleWeekDayCountLabel } from "@/app/components/sample-week";
 import { ContentPlaceholder } from "@/app/components/content-placeholder";
 import { NAMED_LIST_PLACEHOLDER_ROWS } from "@/app/components/content-placeholder-layout";
 import { PageAddAction } from "@/app/components/page-add-action";
@@ -21,13 +22,10 @@ import {
   PLAN_LIST_EMPTY_TAIL,
   PLAN_LIST_INTRO,
   planEditHref,
-  planListStatusLabel,
   sortPlanListRows,
+  type PlanListSort,
 } from "./plan-list";
-import {
-  toggleNamedListSortDirection,
-  type NamedListSortDirection,
-} from "@/lib/named-list-sort";
+import { toggleNamedListSortDirection } from "@/lib/named-list-sort";
 import { invalidatePlansList, loadPlansList, peekPlansList, plansListEpoch } from "@/lib/plans-list-cache";
 import { confirmSignedInUser } from "@/lib/confirm-signed-in-user";
 import { rememberedUserId } from "@/lib/signed-in-memory";
@@ -55,12 +53,17 @@ export default function PlansPage() {
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [pendingPlanId, setPendingPlanId] = useState<string | null>(null);
-  const [nameSortDirection, setNameSortDirection] = useState<NamedListSortDirection>("asc");
+  const [sort, setSort] = useState<PlanListSort>({ key: "name", direction: "asc" });
 
-  const sortedPlans = useMemo(
-    () => sortPlanListRows(plans, nameSortDirection),
-    [nameSortDirection, plans],
-  );
+  const sortedPlans = useMemo(() => sortPlanListRows(plans, sort), [plans, sort]);
+
+  function toggleSort(key: PlanListSort["key"]) {
+    setSort((current) =>
+      current.key === key
+        ? { key, direction: toggleNamedListSortDirection(current.direction) }
+        : { key, direction: "asc" },
+    );
+  }
 
   async function reloadPlans() {
     const currentUserId = rememberedUserId();
@@ -189,10 +192,7 @@ export default function PlansPage() {
   return (
     <PageShell>
       <div className="flex items-center justify-between gap-3">
-        <h1 className="inline-flex items-center gap-2 text-2xl font-semibold tracking-tight">
-          <ListOrdered className="h-6 w-6 text-sky-700" />
-          Plans
-        </h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Plans</h1>
         <PageAddAction href={appPath("/plans/new")} label="Create plan" />
       </div>
 
@@ -230,39 +230,45 @@ export default function PlansPage() {
         ) : (
           <NamedListTable
             className="mt-4"
-            sortDirection={nameSortDirection}
-            onToggleSort={() => setNameSortDirection((prev) => toggleNamedListSortDirection(prev))}
-            countHeading="Days"
+            sortDirection={sort.direction}
+            nameSortActive={sort.key === "name"}
+            onToggleSort={() => toggleSort("name")}
+            countSort={{
+              label: "Days",
+              active: sort.key === "days",
+              direction: sort.direction,
+              onToggle: () => toggleSort("days"),
+            }}
+            embedActions
           >
-            {sortedPlans.map((row) => (
-              <NamedListTableRow
-                key={row.id}
-                name={row.name}
-                href={planEditHref(row.id)}
-                count={row.dayCount}
-                statusLabel={planListStatusLabel(row.isActive)}
-                belowName={<SampleWeek dayCount={row.dayCount} />}
-              >
-                <ActionButton
-                  type="button"
-                  size="sm"
-                  variant="secondary"
-                  iconColor="sky"
-                  disabled={pendingPlanId === row.id}
-                  onClick={() => void changeActive(row.id, !row.isActive)}
+            {sortedPlans.map((row) => {
+              const dayCountLabel = sampleWeekDayCountLabel(row.dayCount);
+              return (
+                <NamedListTableRow
+                  key={row.id}
+                  name={row.name}
+                  href={planEditHref(row.id)}
+                  detailInline
+                  detail={
+                    <>
+                      <p className="justify-self-end text-sm whitespace-nowrap text-zinc-600 md:justify-self-start">
+                        {dayCountLabel}
+                      </p>
+                      <Checkbox
+                        className="col-span-2 md:col-span-1"
+                        checked={row.isActive}
+                        disabled={pendingPlanId === row.id}
+                        onChange={(checked) => void changeActive(row.id, checked)}
+                      >
+                        Active plan
+                      </Checkbox>
+                    </>
+                  }
                 >
-                  {row.isActive ? (
-                    <CircleOff className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                  ) : (
-                    <CircleCheck className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                  )}
-                  {row.isActive ? "Deactivate" : "Set active"}
-                </ActionButton>
                 <ActionButton
                   type="button"
                   size="sm"
                   variant="secondary"
-                  iconColor="sky"
                   disabled={pendingPlanId === row.id}
                   onClick={() => void duplicate(row.id)}
                 >
@@ -278,8 +284,9 @@ export default function PlansPage() {
                   <Trash2 className="h-3.5 w-3.5 shrink-0" aria-hidden />
                   Delete
                 </ActionButton>
-              </NamedListTableRow>
-            ))}
+                </NamedListTableRow>
+              );
+            })}
           </NamedListTable>
         )}
       </section>

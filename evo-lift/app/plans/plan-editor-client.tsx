@@ -67,7 +67,7 @@ function DayOrderActions({
     <div
       className={
         besideSummary
-          ? "flex w-[6.75rem] shrink-0 flex-col gap-1.5 sm:w-auto sm:flex-row sm:gap-2 max-sm:[&>*]:w-full"
+          ? "flex w-full flex-row gap-2 max-md:[&>*]:min-w-0 max-md:[&>*]:flex-1 max-md:[&>*]:!w-auto md:w-auto md:shrink-0"
           : "flex w-full gap-2 sm:w-auto max-sm:[&>*]:min-w-0 max-sm:[&>*]:flex-1"
       }
     >
@@ -355,14 +355,6 @@ export function PlanEditorClient(props: Props) {
           />
         </label>
 
-        <OptionalNotesField
-          addLabel="Add plan notes"
-          value={notes}
-          onChange={setNotes}
-          maxLength={maxNotesLength}
-          placeholder="Optional notes for this plan"
-        />
-
         <Checkbox checked={isActive} onChange={setIsActive} align="start" className="w-full">
           <span>
             Active plan
@@ -373,17 +365,19 @@ export function PlanEditorClient(props: Props) {
           </span>
         </Checkbox>
 
+        <SampleWeek dayCount={days.length} />
+
+        <OptionalNotesField
+          addLabel="Add plan notes"
+          value={notes}
+          onChange={setNotes}
+          maxLength={maxNotesLength}
+          placeholder="Optional notes for this plan"
+        />
+
         {message ? (
           <StatusNotice message={message} tone={messageTone} onDismiss={clearMessage} />
         ) : null}
-
-        <MuscleAreaCoverageChart
-          scope="plan"
-          rows={days.flatMap((day) => day.exerciseRows)}
-          exerciseOptions={exerciseOptions}
-        />
-
-        <SampleWeek dayCount={days.length} />
 
         <div className="space-y-3">
           {days.map((day, index) => {
@@ -410,7 +404,7 @@ export function PlanEditorClient(props: Props) {
                   className={
                     expanded
                       ? "flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-2"
-                      : "flex items-center gap-2"
+                      : "flex flex-col gap-2 md:flex-row md:items-center"
                   }
                 >
                   <div
@@ -501,6 +495,12 @@ export function PlanEditorClient(props: Props) {
             );
           })}
         </div>
+
+        <MuscleAreaCoverageChart
+          scope="plan"
+          rows={days.flatMap((day) => day.exerciseRows)}
+          exerciseOptions={exerciseOptions}
+        />
 
         <div className="flex flex-wrap items-center justify-end gap-2">
           {planDayLimitReached(days.length) ? (

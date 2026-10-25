@@ -3,6 +3,7 @@ import {
   SAMPLE_WEEK_HEADING,
   SAMPLE_WEEK_REST_LABEL,
   sampleWeek,
+  sampleWeekDayCountLabel,
   type SampleWeekCell,
 } from "@/app/components/sample-week";
 
@@ -22,13 +23,17 @@ type SampleWeekProps = {
 /** Typical spacing for the current day count. Training and rest cells both say what they are. */
 export function SampleWeek({ dayCount, className }: SampleWeekProps) {
   const view = sampleWeek(dayCount);
+  const dayCountLabel = sampleWeekDayCountLabel(dayCount);
   if (view.kind === "hidden") {
     return null;
   }
 
   return (
     <div className={className}>
-      <h2 className="text-xs font-medium text-zinc-600">{SAMPLE_WEEK_HEADING}</h2>
+      <div className="flex items-baseline gap-3">
+        <h2 className="text-sm font-medium text-zinc-600">{SAMPLE_WEEK_HEADING}</h2>
+        {dayCountLabel ? <p className="text-sm text-zinc-800">{dayCountLabel}</p> : null}
+      </div>
       {view.kind === "longer" ? (
         <p className="mt-1 text-sm text-zinc-700">{view.message}</p>
       ) : (

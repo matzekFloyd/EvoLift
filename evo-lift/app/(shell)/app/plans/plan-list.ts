@@ -1,8 +1,15 @@
 import { appPath } from "@/lib/app-paths";
-import { sortRowsByName, type NamedListSortDirection } from "@/lib/named-list-sort";
+import { compareByName, type NamedListSortDirection } from "@/lib/named-list-sort";
+
+export type PlanListSortKey = "name" | "days";
+
+export type PlanListSort = {
+  key: PlanListSortKey;
+  direction: NamedListSortDirection;
+};
 
 export const PLAN_LIST_INTRO =
-  "A plan is an ordered cycle of up to 7 days. A sample week shows one way to space the days with rest. One plan can be active. From Home, start its next session in one step.";
+  "A plan is an ordered cycle of up to 7 days. One plan can be active. From Home, start its next session in one step.";
 
 export const PLAN_LIST_EMPTY_LEAD = "No plans yet.";
 export const PLAN_LIST_EMPTY_ACTION = "Create a plan";
@@ -12,15 +19,18 @@ export function planEditHref(planId: string): string {
   return appPath(`/plans/${planId}/edit`);
 }
 
-/** Active plan first, then the name sort. Home uses that plan for the next session. */
-export function sortPlanListRows<T extends { name: string; isActive: boolean }>(
+/** Active plan first, then the chosen column. Home uses that plan for the next session. */
+export function sortPlanListRows<T extends { name: string; isActive: boolean; dayCount: number }>(
   rows: readonly T[],
-  direction: NamedListSortDirection,
+  sort: PlanListSort,
 ): T[] {
-  const byName = sortRowsByName(rows, direction);
-  return [...byName.filter((row) => row.isActive), ...byName.filter((row) => !row.isActive)];
-}
-
-export function planListStatusLabel(isActive: boolean): "Active" | null {
-  return isActive ? "Active" : null;
+  const sorted = [...rows].sort((left, right) => {
+    if (sort.key === "days") {
+      const byDays = left.dayCount - right.dayCount;
+      const primary = sort.direction === "asc" ? byDays : -byDays;
+      return primary !== 0 ? primary : compareByName(left.name, right.name, "asc");
+    }
+    return compareByName(left.name, right.name, sort.direction);
+  });
+  return [...sorted.filter((row) => row.isActive), ...sorted.filter((row) => !row.isActive)];
 }
