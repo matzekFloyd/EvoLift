@@ -1,9 +1,12 @@
 -- A plan stays within one sample week: at most 7 days.
 -- Deferred so a save can shuffle positions before the final count is checked.
+-- Security definer: the check also runs at commit of auth signup, as supabase_auth_admin,
+-- which cannot read workout_plan_days. The owner can.
 
 create or replace function public.enforce_max_plan_days()
 returns trigger
 language plpgsql
+security definer
 set search_path to 'public'
 as $$
 declare
