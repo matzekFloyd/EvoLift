@@ -1,5 +1,6 @@
 import { FilterX } from "lucide-react";
 import { ActionButton } from "@/app/components/action-button";
+import { Checkbox } from "@/app/components/checkbox";
 import { DateInput } from "@/app/components/date-input";
 import { panelInsetClass } from "@/app/components/panel-inset";
 import { getTodayYyyyMmDd } from "@/lib/session-date";
@@ -58,15 +59,13 @@ export function ExerciseFiltersSection({
         </div>
         <div className="flex flex-row flex-wrap items-center justify-between gap-x-2 gap-y-1">
           {hasWarmupSets ? (
-            <label className="flex min-h-10 min-w-0 cursor-pointer items-center gap-2 text-sm font-medium text-zinc-800">
-              <input
-                type="checkbox"
-                checked={hideWarmups}
-                onChange={(event) => onCommit({ hideWarmups: event.target.checked })}
-                className="h-4 w-4 shrink-0 rounded border-zinc-300 text-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500/50"
-              />
+            <Checkbox
+              checked={hideWarmups}
+              onChange={(checked) => onCommit({ hideWarmups: checked })}
+              className="min-w-0"
+            >
               Hide warmups
-            </label>
+            </Checkbox>
           ) : null}
           <ActionButton
             type="button"
