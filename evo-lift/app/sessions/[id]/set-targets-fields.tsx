@@ -1,9 +1,9 @@
 "use client";
 
 import { useId } from "react";
+import { TextField } from "@/app/components/text-field";
 import {
   setTargetsFieldGridClassName,
-  setTargetsFieldInputClassName,
   setTargetsFieldLabelClassName,
 } from "@/app/sessions/[id]/set-targets-fields-layout";
 
@@ -42,32 +42,32 @@ export function SetTargetsFields({
       <label htmlFor={repsId} className={setTargetsFieldLabelClassName}>
         Target reps (working sets)
       </label>
-      <input
+      <TextField
         id={setsId}
         type="number"
         min={1}
         value={sets}
         onChange={(event) => onSetsChange(event.target.value)}
-        className={setTargetsFieldInputClassName}
+        className="w-full"
         placeholder="e.g. 3"
       />
-      <input
+      <TextField
         id={weightId}
         type="number"
         min={0}
         step="0.25"
         value={weightKg}
         onChange={(event) => onWeightChange(event.target.value)}
-        className={setTargetsFieldInputClassName}
+        className="w-full"
         placeholder="e.g. 60"
       />
-      <input
+      <TextField
         id={repsId}
         type="number"
         min={1}
         value={reps}
         onChange={(event) => onRepsChange(event.target.value)}
-        className={setTargetsFieldInputClassName}
+        className="w-full"
         placeholder="e.g. 8"
       />
     </div>

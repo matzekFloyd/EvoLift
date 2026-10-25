@@ -4,6 +4,7 @@ import { Check, CheckCircle2, ChevronRight, Pencil, Plus, Trash2, X } from "luci
 import { type Dispatch, type SetStateAction, useLayoutEffect, useRef, useState } from "react";
 import { ActionButton } from "@/app/components/action-button";
 import { Checkbox } from "@/app/components/checkbox";
+import { TextField } from "@/app/components/text-field";
 import { CompactRowActions } from "@/app/components/compact-row-actions";
 import { panelInsetClass } from "@/app/components/panel-inset";
 import {
@@ -242,7 +243,8 @@ export function SessionExerciseSets({
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <label className="text-xs font-medium text-zinc-600">
                   {loadFieldLabel}
-                  <input
+                  <TextField
+                    size="compact"
                     type="number"
                     min={0}
                     step="0.25"
@@ -250,19 +252,20 @@ export function SessionExerciseSets({
                     onChange={(event) =>
                       onEditDraftChange((prev) => ({ ...prev, weightKg: event.target.value }))
                     }
-                    className="mt-1 w-full rounded-md border bg-white px-2 py-1"
+                    className="mt-1 w-full"
                   />
                 </label>
                 <label className="text-xs font-medium text-zinc-600">
                   Reps
-                  <input
+                  <TextField
+                    size="compact"
                     type="number"
                     min={1}
                     value={editDraft.reps}
                     onChange={(event) =>
                       onEditDraftChange((prev) => ({ ...prev, reps: event.target.value }))
                     }
-                    className="mt-1 w-full rounded-md border bg-white px-2 py-1"
+                    className="mt-1 w-full"
                   />
                 </label>
               </div>
@@ -470,13 +473,14 @@ export function SessionExerciseSets({
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <label className="text-sm font-medium text-zinc-700">
                   {loadFieldLabel}
-                  <input
+                  <TextField
+                    size="compact"
                     type="number"
                     min={0}
                     step="0.25"
                     value={addDraft.weightKg}
                     onChange={(event) => onUpdateAddDraft("weightKg", event.target.value)}
-                    className="mt-1 w-full rounded-md border bg-white px-2 py-1"
+                    className="mt-1 w-full"
                     placeholder={assistance ? "Assistance" : "Weight"}
                   />
                   <div className="mt-1 flex gap-1">
@@ -512,12 +516,13 @@ export function SessionExerciseSets({
                 </label>
                 <label className="text-sm font-medium text-zinc-700">
                   Reps
-                  <input
+                  <TextField
+                    size="compact"
                     type="number"
                     min={1}
                     value={addDraft.reps}
                     onChange={(event) => onUpdateAddDraft("reps", event.target.value)}
-                    className="mt-1 w-full rounded-md border bg-white px-2 py-1"
+                    className="mt-1 w-full"
                     placeholder="Reps"
                   />
                   <div className="mt-1 flex gap-1">
@@ -598,7 +603,8 @@ export function SessionExerciseSets({
                     </td>
                     <td className="px-2 py-2">{set.set_number}</td>
                     <td className="px-2 py-2">
-                      <input
+                      <TextField
+                        size="compact"
                         type="number"
                         min={0}
                         step="0.25"
@@ -607,11 +613,12 @@ export function SessionExerciseSets({
                           onEditDraftChange((prev) => ({ ...prev, weightKg: event.target.value }))
                         }
                         aria-label={loadFieldLabel}
-                        className="w-24 rounded-md border bg-white px-2 py-1"
+                        className="w-24"
                       />
                     </td>
                     <td className="px-2 py-2">
-                      <input
+                      <TextField
+                        size="compact"
                         type="number"
                         min={1}
                         value={editDraft.reps}
@@ -619,7 +626,7 @@ export function SessionExerciseSets({
                           onEditDraftChange((prev) => ({ ...prev, reps: event.target.value }))
                         }
                         aria-label="Reps"
-                        className="w-20 rounded-md border bg-white px-2 py-1"
+                        className="w-20"
                       />
                     </td>
                     <td className="px-2 py-2 text-xs tabular-nums text-zinc-600">
@@ -747,25 +754,27 @@ export function SessionExerciseSets({
                     </span>
                   </td>
                   <td className="px-2 py-2">
-                    <input
+                    <TextField
+                      size="compact"
                       type="number"
                       min={0}
                       step="0.25"
                       value={addDraft.weightKg}
                       onChange={(event) => onUpdateAddDraft("weightKg", event.target.value)}
                       aria-label={loadFieldLabel}
-                      className="w-24 rounded-md border bg-white px-2 py-1"
+                      className="w-24"
                       placeholder={assistance ? "Assistance" : "Weight"}
                     />
                   </td>
                   <td className="px-2 py-2">
-                    <input
+                    <TextField
+                      size="compact"
                       type="number"
                       min={1}
                       value={addDraft.reps}
                       onChange={(event) => onUpdateAddDraft("reps", event.target.value)}
                       aria-label="Reps"
-                      className="w-20 rounded-md border bg-white px-2 py-1"
+                      className="w-20"
                       placeholder="Reps"
                     />
                   </td>

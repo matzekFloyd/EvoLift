@@ -4,6 +4,7 @@ import { ArrowLeft, Save } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
+import { TextField } from "@/app/components/text-field";
 import {
   EditorHeading,
   OptionalNotesField,
@@ -312,11 +313,11 @@ export function TemplateEditorClient(props: Props) {
         <label className="block font-medium">
           Template name
           <RequiredMark />
-          <input
+          <TextField
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+            className="mt-1 w-full"
             placeholder="e.g. Upper body"
             maxLength={120}
           />

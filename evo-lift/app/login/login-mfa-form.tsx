@@ -2,14 +2,12 @@
 
 import { FormEvent } from "react";
 import { ActionButton } from "@/app/components/action-button";
+import { TextField } from "@/app/components/text-field";
 import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
 import { actionLinkClassName } from "@/app/components/inline-link-class";
 import { loginControlLabel } from "@/app/login/login-form";
 import { LOST_AUTHENTICATOR_MESSAGE } from "@/lib/mfa-assurance";
-
-const codeInputClassName =
-  "mt-1 w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60";
 
 export function LoginMfaForm({
   code,
@@ -35,7 +33,7 @@ export function LoginMfaForm({
       <form onSubmit={onSubmit} className="space-y-4">
         <label className="block text-sm font-medium">
           Authenticator code
-          <input
+          <TextField
             type="text"
             inputMode="numeric"
             autoComplete="one-time-code"
@@ -43,7 +41,7 @@ export function LoginMfaForm({
             required
             value={code}
             onChange={(event) => onCodeChange(event.target.value)}
-            className={codeInputClassName}
+            className="mt-1 w-full"
             placeholder="123456"
             maxLength={7}
           />

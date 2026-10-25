@@ -4,6 +4,7 @@ import { Copy, KeyRound, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ActionButton } from "@/app/components/action-button";
+import { TextField } from "@/app/components/text-field";
 import { appPath } from "@/lib/app-paths";
 import { ContentPlaceholder } from "@/app/components/content-placeholder";
 import { API_TOKEN_PLACEHOLDER_ROWS } from "@/app/components/content-placeholder-layout";
@@ -148,12 +149,12 @@ export function AccountApiTokensSection({ accessToken }: AccountApiTokensSection
         <form onSubmit={handleCreate} className="space-y-3">
           <label className="block text-sm font-medium">
             Token name
-            <input
+            <TextField
               type="text"
               maxLength={API_TOKEN_NAME_MAX_LENGTH}
               value={name}
               onChange={(event) => setName(event.target.value)}
-              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+              className="mt-1 w-full"
               placeholder={API_TOKEN_NAME_PLACEHOLDER}
             />
           </label>

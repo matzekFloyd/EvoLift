@@ -1,6 +1,7 @@
 "use client";
 
 import { ActionButton } from "@/app/components/action-button";
+import { TextField } from "@/app/components/text-field";
 import { AppDialog } from "@/app/components/app-dialog";
 import { DateInput } from "@/app/components/date-input";
 import { ExerciseSearchSelect } from "@/app/components/exercise-search-select";
@@ -75,22 +76,22 @@ export function GoalEditorDialog({
       {draft.milestoneType === "absolute" ? (
         <label className="mt-4 block text-sm font-medium text-zinc-800">
           Total (kg)
-          <input
+          <TextField
             value={draft.targetWeightKg}
             onChange={(event) => onChange({ ...draft, targetWeightKg: event.target.value })}
             inputMode="decimal"
-            className={fieldClassName}
+            className="mt-1 w-full"
             placeholder="120"
           />
         </label>
       ) : (
         <label className="mt-4 block text-sm font-medium text-zinc-800">
           Bodyweight multiple
-          <input
+          <TextField
             value={draft.bodyweightMultiple}
             onChange={(event) => onChange({ ...draft, bodyweightMultiple: event.target.value })}
             inputMode="decimal"
-            className={fieldClassName}
+            className="mt-1 w-full"
             placeholder="1.0"
           />
         </label>
@@ -98,11 +99,11 @@ export function GoalEditorDialog({
 
       <label className="mt-4 block text-sm font-medium text-zinc-800">
         Minimum reps
-        <input
+        <TextField
           value={draft.minReps}
           onChange={(event) => onChange({ ...draft, minReps: event.target.value })}
           inputMode="numeric"
-          className={fieldClassName}
+          className="mt-1 w-full"
         />
       </label>
 
