@@ -1,6 +1,8 @@
 "use client";
 
+import { ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
+import { ActionLink } from "@/app/components/action-button";
 import { EditorHeading } from "@/app/components/editor-chrome";
 import { useParams, useRouter } from "next/navigation";
 import { ContentPlaceholder } from "@/app/components/content-placeholder";
@@ -9,8 +11,9 @@ import {
   EDITOR_PLACEHOLDER_ROWS,
 } from "@/app/components/content-placeholder-layout";
 import { PageShell } from "@/app/components/page-shell";
+import { StatusNotice } from "@/app/components/status-notice";
 import { PlanEditorClient } from "@/app/plans/plan-editor-client";
-import { supabaseBrowserClient } from "@/lib/supabase/browser";
+import { appPath } from "@/lib/app-paths";
 import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { getUserPlanById } from "@/server/actions/plans";
 import type { WorkoutPlanWithDays } from "@/server/db/plans";
@@ -58,10 +61,18 @@ export default function EditPlanPage() {
     };
   }, [router, planId]);
 
+  const back = (
+    <ActionLink href={appPath("/plans")} variant="secondary" size="md">
+      <ArrowLeft className="h-4 w-4" aria-hidden />
+      Back
+    </ActionLink>
+  );
+
   if (error) {
     return (
-      <PageShell className="items-center justify-center">
-        <p className="text-sm text-red-600">{error}</p>
+      <PageShell>
+        <EditorHeading title="Edit plan" back={back} />
+        <StatusNotice className="mt-4" message={error} tone="error" />
       </PageShell>
     );
   }
@@ -69,7 +80,7 @@ export default function EditPlanPage() {
   if (!initial) {
     return (
       <PageShell>
-        <EditorHeading title="Edit plan" />
+        <EditorHeading title="Edit plan" back={back} />
         <ContentPlaceholder
           label="Loading plan..."
           rows={EDITOR_PLACEHOLDER_ROWS}

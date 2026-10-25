@@ -48,3 +48,11 @@ export function sampleWeek(dayCount: number): SampleWeekView {
     countLine: `${countLabel(dayCount, "day", "days")} and ${countLabel(restCount, "rest day", "rest days")}.`,
   };
 }
+
+/** Cycle length beside the sample week. Hidden when there is nothing to show. */
+export function sampleWeekDayCountLabel(dayCount: number): string | null {
+  if (sampleWeek(dayCount).kind === "hidden") {
+    return null;
+  }
+  return `${dayCount} ${dayCount === 1 ? "day" : "days"}`;
+}

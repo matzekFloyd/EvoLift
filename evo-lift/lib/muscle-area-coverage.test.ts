@@ -140,7 +140,7 @@ describe("muscle area coverage", () => {
 
     assert.equal(plan.split("<MuscleAreaCoverageChart").length - 1, 1);
     assert.equal(template.split("<MuscleAreaCoverageChart").length - 1, 1);
-    assert.ok(plan.indexOf("<MuscleAreaCoverageChart") < plan.indexOf("{days.map"));
+    assert.ok(plan.indexOf("{days.map") < plan.indexOf("<MuscleAreaCoverageChart"));
     assert.match(plan, /scope="plan"/);
     assert.match(plan, /days\.flatMap\(\(day\) => day\.exerciseRows\)/);
     assert.ok(template.indexOf("<MuscleAreaCoverageChart") < template.indexOf("<WorkoutExerciseDraftList"));
