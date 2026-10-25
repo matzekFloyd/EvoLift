@@ -245,7 +245,11 @@ describe("account export and import on local Supabase", () => {
 
     const extra = parseAccountTransferJson(exported, TODAY_ISO);
     extra.templates = extra.templates.map((template) => ({ ...template, name: "Added template" }));
-    extra.plans = extra.plans.map((plan) => ({ ...plan, name: "Added plan", active: false }));
+    extra.plans = extra.plans.map((plan, index) => ({
+      ...plan,
+      name: `Added plan ${index + 1}`,
+      active: false,
+    }));
     extra.sessions = extra.sessions.map((session) => ({
       ...session,
       notes: "added-session",
