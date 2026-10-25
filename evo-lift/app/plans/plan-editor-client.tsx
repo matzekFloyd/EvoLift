@@ -4,6 +4,7 @@ import { ArrowLeft, ChevronDown, ChevronUp, Plus, Save, Trash2 } from "lucide-re
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ActionButton, ActionLink } from "@/app/components/action-button";
+import { Checkbox } from "@/app/components/checkbox";
 import {
   EditorHeading,
   OptionalNotesField,
@@ -360,13 +361,7 @@ export function PlanEditorClient(props: Props) {
           placeholder="Optional notes for this plan"
         />
 
-        <label className="flex items-start gap-2 font-medium">
-          <input
-            type="checkbox"
-            checked={isActive}
-            onChange={(event) => setIsActive(event.target.checked)}
-            className="mt-1"
-          />
+        <Checkbox checked={isActive} onChange={setIsActive} align="start" className="w-full">
           <span>
             Active plan
             <span className="mt-1 block text-xs font-normal text-zinc-500">
@@ -374,7 +369,7 @@ export function PlanEditorClient(props: Props) {
               previous one.
             </span>
           </span>
-        </label>
+        </Checkbox>
 
         {message ? (
           <StatusNotice message={message} tone={messageTone} onDismiss={clearMessage} />

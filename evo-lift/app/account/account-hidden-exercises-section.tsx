@@ -1,5 +1,6 @@
 import { EyeOff } from "lucide-react";
 import type { HiddenExercisesState } from "@/app/account/use-hidden-exercises";
+import { Checkbox } from "@/app/components/checkbox";
 import { ExerciseBadgeChip } from "@/app/components/exercise-badge-chip";
 import { ExerciseFilteredList } from "@/app/components/exercise-filtered-list";
 import { SettingsSection, SettingsSectionBody } from "@/app/components/settings-section";
@@ -42,17 +43,16 @@ export function AccountHiddenExercisesSection({
                   <ExerciseBadgeChip slug={option.slug} />
                   <span className="truncate text-zinc-900">{option.label}</span>
                 </span>
-                <label className="flex shrink-0 items-center gap-2 text-sm text-zinc-700">
-                  <input
-                    type="checkbox"
-                    checked={isHidden}
-                    disabled={isBusy}
-                    onChange={(event) => {
-                      void handleToggle(option.id, event.target.checked);
-                    }}
-                  />
+                <Checkbox
+                  checked={isHidden}
+                  disabled={isBusy}
+                  onChange={(checked) => {
+                    void handleToggle(option.id, checked);
+                  }}
+                  className="shrink-0"
+                >
                   Hide
-                </label>
+                </Checkbox>
               </div>
             );
           }}
