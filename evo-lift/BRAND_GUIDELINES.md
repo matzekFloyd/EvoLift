@@ -24,8 +24,9 @@ Examples:
 
 - Use `Workout session` for a completed workout record.
 - Use `Template` for a saved, reusable list of exercises (with optional targets) that can start or prefill a session.
-- Use `Plan` for an ordered cycle of days. One plan can be active.
+- Use `Plan` for an ordered cycle of up to 7 days. One plan can be active.
 - Use `Day` for a named step in a plan, with its own exercises and targets.
+- Use `Sample week` for a typical spacing of a plan across seven days. Cells marked Day are training days. Cells marked Rest are days off. The plan still runs in day order. A cycle longer than seven days has no sample week.
 - Use `Exercise` for a movement inside a session.
 - Use `Set` for logged reps/weight entries.
 - Use `Loaded (kg)` for external loaded weight.

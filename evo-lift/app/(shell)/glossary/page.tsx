@@ -113,12 +113,17 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Plan",
     definition:
-      "An ordered cycle of days. One plan can be active. Starting a day copies its exercises and targets into a new workout session. Only one of those sessions can stay unfinished. Finish it before starting another day. Later edits do not change sessions you already started.",
+      "An ordered cycle of up to 7 days. One plan can be active. Starting a day copies its exercises and targets into a new workout session. Only one of those sessions can stay unfinished. Finish it before starting another day. Later edits do not change sessions you already started.",
   },
   {
     term: "Reps",
     definition:
       "How many times you complete the movement in a set. Written as a number plus reps, for example 5 reps.",
+  },
+  {
+    term: "Sample week",
+    definition:
+      "A typical spacing of a plan across seven days. Cells marked Day are training days. Cells marked Rest are days off. The plan still runs in day order. A cycle longer than seven days has no sample week.",
   },
   {
     term: "Set",

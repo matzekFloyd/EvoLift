@@ -35,7 +35,7 @@ export function NamedListTable({
   className,
 }: NamedListTableProps) {
   return (
-    <AppTable className={className}>
+    <AppTable className={className} rowTone="group">
       <thead>
         <tr className={appTableHeadRowClassName}>
           <th className={appTableThClassName}>
@@ -47,7 +47,7 @@ export function NamedListTable({
           <AppTableActionsHeader />
         </tr>
       </thead>
-      <tbody className="divide-y divide-zinc-100">{children}</tbody>
+      {children}
     </AppTable>
   );
 }
@@ -58,24 +58,42 @@ type NamedListTableRowProps = {
   count: number;
   /** Omitted when the list has no status, such as templates. */
   statusLabel?: string | null;
+  /** Shown under the name, such as a plan's sample week. */
+  belowName?: ReactNode;
   children: ReactNode;
 };
 
-export function NamedListTableRow({ name, href, count, statusLabel, children }: NamedListTableRowProps) {
+export function NamedListTableRow({
+  name,
+  href,
+  count,
+  statusLabel,
+  belowName,
+  children,
+}: NamedListTableRowProps) {
   return (
-    <tr className={appTableRowClassName}>
-      <td className={`${appTableTdClassName} break-words whitespace-normal`}>
-        <span className="inline-flex flex-wrap items-center gap-2">
-          <Link href={href} className={nameLinkClassName}>
-            {name}
-          </Link>
-          {statusLabel ? <span className={statusChipClassName}>{statusLabel}</span> : null}
-        </span>
-      </td>
-      <td className={`${appTableTdClassName} text-zinc-600`}>{count}</td>
-      <td className={appTableTdClassName}>
-        <TableRowActions stackUntil="md">{children}</TableRowActions>
-      </td>
-    </tr>
+    <tbody>
+      <tr className={appTableRowClassName}>
+        <td className={`${appTableTdClassName} break-words whitespace-normal`}>
+          <span className="inline-flex flex-wrap items-center gap-2">
+            <Link href={href} className={nameLinkClassName}>
+              {name}
+            </Link>
+            {statusLabel ? <span className={statusChipClassName}>{statusLabel}</span> : null}
+          </span>
+        </td>
+        <td className={`${appTableTdClassName} text-zinc-600`}>{count}</td>
+        <td className={appTableTdClassName}>
+          <TableRowActions stackUntil="md">{children}</TableRowActions>
+        </td>
+      </tr>
+      {belowName ? (
+        <tr className={appTableRowClassName}>
+          <td colSpan={3} className={`${appTableTdClassName} pt-0`}>
+            {belowName}
+          </td>
+        </tr>
+      ) : null}
+    </tbody>
   );
 }

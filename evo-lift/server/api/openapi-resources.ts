@@ -28,7 +28,7 @@ export const resourceApiPaths = {
           name: { type: "string", maxLength: 120 },
           notes: { type: "string", maxLength: 500, nullable: true },
           is_active: { type: "boolean" },
-          days: { type: "array", items: { type: "object" } },
+          days: { type: "array", maxItems: 7, items: { type: "object" } },
         },
       }),
       responses: { "201": { description: "Created plan" }, "400": { description: "Invalid request" }, "401": ok("x")["401"] },

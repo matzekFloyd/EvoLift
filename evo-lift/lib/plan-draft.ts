@@ -8,6 +8,14 @@ const MAX_PLAN_NOTES_LENGTH = 500;
 const MAX_DAY_NAME_LENGTH = 80;
 const MAX_EXERCISE_NOTES_LENGTH = 500;
 
+export const MAX_PLAN_DAYS = 7;
+export const PLAN_DAY_LIMIT_MESSAGE = "A plan can have at most 7 days.";
+
+/** True when another day would pass the limit. Seven days can still be saved. */
+export function planDayLimitReached(dayCount: number): boolean {
+  return dayCount >= MAX_PLAN_DAYS;
+}
+
 export type PlanExerciseInput = {
   exerciseId: string;
   targetSets: number | null;
@@ -160,6 +168,10 @@ export function validatePlanSave(input: PlanSaveInput): string | null {
   const notes = input.notes?.trim() ? input.notes.trim() : null;
   if (notes && notes.length > MAX_PLAN_NOTES_LENGTH) {
     return "Plan notes cannot be longer than 500 characters.";
+  }
+
+  if (input.days.length > MAX_PLAN_DAYS) {
+    return PLAN_DAY_LIMIT_MESSAGE;
   }
 
   const seenDayIds = new Set<string>();

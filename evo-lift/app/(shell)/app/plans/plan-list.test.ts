@@ -42,7 +42,7 @@ describe("plan list", () => {
     assert.equal(planEditHref("plan-1"), "/app/plans/plan-1/edit");
     assert.equal(
       PLAN_LIST_INTRO,
-      "A plan is an ordered cycle of days. One plan can be active. From Home, start its next session in one step.",
+      "A plan is an ordered cycle of up to 7 days. A sample week shows one way to space the days with rest. One plan can be active. From Home, start its next session in one step.",
     );
     assert.equal(PLAN_LIST_EMPTY_LEAD, "No plans yet.");
     assert.equal(PLAN_LIST_EMPTY_ACTION, "Create a plan");
