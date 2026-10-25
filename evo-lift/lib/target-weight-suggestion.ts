@@ -1,8 +1,8 @@
 import { formatKgAmount, formatRepCount, roundKg } from "@/lib/milestone-progress";
 
-/** One increment for every exercise until body region exists. */
-const STEP_KG = 2.5;
-const PLATE_KG = 1.25;
+/** Smallest and largest weight step. The step also rounds to this 0.5 kg size. */
+const MIN_STEP_KG = 0.5;
+const MAX_STEP_KG = 5;
 const LOAD_TOLERANCE_KG = 0.25;
 /** Sessions older than this are outside the history window. */
 const HISTORY_DAYS = 56;
@@ -75,18 +75,23 @@ function suggestion(weightKg: number, rationale: string, reps?: number): TargetW
   return { status: "suggestion", weightKg: roundKg(weightKg), rationale, reps };
 }
 
-/** Snap to the nearest 1.25 kg. */
-function roundToPlateKg(value: number): number {
-  const plates = Math.round(value / PLATE_KG);
-  return Math.round(plates * 125) / 100;
+/**
+ * One step from a Loaded (kg).
+ * 5% of the load, rounded half-up to the nearest 0.5 kg, then kept between 0.5 and 5.
+ */
+function weightStepKg(loadKg: number): number {
+  const thousandths = Math.round(Math.max(0, loadKg) * 1000);
+  // 5% of the load, in 0.5 kg steps, is thousandths / 10_000.
+  // Adding half a step (5_000) makes a tie round up before the remainder is dropped.
+  const numerator = thousandths + 5_000;
+  const increments = (numerator - (numerator % 10_000)) / 10_000;
+  const step = increments * MIN_STEP_KG;
+  return Math.min(MAX_STEP_KG, Math.max(MIN_STEP_KG, step));
 }
 
-/** Move one 2.5 kg step and snap to 1.25 kg, without traveling more than one step. */
+/** Move one load-sized step. A decrease stops at 0 kg. */
 function stepBy(load: number, direction: 1 | -1): number {
-  const raw = roundToPlateKg(load + direction * STEP_KG);
-  const moved = direction === 1 ? raw - load : load - raw;
-  const adjusted = moved > STEP_KG + 0.001 ? roundToPlateKg(raw - direction * PLATE_KG) : raw;
-  return Math.max(0, adjusted);
+  return Math.max(0, roundKg(load + direction * weightStepKg(load)));
 }
 
 function loggedLoadKg(value: number | null): number | null {
@@ -191,6 +196,33 @@ function sharedLoad(sets: Array<{ loadedKg: number }>): number | null {
 }
 
 /**
+ * Lowest rep target hit at this Loaded (kg) in the recent streak.
+ * Never more than 2 reps under the latest target. A target that is already
+ * the bottom does not grow a new floor under it.
+ */
+function doubleProgressionBottom(sessions: ProgressionSession[], load: number, plannedReps: number): number {
+  let bottom = plannedReps;
+  for (const older of sessions.slice(1)) {
+    const olderLoad = sharedLoad(older.sets);
+    if (olderLoad == null || !loadsWithin(olderLoad, load) || older.targetReps == null) {
+      break;
+    }
+    if (older.targetReps > plannedReps + 1e-9) {
+      break;
+    }
+    if (older.targetReps < plannedReps - DOUBLE_PROGRESSION_REP_STEP - 1e-9) {
+      break;
+    }
+    const olderAchieved = older.sets.reduce((min, set) => Math.min(min, set.reps), older.sets[0].reps);
+    if (olderAchieved + 1e-9 < older.targetReps) {
+      break;
+    }
+    bottom = Math.min(bottom, older.targetReps);
+  }
+  return bottom;
+}
+
+/**
  * Next session's target when double progression is on. Not the next set.
  *
  * The range is one step of 2 reps. The bottom is the lowest rep target hit at
@@ -199,11 +231,12 @@ function sharedLoad(sets: Array<{ loadedKg: number }>): number | null {
  *
  * When every working set hits the latest rep target:
  * - short of the top, suggest the top at the same weight
- * - at the top, suggest one 2.5 kg step heavier and reset reps to the bottom
+ * - at the top, suggest one weight step heavier and reset reps to the bottom
  *
- * A working set short by 2 or more reps lowers the weight one step and keeps
- * the rep target. A smaller miss holds both. One completed session is enough.
- * Weight-only mode still needs two.
+ * A miss of 1 rep holds the weight and the rep target. A miss of 2 or more
+ * that still reaches the bottom suggests that bottom at the same weight.
+ * A working set under the bottom drops one weight step and sets reps to the
+ * bottom. One completed session is enough. Weight-only mode still needs two.
  */
 function suggestDoubleProgression(input: {
   sets: TargetWeightHistorySet[];
@@ -280,38 +313,27 @@ function suggestDoubleProgression(input: {
   }
 
   const achieved = latest.sets.reduce((min, set) => Math.min(min, set.reps), latest.sets[0].reps);
+  const bottom = doubleProgressionBottom(sessions, load, plannedReps);
   if (achieved + 1e-9 < plannedReps) {
-    if (achieved <= plannedReps - REP_GAP + 1e-9) {
+    if (achieved > plannedReps - REP_GAP + 1e-9) {
       return suggestion(
-        stepBy(load, -1),
-        `Last session missed ${formatRepCount(plannedReps)} at ${formatKgAmount(load)}.`,
+        load,
+        `Hold ${formatRepCount(plannedReps)} at ${formatKgAmount(load)} until every working set hits it.`,
         plannedReps,
       );
     }
+    if (achieved + 1e-9 >= bottom) {
+      return suggestion(
+        load,
+        `Last session reached ${formatRepCount(bottom)} at ${formatKgAmount(load)}.`,
+        bottom,
+      );
+    }
     return suggestion(
-      load,
-      `Hold ${formatRepCount(plannedReps)} at ${formatKgAmount(load)} until every working set hits it.`,
-      plannedReps,
+      stepBy(load, -1),
+      `Last session was under ${formatRepCount(bottom)} at ${formatKgAmount(load)}.`,
+      bottom,
     );
-  }
-
-  let bottom = plannedReps;
-  for (const older of sessions.slice(1)) {
-    const olderLoad = sharedLoad(older.sets);
-    if (olderLoad == null || !loadsWithin(olderLoad, load) || older.targetReps == null) {
-      break;
-    }
-    if (older.targetReps > plannedReps + 1e-9) {
-      break;
-    }
-    if (older.targetReps < plannedReps - DOUBLE_PROGRESSION_REP_STEP - 1e-9) {
-      break;
-    }
-    const olderAchieved = older.sets.reduce((min, set) => Math.min(min, set.reps), older.sets[0].reps);
-    if (olderAchieved + 1e-9 < older.targetReps) {
-      break;
-    }
-    bottom = Math.min(bottom, older.targetReps);
   }
 
   const top = bottom + DOUBLE_PROGRESSION_REP_STEP;

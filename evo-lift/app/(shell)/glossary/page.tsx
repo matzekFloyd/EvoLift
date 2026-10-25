@@ -45,7 +45,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Double progression",
     definition:
-      "An optional target suggestion for the next session. It stays off until you turn it on under Account. When every working set hits the rep target, the next suggestion adds 2 reps at the same weight. After that higher target is hit, the next suggestion adds weight and goes back to the lower reps.",
+      "An optional target suggestion for the next session. It stays off until you turn it on under Account. When every working set hits the rep target, the next suggestion adds 2 reps at the same weight. After that higher target is hit, the next suggestion adds weight and goes back to the lower reps. When the lowest working set reaches the lower reps, the next suggestion uses those reps at the same weight. When a working set is under the lower reps, the next suggestion drops the weight and uses the lower reps.",
   },
   {
     term: "Exercise",

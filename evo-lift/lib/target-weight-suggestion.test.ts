@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import path from "node:path";
 import { describe, it } from "vitest";
+import { fileURLToPath } from "node:url";
 import {
   LOG_WORKING_SET_MESSAGE,
   MIXED_LOAD_MESSAGE,
@@ -101,7 +104,7 @@ describe("suggestTargetWeight", () => {
 
     assert.deepEqual(result, {
       status: "suggestion",
-      weightKg: 62.5,
+      weightKg: 63,
       rationale: "Last 2 sessions hit 8 reps at 60 kg.",
     });
   });
@@ -142,7 +145,7 @@ describe("suggestTargetWeight", () => {
 
     assert.deepEqual(result, {
       status: "suggestion",
-      weightKg: 57.5,
+      weightKg: 57,
       rationale: "Last session missed 8 reps at 60 kg.",
     });
   });
@@ -190,7 +193,7 @@ describe("suggestTargetWeight", () => {
 
     assert.equal(result.status, "suggestion");
     if (result.status === "suggestion") {
-      assert.equal(result.weightKg, 62.5);
+      assert.equal(result.weightKg, 63);
     }
   });
 
@@ -229,7 +232,7 @@ describe("suggestTargetWeight", () => {
 
     assert.equal(result.status, "suggestion");
     if (result.status === "suggestion") {
-      assert.equal(result.weightKg, 62.5);
+      assert.equal(result.weightKg, 63);
     }
   });
 
@@ -294,8 +297,8 @@ describe("suggestTargetWeight", () => {
 
     assert.equal(result.status, "suggestion");
     if (result.status === "suggestion") {
-      assert.equal(result.weightKg, 62.5);
-      assert.ok(result.weightKg <= 82.5);
+      assert.equal(result.weightKg, 63);
+      assert.ok(result.weightKg <= 84);
     }
   });
 
@@ -346,7 +349,7 @@ describe("suggestTargetWeight", () => {
 
     assert.equal(result.status, "suggestion");
     if (result.status === "suggestion") {
-      assert.equal(result.weightKg, 2.5);
+      assert.equal(result.weightKg, 0.5);
     }
   });
 
@@ -366,7 +369,7 @@ describe("suggestTargetWeight", () => {
 
     assert.deepEqual(result, {
       status: "suggestion",
-      weightKg: 62.5,
+      weightKg: 63,
       rationale: "Last 2 sessions hit 8 reps at 60 kg.",
     });
   });
@@ -392,7 +395,7 @@ describe("suggestTargetWeight", () => {
     ]);
     assert.equal(onBoundary.status, "suggestion");
     if (onBoundary.status === "suggestion") {
-      assert.equal(onBoundary.weightKg, 62.5);
+      assert.equal(onBoundary.weightKg, 63);
     }
   });
 
@@ -412,7 +415,7 @@ describe("suggestTargetWeight", () => {
 
     assert.equal(result.status, "suggestion");
     if (result.status === "suggestion") {
-      assert.equal(result.weightKg, 62.5);
+      assert.equal(result.weightKg, 63);
     }
   });
 
@@ -460,7 +463,7 @@ describe("suggestTargetWeight", () => {
 
     assert.equal(result.status, "suggestion");
     if (result.status === "suggestion") {
-      assert.equal(result.weightKg, 62.5);
+      assert.equal(result.weightKg, 63);
     }
   });
 
@@ -514,7 +517,7 @@ describe("suggestTargetWeight", () => {
 
     assert.deepEqual(result, {
       status: "suggestion",
-      weightKg: 62.5,
+      weightKg: 63,
       rationale: "Last 2 sessions hit 8 reps at 60 kg.",
     });
   });
@@ -539,7 +542,72 @@ describe("suggestTargetWeight", () => {
 
     assert.equal(result.status, "suggestion");
     if (result.status === "suggestion") {
-      assert.equal(result.weightKg, 62.5);
+      assert.equal(result.weightKg, 63.2);
+    }
+  });
+
+  it("sizes one weight step to 5% of the last Loaded (kg)", () => {
+    const cases = [
+      { load: 8, up: 8.5, down: 7.5 },
+      { load: 50, up: 52.5, down: 47.5 },
+      { load: 120, up: 125, down: 115 },
+      { load: 25, up: 26.5, down: 23.5 },
+      { load: 4, up: 4.5, down: 3.5 },
+      { load: 200, up: 205, down: 195 },
+    ];
+
+    for (const { load, up, down } of cases) {
+      const hit = suggest(
+        [
+          historySet({
+            sessionId: "older",
+            performedOn: daysBefore(14),
+            sessionCreatedAt: `${daysBefore(14)}T10:00:00Z`,
+            loadedKg: load,
+            targetWeightKg: load,
+          }),
+          historySet({
+            sessionId: "newer",
+            performedOn: daysBefore(3),
+            sessionCreatedAt: `${daysBefore(3)}T10:00:00Z`,
+            loadedKg: load,
+            targetWeightKg: load,
+          }),
+        ],
+        8,
+      );
+      const miss = suggest(
+        [
+          historySet({
+            sessionId: "older",
+            performedOn: daysBefore(14),
+            sessionCreatedAt: `${daysBefore(14)}T10:00:00Z`,
+            loadedKg: load,
+            targetWeightKg: load,
+            reps: 6,
+          }),
+          historySet({
+            sessionId: "newer",
+            performedOn: daysBefore(3),
+            sessionCreatedAt: `${daysBefore(3)}T10:00:00Z`,
+            loadedKg: load,
+            targetWeightKg: load,
+            reps: 6,
+          }),
+        ],
+        8,
+      );
+
+      assert.deepEqual(hit, {
+        status: "suggestion",
+        weightKg: up,
+        rationale: `Last 2 sessions hit 8 reps at ${load} kg.`,
+      });
+      assert.deepEqual(miss, {
+        status: "suggestion",
+        weightKg: down,
+        rationale: `Last session missed 8 reps at ${load} kg.`,
+      });
     }
   });
 });
@@ -590,7 +658,7 @@ describe("double progression", () => {
 
     assert.deepEqual(result, {
       status: "suggestion",
-      weightKg: 62.5,
+      weightKg: 63,
       reps: 10,
       rationale: "Last session hit 12 reps at 60 kg.",
     });
@@ -601,7 +669,7 @@ describe("double progression", () => {
       [
         ...workingSets("first", 21, [10, 10], 10, 60),
         ...workingSets("second", 14, [12, 12], 12, 60),
-        ...workingSets("third", 3, [10, 10], 10, 62.5),
+        ...workingSets("third", 3, [10, 10], 10, 63),
       ],
       10,
       null,
@@ -610,9 +678,9 @@ describe("double progression", () => {
 
     assert.deepEqual(result, {
       status: "suggestion",
-      weightKg: 62.5,
+      weightKg: 63,
       reps: 12,
-      rationale: "Last session hit 10 reps at 62.5 kg.",
+      rationale: "Last session hit 10 reps at 63 kg.",
     });
   });
 
@@ -627,14 +695,97 @@ describe("double progression", () => {
     });
   });
 
-  it("lowers the weight when a working set misses by 2 reps", () => {
-    const result = suggest(workingSets("latest", 3, [10, 8], 10), 10, null, true);
+  it("holds the latest target on a 1-rep miss even when the bottom is lower", () => {
+    const result = suggest(
+      [...workingSets("older", 14, [8, 8], 8), ...workingSets("newer", 3, [10, 9], 10)],
+      10,
+      null,
+      true,
+    );
 
     assert.deepEqual(result, {
       status: "suggestion",
-      weightKg: 57.5,
+      weightKg: 60,
       reps: 10,
-      rationale: "Last session missed 10 reps at 60 kg.",
+      rationale: "Hold 10 reps at 60 kg until every working set hits it.",
+    });
+  });
+
+  it("suggests the bottom at the same weight when a 2-rep miss still reaches it", () => {
+    const result = suggest(
+      [...workingSets("older", 14, [8, 8], 8), ...workingSets("newer", 3, [10, 8], 10)],
+      10,
+      null,
+      true,
+    );
+
+    assert.deepEqual(result, {
+      status: "suggestion",
+      weightKg: 60,
+      reps: 8,
+      rationale: "Last session reached 8 reps at 60 kg.",
+    });
+  });
+
+  it("drops one weight step and uses the bottom when a working set is under it", () => {
+    const result = suggest(
+      [...workingSets("older", 14, [8, 8], 8), ...workingSets("newer", 3, [10, 6], 10)],
+      10,
+      null,
+      true,
+    );
+
+    assert.deepEqual(result, {
+      status: "suggestion",
+      weightKg: 57,
+      reps: 8,
+      rationale: "Last session was under 8 reps at 60 kg.",
+    });
+  });
+
+  it("drops one weight step and keeps the reps when the target is already the bottom", () => {
+    const atTen = suggest(workingSets("latest", 3, [10, 8], 10), 10, null, true);
+    const atBottom = suggest(workingSets("latest", 3, [6, 6], 8), 8, null, true);
+
+    assert.deepEqual(atTen, {
+      status: "suggestion",
+      weightKg: 57,
+      reps: 10,
+      rationale: "Last session was under 10 reps at 60 kg.",
+    });
+    assert.deepEqual(atBottom, {
+      status: "suggestion",
+      weightKg: 57,
+      reps: 8,
+      rationale: "Last session was under 8 reps at 60 kg.",
+    });
+  });
+
+  it("adds and removes the same load-sized step", () => {
+    const up = suggest(
+      [...workingSets("older", 14, [8, 8], 8, 120), ...workingSets("newer", 3, [10, 10], 10, 120)],
+      10,
+      null,
+      true,
+    );
+    const down = suggest(
+      [...workingSets("older", 14, [8, 8], 8, 8), ...workingSets("newer", 3, [6], 10, 8)],
+      10,
+      null,
+      true,
+    );
+
+    assert.deepEqual(up, {
+      status: "suggestion",
+      weightKg: 125,
+      reps: 8,
+      rationale: "Last session hit 10 reps at 120 kg.",
+    });
+    assert.deepEqual(down, {
+      status: "suggestion",
+      weightKg: 7.5,
+      reps: 8,
+      rationale: "Last session was under 8 reps at 8 kg.",
     });
   });
 
@@ -721,6 +872,22 @@ describe("double progression", () => {
     );
 
     assert.deepEqual(result, { status: "message", message: MIXED_REPS_MESSAGE });
+  });
+
+  it("describes the downward step in the glossary", () => {
+    const glossary = readFileSync(
+      path.join(path.dirname(fileURLToPath(import.meta.url)), "../app/(shell)/glossary/page.tsx"),
+      "utf8",
+    ).replace(/\r\n/g, "\n");
+    const definition = glossary.slice(
+      glossary.indexOf('term: "Double progression"'),
+      glossary.indexOf('term: "Exercise"'),
+    );
+
+    assert.match(definition, /reaches the lower reps/);
+    assert.match(definition, /uses those reps at the same weight/);
+    assert.match(definition, /under the lower reps/);
+    assert.match(definition, /drops the weight and uses the lower reps/);
   });
 
   it("still asks for a logged working set when history is empty", () => {
