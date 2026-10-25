@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
-import { duplicatePlanName, normalizePlanDraft, validatePlanSave } from "./plan-draft";
+import {
+  PLAN_DAY_LIMIT_MESSAGE,
+  duplicatePlanName,
+  normalizePlanDraft,
+  planDayLimitReached,
+  validatePlanSave,
+} from "./plan-draft";
 import { createEmptyExerciseRow, type ExerciseDraftRow } from "./workout-exercise-draft";
 
 const EXERCISE_ID = "11111111-1111-4111-8111-111111111111";
@@ -120,6 +126,29 @@ describe("normalizePlanDraft", () => {
 });
 
 describe("validatePlanSave", () => {
+  it("allows seven days and rejects an eighth", () => {
+    const days = Array.from({ length: 7 }, (_, index) => ({
+      id: null,
+      name: `Day ${index + 1}`,
+      exercises: [],
+    }));
+    assert.equal(
+      validatePlanSave({ name: "Plan", notes: null, isActive: false, days }),
+      null,
+    );
+    assert.equal(planDayLimitReached(6), false);
+    assert.equal(planDayLimitReached(7), true);
+    assert.equal(
+      validatePlanSave({
+        name: "Plan",
+        notes: null,
+        isActive: false,
+        days: [...days, { id: null, name: "Day 8", exercises: [] }],
+      }),
+      PLAN_DAY_LIMIT_MESSAGE,
+    );
+  });
+
   it("rejects a repeated day id", () => {
     assert.equal(
       validatePlanSave({

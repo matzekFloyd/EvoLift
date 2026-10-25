@@ -6,6 +6,7 @@ import {
   parseBodyweightKg,
 } from "@/lib/bodyweight-log";
 import { parseGoalForm, roundKg } from "@/lib/milestone-progress";
+import { MAX_PLAN_DAYS } from "@/lib/plan-draft";
 import { MAX_OPEN_SESSIONS, OPEN_SESSION_LIMIT_MESSAGE } from "@/lib/session-lifecycle";
 
 export const ACCOUNT_TRANSFER_FORMAT = "evolift-account";
@@ -708,6 +709,9 @@ function parsePlans(rows: unknown[]): AccountTransfer["plans"] {
     const dayRows = requireArray(body, "days", `Plan "${name}" is missing days.`);
     if (dayRows.length === 0) {
       throw new AccountTransferError(`Plan "${name}" has no days.`);
+    }
+    if (dayRows.length > MAX_PLAN_DAYS) {
+      throw new AccountTransferError(`Plan "${name}" can have at most ${MAX_PLAN_DAYS} days.`);
     }
     const dayRefs = new Set<string>();
     const days = dayRows.map((day) => {

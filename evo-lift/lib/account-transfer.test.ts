@@ -311,4 +311,23 @@ describe("account transfer", () => {
     );
     assert.equal(ACCOUNT_JSON_FILENAME, "evolift-account.json");
   });
+
+  it("rejects a plan with more than 7 days", () => {
+    const document = sample();
+    const day = document.plans[0]?.days[0];
+    assert.ok(day);
+    document.plans[0] = {
+      ...document.plans[0]!,
+      days: Array.from({ length: 8 }, (_, index) => ({
+        ...day,
+        ref: `day-${index + 1}`,
+      })),
+    };
+    assert.throws(
+      () => parseAccountTransferJson(serializeAccountTransfer(document), TODAY),
+      (error: unknown) =>
+        error instanceof AccountTransferError &&
+        error.message === 'Plan "Strength" can have at most 7 days.',
+    );
+  });
 });

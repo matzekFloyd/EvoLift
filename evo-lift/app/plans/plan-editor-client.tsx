@@ -21,6 +21,7 @@ import { AppDialog } from "@/app/components/app-dialog";
 import { PageShell } from "@/app/components/page-shell";
 import { StatusNotice } from "@/app/components/status-notice";
 import { MuscleAreaCoverageChart } from "@/app/components/muscle-area-coverage-chart";
+import { SampleWeek } from "@/app/components/sample-week-row";
 import { WorkoutExerciseDraftList } from "@/app/components/workout-exercise-draft-list";
 import {
   createDayDraft,
@@ -31,7 +32,7 @@ import {
   type DayDraft,
 } from "@/app/plans/plan-day-draft";
 import { appPath } from "@/lib/app-paths";
-import { normalizePlanDraft } from "@/lib/plan-draft";
+import { PLAN_DAY_LIMIT_MESSAGE, normalizePlanDraft, planDayLimitReached } from "@/lib/plan-draft";
 import type { Database } from "@/lib/supabase/database.types";
 import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
@@ -382,6 +383,8 @@ export function PlanEditorClient(props: Props) {
           exerciseOptions={exerciseOptions}
         />
 
+        <SampleWeek dayCount={days.length} />
+
         <div className="space-y-3">
           {days.map((day, index) => {
             const summary = planDaySummary({
@@ -499,12 +502,22 @@ export function PlanEditorClient(props: Props) {
           })}
         </div>
 
-        <div className="flex flex-wrap justify-end gap-2">
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {planDayLimitReached(days.length) ? (
+            <p id="plan-day-limit" className="mr-auto text-sm text-zinc-600">
+              {PLAN_DAY_LIMIT_MESSAGE}
+            </p>
+          ) : null}
           <ActionButton
             type="button"
             variant="secondary"
             size="md"
+            disabled={planDayLimitReached(days.length)}
+            aria-describedby={planDayLimitReached(days.length) ? "plan-day-limit" : undefined}
             onClick={() => {
+              if (planDayLimitReached(days.length)) {
+                return;
+              }
               const day = createDayDraft();
               setDays((prev) => [...prev, day]);
               setExpandedDayKey(day.key);

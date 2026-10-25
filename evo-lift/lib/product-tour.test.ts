@@ -32,7 +32,7 @@ describe("first-login tour", () => {
     assert.equal(steps[0]?.nextPath, null);
 
     assert.equal(steps[1]?.title, "Plan");
-    assert.match(steps[1]?.body ?? "", /ordered cycle of days/);
+    assert.match(steps[1]?.body ?? "", /ordered cycle of up to 7 days/);
     assert.match(steps[1]?.body ?? "", /One plan can be active/);
     assert.match(steps[1]?.body ?? "", /copies its exercises and targets/);
     assert.equal(steps[1]?.targetId, PRODUCT_TOUR_TARGET_IDS.plan);

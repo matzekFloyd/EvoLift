@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
 import { AppDialog } from "@/app/components/app-dialog";
 import { NamedListTable, NamedListTableRow } from "@/app/components/named-list-table";
+import { SampleWeek } from "@/app/components/sample-week-row";
 import { ContentPlaceholder } from "@/app/components/content-placeholder";
 import { NAMED_LIST_PLACEHOLDER_ROWS } from "@/app/components/content-placeholder-layout";
 import { PageAddAction } from "@/app/components/page-add-action";
@@ -240,6 +241,7 @@ export default function PlansPage() {
                 href={planEditHref(row.id)}
                 count={row.dayCount}
                 statusLabel={planListStatusLabel(row.isActive)}
+                belowName={<SampleWeek dayCount={row.dayCount} />}
               >
                 <ActionButton
                   type="button"
