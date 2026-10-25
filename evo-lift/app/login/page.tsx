@@ -15,6 +15,7 @@ import { ActionButton } from "@/app/components/action-button";
 import { EvoLiftBrand } from "@/app/components/evo-lift-logo";
 import { PageFrame } from "@/app/components/page-frame";
 import { PasswordField } from "@/app/components/password-field";
+import { TextField } from "@/app/components/text-field";
 import { SectionHeading } from "@/app/components/section-heading";
 import { SegmentedTabs } from "@/app/components/segmented-tabs";
 import { StatusNotice } from "@/app/components/status-notice";
@@ -51,9 +52,6 @@ import { reportSecurityEvent } from "@/lib/report-security-event";
 import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 
 const LOGIN_A11Y_PREFIX = "login-auth";
-
-const emailInputClassName =
-  "mt-1 w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -584,13 +582,13 @@ export default function LoginPage() {
                 {mode !== "reset" ? (
                   <label className="block text-sm font-medium">
                     Email
-                    <input
+                    <TextField
                       type="email"
                       required
                       value={email}
                       onChange={(event) => setEmail(event.target.value)}
                       autoComplete="email"
-                      className={emailInputClassName}
+                      className="mt-1 w-full"
                       placeholder="you@example.com"
                     />
                   </label>

@@ -7,6 +7,7 @@ import {
   filterExercisePickerOptionsByQuery,
 } from "@/lib/exercise-picker-options";
 import { panelInsetClass } from "@/app/components/panel-inset";
+import { TextField } from "@/app/components/text-field";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
 
 export type ExerciseFilteredListItem = ExercisePickerOption;
@@ -51,11 +52,11 @@ export function ExerciseFilteredList<T extends ExerciseFilteredListItem>({
     <>
       <label className="mt-3 block text-sm font-medium">
         {filterLabel}
-        <input
+        <TextField
           type="search"
           value={searchText}
           onChange={(event) => setSearchText(event.target.value)}
-          className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+          className="mt-1 w-full"
           placeholder={searchPlaceholder}
           autoComplete="off"
           spellCheck={false}

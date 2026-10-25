@@ -11,6 +11,7 @@ import { ActionButton } from "@/app/components/action-button";
 import { ContentPlaceholder } from "@/app/components/content-placeholder";
 import { NEW_SESSION_PLACEHOLDER_ROWS } from "@/app/components/content-placeholder-layout";
 import { DateInput } from "@/app/components/date-input";
+import { SelectField } from "@/app/components/select-field";
 import { PageShell } from "@/app/components/page-shell";
 import { StatusNotice } from "@/app/components/status-notice";
 import { WorkoutExerciseDraftList } from "@/app/components/workout-exercise-draft-list";
@@ -548,10 +549,10 @@ function NewSessionPageContent() {
         <form id="new-session-form" onSubmit={handleCreateSession} className="space-y-4">
           <label className="block text-sm font-medium">
             <span className="text-zinc-800">Start from template (optional)</span>
-            <select
+            <SelectField
               value={selectedTemplateId}
               onChange={(event) => void handleTemplateSelectionChange(event.target.value)}
-              className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+              className="mt-1 w-full"
             >
               <option value="">None — build from scratch</option>
               {templateOptions.map((template) => (
@@ -560,7 +561,7 @@ function NewSessionPageContent() {
                   {template.exerciseCount > 0 ? ` (${template.exerciseCount} exercises)` : ""}
                 </option>
               ))}
-            </select>
+            </SelectField>
           </label>
           {templateOptions.length === 0 ? (
             <p className="text-xs text-zinc-600">

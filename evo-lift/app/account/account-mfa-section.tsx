@@ -2,13 +2,11 @@ import { ShieldCheck } from "lucide-react";
 import type { AccountMfaState } from "@/app/account/use-account-mfa";
 import { ActionButton } from "@/app/components/action-button";
 import { PasswordField } from "@/app/components/password-field";
+import { TextField } from "@/app/components/text-field";
 import { SettingsSection, SettingsSectionBody } from "@/app/components/settings-section";
 import { SettingsSectionHeader } from "@/app/components/settings-section-header";
 import { StatusNotice } from "@/app/components/status-notice";
 import { LOST_AUTHENTICATOR_MESSAGE } from "@/lib/mfa-assurance";
-
-const codeInputClassName =
-  "mt-1 w-full rounded-md border px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60";
 
 export function AccountMfaSection({ mfa }: { mfa: AccountMfaState }) {
   const {
@@ -94,14 +92,14 @@ export function AccountMfaSection({ mfa }: { mfa: AccountMfaState }) {
             ) : null}
             <label className="block text-sm font-medium">
               Authenticator code
-              <input
+              <TextField
                 type="text"
                 inputMode="numeric"
                 autoComplete="one-time-code"
                 required
                 value={code}
                 onChange={(event) => setCode(event.target.value)}
-                className={codeInputClassName}
+                className="mt-1 w-full"
                 placeholder="123456"
                 maxLength={7}
               />

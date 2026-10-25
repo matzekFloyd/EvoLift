@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ActionButton, ActionLink } from "@/app/components/action-button";
 import { Checkbox } from "@/app/components/checkbox";
+import { TextField } from "@/app/components/text-field";
 import {
   EditorHeading,
   OptionalNotesField,
@@ -343,11 +344,11 @@ export function PlanEditorClient(props: Props) {
         <label className="block font-medium">
           Plan name
           <RequiredMark />
-          <input
+          <TextField
             required
             value={name}
             onChange={(event) => setName(event.target.value)}
-            className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+            className="mt-1 w-full"
             placeholder="e.g. Push pull"
             maxLength={120}
           />
@@ -431,7 +432,7 @@ export function PlanEditorClient(props: Props) {
                           Day name
                           <RequiredMark />
                         </label>
-                        <input
+                        <TextField
                           id={`plan-day-name-${day.key}`}
                           required
                           autoFocus
@@ -443,7 +444,7 @@ export function PlanEditorClient(props: Props) {
                               ),
                             )
                           }
-                          className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+                          className="mt-1 w-full"
                           placeholder="e.g. Day A, Push"
                           maxLength={80}
                         />

@@ -7,6 +7,7 @@ import {
   type ExerciseSearchSelectProps,
 } from "@/app/components/exercise-search-select";
 import { NotesTextareaField } from "@/app/components/notes-textarea-field";
+import { TextField } from "@/app/components/text-field";
 import { TargetWeightSuggestion } from "@/app/components/target-weight-suggestion";
 import { isAssistanceExercise, targetWeightFieldLabel } from "@/lib/assistance-exercise";
 import { targetSuggestionsEnabled } from "@/lib/target-weight-suggestion";
@@ -133,13 +134,13 @@ export function SessionAddExercisePanel(props: SessionAddExercisePanelProps) {
             {usesAssistance ? null : (
               <label className="block text-sm font-medium">
                 Base weight (kg)
-                <input
+                <TextField
                   type="number"
                   min={0}
                   step="0.25"
                   value={draft.baseWeightKg}
                   onChange={(event) => setField("baseWeightKg", event.target.value)}
-                  className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                  className="mt-1 w-full"
                   placeholder="e.g. 20"
                 />
                 <div className="mt-1 flex flex-wrap gap-1">
@@ -161,35 +162,35 @@ export function SessionAddExercisePanel(props: SessionAddExercisePanelProps) {
             </p>
             <label className="block text-sm font-medium">
               Target working sets
-              <input
+              <TextField
                 type="number"
                 min={1}
                 value={draft.targetSets}
                 onChange={(event) => setField("targetSets", event.target.value)}
-                className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                className="mt-1 w-full"
                 placeholder="e.g. 3"
               />
             </label>
             <label className="block text-sm font-medium">
               {targetWeightFieldLabel(slug)}
-              <input
+              <TextField
                 type="number"
                 min={0}
                 step="0.25"
                 value={draft.targetWeightKg}
                 onChange={(event) => setField("targetWeightKg", event.target.value)}
-                className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                className="mt-1 w-full"
                 placeholder="e.g. 60"
               />
             </label>
             <label className="block text-sm font-medium">
               Target reps (working sets)
-              <input
+              <TextField
                 type="number"
                 min={1}
                 value={draft.targetReps}
                 onChange={(event) => setField("targetReps", event.target.value)}
-                className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                className="mt-1 w-full"
                 placeholder="e.g. 8"
               />
             </label>
@@ -248,47 +249,47 @@ export function SessionAddExerciseSheet(props: SessionAddExerciseSheetProps) {
           {usesAssistance ? null : (
             <label className="block text-sm font-medium">
               Base (kg)
-              <input
+              <TextField
                 type="number"
                 min={0}
                 step="0.25"
                 value={draft.baseWeightKg}
                 onChange={(event) => setField("baseWeightKg", event.target.value)}
-                className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                className="mt-1 w-full"
               />
             </label>
           )}
           <label className="block text-sm font-medium">
             Target working sets
-            <input
+            <TextField
               type="number"
               min={1}
               value={draft.targetSets}
               onChange={(event) => setField("targetSets", event.target.value)}
-              className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+              className="mt-1 w-full"
               placeholder="e.g. 3"
             />
           </label>
           <label className="block text-sm font-medium">
             {targetWeightFieldLabel(slug)}
-            <input
+            <TextField
               type="number"
               min={0}
               step="0.25"
               value={draft.targetWeightKg}
               onChange={(event) => setField("targetWeightKg", event.target.value)}
-              className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+              className="mt-1 w-full"
               placeholder="e.g. 60"
             />
           </label>
           <label className="block text-sm font-medium">
             Target reps (working sets)
-            <input
+            <TextField
               type="number"
               min={1}
               value={draft.targetReps}
               onChange={(event) => setField("targetReps", event.target.value)}
-              className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+              className="mt-1 w-full"
               placeholder="e.g. 8"
             />
           </label>

@@ -1,6 +1,8 @@
 import { Eraser, Save, SlidersHorizontal } from "lucide-react";
 import type { ExerciseDefaultsState } from "@/app/account/use-exercise-defaults";
 import { ExerciseSearchSelect } from "@/app/components/exercise-search-select";
+import { SelectField } from "@/app/components/select-field";
+import { TextField } from "@/app/components/text-field";
 import { SettingsSection, SettingsSectionBody } from "@/app/components/settings-section";
 import { SettingsSectionHeader } from "@/app/components/settings-section-header";
 import { StatusNotice } from "@/app/components/status-notice";
@@ -59,13 +61,13 @@ export function AccountExerciseDefaultsSection({
             </label>
             <label className="block text-sm font-medium">
               Base weight (kg)
-              <input
+              <TextField
                 type="number"
                 min={0}
                 step="0.25"
                 value={defaultBaseWeightKg}
                 onChange={(event) => setDefaultBaseWeightKg(event.target.value)}
-                className="mt-1 h-10 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                className="mt-1 w-full"
                 placeholder="e.g. 20"
               />
             </label>
@@ -79,35 +81,35 @@ export function AccountExerciseDefaultsSection({
             <div className="grid gap-3 sm:grid-cols-3">
               <label className="block text-sm font-medium">
                 Target working sets
-                <input
+                <TextField
                   type="number"
                   min={1}
                   value={defaultTargetSets}
                   onChange={(event) => setDefaultTargetSets(event.target.value)}
-                  className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                  className="mt-1 w-full"
                   placeholder="e.g. 3"
                 />
               </label>
               <label className="block text-sm font-medium">
                 Target weight (kg)
-                <input
+                <TextField
                   type="number"
                   min={0}
                   step="0.25"
                   value={defaultTargetWeightKg}
                   onChange={(event) => setDefaultTargetWeightKg(event.target.value)}
-                  className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                  className="mt-1 w-full"
                   placeholder="e.g. 60"
                 />
               </label>
               <label className="block text-sm font-medium">
                 Target reps (working sets)
-                <input
+                <TextField
                   type="number"
                   min={1}
                   value={defaultTargetReps}
                   onChange={(event) => setDefaultTargetReps(event.target.value)}
-                  className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                  className="mt-1 w-full"
                   placeholder="e.g. 8"
                 />
               </label>
@@ -123,35 +125,35 @@ export function AccountExerciseDefaultsSection({
             <div className="grid gap-3 sm:grid-cols-3">
               <label className="block text-sm font-medium">
                 Suggest a target weight
-                <select
+                <SelectField
                   value={suggestTarget ? "yes" : "no"}
                   onChange={(event) => setSuggestTarget(event.target.value === "yes")}
-                  className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                  className="mt-1 w-full"
                 >
                   <option value="yes">Yes</option>
                   <option value="no">No</option>
-                </select>
+                </SelectField>
               </label>
               <label className="block text-sm font-medium">
                 Suggest warmups
-                <select
+                <SelectField
                   value={suggestWarmups ? "yes" : "no"}
                   onChange={(event) => setSuggestWarmups(event.target.value === "yes")}
-                  className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                  className="mt-1 w-full"
                 >
                   <option value="yes">Yes</option>
                   <option value="no">No</option>
-                </select>
+                </SelectField>
               </label>
               <label className="block text-sm font-medium">
                 Maximum warmup sets
-                <input
+                <TextField
                   type="number"
                   step={1}
                   min={1}
                   value={maxWarmupSets}
                   onChange={(event) => setMaxWarmupSets(event.target.value)}
-                  className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                  className="mt-1 w-full"
                   placeholder="e.g. 2"
                 />
               </label>

@@ -4,6 +4,8 @@ import { accountAgeDisplay, localIsoDate } from "@/app/account/account-profile-f
 import { PRODUCT_TOUR_TARGET_IDS } from "@/lib/product-tour";
 import type { AccountMetricsState } from "@/app/account/use-account-metrics";
 import { DateInput } from "@/app/components/date-input";
+import { SelectField } from "@/app/components/select-field";
+import { TextField } from "@/app/components/text-field";
 import { SettingsSection, SettingsSectionBody } from "@/app/components/settings-section";
 import { SettingsSectionHeader } from "@/app/components/settings-section-header";
 import { StatusNotice } from "@/app/components/status-notice";
@@ -43,15 +45,15 @@ export function AccountMetricsSection({ metrics }: { metrics: AccountMetricsStat
           <div className="grid gap-3 sm:grid-cols-2">
             <label className="block text-sm font-medium">
               Sex
-              <select
+              <SelectField
                 value={sex}
                 onChange={(event) => setSex(event.target.value)}
-                className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                className="mt-1 w-full"
               >
                 <option value="">Not set</option>
                 <option value="female">Female</option>
                 <option value="male">Male</option>
-              </select>
+              </SelectField>
             </label>
             <label className="block text-sm font-medium">
               Date of birth
@@ -72,25 +74,25 @@ export function AccountMetricsSection({ metrics }: { metrics: AccountMetricsStat
             </label>
             <label className="block text-sm font-medium">
               Height (cm)
-              <input
+              <TextField
                 type="number"
                 min={100}
                 max={250}
                 step="0.1"
                 value={heightCm}
                 onChange={(event) => setHeightCm(event.target.value)}
-                className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                className="mt-1 w-full"
                 placeholder="Optional"
               />
             </label>
             <label id={PRODUCT_TOUR_TARGET_IDS.bodyweight} className="block text-sm font-medium">
               Bodyweight (kg)
-              <input
+              <TextField
                 type="number"
                 step="0.1"
                 value={bodyweightKg}
                 onChange={(event) => setBodyweightKg(event.target.value)}
-                className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                className="mt-1 w-full"
                 placeholder="Optional"
               />
             </label>
