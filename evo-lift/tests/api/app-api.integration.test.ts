@@ -19,8 +19,9 @@ import { GET as getHistory } from "@/app/api/exercises/[slug]/history/route";
 import { GET as listGoals, POST as createGoal } from "@/app/api/goals/route";
 import { DELETE as deleteGoal } from "@/app/api/goals/[id]/route";
 import { GET as getInsights } from "@/app/api/insights/route";
+import { STARTER_PLAN_NOTES, STARTER_PLANS } from "@/lib/starter-plans";
 import { GET as listPlans, POST as createPlan } from "@/app/api/plans/route";
-import { GET as getPlan } from "@/app/api/plans/[id]/route";
+import { DELETE as deletePlan, GET as getPlan } from "@/app/api/plans/[id]/route";
 import { POST as setActive } from "@/app/api/plans/[id]/active/route";
 import { POST as startPlanDay } from "@/app/api/plans/[id]/days/[dayId]/sessions/route";
 import { POST as createSession } from "@/app/api/sessions/route";
@@ -154,6 +155,121 @@ describe("app API on local Supabase", () => {
 
     const again = await readJson(await listGoals(buildRequest("/api/goals", "GET", ownerToken)));
     assert.equal((again.body.data as unknown[]).length, 4);
+  });
+
+  it("seeds four inactive starter plans once, and leaves the list empty after delete", async () => {
+    const user = await createTestUser(admin, "evo-starter-plans");
+    userIds.push(user.id);
+
+    const catalog = await readJson(await getExercises(buildRequest("/api/exercises", "GET", user.token)));
+    const idBySlug = new Map(
+      (catalog.body.data as CatalogExercise[]).map((row) => [row.slug, row.id]),
+    );
+
+    const listed = await readJson(await listPlans(buildRequest("/api/plans", "GET", user.token)));
+    assert.equal(listed.status, 200);
+    const plans = listed.body.data as Array<{
+      id: string;
+      name: string;
+      notes: string | null;
+      is_active: boolean;
+      day_count: number;
+    }>;
+    assert.deepEqual(
+      plans.map((plan) => plan.name).sort(),
+      STARTER_PLANS.map((plan) => plan.name).sort(),
+    );
+    assert.ok(plans.every((plan) => plan.is_active === false));
+    assert.ok(plans.every((plan) => plan.notes === STARTER_PLAN_NOTES));
+
+    for (const spec of STARTER_PLANS) {
+      const summary = plans.find((plan) => plan.name === spec.name);
+      assert.ok(summary);
+      assert.equal(summary.day_count, spec.days.length);
+      const detail = await readJson(
+        await getPlan(buildRequest(`/api/plans/${summary.id}`, "GET", user.token), {
+          params: Promise.resolve({ id: summary.id }),
+        }),
+      );
+      assert.equal(detail.status, 200);
+      const days = (
+        detail.body.data as {
+          days: Array<{
+            name: string;
+            position: number;
+            exercises: Array<{
+              exercise_id: string;
+              position: number;
+              target_sets: number;
+              target_reps: number;
+              target_weight_kg: number | null;
+              base_weight_kg: number | null;
+              notes: string | null;
+            }>;
+          }>;
+        }
+      ).days;
+      assert.deepEqual(
+        days.map((day) => day.name),
+        spec.days.map((day) => day.name),
+      );
+      days.forEach((day, dayIndex) => {
+        const expected = spec.days[dayIndex];
+        assert.ok(expected);
+        assert.equal(day.position, dayIndex + 1);
+        assert.deepEqual(
+          day.exercises.map((row) => row.exercise_id),
+          expected.exercises.map((row) => idBySlug.get(row.slug)),
+        );
+        day.exercises.forEach((row, exerciseIndex) => {
+          const exercise = expected.exercises[exerciseIndex];
+          assert.ok(exercise);
+          assert.equal(row.position, exerciseIndex + 1);
+          assert.equal(row.target_sets, exercise.sets);
+          assert.equal(row.target_reps, exercise.reps);
+          assert.equal(row.notes, exercise.notes);
+          assert.equal(row.target_weight_kg, null);
+          assert.equal(row.base_weight_kg, null);
+        });
+      });
+    }
+
+    const { error: seedAgainError } = await admin.rpc("seed_default_workout_plans", {
+      p_user_id: user.id,
+    });
+    assert.equal(seedAgainError, null);
+    const seededAgain = await readJson(await listPlans(buildRequest("/api/plans", "GET", user.token)));
+    assert.equal((seededAgain.body.data as unknown[]).length, STARTER_PLANS.length);
+
+    for (const plan of plans) {
+      const removed = await readJson(
+        await deletePlan(buildRequest(`/api/plans/${plan.id}`, "DELETE", user.token), {
+          params: Promise.resolve({ id: plan.id }),
+        }),
+      );
+      assert.equal(removed.status, 200);
+    }
+    const empty = await readJson(await listPlans(buildRequest("/api/plans", "GET", user.token)));
+    assert.equal((empty.body.data as unknown[]).length, 0);
+
+    const custom = await readJson(
+      await createPlan(
+        buildRequest("/api/plans", "POST", user.token, {
+          name: "Mine",
+          days: [{ name: "Day A", exercises: [{ exercise_id: squatId }] }],
+        }),
+      ),
+    );
+    assert.equal(custom.status, 201);
+    const { error: blockedSeedError } = await admin.rpc("seed_default_workout_plans", {
+      p_user_id: user.id,
+    });
+    assert.equal(blockedSeedError, null);
+    const stillCustom = await readJson(await listPlans(buildRequest("/api/plans", "GET", user.token)));
+    assert.deepEqual(
+      (stillCustom.body.data as Array<{ name: string }>).map((plan) => plan.name),
+      ["Mine"],
+    );
   });
 
   it("stores a reached goal from a logged working set", async () => {

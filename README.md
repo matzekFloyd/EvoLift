@@ -189,7 +189,7 @@ App runs at:
 - Email: `demo@example.com`
 - Password: `demo1234`
 
-The account gets about 24 weeks of plan sessions (missed, deload, and heavy weeks), two plans (`3-Day Strength` active, `Upper Lower` inactive), three templates (`Upper Power`, `Lower Strength`, `Push Focus`), a few template-started sessions, and one planned workout in March 2028 (targets only, no sets). That feeds Home, Insights, Plans, and Templates. It does not run against a hosted Supabase project. `npm run seed:local` runs the same step on its own. Re-running adds any missing plans, templates, or sessions without wiping existing history.
+The account gets the four starter plans from signup, none of them active, plus about 24 weeks of sessions (missed, deload, and heavy weeks), three templates (`Upper Power`, `Lower Strength`, `Push Focus`), a few template-started sessions, and one planned workout in March 2028 (targets only, no sets). That feeds Home, Insights, Plans, and Templates. It does not run against a hosted Supabase project. `npm run seed:local` runs the same step on its own. Re-running adds any missing templates or sessions without wiping existing history, and deletes the old local plans `3-Day Strength` and `Upper Lower` if they are still there.
 
 ### 5) Quality checks
 
