@@ -43,6 +43,23 @@ Examples:
   (`bg-gradient-to-l from-sky-200 via-sky-100 to-sky-50`, darker on the right, with no bottom border).
 - Typeface: **IBM Plex Sans** for UI text. Use tabular lining figures for Loaded (kg), Target weight (kg), and reps so logging columns stay still. **IBM Plex Mono** only for monospace needs (e.g. API tokens on Account). Do not use Inter or Geist as the product face.
 
+## Header and navigation
+
+The signed-in header is the plate mark and the word **EvoLift** on the left, and the destinations on the right. Keep the light-sky gradient above, with no bottom border. The inner bar stays `max-w-5xl`, the same width as the page, so the wordmark lines up with the page title and the destinations line up with the page action.
+
+Destinations, in this order: Home, Exercises, Insights, Goals, Plans, Templates, Account. Then **Log out**. Every destination is a Lucide icon plus that visible label. Keep the icons. Do not rename these items or add a destination in the header.
+
+The same items have two drawings. Keep both.
+
+- At `lg` (64rem) and wider, they are one row on the gradient. Idle labels are `text-zinc-900`. The current page is `text-sky-950` with a `decoration-sky-700` underline. Leave that row unfilled, so the page keeps the one filled sky action. Every item uses the same soft white hover wash. A `border-zinc-400` rule sits before Log out.
+- Below `lg`, a menu button opens a sheet over the page. Draw the items as a two-column tile grid (`grid-cols-2`). Idle tiles are white, with sky icons and `text-zinc-800` labels. The current page is one filled `bg-sky-700` tile with white text, because the sheet covers the page action. Log out is a tile in that grid. Glossary, Terms of use, and Privacy policy sit under a rule at the bottom of the sheet. This sheet is the navigation menu, not an `AppDialog`.
+
+Do not turn the sheet into a single column, fill the current page on the desktop row, or drop the icons.
+
+Row items use `px-1.5` so the row fits in the bar at `lg`. Wider windows leave the extra space beside the wordmark. Do not make the header wider than the page, and do not move the row to a larger breakpoint to loosen it.
+
+The menu button is icon-only. Its accessible name is “Open navigation menu” or “Close navigation menu”, matching the icon. Escape closes the sheet and returns focus to that button. The wordmark and the button stay in the tab order with the sheet.
+
 ## User-named text
 
 User-given names (plan name, day name, template name, and similar labels the user typed) are working labels for scanning and tapping — not decorative titles.
@@ -217,6 +234,7 @@ Hold every new screen to this bar. A keyboard and a screen reader get the same n
 - Are nested groups using `PanelInset` / **Nested surfaces** (no hand-rolled muted fills)?
 - Does color follow **Color intent** (sky for forward; emerald/amber/red only for status; teal chart-only)?
 - Is there roughly one filled sky CTA in the focal area, not sky decoration everywhere?
+- Does the header still follow **Header and navigation** (desktop underline, two-column compact tiles, icons kept)?
 - Are icons on the named action verbs, zinc on quiet secondary buttons (including Done), white on the filled primary, and soft sky on Add exercise and Add next?
 - Do chart series use **Charts and data visualization** roles (no one-off hues)?
 - Is compact/mobile behavior still usable with one hand?
