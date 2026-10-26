@@ -7,8 +7,10 @@ import {
   homeHeaderAddVariant,
   homeInProgressCtaVariant,
   HOME_PLAN_COMPACT_MEDIA_QUERY,
+  homePlanDayDateClass,
   homePlanDayFinishBeforeStartMessage,
   homePlanDayRowHoverClass,
+  homePlanDayRowTone,
   homePlanDayRowStartLabel,
   homePlanDayRowStartsSession,
   homePlanDayShowsRowAction,
@@ -206,6 +208,17 @@ describe("homePlanDayRowStartsSession", () => {
     assert.match(homePlanDayRowHoverClass(false), /hover:border-sky-300/);
     assert.match(homePlanDayRowHoverClass(true), /hover:bg-sky-200/);
     assert.doesNotMatch(homePlanDayRowHoverClass(true), /hover:bg-sky-100/);
+    assert.match(homePlanDayRowHoverClass(true, true), /hover:bg-zinc-100/);
+    assert.match(homePlanDayRowHoverClass(false, true), /hover:bg-zinc-100/);
+    assert.doesNotMatch(homePlanDayRowHoverClass(false, true), /sky/);
+  });
+
+  it("uses solid white day rows on the highlighted panel", () => {
+    assert.equal(homePlanDayRowTone({ isNext: true, planIsFocal: false }), "accent");
+    assert.equal(homePlanDayRowTone({ isNext: false, planIsFocal: false }), "muted");
+    assert.equal(homePlanDayRowTone({ isNext: true, planIsFocal: true }), "contrast");
+    assert.equal(homePlanDayRowTone({ isNext: false, planIsFocal: true }), "contrast");
+    assert.match(homePlanDayDateClass(), /text-sky-800/);
   });
 
   it("does not start from the row on a wide screen, an empty day, or while a day is open", () => {

@@ -188,7 +188,7 @@ Pace mixes and similar status breakdowns may use semantic fills (e.g. on-track �
 Avoid stacking the same fill on itself (e.g. white row on white card, or `zinc-50` button on `zinc-50` row).
 
 - Nested groups inside a white `.panel` **must** use shared `PanelInset` (or `panelInsetClass`) — do not hand-roll `border-zinc-200 bg-zinc-50` on list rows or cards.
-- Default tone is muted (`bg-zinc-50/80`). Use `tone="accent"` for highlighted / “next” rows (`bg-sky-50`).
+- Default tone is muted (`bg-zinc-50/80`). Use `tone="accent"` for highlighted / “next” rows (`bg-sky-50`) on a white panel. On a sky panel, every day row is `tone="contrast"` (solid white). Do not lay a grey inset on that blue. The Next mark distinguishes the next day. The filled sky button stays the one sky action.
 - Secondary `ActionButton`s inside `PanelInset` raise to white automatically. Pass `raised={false}` only to opt out; pass `raised` outside an inset to force white fill.
 - Default `ExerciseBadgeChip`s inside `PanelInset` raise to white automatically (same rule as secondary buttons).
 - Data tables use shared `AppTable` (PanelInset shell). Row actions use `TableRowActions`: equal width, stacked in one column below `sm`, horizontal from `sm` up. Do not hand-roll per-table action layouts.

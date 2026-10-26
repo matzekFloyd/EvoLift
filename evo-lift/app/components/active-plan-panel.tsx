@@ -18,8 +18,10 @@ import {
   HOME_PLAN_COMPACT_MEDIA_QUERY,
   homeCompetingCtaVariant,
   homeForwardActionClassName,
+  homePlanDayDateClass,
   homePlanDayFinishBeforeStartMessage,
   homePlanDayRowHoverClass,
+  homePlanDayRowTone,
   homePlanDayRowStartLabel,
   homePlanDayRowStartsSession,
   homePlanDayShowsRowAction,
@@ -425,9 +427,9 @@ export function ActivePlanPanel({
             <PanelInset
               as="li"
               key={day.id}
-              tone={isNext ? "accent" : "muted"}
+              tone={homePlanDayRowTone({ isNext, planIsFocal })}
               className={`flex items-center justify-between gap-2 px-3 py-2${
-                rowIsControl ? ` relative ${homePlanDayRowHoverClass(isNext)}` : ""
+                rowIsControl ? ` relative ${homePlanDayRowHoverClass(isNext, planIsFocal)}` : ""
               }`}
             >
               {rowIsControl ? (
@@ -458,7 +460,7 @@ export function ActivePlanPanel({
                 {linked ? (
                   <Link
                     href={appPath(`/sessions/${linked.id}`)}
-                    className={`mt-1 inline-block text-xs font-medium text-sky-800 underline-offset-2 hover:underline${
+                    className={`mt-1 inline-block text-xs font-medium ${homePlanDayDateClass()}${
                       rowIsControl ? " pointer-events-auto" : ""
                     }`}
                   >
