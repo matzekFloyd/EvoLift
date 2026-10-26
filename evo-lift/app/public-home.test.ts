@@ -20,6 +20,7 @@ import {
   PUBLIC_HOME_HEADING,
   PUBLIC_HOME_HEADING_LINES,
   PUBLIC_HOME_INSIGHTS_LIFT,
+  PUBLIC_HOME_INSIGHTS_LIFTS,
   PUBLIC_HOME_INSIGHTS_PACE,
   PUBLIC_HOME_PLAN_EXAMPLE,
   PUBLIC_HOME_PRIVACY_LABEL,
@@ -31,12 +32,13 @@ import {
 const appDir = dirname(fileURLToPath(import.meta.url));
 
 describe("public home", () => {
-  it("uses the product name and one-line statement as the search snippet", () => {
-    assert.equal(PUBLIC_HOME_HEADING, "Log the load and the reps.");
-    assert.deepEqual(PUBLIC_HOME_HEADING_LINES, ["Log the load and the reps."]);
+  it("uses the product name as the title and the subhead as the search snippet", () => {
+    assert.equal(PUBLIC_HOME_HEADING, "Log the load and the reps...");
+    assert.deepEqual(PUBLIC_HOME_HEADING_LINES, ["Log the load and the reps..."]);
     assert.equal(PUBLIC_HOME_FREE_LINE, "EvoLift is free.");
     assert.equal(PUBLIC_HOME_SUBHEAD, "Quick to write down while you train.");
-    assert.equal(PUBLIC_HOME_DESCRIPTION, `${PUBLIC_HOME_HEADING} ${PUBLIC_HOME_SUBHEAD}`);
+    assert.equal(PUBLIC_HOME_DESCRIPTION, PUBLIC_HOME_SUBHEAD);
+    assert.doesNotMatch(PUBLIC_HOME_DESCRIPTION, /\.\.\./);
     assert.deepEqual(publicHomeMetadata, {
       title: { absolute: APP_DOCUMENT_TITLE },
       description: PUBLIC_HOME_DESCRIPTION,
@@ -147,6 +149,7 @@ describe("public home", () => {
       ...PUBLIC_HOME_EXAMPLE.earlier.flatMap((point) => [point.date, point.load]),
       ...PUBLIC_HOME_AREAS.flatMap((area) => [area.title, area.detail]),
       PUBLIC_HOME_PLAN_EXAMPLE.name,
+      ...PUBLIC_HOME_INSIGHTS_LIFTS.map((lift) => lift.exercise),
       ...PUBLIC_HOME_CLOSE_LINES,
     ].join("\n");
     const plan = STARTER_PLANS.find((item) => item.name === PUBLIC_HOME_PLAN_EXAMPLE.name);
@@ -167,13 +170,21 @@ describe("public home", () => {
     );
     assert.deepEqual(
       [...PUBLIC_HOME_CLOSE_LINES],
-      ["Log the load and the reps.", "Keep the plan and the pace."],
+      ["...keep your plan and your pace."],
     );
     assert.match(page, /PUBLIC_HOME_CLOSE_LINES/);
     assert.doesNotMatch(page, /You leave with the numbers/);
     assert.match(page, /size="lg"/);
     assert.equal(PUBLIC_HOME_INSIGHTS_LIFT.exercise, PUBLIC_HOME_EXAMPLE.exercise);
-    assert.ok(PUBLIC_HOME_INSIGHTS_PACE.includes(PUBLIC_HOME_INSIGHTS_LIFT.read));
+    assert.deepEqual(
+      PUBLIC_HOME_INSIGHTS_LIFTS.map((lift) => lift.exercise),
+      ["Barbell Bench Press", "Barbell Deadlift"],
+    );
+    assert.deepEqual(
+      PUBLIC_HOME_INSIGHTS_LIFTS.map((lift) => lift.read),
+      ["ahead", "room"],
+    );
+    assert.ok(PUBLIC_HOME_INSIGHTS_LIFTS.every((lift) => PUBLIC_HOME_INSIGHTS_PACE.includes(lift.read)));
     assert.ok(plan);
     assert.ok(slugs.includes("barbell-bench-press"));
     assert.ok(muscleAreaCoverage(slugs).includedCount > 4);
@@ -181,10 +192,16 @@ describe("public home", () => {
       pace.map((bucket) => bucket.label),
       ["Room to gain", "On track", "Ahead", "More sessions"],
     );
+    assert.match(figure, /exampleChartInsetClassName/);
+    assert.match(figure, /justify-center/);
+    assert.match(figure, /<SampleWeek[^>]*stacked/);
+    assert.match(figure, /flex flex-col items-start gap-4 sm:flex-row sm:items-center/);
+    assert.match(figure, /shrink-0 sm:ml-auto/);
+    assert.doesNotMatch(figure, /lg:flex-row/);
     assert.match(figure, /MuscleAreaCoverageBodies/);
     assert.match(figure, /ExerciseProgressPaceChart/);
     assert.match(figure, /PUBLIC_HOME_PLAN_EXAMPLE/);
-    assert.match(figure, /PUBLIC_HOME_INSIGHTS_LIFT/);
+    assert.match(figure, /PUBLIC_HOME_INSIGHTS_LIFTS/);
     assert.match(figure, /PUBLIC_HOME_INSIGHTS_PACE/);
     assert.match(figure, /StatusBadge/);
     assert.doesNotMatch(visible, /[—–-]/);

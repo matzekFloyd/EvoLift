@@ -2,13 +2,14 @@ import { ExerciseProgressPaceChart } from "@/app/components/chart-dynamic";
 import { exerciseProgressPaceBuckets } from "@/app/components/exercise-progress-pace";
 import { progressBadgeDescription, progressReadBadgeTone } from "@/app/components/insight-rows";
 import { MuscleAreaCoverageBodies } from "@/app/components/muscle-area-figure";
+import { SampleWeek } from "@/app/components/sample-week-row";
 import { StatusBadge } from "@/app/components/status-badge";
 import { progressReadLabel } from "@/lib/exercise-progress-insights";
 import { muscleAreaCoverage } from "@/lib/muscle-area-coverage";
 import { STARTER_PLANS } from "@/lib/starter-plans";
 import {
   PUBLIC_HOME_EXAMPLE,
-  PUBLIC_HOME_INSIGHTS_LIFT,
+  PUBLIC_HOME_INSIGHTS_LIFTS,
   PUBLIC_HOME_INSIGHTS_PACE,
   PUBLIC_HOME_PLAN_EXAMPLE,
 } from "@/app/public-home";
@@ -141,6 +142,11 @@ export function PublicHomeFigure() {
 
 const examplePanelClassName = "panel mx-auto w-full max-w-md px-4 py-4 text-center lg:text-left";
 
+/** Matches the bench graphic: 20 units of inset in a 400-wide view, and the title under Example. */
+const exampleChartInsetClassName = "px-[5%] pt-[3.35%] text-left";
+const exampleChartCaptionClassName = "text-sm leading-none text-zinc-600";
+const exampleChartTitleClassName = "mt-[2.4%] text-xl font-semibold leading-none text-zinc-900";
+
 /** Muscle areas covered by the Upper / Lower starter plan. */
 export function PublicHomePlanExample() {
   const plan = STARTER_PLANS.find((item) => item.name === PUBLIC_HOME_PLAN_EXAMPLE.name);
@@ -149,10 +155,13 @@ export function PublicHomePlanExample() {
 
   return (
     <figure className={examplePanelClassName}>
-      <figcaption className="text-sm text-zinc-600">{PUBLIC_HOME_PLAN_EXAMPLE.caption}</figcaption>
-      <p className="mt-4 font-medium text-zinc-900">{PUBLIC_HOME_PLAN_EXAMPLE.name}</p>
-      <div className="mt-4 flex justify-center">
-        <MuscleAreaCoverageBodies areas={coverage.areas} />
+      <div className={exampleChartInsetClassName}>
+        <figcaption className={exampleChartCaptionClassName}>{PUBLIC_HOME_PLAN_EXAMPLE.caption}</figcaption>
+        <p className={exampleChartTitleClassName}>{PUBLIC_HOME_PLAN_EXAMPLE.name}</p>
+        <div className="mt-4 flex items-center justify-center gap-6">
+          <SampleWeek dayCount={plan?.days.length ?? 0} stacked />
+          <MuscleAreaCoverageBodies areas={coverage.areas} />
+        </div>
       </div>
     </figure>
   );
@@ -166,21 +175,29 @@ export function PublicHomeInsightsExample() {
 
   return (
     <figure className={examplePanelClassName}>
-      <figcaption className="text-sm text-zinc-600">Example</figcaption>
-      <p className="mt-4 font-medium text-zinc-900">Exercise progress</p>
-      <div className="mt-4 flex flex-col items-center gap-4 lg:flex-row lg:items-start lg:justify-between lg:gap-x-6">
-        <div className="min-w-0">
-          <p className="font-medium text-zinc-900">{PUBLIC_HOME_INSIGHTS_LIFT.exercise}</p>
-          <div className="mt-2">
-            <StatusBadge
-              tone={progressReadBadgeTone(PUBLIC_HOME_INSIGHTS_LIFT.read)}
-              description={progressBadgeDescription(PUBLIC_HOME_INSIGHTS_LIFT.read)}
-            >
-              {progressReadLabel(PUBLIC_HOME_INSIGHTS_LIFT.read)}
-            </StatusBadge>
+      <div className={exampleChartInsetClassName}>
+        <figcaption className={exampleChartCaptionClassName}>{PUBLIC_HOME_EXAMPLE.caption}</figcaption>
+        <p className={exampleChartTitleClassName}>Exercise progress</p>
+        <div className="mt-4 flex flex-col items-start gap-4 sm:flex-row sm:items-center">
+          <ul className="flex min-w-0 flex-col gap-4 text-left">
+            {PUBLIC_HOME_INSIGHTS_LIFTS.map((lift) => (
+              <li key={lift.exercise}>
+                <p className="font-medium text-zinc-900">{lift.exercise}</p>
+                <div className="mt-2">
+                  <StatusBadge
+                    tone={progressReadBadgeTone(lift.read)}
+                    description={progressBadgeDescription(lift.read)}
+                  >
+                    {progressReadLabel(lift.read)}
+                  </StatusBadge>
+                </div>
+              </li>
+            ))}
+          </ul>
+          <div className="shrink-0 sm:ml-auto">
+            <ExerciseProgressPaceChart buckets={buckets} />
           </div>
         </div>
-        <ExerciseProgressPaceChart buckets={buckets} />
       </div>
     </figure>
   );

@@ -3,7 +3,7 @@ import { APP_DOCUMENT_TITLE } from "@/lib/page-title";
 import { publicPageMetadata } from "@/lib/public-page-metadata";
 
 /** Offer. One line. The subhead says it is quick. */
-export const PUBLIC_HOME_HEADING_LINES = ["Log the load and the reps."] as const;
+export const PUBLIC_HOME_HEADING_LINES = ["Log the load and the reps..."] as const;
 
 export const PUBLIC_HOME_HEADING = PUBLIC_HOME_HEADING_LINES.join(" ");
 
@@ -46,11 +46,14 @@ export const PUBLIC_HOME_AREAS = [
   },
 ] as const;
 
+/** Named lifts beside the Exercise progress donut. Their reads are in the pace mix. */
+export const PUBLIC_HOME_INSIGHTS_LIFTS = [
+  { exercise: PUBLIC_HOME_EXAMPLE.exercise, read: "ahead" },
+  { exercise: "Barbell Deadlift", read: "room" },
+] as const;
+
 /** The bench from the hero, placed in the pace mix. */
-export const PUBLIC_HOME_INSIGHTS_LIFT = {
-  exercise: PUBLIC_HOME_EXAMPLE.exercise,
-  read: "ahead",
-} as const;
+export const PUBLIC_HOME_INSIGHTS_LIFT = PUBLIC_HOME_INSIGHTS_LIFTS[0];
 
 /** The Upper / Lower starter plan. The figure paints that plan's muscle areas. */
 export const PUBLIC_HOME_PLAN_EXAMPLE = {
@@ -71,9 +74,10 @@ export const PUBLIC_HOME_INSIGHTS_PACE = [
 ] as const;
 
 /** Concrete close above the second button. */
-export const PUBLIC_HOME_CLOSE_LINES = ["Log the load and the reps.", "Keep the plan and the pace."] as const;
+export const PUBLIC_HOME_CLOSE_LINES = ["...keep your plan and your pace."] as const;
 
-export const PUBLIC_HOME_DESCRIPTION = `${PUBLIC_HOME_HEADING} ${PUBLIC_HOME_SUBHEAD}`;
+/** Search and share text. The heading trails off, so this stays a finished sentence. */
+export const PUBLIC_HOME_DESCRIPTION = PUBLIC_HOME_SUBHEAD;
 
 /** Search snippet and matching share text for the public origin. */
 export const publicHomeMetadata: Metadata = publicPageMetadata({

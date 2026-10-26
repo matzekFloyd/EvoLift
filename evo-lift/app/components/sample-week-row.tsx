@@ -18,34 +18,46 @@ const cellTone: Record<SampleWeekCell, string> = {
 type SampleWeekProps = {
   dayCount: number;
   className?: string;
+  /** A column of cells, for sitting beside another figure. */
+  stacked?: boolean;
 };
 
 /** Typical spacing for the current day count. Training and rest cells both say what they are. */
-export function SampleWeek({ dayCount, className }: SampleWeekProps) {
+export function SampleWeek({ dayCount, className, stacked = false }: SampleWeekProps) {
   const view = sampleWeek(dayCount);
   const dayCountLabel = sampleWeekDayCountLabel(dayCount);
   if (view.kind === "hidden") {
     return null;
   }
 
+  const headingClassName = "flex items-baseline gap-3";
+  const listClassName = stacked
+    ? "grid w-16 grid-cols-1 gap-1"
+    : "mt-1 grid w-full max-w-lg grid-cols-7 gap-1";
+  const dayLabel = stacked ? "Train" : SAMPLE_WEEK_DAY_LABEL;
+
+  const rootClassName = [stacked ? "flex flex-col items-center" : "", className].filter(Boolean).join(" ");
+
   return (
-    <div className={className}>
-      <div className="flex items-baseline gap-3">
-        <h2 className="text-sm font-medium text-zinc-600">{SAMPLE_WEEK_HEADING}</h2>
-        {dayCountLabel ? <p className="text-sm text-zinc-800">{dayCountLabel}</p> : null}
-      </div>
+    <div className={rootClassName}>
+      {stacked ? null : (
+        <div className={headingClassName}>
+          <h2 className="text-sm font-medium text-zinc-600">{SAMPLE_WEEK_HEADING}</h2>
+          {dayCountLabel ? <p className="text-sm text-zinc-800">{dayCountLabel}</p> : null}
+        </div>
+      )}
       {view.kind === "longer" ? (
         <p className="mt-1 text-sm text-zinc-700">{view.message}</p>
       ) : (
         <>
-          <ol className="mt-1 grid w-full max-w-lg grid-cols-7 gap-1">
+          <ol className={listClassName}>
             {view.cells.map((cell, index) => (
               <li key={`${cell}-${index}`} className={`${cellClassName} ${cellTone[cell]}`}>
-                {cell === "day" ? SAMPLE_WEEK_DAY_LABEL : SAMPLE_WEEK_REST_LABEL}
+                {cell === "day" ? dayLabel : SAMPLE_WEEK_REST_LABEL}
               </li>
             ))}
           </ol>
-          <p className="mt-1 text-xs text-zinc-600">{view.countLine}</p>
+          <p className={`mt-1 text-xs text-zinc-600 ${stacked ? "text-center" : ""}`}>{view.countLine}</p>
         </>
       )}
     </div>
