@@ -3,6 +3,7 @@ import {
   exerciseIdsToSkipOnComplete,
   setsToShowForSkippedExercise,
   showSessionExerciseTargetsMet,
+  forcedButtonUtilityClass,
   skippedExerciseButtonClass,
   skippedExerciseLabel,
 } from "./session-exercise-status";
@@ -17,6 +18,12 @@ describe("skipped exercise", () => {
     expect(skippedExerciseButtonClass(true)).toContain("bg-amber-50");
     expect(skippedExerciseButtonClass(true)).not.toContain("zinc-800");
     expect(skippedExerciseButtonClass(false)).toContain("bg-zinc-50");
+  });
+
+  it("forces those colors over a shared button fill", () => {
+    expect(forcedButtonUtilityClass("border-amber-300 hover:bg-amber-100")).toBe(
+      "!border-amber-300 hover:!bg-amber-100",
+    );
   });
 
   it("keeps every logged set while the exercise is skipped", () => {

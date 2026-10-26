@@ -1,8 +1,9 @@
 "use client";
 
-import { Check, ChevronDown, ChevronUp, CircleOff, History, X } from "lucide-react";
+import { Check, ChevronDown, ChevronUp, History } from "lucide-react";
 import { type Dispatch, type SetStateAction, useState } from "react";
 import Link from "next/link";
+import { ActionButton } from "@/app/components/action-button";
 import { panelInsetClass } from "@/app/components/panel-inset";
 import { TargetWeightSuggestion } from "@/app/components/target-weight-suggestion";
 import { WarmupSuggestion } from "@/app/components/warmup-suggestion";
@@ -14,11 +15,11 @@ import { PLANNED_SESSION_SETS_MESSAGE } from "./session-input";
 import { lastLoggedSet, resolvedAddDraft, setsForSessionExercise } from "./session-detail-model";
 import {
   showSessionExerciseTargetsMet,
-  SKIPPED_EXERCISE_BUTTON_TITLE,
-  skippedExerciseButtonClass,
   skippedExerciseChipClass,
   skippedExerciseLabel,
 } from "./session-exercise-status";
+import { SkipExerciseButton } from "./skip-exercise-button";
+import type { SessionLogPrimary } from "./session-log-primary";
 import { SessionExerciseHistoryDialog } from "./session-exercise-history-dialog";
 import { usePreviousSessionWorkingSets } from "./use-last-session-set-comparison";
 import { SetTargetsFields } from "./set-targets-fields";
@@ -75,10 +76,7 @@ type SessionExerciseBlockProps = {
   onSaveEdit: (setId: string) => void;
   onCancelEdit: () => void;
   onDeleteSet: (setId: string) => void;
-  onMarkCompleted?: () => void;
-  isMarkingCompleted?: boolean;
-  onNextExercise: () => void;
-  onAddExercise: () => void;
+  logPrimary: SessionLogPrimary;
   onShowExtraSets: () => void;
   onExpandFullAddSetRow: () => void;
 };
@@ -128,10 +126,7 @@ export function SessionExerciseBlock({
   onSaveEdit,
   onCancelEdit,
   onDeleteSet,
-  onMarkCompleted,
-  isMarkingCompleted = false,
-  onNextExercise,
-  onAddExercise,
+  logPrimary,
   onShowExtraSets,
   onExpandFullAddSetRow,
 }: SessionExerciseBlockProps) {
@@ -168,6 +163,7 @@ export function SessionExerciseBlock({
       : targetSetsMet
         ? "rounded-md border border-sky-200/90 bg-sky-50/40 p-5 text-sm"
         : panelInsetClass("p-5 text-sm");
+  const buttonsRaised = !shouldUseSingleExerciseFlow && !isReadOnly;
 
   return (
     <section id={`exercise-${sessionExercise.id}`} className={`${exercisePanelClass} scroll-mt-4`}>
@@ -199,29 +195,29 @@ export function SessionExerciseBlock({
             <span className={`${skippedExerciseChipClass} shrink-0`}>{skippedExerciseLabel(true)}</span>
           ) : null}
         </div>
-        <span className="shrink-0 text-xs text-zinc-500">
-          {index + 1}/{exerciseCount}
+        <span className="shrink-0 text-xs tabular-nums text-zinc-500">
+          <span aria-hidden>
+            {index + 1}/{exerciseCount}
+          </span>
+          <span className="sr-only">
+            Exercise {index + 1} of {exerciseCount}
+          </span>
         </span>
       </div>
       {sessionExercise.not_done && !isReadOnly && !shouldUseSingleExerciseFlow ? (
         <div className="mt-1 flex justify-end">
-          <button
-            type="button"
-            aria-pressed
+          <SkipExerciseButton
+            skipped
             disabled={isSavingNotDone}
             onClick={onToggleNotDone}
-            title={SKIPPED_EXERCISE_BUTTON_TITLE}
-            className={`inline-flex h-9 items-center justify-center gap-1 rounded-md border px-2 text-xs disabled:opacity-60 ${skippedExerciseButtonClass(true)}`}
-          >
-            <CircleOff className="h-3.5 w-3.5 shrink-0 text-amber-600" aria-hidden />
-            {skippedExerciseLabel(true)}
-          </button>
+            raised={buttonsRaised}
+          />
         </div>
       ) : null}
       <div className="relative">
         <div inert={sessionExercise.not_done ? true : undefined}>
-      <div className="mt-2 flex items-center justify-between gap-2">
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5">
+      <div className="mt-2 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
           <span className="inline-flex h-9 items-center text-sm font-medium text-zinc-600">Targets:</span>
           {targetParts.length > 0 ? (
             targetParts.map((part) => (
@@ -235,46 +231,45 @@ export function SessionExerciseBlock({
             <span className="inline-flex h-9 items-center text-xs text-zinc-500">none set</span>
           )}
         </div>
-        <div className="flex shrink-0 items-center gap-2 self-start">
+        <div className="flex items-center gap-2 self-start">
           {exerciseSlug && !isReadOnly ? (
-            <button
+            <ActionButton
               type="button"
+              variant="secondary"
+              size="sm"
+              raised={buttonsRaised}
               onClick={() => setHistoryOpen(true)}
               aria-haspopup="dialog"
-              className="inline-flex h-9 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
             >
-              <History className="h-3.5 w-3.5 text-sky-700" aria-hidden />
+              <History className="h-3.5 w-3.5" aria-hidden />
               Open history
-            </button>
+            </ActionButton>
           ) : null}
           {!isReadOnly && !shouldUseSingleExerciseFlow && !sessionExercise.not_done ? (
-            <button
-              type="button"
-              aria-pressed={sessionExercise.not_done}
+            <SkipExerciseButton
+              skipped={false}
               disabled={isSavingNotDone}
               onClick={onToggleNotDone}
-              title={SKIPPED_EXERCISE_BUTTON_TITLE}
-              className={`inline-flex h-9 items-center justify-center gap-1 rounded-md border px-2 text-xs disabled:opacity-60 ${skippedExerciseButtonClass(sessionExercise.not_done)}`}
-            >
-              <CircleOff className="h-3.5 w-3.5 shrink-0 text-amber-600" aria-hidden />
-              {skippedExerciseLabel(sessionExercise.not_done)}
-            </button>
+              raised={buttonsRaised}
+            />
           ) : null}
           {!isReadOnly && !shouldUseSingleExerciseFlow ? (
-            <button
+            <ActionButton
               type="button"
+              variant="secondary"
+              size="sm"
+              raised={buttonsRaised}
               onClick={onToggleTargets}
               aria-expanded={targetsOpenInline}
               title="Edit planned working-set targets (warmups do not count)."
-              className="inline-flex h-9 w-24 items-center justify-center rounded-md border border-zinc-300 bg-zinc-50 px-2 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
             >
               {targetsOpenInline ? (
-                <ChevronUp className="mr-1 h-3.5 w-3.5" aria-hidden />
+                <ChevronUp className="h-3.5 w-3.5" aria-hidden />
               ) : (
-                <ChevronDown className="mr-1 h-3.5 w-3.5" aria-hidden />
+                <ChevronDown className="h-3.5 w-3.5" aria-hidden />
               )}
               Set targets
-            </button>
+            </ActionButton>
           ) : null}
         </div>
       </div>
@@ -307,23 +302,19 @@ export function SessionExerciseBlock({
             }}
           />
           <div className="mt-3 flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={onCancelTargets}
-              className="inline-flex h-9 w-24 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
-            >
-              <X className="h-3 w-3 text-zinc-500" aria-hidden />
+            <ActionButton type="button" variant="secondary" size="sm" onClick={onCancelTargets}>
               Cancel
-            </button>
-            <button
+            </ActionButton>
+            <ActionButton
               type="button"
-              onClick={onSaveTargets}
+              variant={logPrimary === "save-targets" ? "primary" : "secondary"}
+              size="sm"
               disabled={isSavingTargets}
-              className="inline-flex h-9 w-24 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-2 text-xs text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60"
+              onClick={onSaveTargets}
             >
-              <Check className="h-3 w-3 text-white" aria-hidden />
+              <Check className="h-3.5 w-3.5" aria-hidden />
               {isSavingTargets ? "Saving..." : "Save"}
-            </button>
+            </ActionButton>
           </div>
         </div>
       ) : null}
@@ -378,10 +369,7 @@ export function SessionExerciseBlock({
         onSaveEdit={onSaveEdit}
         onCancelEdit={onCancelEdit}
         onDeleteSet={onDeleteSet}
-        onMarkCompleted={onMarkCompleted}
-        isMarkingCompleted={isMarkingCompleted}
-        onNextExercise={onNextExercise}
-        onAddExercise={onAddExercise}
+        logPrimary={logPrimary}
         onShowExtraSets={onShowExtraSets}
         onExpandFullAddSetRow={onExpandFullAddSetRow}
         previousWorkingSets={previousWorkingSets}

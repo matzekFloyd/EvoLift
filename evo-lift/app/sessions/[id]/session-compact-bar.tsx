@@ -1,54 +1,74 @@
 "use client";
 
-import { CircleOff, ListChecks } from "lucide-react";
+import { Check, ListChecks } from "lucide-react";
 import type { Dispatch, SetStateAction } from "react";
+import { ActionButton } from "@/app/components/action-button";
 import { CompactStickyBar } from "@/app/components/compact-sticky-bar";
 import type { SessionExerciseRow } from "./session-detail-actions";
-import {
-  SKIPPED_EXERCISE_BUTTON_TITLE,
-  skippedExerciseButtonClass,
-  skippedExerciseLabel,
-} from "./session-exercise-status";
+import { compactFinishChrome } from "./session-log-primary";
+import { SkipExerciseButton } from "./skip-exercise-button";
 
 type SessionCompactBarProps = {
   activeSessionExercise: SessionExerciseRow;
   activeExerciseIndex: number;
   exerciseCount: number;
   nextLabel: string;
+  nextPrimary: boolean;
+  showFinish: boolean;
+  finishPrimary: boolean;
+  isMarkingCompleted: boolean;
   isSavingNotDone: boolean;
   setActiveExerciseIndex: Dispatch<SetStateAction<number>>;
   onToggleNotDone: () => void;
   onSetTargets: () => void;
+  onFinish: () => void;
 };
 
-/** Compact sticky bar: Skipped and Set targets for the active exercise, plus previous / next. */
+/** Compact sticky bar: Skip and Set targets, previous / next, and a quiet Finish. */
 export function SessionCompactBar({
   activeSessionExercise,
   activeExerciseIndex,
   exerciseCount,
   nextLabel,
+  nextPrimary,
+  showFinish,
+  finishPrimary,
+  isMarkingCompleted,
   isSavingNotDone,
   setActiveExerciseIndex,
   onToggleNotDone,
   onSetTargets,
+  onFinish,
 }: SessionCompactBarProps) {
+  const finishChrome = compactFinishChrome({ showFinish, finishPrimary });
+  const finishLabel = isMarkingCompleted ? "Saving..." : "Finish";
+
   return (
     <CompactStickyBar
       actions={
         <>
-          <button
-            type="button"
-            aria-pressed={activeSessionExercise.not_done}
+          {finishChrome === "filled" ? (
+            <ActionButton
+              type="button"
+              variant="primary"
+              disabled={isMarkingCompleted}
+              onClick={onFinish}
+              fullWidth
+              className="!h-11 basis-full"
+            >
+              <Check className="h-4 w-4 shrink-0" aria-hidden />
+              <span className="truncate">{finishLabel}</span>
+            </ActionButton>
+          ) : null}
+          <SkipExerciseButton
+            skipped={activeSessionExercise.not_done}
             disabled={isSavingNotDone}
             onClick={onToggleNotDone}
-            title={SKIPPED_EXERCISE_BUTTON_TITLE}
-            className={`inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-1 rounded-md border px-2 text-xs font-medium shadow-[0_2px_8px_rgba(0,0,0,0.08)] disabled:opacity-60 sm:px-2.5 sm:text-sm ${skippedExerciseButtonClass(activeSessionExercise.not_done)}`}
-          >
-            <CircleOff className="h-3.5 w-3.5 shrink-0 text-amber-600" aria-hidden />
-            <span className="truncate">{skippedExerciseLabel(activeSessionExercise.not_done)}</span>
-          </button>
-          <button
+            className="!h-11 !w-auto min-w-0 flex-1"
+          />
+          <ActionButton
             type="button"
+            variant="secondary"
             onClick={onSetTargets}
             disabled={activeSessionExercise.not_done}
             title={
@@ -56,20 +76,31 @@ export function SessionCompactBar({
                 ? "Clear Skipped to edit targets."
                 : "Edit planned working-set targets (warmups do not count)."
             }
-            className="inline-flex h-11 min-w-0 flex-1 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 text-xs font-medium text-zinc-800 shadow-[0_2px_8px_rgba(0,0,0,0.08)] hover:border-sky-300 hover:bg-zinc-100 disabled:opacity-60 sm:px-2.5 sm:text-sm"
+            className="!h-11 !w-auto min-w-0 flex-1"
           >
-            <ListChecks className="h-3.5 w-3.5 shrink-0 text-sky-700" aria-hidden />
+            <ListChecks className="h-3.5 w-3.5 shrink-0" aria-hidden />
             <span className="truncate">Set targets</span>
-          </button>
+          </ActionButton>
         </>
       }
-      progressLabel={`${activeExerciseIndex + 1}/${exerciseCount}`}
-      progressAriaLabel={`Exercise ${activeExerciseIndex + 1} of ${exerciseCount}`}
+      center={
+        finishChrome === "quiet" ? (
+          <button
+            type="button"
+            onClick={onFinish}
+            disabled={isMarkingCompleted}
+            className="inline-flex h-11 items-center px-2 text-sm font-medium text-zinc-600 hover:text-zinc-900 hover:underline disabled:opacity-60"
+          >
+            {finishLabel}
+          </button>
+        ) : null
+      }
       onPrevious={() => setActiveExerciseIndex((prev) => Math.max(0, prev - 1))}
       onNext={() => setActiveExerciseIndex((prev) => Math.min(exerciseCount - 1, prev + 1))}
       isPreviousDisabled={activeExerciseIndex === 0}
       isNextDisabled={activeExerciseIndex === exerciseCount - 1}
       nextLabel={nextLabel}
+      nextPrimary={nextPrimary}
     />
   );
 }

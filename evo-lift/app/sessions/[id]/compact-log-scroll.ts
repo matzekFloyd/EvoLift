@@ -10,7 +10,7 @@ export type CompactLogScrollInput = {
 
 /** How far to scroll so the next action is above the sticky bar and the last row stays on screen. */
 export function compactLogScrollDelta(input: CompactLogScrollInput): number {
-  const gap = input.gap ?? 12;
+  const gap = input.gap ?? 24;
   const visibleTop = input.topInset + gap;
   const visibleBottom = input.viewportHeight - input.stickyHeight - gap;
   if (visibleBottom <= visibleTop) {
@@ -36,4 +36,17 @@ export function compactLogScrollDelta(input: CompactLogScrollInput): number {
   }
 
   return delta;
+}
+
+/** Two-row bar, then 2rem of page. The full string stays in source so Tailwind emits it. */
+const COMPACT_LOG_PADDING =
+  "max-md:!pb-[calc(7.5rem+1px+1.25rem+max(0.75rem,env(safe-area-inset-bottom,0px)))]";
+
+/** Adds the filled Finish row: h-11 plus the wrap gap above Skip and Set targets. */
+const COMPACT_LOG_PADDING_WITH_FINISH =
+  "max-md:!pb-[calc(7.5rem+1px+1.25rem+2.75rem+0.375rem+max(0.75rem,env(safe-area-inset-bottom,0px)))]";
+
+/** Page padding that clears the sticky bar, including the filled Finish row. */
+export function compactLogShellPaddingClass(finishFilled: boolean): string {
+  return finishFilled ? COMPACT_LOG_PADDING_WITH_FINISH : COMPACT_LOG_PADDING;
 }

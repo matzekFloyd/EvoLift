@@ -1,9 +1,11 @@
 "use client";
 
-import { CalendarDays, Check, Pencil, X } from "lucide-react";
+import { CalendarDays, Check, Pencil } from "lucide-react";
+import { ActionButton } from "@/app/components/action-button";
 import { DateInput } from "@/app/components/date-input";
 import { NotesTextareaField } from "@/app/components/notes-textarea-field";
 import { panelInsetClass } from "@/app/components/panel-inset";
+import { StatusNotice } from "@/app/components/status-notice";
 import { maxSessionNotesLength } from "./session-detail-model";
 
 type SessionDetailsPanelProps = {
@@ -57,19 +59,20 @@ export function SessionDetailsPanel({
       {!isReadOnly && isCompactView && !isEditing ? (
         <div className={panelInsetClass("mt-2 flex items-center gap-2 px-3 py-2")}>
           <p className="min-w-0 flex-1 truncate text-sm text-zinc-800" title={notes?.trim() || undefined}>
-            <span className="font-medium text-zinc-700">Notes</span>
-            <span className="text-zinc-400"> · </span>
+            <span className="font-medium text-zinc-700">Notes: </span>
             {notes?.trim() ? notes.trim() : <span className="text-zinc-500">None</span>}
           </p>
-          <button
+          <ActionButton
             type="button"
+            variant="secondary"
+            size="sm"
+            raised
             onClick={onBeginEdit}
             disabled={isSaving || isDeletingSession}
-            className="inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-50 disabled:opacity-60"
           >
-            <Pencil className="h-3 w-3 text-sky-700" aria-hidden />
+            <Pencil className="h-3.5 w-3.5" aria-hidden />
             Edit
-          </button>
+          </ActionButton>
         </div>
       ) : null}
       {!isReadOnly && (!isCompactView || isEditing) ? (
@@ -86,15 +89,17 @@ export function SessionDetailsPanel({
                   <p className="mt-0.5 tabular-nums text-zinc-900">{formattedPerformedOn}</p>
                 </div>
                 <div className="flex shrink-0 justify-end">
-                  <button
+                  <ActionButton
                     type="button"
+                    variant="secondary"
+                    size="sm"
+                    raised
                     onClick={onBeginEdit}
                     disabled={isSaving || isDeletingSession}
-                    className="inline-flex h-8 w-[72px] items-center justify-center gap-1 rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-50 disabled:opacity-60 sm:w-20"
                   >
-                    <Pencil className="h-3 w-3 text-sky-700" aria-hidden />
+                    <Pencil className="h-3.5 w-3.5" aria-hidden />
                     Edit
-                  </button>
+                  </ActionButton>
                 </div>
               </div>
               <div className="text-sm">
@@ -122,30 +127,30 @@ export function SessionDetailsPanel({
                     className="block w-full max-w-[11rem] rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm md:max-w-xs"
                   />
                   {dateError ? (
-                    <p className="mt-1 text-sm text-red-600" role="alert">
-                      {dateError}
-                    </p>
+                    <StatusNotice message={dateError} tone="error" className="mt-1" />
                   ) : null}
                 </div>
                 <div className="flex shrink-0 flex-col gap-2 self-end md:flex-row md:justify-end md:self-start">
-                  <button
+                  <ActionButton
                     type="button"
-                    onClick={() => void onSave()}
-                    disabled={!isDirty || isSaving || isDeletingSession}
-                    className="inline-flex w-24 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-50 disabled:opacity-60"
-                  >
-                    <Check className="h-3 w-3 text-emerald-600" aria-hidden />
-                    {isSaving ? "Saving..." : "Save"}
-                  </button>
-                  <button
-                    type="button"
+                    variant="secondary"
+                    size="sm"
+                    raised
                     onClick={onCancel}
                     disabled={isSaving}
-                    className="inline-flex w-24 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-50 disabled:opacity-60"
                   >
-                    <X className="h-3 w-3 text-zinc-500" aria-hidden />
                     Cancel
-                  </button>
+                  </ActionButton>
+                  <ActionButton
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    onClick={() => void onSave()}
+                    disabled={!isDirty || isSaving || isDeletingSession}
+                  >
+                    <Check className="h-3.5 w-3.5" aria-hidden />
+                    {isSaving ? "Saving..." : "Save"}
+                  </ActionButton>
                 </div>
               </div>
               <div>
@@ -158,9 +163,7 @@ export function SessionDetailsPanel({
                   heightClassName={isCompactView ? "h-16" : "h-28"}
                 />
                 {notesError ? (
-                  <p className="mt-1 text-sm text-red-600" role="alert">
-                    {notesError}
-                  </p>
+                  <StatusNotice message={notesError} tone="error" className="mt-1" />
                 ) : null}
               </div>
             </>

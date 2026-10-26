@@ -1,6 +1,7 @@
 "use client";
 
-import { Check, X } from "lucide-react";
+import { Check } from "lucide-react";
+import { ActionButton } from "@/app/components/action-button";
 import { TargetWeightSuggestion } from "@/app/components/target-weight-suggestion";
 import { targetWeightFieldLabel } from "@/lib/assistance-exercise";
 import { targetSuggestionsEnabled } from "@/lib/target-weight-suggestion";
@@ -73,23 +74,19 @@ export function SessionTargetsSheet({
         />
       ) : null}
       <div className="mt-4 flex gap-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="inline-flex h-10 flex-1 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 text-sm text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
-        >
-          <X className="h-3.5 w-3.5 text-zinc-500" aria-hidden />
+        <ActionButton type="button" variant="secondary" onClick={onCancel} className="!h-11 !w-auto min-w-0 flex-1">
           Cancel
-        </button>
-        <button
+        </ActionButton>
+        <ActionButton
           type="button"
-          onClick={() => onSave()}
+          variant="primary"
+          onClick={() => void onSave()}
           disabled={isSavingTargets}
-          className="inline-flex h-10 flex-1 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-3 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60"
+          className="!h-11 !w-auto min-w-0 flex-1"
         >
-          <Check className="h-3.5 w-3.5 text-white" aria-hidden />
+          <Check className="h-4 w-4" aria-hidden />
           {isSavingTargets ? "Saving..." : "Save targets"}
-        </button>
+        </ActionButton>
       </div>
     </SessionBottomSheet>
   );

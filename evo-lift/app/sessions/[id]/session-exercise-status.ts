@@ -12,6 +12,15 @@ export function skippedExerciseButtonClass(skipped: boolean): string {
   return "border-zinc-300 bg-zinc-50 text-zinc-800 hover:border-amber-300 hover:bg-zinc-100";
 }
 
+/** ActionButton paints its own fill. Prefix utilities so the skipped colors win. */
+export function forcedButtonUtilityClass(className: string): string {
+  return className
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((token) => (token.startsWith("hover:") ? `hover:!${token.slice("hover:".length)}` : `!${token}`))
+    .join(" ");
+}
+
 export const skippedExerciseChipClass =
   "inline-flex items-center rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-xs text-amber-900";
 

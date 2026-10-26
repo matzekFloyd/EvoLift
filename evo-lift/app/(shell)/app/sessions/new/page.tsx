@@ -1,14 +1,16 @@
 "use client";
 
-import { ArrowLeft, CalendarDays, CalendarPlus, Check, NotebookPen, Play } from "lucide-react";
+import { ArrowLeft, CalendarDays, Check, Eraser, Play } from "lucide-react";
 import Link from "next/link";
-import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { APP_HOME_PATH, appPath } from "@/lib/app-paths";
 import { ActionButton } from "@/app/components/action-button";
 import { ContentPlaceholder } from "@/app/components/content-placeholder";
+import { NotesTextareaField } from "@/app/components/notes-textarea-field";
+import { PanelInset } from "@/app/components/panel-inset";
 import { NEW_SESSION_PLACEHOLDER_ROWS } from "@/app/components/content-placeholder-layout";
 import { DateInput } from "@/app/components/date-input";
 import { SelectField } from "@/app/components/select-field";
@@ -63,6 +65,7 @@ function NewSessionPageContent() {
   >(new Map());
   const [isSaving, setIsSaving] = useState(false);
   const [createMode, setCreateMode] = useState<"home" | "log">("home");
+  const createModeRef = useRef<"home" | "log">("home");
   const [message, setMessage] = useState<string | null>(null);
   const [messageTone, setMessageTone] = useState<"error" | "success">("error");
   const [hiddenExerciseIds, setHiddenExerciseIds] = useState<Set<string>>(new Set());
@@ -381,7 +384,9 @@ function NewSessionPageContent() {
     invalidateLoggedHistoryCaches();
     window.localStorage.removeItem(getNewSessionDraftStorageKey(userId));
     notifyNewSessionDraftChanged();
-    router.replace(createMode === "log" ? appPath(`/sessions/${sessionInsert.id}`) : APP_HOME_PATH);
+    router.replace(
+      createModeRef.current === "log" ? appPath(`/sessions/${sessionInsert.id}`) : APP_HOME_PATH,
+    );
   }
 
   function clearDraft() {
@@ -476,28 +481,24 @@ function NewSessionPageContent() {
   }
 
   const isCompactView = isSmallPhone;
+  const createPrimary = draftGate !== "blocked" && pendingTemplate == null;
 
   return (
     <PageShell className={isCompactView ? "pb-36" : undefined}>
       <div className="flex items-center justify-between gap-3">
-        <h1 className="inline-flex items-center gap-2 text-2xl font-semibold tracking-tight">
-          <CalendarPlus className="h-6 w-6 text-sky-700" />
-          New workout session
-        </h1>
+        <h1 className="text-2xl font-semibold tracking-tight">New workout session</h1>
         {isCompactView ? null : (
-          <ActionButton type="button" onClick={goBack} variant="secondary" size="md" iconColor="sky">
+          <ActionButton type="button" onClick={goBack} variant="secondary" size="md">
             <ArrowLeft className="h-4 w-4" aria-hidden />
             Back
           </ActionButton>
         )}
       </div>
       {draftGate === "blocked" && blockedDraft ? (
-        <div
-          className="rounded-lg border border-amber-200 bg-amber-50/90 p-4 text-sm text-amber-950 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
-          role="status"
-        >
-          <p className="font-medium text-amber-950">
-            {(() => {
+        <div className="space-y-2">
+          <StatusNotice
+            tone="warning"
+            message={(() => {
               const rel = blockedDraft.updatedAt
                 ? formatRelativePastFromIso(blockedDraft.updatedAt)
                 : "";
@@ -505,12 +506,12 @@ function NewSessionPageContent() {
                 ? `You have an unsaved new session draft from ${rel}.`
                 : "You have an unsaved new session draft.";
             })()}
-          </p>
-          <p className="mt-1 text-xs text-amber-900/90">
+          />
+          <p className="text-xs text-zinc-600">
             Performed on after resume:{" "}
             {coalesceNewSessionDraftPerformedOn(blockedDraft.performedOn)}
           </p>
-          <div className="mt-3 flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2">
             <ActionButton
               type="button"
               variant="primary"
@@ -526,6 +527,7 @@ function NewSessionPageContent() {
             <ActionButton
               type="button"
               variant="secondary"
+              iconColor="amber"
               size="sm"
               onClick={() => {
                 if (userId) {
@@ -537,6 +539,7 @@ function NewSessionPageContent() {
                 resetDraftState();
               }}
             >
+              <Eraser className="h-3.5 w-3.5" aria-hidden />
               Discard draft
             </ActionButton>
           </div>
@@ -571,14 +574,15 @@ function NewSessionPageContent() {
                 className="font-medium text-sky-800 underline-offset-2 hover:underline"
               >
                 Create a template
-              </Link>
-              {" · "}
+              </Link>{" "}
+              or{" "}
               <Link
                 href={appPath("/templates")}
                 className="font-medium text-sky-800 underline-offset-2 hover:underline"
               >
-                Manage templates
+                manage templates
               </Link>
+              .
             </p>
           ) : (
             <p className="text-xs text-zinc-600">
@@ -591,10 +595,10 @@ function NewSessionPageContent() {
             </p>
           )}
           {pendingTemplate ? (
-            <div className="rounded-md border border-amber-200 bg-amber-50/80 p-3 text-sm text-amber-950">
-              <p className="font-medium">Apply template &quot;{pendingTemplate.name}&quot;</p>
+            <PanelInset className="p-3 text-sm">
+              <p className="font-medium text-zinc-900">Apply template &quot;{pendingTemplate.name}&quot;</p>
               {templatePickMessage ? (
-                <p className="mt-1 text-xs text-amber-900/90">{templatePickMessage}</p>
+                <p className="mt-1 text-xs text-zinc-600">{templatePickMessage}</p>
               ) : null}
               <div className="mt-3 flex flex-wrap gap-2">
                 <ActionButton
@@ -626,7 +630,7 @@ function NewSessionPageContent() {
                   Cancel
                 </ActionButton>
               </div>
-            </div>
+            </PanelInset>
           ) : null}
           <label className="block text-sm font-medium">
             <span className="inline-flex items-center gap-1">
@@ -637,7 +641,7 @@ function NewSessionPageContent() {
               required
               value={performedOn}
               onChange={(event) => setPerformedOn(event.target.value)}
-              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+              className="mt-1 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
             />
           </label>
 
@@ -645,24 +649,19 @@ function NewSessionPageContent() {
             <button
               type="button"
               onClick={() => setIsSessionNotesExpanded((prev) => !prev)}
-              className="inline-flex items-center gap-1 text-left hover:text-sky-700"
+              className="text-left text-zinc-800 hover:text-zinc-950"
+              aria-expanded={isSessionNotesExpanded}
             >
-              <NotebookPen className="h-3.5 w-3.5 text-zinc-500" />
               {isSessionNotesExpanded ? "Hide notes" : "Add notes (optional)"}
             </button>
             {isSessionNotesExpanded ? (
-              <>
-                <textarea
-                  value={notes}
-                  onChange={(event) => setNotes(event.target.value)}
-                  className="mt-1 h-28 w-full rounded-md border px-3 py-2 text-sm"
-                  maxLength={maxNotesLength}
-                  placeholder="Optional session notes"
-                />
-                <p className="mt-1 text-xs text-zinc-500">
-                  {notes.length}/{maxNotesLength}
-                </p>
-              </>
+              <NotesTextareaField
+                value={notes}
+                onChange={setNotes}
+                placeholder="Optional session notes"
+                maxLength={maxNotesLength}
+                heightClassName="h-28"
+              />
             ) : null}
           </div>
 
@@ -686,26 +685,31 @@ function NewSessionPageContent() {
               <ActionButton
                 type="submit"
                 disabled={isSaving}
-                onClick={() => setCreateMode("home")}
+                onClick={() => {
+                  createModeRef.current = "home";
+                  setCreateMode("home");
+                }}
                 variant="secondary"
-                iconColor="sky"
                 size="md"
                 fullWidth
                 className="sm:w-44"
               >
-                <Check className="h-3.5 w-3.5" aria-hidden />
+                <Check className="h-4 w-4" aria-hidden />
                 Create
               </ActionButton>
               <ActionButton
                 type="submit"
                 disabled={isSaving}
-                onClick={() => setCreateMode("log")}
-                variant="primary"
+                onClick={() => {
+                  createModeRef.current = "log";
+                  setCreateMode("log");
+                }}
+                variant={createPrimary ? "primary" : "secondary"}
                 size="md"
                 fullWidth
                 className="sm:w-44"
               >
-                <Play className="h-3.5 w-3.5 text-white" />
+                <Play className="h-4 w-4" aria-hidden />
                 Create & log sets
               </ActionButton>
             </div>
@@ -720,26 +724,34 @@ function NewSessionPageContent() {
           }`}
         >
           <div className="mx-auto flex w-full max-w-5xl items-center gap-2">
-            <button
+            <ActionButton
               type="submit"
               form="new-session-form"
-              onClick={() => setCreateMode("home")}
+              onClick={() => {
+                createModeRef.current = "home";
+                setCreateMode("home");
+              }}
               disabled={isSaving || draftGate === "blocked"}
-              className="inline-flex h-11 flex-1 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 text-sm font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100 disabled:opacity-60"
+              variant="secondary"
+              className="!h-11 !w-auto min-w-0 flex-1"
             >
-              <Check className="h-3.5 w-3.5 text-sky-700" />
+              <Check className="h-4 w-4" aria-hidden />
               Create
-            </button>
-            <button
+            </ActionButton>
+            <ActionButton
               type="submit"
               form="new-session-form"
-              onClick={() => setCreateMode("log")}
+              onClick={() => {
+                createModeRef.current = "log";
+                setCreateMode("log");
+              }}
               disabled={isSaving || draftGate === "blocked"}
-              className="inline-flex h-11 flex-1 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-3 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60"
+              variant={createPrimary ? "primary" : "secondary"}
+              className="!h-11 !w-auto min-w-0 flex-1"
             >
-              <Play className="h-3.5 w-3.5 text-white" />
+              <Play className="h-4 w-4" aria-hidden />
               Create & log sets
-            </button>
+            </ActionButton>
           </div>
         </div>
       ) : null}
@@ -750,10 +762,7 @@ function NewSessionPageContent() {
 function NewSessionLoadingShell({ label }: { label: string }) {
   return (
     <PageShell>
-      <h1 className="inline-flex items-center gap-2 text-2xl font-semibold tracking-tight">
-        <CalendarPlus className="h-6 w-6 text-sky-700" />
-        New workout session
-      </h1>
+      <h1 className="text-2xl font-semibold tracking-tight">New workout session</h1>
       <ContentPlaceholder label={label} rows={NEW_SESSION_PLACEHOLDER_ROWS} />
     </PageShell>
   );
