@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronDown, ChevronUp, Plus } from "lucide-react";
+import { ActionButton } from "@/app/components/action-button";
 import type { Dispatch, SetStateAction } from "react";
 import {
   ExerciseSearchSelect,
@@ -210,15 +211,16 @@ export function SessionAddExercisePanel(props: SessionAddExercisePanelProps) {
             </div>
           </div>
           <div className="mt-4 flex justify-end">
-            <button
+            <ActionButton
               type="button"
+              variant="secondary"
+              iconColor="sky"
               onClick={onSubmit}
               disabled={isAdding}
-              className="inline-flex h-10 items-center justify-center gap-1 rounded-md border px-3 py-2 text-sm hover:border-sky-400 hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-60"
             >
-              <Plus className="h-3.5 w-3.5 text-sky-700" aria-hidden />
+              <Plus className="h-4 w-4" aria-hidden />
               {isAdding ? "Adding..." : "Add exercise"}
-            </button>
+            </ActionButton>
           </div>
         </>
       ) : null}
@@ -303,22 +305,19 @@ export function SessionAddExerciseSheet(props: SessionAddExerciseSheetProps) {
           maxLength={maxExerciseNotesLength}
         />
         <div className="mt-1 flex gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex h-10 flex-1 items-center justify-center rounded-md border border-zinc-300 bg-zinc-50 px-3 text-sm text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
-          >
+          <ActionButton type="button" variant="secondary" onClick={onClose} className="!h-11 !w-auto min-w-0 flex-1">
             Cancel
-          </button>
-          <button
+          </ActionButton>
+          <ActionButton
             type="button"
+            variant="primary"
             onClick={onSubmit}
             disabled={isAdding}
-            className="inline-flex h-10 flex-1 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-3 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60"
+            className="!h-11 !w-auto min-w-0 flex-1"
           >
-            <Plus className="h-3.5 w-3.5 text-white" aria-hidden />
+            <Plus className="h-4 w-4" aria-hidden />
             {isAdding ? "Adding..." : "Add"}
-          </button>
+          </ActionButton>
         </div>
       </div>
     </SessionBottomSheet>

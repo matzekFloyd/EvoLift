@@ -1,6 +1,9 @@
 "use client";
 
 import { Check, Plus, RotateCcw, Trash2 } from "lucide-react";
+import { ActionButton } from "@/app/components/action-button";
+import { AppDialog } from "@/app/components/app-dialog";
+import { SectionHeading } from "@/app/components/section-heading";
 import { sessionLifecycleBadgeLabel, type SessionLifecycleStatus } from "@/lib/session-lifecycle";
 import { CREATED_FROM_BADGE_CLASS, sessionLifecycleBadgeClass } from "./session-detail-model";
 
@@ -17,6 +20,10 @@ type SessionHeaderProps = {
   isDeleteSessionConfirmOpen: boolean;
   showUndoCompleted: boolean;
   showMarkCompleted: boolean;
+  /** Compact logging keeps Finish in the sticky bar. The header shows it when that bar is absent. */
+  showHeaderFinish: boolean;
+  /** Filled only when no set on screen still owns the log. */
+  finishPrimary: boolean;
   onRequestDelete: () => void;
   onCancelDelete: () => void;
   onConfirmDelete: () => void;
@@ -39,6 +46,8 @@ export function SessionHeader({
   isDeleteSessionConfirmOpen,
   showUndoCompleted,
   showMarkCompleted,
+  showHeaderFinish,
+  finishPrimary,
   onRequestDelete,
   onCancelDelete,
   onConfirmDelete,
@@ -49,6 +58,7 @@ export function SessionHeader({
   const lifecycleBadge = sessionLifecycleBadgeLabel(lifecycleStatus);
   const lifecycleBadgeClass = sessionLifecycleBadgeClass(lifecycleStatus);
   const createdFromBadgeClass = CREATED_FROM_BADGE_CLASS;
+  const busy = isDeletingSession || isSavingSet || isMarkingCompleted;
 
   return (
     <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -87,84 +97,74 @@ export function SessionHeader({
         }`}
       >
         {!isReadOnly ? (
-          <>
-            <button
-              type="button"
-              onClick={onRequestDelete}
-              disabled={isDeletingSession || isSavingSet || isMarkingCompleted}
-              className={`inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-sm text-zinc-800 hover:border-sky-400 hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-60 ${
-                isCompactView ? "h-10 flex-1 justify-center" : "w-fit"
-              }`}
-            >
-              <Trash2 className="h-4 w-4 text-red-600" aria-hidden />
-              {isDeletingSession ? "Deleting..." : "Delete session"}
-            </button>
-            {isDeleteSessionConfirmOpen ? (
-              <div
-                className={`flex items-center gap-2 rounded-md border border-red-200 bg-red-50 px-2 py-1 ${
-                  isCompactView ? "w-full flex-wrap justify-center" : ""
-                }`}
-              >
-                <span className="text-xs text-red-800">
-                  Delete session #{sessionNumber ?? "?"}?
-                </span>
-                <button
-                  type="button"
-                  onClick={onConfirmDelete}
-                  disabled={isDeletingSession}
-                  className="rounded-md border border-red-300 px-2 py-1 text-xs text-red-800 hover:border-red-500 hover:bg-red-100 disabled:opacity-60"
-                >
-                  Confirm
-                </button>
-                <button
-                  type="button"
-                  onClick={onCancelDelete}
-                  disabled={isDeletingSession}
-                  className="rounded-md border px-2 py-1 text-xs hover:bg-white disabled:opacity-60"
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : null}
-          </>
+          <ActionButton
+            type="button"
+            variant="danger"
+            onClick={onRequestDelete}
+            disabled={busy}
+            size={isCompactView ? "sm" : "md"}
+            className={isCompactView ? "!h-9 !w-auto shrink-0" : ""}
+          >
+            <Trash2 className={isCompactView ? "h-3.5 w-3.5" : "h-4 w-4"} aria-hidden />
+            {isDeletingSession ? "Deleting..." : "Delete session"}
+          </ActionButton>
         ) : null}
         {showUndoCompleted ? (
-          <button
+          <ActionButton
             type="button"
+            variant="primary"
             onClick={() => void onUndoCompleted()}
-            disabled={isMarkingCompleted || isSavingSet || isDeletingSession}
-            className={`inline-flex items-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-3 py-1.5 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60 ${
-              isCompactView ? "h-10 flex-1 justify-center" : "w-fit"
-            }`}
+            disabled={busy}
+            className={isCompactView ? "!h-10 !w-auto min-w-0 flex-1" : ""}
           >
-            <RotateCcw className="h-4 w-4 text-white" aria-hidden />
+            <RotateCcw className="h-4 w-4" aria-hidden />
             {isMarkingCompleted ? "Saving..." : "Reopen session"}
-          </button>
+          </ActionButton>
         ) : null}
-        {!isReadOnly && showMarkCompleted ? (
-          <button
+        {!isReadOnly && showMarkCompleted && showHeaderFinish ? (
+          <ActionButton
             type="button"
-            onClick={onMarkCompleted}
-            disabled={isMarkingCompleted || isSavingSet || isDeletingSession}
-            className={`inline-flex items-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-3 py-1.5 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60 ${
-              isCompactView ? "h-10 flex-1 justify-center" : "w-fit"
-            }`}
+            variant={finishPrimary ? "primary" : "secondary"}
+            onClick={() => void onMarkCompleted()}
+            disabled={busy}
+            className={isCompactView ? "!h-10 !w-auto min-w-0 flex-1" : ""}
           >
-            <Check className="h-4 w-4 text-white" aria-hidden />
+            <Check className="h-4 w-4" aria-hidden />
             {isMarkingCompleted ? "Saving..." : "Finish session"}
-          </button>
+          </ActionButton>
         ) : null}
         {isCompactView && !isReadOnly ? (
-          <button
+          <ActionButton
             type="button"
+            variant="secondary"
+            iconColor="sky"
             onClick={onAddExercise}
-            className="inline-flex h-10 w-full items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-3 py-1.5 text-sm text-zinc-800 hover:border-sky-400 hover:bg-zinc-100 hover:text-zinc-900"
+            className="!h-10 !w-auto min-w-0 flex-1"
           >
-            <Plus className="h-4 w-4 text-sky-700" aria-hidden />
+            <Plus className="h-4 w-4" aria-hidden />
             Add exercise
-          </button>
+          </ActionButton>
         ) : null}
       </div>
+      {isDeleteSessionConfirmOpen ? (
+        <AppDialog titleId="delete-session-title" panelClassName="max-w-sm" onClose={onCancelDelete}>
+          <SectionHeading id="delete-session-title">
+            Delete session #{sessionNumber ?? "?"}?
+          </SectionHeading>
+          <p className="mt-1 text-sm text-zinc-600">
+            This removes the session and its logged sets. This cannot be undone.
+          </p>
+          <div className="mt-4 flex justify-end gap-2">
+            <ActionButton type="button" variant="secondary" disabled={isDeletingSession} onClick={onCancelDelete}>
+              Cancel
+            </ActionButton>
+            <ActionButton type="button" variant="danger" disabled={isDeletingSession} onClick={onConfirmDelete}>
+              <Trash2 className="h-4 w-4" aria-hidden />
+              {isDeletingSession ? "Deleting..." : "Delete"}
+            </ActionButton>
+          </div>
+        </AppDialog>
+      ) : null}
     </div>
   );
 }

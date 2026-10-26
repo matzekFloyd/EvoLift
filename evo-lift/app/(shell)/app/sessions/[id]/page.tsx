@@ -50,6 +50,13 @@ import {
   SessionAddExerciseSheet,
 } from "@/app/sessions/[id]/session-add-exercise";
 import { SessionCompactBar } from "@/app/sessions/[id]/session-compact-bar";
+import {
+  addSetComposerVisible,
+  exerciseLoggingPrimary,
+  finishSessionIsPrimary,
+  shownLogPrimary,
+  type SessionLogPrimary,
+} from "@/app/sessions/[id]/session-log-primary";
 import { SessionDetailsPanel } from "@/app/sessions/[id]/session-details-panel";
 import { SessionExerciseBlock } from "@/app/sessions/[id]/session-exercise-block";
 import { SessionHeader } from "@/app/sessions/[id]/session-header";
@@ -59,6 +66,7 @@ import type { SessionSetDraft as SetDraft } from "@/app/sessions/[id]/session-se
 import { useActiveExerciseReset } from "@/app/sessions/[id]/use-active-exercise-reset";
 import { useActiveExerciseUrl } from "@/app/sessions/[id]/use-active-exercise-url";
 import { useScrollActiveExerciseIntoView } from "@/app/sessions/[id]/use-scroll-active-exercise";
+import { compactLogShellPaddingClass } from "@/app/sessions/[id]/compact-log-scroll";
 import { useCompactLogFlow } from "@/app/sessions/[id]/use-compact-log-flow";
 import { useExerciseSuggestionSettings } from "@/app/sessions/[id]/use-exercise-suggestion-settings";
 import { useFullViewAddSetRows } from "@/app/sessions/[id]/use-full-view-add-set-rows";
@@ -408,6 +416,63 @@ function SessionDetailPageContent() {
     targetsSessionExerciseId,
     activeExerciseLabel,
   });
+  const desktopAddSetForwardIndex = shouldUseSingleExerciseFlow
+    ? -1
+    : sessionExercises.findIndex((sessionExercise) => {
+        const workingSetCount = workoutSets.filter(
+          (set) => set.session_exercise_id === sessionExercise.id && !set.is_warmup,
+        ).length;
+        const targetsMet =
+          sessionExercise.target_sets != null &&
+          sessionExercise.target_sets > 0 &&
+          workingSetCount >= sessionExercise.target_sets;
+        return addSetComposerVisible({
+          canManageSets,
+          targetsMet,
+          singleExerciseFlow: false,
+          showExtraSetComposer: false,
+          addRowExpanded: fullViewExpandAddSetRowIds.has(sessionExercise.id),
+        }).desktop;
+      });
+  const loggingPrimaryFor = (
+    sessionExercise: SessionExerciseRow,
+    index: number,
+  ): SessionLogPrimary => {
+    const workingSetCount = workoutSets.filter(
+      (set) => set.session_exercise_id === sessionExercise.id && !set.is_warmup,
+    ).length;
+    const targetsMet =
+      sessionExercise.target_sets != null &&
+      sessionExercise.target_sets > 0 &&
+      workingSetCount >= sessionExercise.target_sets;
+    return exerciseLoggingPrimary({
+      targetsOpen: targetsSessionExerciseId === sessionExercise.id && !isTargetsSheetOpen,
+      editingSet: workoutSets.some(
+        (set) => set.session_exercise_id === sessionExercise.id && set.id === editingSetId,
+      ),
+      canManageSets,
+      targetsMet,
+      singleExerciseFlow: shouldUseSingleExerciseFlow,
+      showExtraSetComposer: compactShowExtraSetComposer,
+      addRowExpanded: fullViewExpandAddSetRowIds.has(sessionExercise.id),
+      hasNextExercise: index < sessionExercises.length - 1,
+      canFinish: showMarkCompleted,
+      addSetForward: shouldUseSingleExerciseFlow
+        ? index === activeExerciseIndex
+        : index === desktopAddSetForwardIndex,
+    });
+  };
+  const exercisePrimaries = sessionExercises.map((sessionExercise, index) =>
+    loggingPrimaryFor(sessionExercise, index),
+  );
+  const activeLogPrimary = shownLogPrimary(
+    exercisePrimaries[activeExerciseIndex] ?? "none",
+    isEditingSessionDetails,
+  );
+  const finishPrimary = finishSessionIsPrimary(exercisePrimaries, {
+    canFinish: showMarkCompleted,
+    detailsEditing: isEditingSessionDetails,
+  });
   const nextLabel = stickyNextLabel({
     singleExerciseFlow: shouldUseSingleExerciseFlow,
     canManageSets,
@@ -430,10 +495,7 @@ function SessionDetailPageContent() {
   return (
     <PageShell
       className={
-        isCompactView
-          ? // Sticky bar height plus the same 0.75rem gap used between set rows.
-            "max-md:!pb-[calc(7.5rem+1px+max(0.75rem,env(safe-area-inset-bottom,0px)))]"
-          : undefined
+        isCompactView ? compactLogShellPaddingClass(activeLogPrimary === "finish") : undefined
       }
     >
       <DocumentTitle
@@ -452,6 +514,8 @@ function SessionDetailPageContent() {
         isDeleteSessionConfirmOpen={isDeleteSessionConfirmOpen}
         showUndoCompleted={showUndoCompleted}
         showMarkCompleted={showMarkCompleted}
+        showHeaderFinish={!isCompactView || sessionExercises.length === 0}
+        finishPrimary={finishPrimary}
         onRequestDelete={() => setIsDeleteSessionConfirmOpen(true)}
         onCancelDelete={() => setIsDeleteSessionConfirmOpen(false)}
         onConfirmDelete={deleteSession}
@@ -585,12 +649,10 @@ function SessionDetailPageContent() {
                 onDeleteSet={(setId) => {
                   void deleteSet(setId);
                 }}
-                onMarkCompleted={showMarkCompleted ? () => void markSessionCompleted() : undefined}
-                isMarkingCompleted={isMarkingCompleted}
-                onNextExercise={() =>
-                  setActiveExerciseIndex((prev) => Math.min(sessionExercises.length - 1, prev + 1))
-                }
-                onAddExercise={() => setIsAddExerciseSheetOpen(true)}
+                logPrimary={shownLogPrimary(
+                  exercisePrimaries[index] ?? "none",
+                  isEditingSessionDetails,
+                )}
                 onShowExtraSets={() => setCompactShowExtraSetComposer(true)}
                 onExpandFullAddSetRow={() => expandFullAddSetRow(sessionExercise.id)}
               />
@@ -613,12 +675,17 @@ function SessionDetailPageContent() {
           activeExerciseIndex={activeExerciseIndex}
           exerciseCount={sessionExercises.length}
           nextLabel={nextLabel}
+          nextPrimary={activeLogPrimary === "next-exercise"}
+          showFinish={showMarkCompleted}
+          finishPrimary={activeLogPrimary === "finish"}
+          isMarkingCompleted={isMarkingCompleted}
           isSavingNotDone={savingNotDoneId === activeSessionExercise.id}
           setActiveExerciseIndex={setActiveExerciseIndex}
           onToggleNotDone={() => {
             void toggleExerciseNotDone(activeSessionExercise);
           }}
           onSetTargets={() => startTargetsEdit(activeSessionExercise, "sheet")}
+          onFinish={() => void markSessionCompleted()}
         />
       ) : null}
       {!isReadOnly && isTargetsSheetOpen ? (

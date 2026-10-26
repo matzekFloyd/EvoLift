@@ -44,20 +44,21 @@ describe("session logging keyboard and screen-reader graph", () => {
 
     assert.match(setForm, /aria-label=\{loadFieldLabel\}/);
     assert.match(setForm, /aria-label="Reps"/);
-    assert.match(setForm, /aria-label=\{`Decrease \$\{loadFieldLabel\} by 2\.5`\}/);
-    assert.match(setForm, /aria-label=\{`Increase \$\{loadFieldLabel\} by 2\.5`\}/);
-    assert.match(setForm, /aria-label="Decrease reps by 1"/);
-    assert.match(setForm, /aria-label="Increase reps by 1"/);
-    assert.match(setForm, /<Plus className="h-3\.5 w-3\.5 text-sky-700" aria-hidden \/>/);
-    assert.match(setForm, /<Trash2 className="h-3 w-3 text-red-600" aria-hidden \/>/);
+    assert.match(setForm, /aria-label=\{label\}/);
+    assert.match(setForm, /label=\{`Decrease \$\{loadFieldLabel\} by 2\.5`\}/);
+    assert.match(setForm, /label=\{`Increase \$\{loadFieldLabel\} by 2\.5`\}/);
+    assert.match(setForm, /label="Decrease reps by 1"/);
+    assert.match(setForm, /label="Increase reps by 1"/);
+    assert.match(setForm, /<Plus className="h-4 w-4 shrink-0" aria-hidden \/>/);
+    assert.doesNotMatch(setForm, /text-emerald-600/);
 
-    assert.match(compactBar, /progressAriaLabel=\{`Exercise \$\{activeExerciseIndex \+ 1\} of \$\{exerciseCount\}`\}/);
-    assert.match(stickyBar, /progressAriaLabel/);
-    assert.match(stickyBar, /<span className="sr-only">\{progressAriaLabel \?\? progressLabel\}<\/span>/);
+    assert.match(exerciseBlock, /Exercise \{index \+ 1\} of \{exerciseCount\}/);
+    assert.doesNotMatch(stickyBar, /progressLabel/);
 
     assert.match(exerciseBlock, /aria-expanded=\{targetsOpenInline\}/);
-    assert.match(exerciseBlock, /History className="h-3\.5 w-3\.5 text-sky-700" aria-hidden/);
+    assert.match(exerciseBlock, /History className="h-3\.5 w-3\.5" aria-hidden/);
     assert.match(addExercise, /aria-expanded=\{isExpanded\}/);
-    assert.match(rowActions, /<Check className="h-3 w-3" aria-hidden \/>/);
+    assert.match(rowActions, /<Check className="h-3\.5 w-3\.5" aria-hidden \/>/);
+    assert.match(rowActions, /<Trash2 className="h-3\.5 w-3\.5" aria-hidden \/>/);
   });
 });

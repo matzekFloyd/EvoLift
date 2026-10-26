@@ -1,29 +1,32 @@
 "use client";
 
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import type { ReactNode } from "react";
+import { ActionButton } from "@/app/components/action-button";
 
 type CompactStickyBarProps = {
   actions: ReactNode;
-  progressLabel: string;
-  /** Spoken name for the progress text (e.g. "Exercise 1 of 3"). Defaults to `progressLabel`. */
-  progressAriaLabel?: string;
+  /** Quiet control between Previous and Next, such as Finish while it is not the forward action. */
+  center?: ReactNode;
   onPrevious: () => void;
   onNext: () => void;
   isPreviousDisabled: boolean;
   isNextDisabled: boolean;
   /** Defaults to "Next". Use e.g. "Next exercise" when guiding forward after a milestone. */
   nextLabel?: string;
+  /** Filled only when moving on is the one forward action. Otherwise zinc. */
+  nextPrimary?: boolean;
 };
 
 export function CompactStickyBar({
   actions,
-  progressLabel,
-  progressAriaLabel,
+  center,
   onPrevious,
   onNext,
   isPreviousDisabled,
   isNextDisabled,
   nextLabel = "Next",
+  nextPrimary = false,
 }: CompactStickyBarProps) {
   return (
     <div
@@ -31,28 +34,29 @@ export function CompactStickyBar({
       className="fixed inset-x-0 bottom-0 z-40 border-t border-zinc-200 bg-white/95 px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] shadow-[0_-6px_16px_rgba(0,0,0,0.08)] backdrop-blur md:hidden"
     >
       <div className="mx-auto flex w-full max-w-5xl flex-col gap-2">
-        <div className="flex items-stretch gap-1.5 sm:gap-2">{actions}</div>
+        <div className="flex flex-wrap items-stretch gap-1.5 sm:gap-2">{actions}</div>
         <div className="flex items-center justify-between gap-2">
-          <button
+          <ActionButton
             type="button"
+            variant="secondary"
             onClick={onPrevious}
             disabled={isPreviousDisabled}
-            className="inline-flex h-11 min-w-[96px] items-center justify-center rounded-md border border-zinc-300 bg-zinc-50 px-3 text-sm font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100 disabled:opacity-60"
+            className="!h-11 !w-auto min-w-0 flex-1"
           >
-            Previous
-          </button>
-          <span className="text-xs text-zinc-600">
-            <span aria-hidden>{progressLabel}</span>
-            <span className="sr-only">{progressAriaLabel ?? progressLabel}</span>
-          </span>
-          <button
+            <ChevronLeft className="h-4 w-4 shrink-0" aria-hidden />
+            <span className="truncate">Previous</span>
+          </ActionButton>
+          {center ? <div className="flex shrink-0 items-center">{center}</div> : null}
+          <ActionButton
             type="button"
+            variant={nextPrimary ? "primary" : "secondary"}
             onClick={onNext}
             disabled={isNextDisabled}
-            className="inline-flex h-11 min-w-[96px] items-center justify-center rounded-md border border-sky-700 bg-sky-700 px-3 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60"
+            className="!h-11 !w-auto min-w-0 flex-1"
           >
-            {nextLabel}
-          </button>
+            <span className="truncate">{nextLabel}</span>
+            <ChevronRight className="h-4 w-4 shrink-0" aria-hidden />
+          </ActionButton>
         </div>
       </div>
     </div>
