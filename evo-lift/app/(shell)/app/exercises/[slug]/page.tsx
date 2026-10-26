@@ -38,6 +38,7 @@ import {
   ExerciseVolumeChartSection,
   ExerciseWeightChartSection,
 } from "@/app/exercises/[slug]/exercise-chart-sections";
+import { openingDateRange } from "@/app/components/date-range-presets";
 import { ExerciseFiltersSection } from "@/app/exercises/[slug]/exercise-filters-section";
 import { ExerciseSetHistorySection } from "@/app/exercises/[slug]/exercise-set-history-section";
 import { MuscleAreaFigure } from "@/app/components/muscle-area-figure";
@@ -75,7 +76,7 @@ import {
   peekInsightsExerciseSets,
   type ExerciseWorkingSetSample,
 } from "@/lib/insights-data";
-import { getDefaultDateRange, getTodayYyyyMmDd } from "@/lib/session-date";
+import { getTodayYyyyMmDd } from "@/lib/session-date";
 
 type ExerciseRow = {
   id: string;
@@ -124,7 +125,8 @@ function ExerciseDetailPageContent() {
   const [trackedSlug, setTrackedSlug] = useState(slug);
   const assistance = isAssistanceExercise(slug);
   const loadColumnLabel = externalLoadFieldLabel(slug);
-  const defaultDateRange = useMemo(() => getDefaultDateRange(new Date()), []);
+  const presetToday = useMemo(() => new Date(), []);
+  const defaultDateRange = useMemo(() => openingDateRange(presetToday), [presetToday]);
   const [isLoading, setIsLoading] = useState(openedHistory == null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [isNotFound, setIsNotFound] = useState(false);
@@ -456,7 +458,7 @@ function ExerciseDetailPageContent() {
     return () => mediaQuery.removeEventListener("change", onChange);
   }, []);
 
-  /** “Clear filters” uses the full span of loaded sets for this exercise (not the 3-month landing default). */
+  /** “Clear filters” uses the full span of loaded sets for this exercise (not the 12-week landing default). */
   const fullHistoryClearDateRange = useMemo(
     () => computeFullHistoryClearDateRange(historyRows, getTodayYyyyMmDd()),
     [historyRows],
@@ -644,6 +646,7 @@ function ExerciseDetailPageContent() {
                 hasWarmupSets={hasWarmupSets}
                 isFullyCleared={isExerciseFiltersFullyCleared}
                 clearRange={fullHistoryClearDateRange}
+                presetToday={presetToday}
                 onCommit={commitExerciseFilters}
               />
               <ExerciseSummarySection

@@ -45,20 +45,10 @@ import {
 } from "@/lib/insights-data";
 import { buildPersonalBestRows } from "@/lib/personal-bests";
 import { withWeeklyMovingAverage } from "@/app/insights/insights-weekly-chart-data";
+import { DateRangePresetButtons } from "@/app/components/date-range-preset-buttons";
 import { getInsightsPresetRange } from "@/app/insights/insights-presets";
 import { getTodayYyyyMmDd } from "@/lib/session-date";
 
-type RangeOption = {
-  value: InsightsRange;
-  label: string;
-};
-
-const rangeOptions: RangeOption[] = [
-  { value: "4w", label: "4w" },
-  { value: "12w", label: "12w" },
-  { value: "6m", label: "6m" },
-  { value: "all", label: "All" },
-];
 const defaultInsightsRange: InsightsRange = "12w";
 
 const emptyLifterProfile: LifterProfile = {
@@ -376,30 +366,15 @@ export default function InsightsPage() {
                   className="mt-1 w-full rounded-md border bg-white px-2 py-1.5 text-sm"
                 />
               </label>
-              <div>
-                <p className="text-xs font-medium text-zinc-600">Range</p>
-                <div className="mt-1 grid w-full grid-cols-4 gap-1 rounded-md border border-zinc-300 bg-white p-1 sm:inline-flex sm:w-auto">
-                  {rangeOptions.map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => {
-                        setSelectedRange(option.value);
-                        const preset = getInsightsPresetRange(option.value, new Date());
-                        setDateFrom(preset.from);
-                        setDateTo(preset.to);
-                      }}
-                      className={`rounded px-3 py-1 text-xs font-medium ${
-                        selectedRange === option.value
-                          ? "bg-sky-100 text-sky-900"
-                          : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
-                      }`}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <DateRangePresetButtons
+                marked={selectedRange}
+                onSelect={(range) => {
+                  setSelectedRange(range);
+                  const preset = getInsightsPresetRange(range, new Date());
+                  setDateFrom(preset.from);
+                  setDateTo(preset.to);
+                }}
+              />
             </div>
             <ActionButton
               type="button"
