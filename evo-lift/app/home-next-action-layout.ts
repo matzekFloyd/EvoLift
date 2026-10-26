@@ -125,11 +125,37 @@ export function homePlanDayRowStartLabel(dayName: string): string {
   return `Start session from ${dayName}`;
 }
 
+export type HomePlanDayRowTone = "accent" | "muted" | "contrast";
+
 /**
- * Wash for a phone day row. Next is already sky, so it deepens.
- * Other days pick up the same sky hover as other tappable rows.
+ * Next day on a white panel stays the sky accent row. Other days stay muted.
+ * On the highlighted sky panel every day is a solid white row. A translucent
+ * grey row lets the blue show through the type.
  */
-export function homePlanDayRowHoverClass(isNext: boolean): string {
+export function homePlanDayRowTone(input: {
+  isNext: boolean;
+  planIsFocal: boolean;
+}): HomePlanDayRowTone {
+  if (input.planIsFocal) {
+    return "contrast";
+  }
+  return input.isNext ? "accent" : "muted";
+}
+
+/** Session date. Rows that carry a date are white, so the link stays sky. */
+export function homePlanDayDateClass(): string {
+  return "text-sky-800 underline-offset-2 hover:underline";
+}
+
+/**
+ * Wash for a phone day row. Next on a white panel is already sky, so it deepens.
+ * Rows on the highlighted panel are white, so the wash stays a solid grey.
+ * Other days on a white panel pick up the same sky hover as other tappable rows.
+ */
+export function homePlanDayRowHoverClass(isNext: boolean, planIsFocal = false): string {
+  if (planIsFocal) {
+    return "transition-colors hover:border-zinc-400 hover:bg-zinc-100 active:border-zinc-400 active:bg-zinc-100";
+  }
   return isNext
     ? "transition-colors hover:border-sky-400 hover:bg-sky-200 active:border-sky-400 active:bg-sky-200"
     : "transition-colors hover:border-sky-300 hover:bg-sky-100 active:border-sky-300 active:bg-sky-100";
