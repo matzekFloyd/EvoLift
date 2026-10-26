@@ -5,6 +5,8 @@ import { coerceKg, loadMilestoneWorkingSets } from "./milestone-sets";
 function setsClient(options: {
   exercises?: unknown;
   exercisesError?: string;
+  catalog?: unknown;
+  catalogError?: string;
   sets?: unknown;
   setsError?: string;
   sessions?: unknown;
@@ -15,11 +17,15 @@ function setsClient(options: {
       const failed =
         table === "workout_session_exercises"
           ? options.exercisesError
-          : options.setsError;
+          : table === "exercises"
+            ? options.catalogError
+            : options.setsError;
       const data =
         table === "workout_session_exercises"
           ? (options.exercises ?? [])
-          : (options.sets ?? []);
+          : table === "exercises"
+            ? (options.catalog ?? [])
+            : (options.sets ?? []);
       const result = failed ? { data: null, error: { message: failed } } : { data, error: null };
       const builder: Record<string, unknown> = {};
       const chain = () => builder;
@@ -83,6 +89,57 @@ describe("loadMilestoneWorkingSets", () => {
         exerciseId: "squat",
         reps: 5,
         totalKg: 80,
+        isWarmup: false,
+        performedAt: "2026-10-14T12:00:00Z",
+        performedOn: "2026-10-14",
+      },
+    ]);
+  });
+
+  it("keeps 0 kg assistance and drops a 0 kg total on other exercises", async () => {
+    const sets = await loadMilestoneWorkingSets(
+      setsClient({
+        catalog: [
+          { id: "dip", slug: "assisted-dip" },
+          { id: "squat", slug: "back-squat" },
+        ],
+        exercises: [
+          { id: "se-dip", exercise_id: "dip", base_weight_kg: 0, session_id: "session-1" },
+          { id: "se-squat", exercise_id: "squat", base_weight_kg: 0, session_id: "session-1" },
+        ],
+        sessions: [{ id: "session-1", performed_on: "2026-10-14", created_at: "2026-10-14T09:00:00Z" }],
+        sets: [
+          {
+            session_exercise_id: "se-dip",
+            reps: 8,
+            weight_kg: 0,
+            is_warmup: false,
+            performed_at: "2026-10-14T12:00:00Z",
+          },
+          {
+            session_exercise_id: "se-dip",
+            reps: 8,
+            weight_kg: null,
+            is_warmup: false,
+            performed_at: "2026-10-14T12:01:00Z",
+          },
+          {
+            session_exercise_id: "se-squat",
+            reps: 5,
+            weight_kg: 0,
+            is_warmup: false,
+            performed_at: "2026-10-14T12:02:00Z",
+          },
+        ],
+      }) as never,
+      ["dip", "squat"],
+      "user-1",
+    );
+    assert.deepEqual(sets, [
+      {
+        exerciseId: "dip",
+        reps: 8,
+        totalKg: 0,
         isWarmup: false,
         performedAt: "2026-10-14T12:00:00Z",
         performedOn: "2026-10-14",

@@ -53,6 +53,21 @@ describe("exercise history display", () => {
     assert.equal(stats.bestTotalKg, 120);
   });
 
+  it("uses the lowest assistance, including 0 kg, and keeps the average", () => {
+    const rows = [
+      { sessionId: "a", isWarmup: true, weightKg: 0, totalKg: 0 },
+      { sessionId: "a", isWarmup: false, weightKg: 0, totalKg: 0 },
+      { sessionId: "a", isWarmup: false, weightKg: 20, totalKg: 20 },
+      { sessionId: "a", isWarmup: false, weightKg: 10, totalKg: 10 },
+      { sessionId: "b", isWarmup: false, weightKg: null, totalKg: 0 },
+    ];
+    const least = summarizeExerciseHistory(rows, { assistance: true });
+    assert.equal(least.bestLoadedKg, 0);
+    assert.equal(least.avgLoadedKg, 10);
+    assert.equal(least.setCount, 5);
+    assert.equal(summarizeExerciseHistory(rows).bestLoadedKg, 20);
+  });
+
   it("describes a best set, a reached goal, and a plain set", () => {
     assert.equal(
       historyRowTitle({ goalLabel: "100 kg", isWarmup: false }, true),

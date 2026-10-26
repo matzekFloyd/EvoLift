@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isAssistanceExercise } from "@/lib/assistance-exercise";
 import {
   roundKg,
   workingSetTotalKg,
@@ -55,6 +56,7 @@ export async function loadMilestoneWorkingSets(
 
   const exercises = sessionExercises as SessionExerciseRow[];
   const exerciseBySessionExerciseId = new Map(exercises.map((row) => [row.id, row]));
+  const assistanceExerciseIds = await loadAssistanceExerciseIds(client, uniqueIds);
   const sessionExerciseIds = exercises.map((row) => row.id);
   if (sessionExerciseIds.length === 0) {
     return [];
@@ -98,7 +100,9 @@ export async function loadMilestoneWorkingSets(
     if (!sessionExercise || !performedOn) {
       continue;
     }
-    const totalKg = workingSetTotalKg(row.weight_kg, sessionExercise.base_weight_kg);
+    const totalKg = workingSetTotalKg(row.weight_kg, sessionExercise.base_weight_kg, {
+      assistance: assistanceExerciseIds.has(sessionExercise.exercise_id),
+    });
     if (totalKg == null) {
       continue;
     }
@@ -112,6 +116,27 @@ export async function loadMilestoneWorkingSets(
     });
   }
   return sets;
+}
+
+async function loadAssistanceExerciseIds(client: Client, exerciseIds: string[]): Promise<Set<string>> {
+  const { data, error } = await fetchInChunks(exerciseIds, (chunk, from, to) =>
+    client
+      .from("exercises")
+      .select("id, slug")
+      .in("id", chunk)
+      .order("id", { ascending: true })
+      .range(from, to),
+  );
+  if (error) {
+    throw new Error("Could not load workout sets.");
+  }
+  const assistance = new Set<string>();
+  for (const row of data as Array<{ id: string; slug: string }>) {
+    if (isAssistanceExercise(row.slug)) {
+      assistance.add(row.id);
+    }
+  }
+  return assistance;
 }
 
 export function coerceKg(value: number | string | null | undefined): number | null {

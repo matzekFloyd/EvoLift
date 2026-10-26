@@ -90,6 +90,7 @@ describe("buildExerciseProgressReport", () => {
       const label = slug === "assisted-dip" ? "Assisted Dip" : "Assisted Pull-Up";
       const report = buildExerciseProgressReport(
         [
+          sample({ slug, label, sessionId: "s0", performedOn: "2026-01-01", totalKg: 0, loadedKg: 0, reps: 8 }),
           sample({ slug, label, sessionId: "s1", performedOn: "2026-01-01" }),
           sample({ slug, label, sessionId: "s2", performedOn: "2026-01-20" }),
           sample({ slug, label, sessionId: "s3", performedOn: "2026-02-10" }),

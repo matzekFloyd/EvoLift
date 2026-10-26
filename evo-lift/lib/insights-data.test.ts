@@ -117,6 +117,32 @@ describe("insights history", () => {
     ]);
   });
 
+  it("keeps 0 kg assistance for personal bests and leaves it out of strength volume", async () => {
+    const tables = historyTables();
+    tables.exercises = { data: [{ id: "ex-1", slug: "assisted-dip" }], error: null };
+    tables.exercise_translations = { data: [{ exercise_id: "ex-1", name: "Assisted Dip" }], error: null };
+    tables.workout_sets = {
+      data: [
+        { session_exercise_id: "se-1", reps: 8, weight_kg: 0, is_warmup: false },
+        { session_exercise_id: "se-1", reps: 8, weight_kg: 20, is_warmup: false },
+        { session_exercise_id: "se-1", reps: 8, weight_kg: 30, is_warmup: true },
+      ],
+      error: null,
+    };
+    const { client } = queryClient(tables);
+    const history = await loadInsightsHistory(client as never, "user-1", WINDOW);
+    assert.deepEqual(
+      history.exerciseSets.map((sample) => sample.loadedKg),
+      [0, 20],
+    );
+    assert.deepEqual(
+      history.exerciseSets.map((sample) => sample.totalKg),
+      [0, 20],
+    );
+    assert.equal(history.weekly[0]?.volumeKg, 0);
+    assert.equal(history.activity[0]?.loadedKg, 0);
+  });
+
   it("names the failed query", async () => {
     const { client } = queryClient({
       workout_sessions: { data: null, error: { message: "down" } },

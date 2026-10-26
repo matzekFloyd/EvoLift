@@ -22,11 +22,13 @@ import { buildGoalSummaryBars } from "@/app/goals/goal-summary";
 import { draftFromRow } from "@/app/goals/goal-draft";
 import { definitionFromRow, storedFromRow } from "@/app/goals/goal-row";
 import { emptyGoalDraft, GoalEditorDialog, type GoalDraft } from "@/app/goals/goal-editor-dialog";
+import { isAssistanceExercise } from "@/lib/assistance-exercise";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { PRODUCT_TOUR_TARGET_IDS } from "@/lib/product-tour";
 import { exerciseOptionsForPicker, type ExercisePickerOption } from "@/lib/exercise-picker-options";
 import {
   formatBestSet,
+  formatMilestoneTarget,
   goalGapLabel,
   formatKgAmount,
   milestoneDefinitionChanged,
@@ -186,8 +188,12 @@ export default function GoalsPage() {
     });
 
   function bodyweightTarget(item: GoalListItem): string {
+    const definition = definitionFromRow(item.row);
+    if (isAssistanceExercise(item.slug) && definition.milestoneType === "absolute") {
+      return formatMilestoneTarget(definition, { assistance: true });
+    }
     return formatGoalBodyweightTarget({
-      definition: definitionFromRow(item.row),
+      definition,
       progress: item.progress,
       achievedBodyweightKg: storedFromRow(item.row).achievedBodyweightKg,
       bodyweightEntries,
@@ -243,6 +249,7 @@ export default function GoalsPage() {
           [parsed.definition.exerciseId],
           userId,
         );
+        const exerciseSlug = exerciseOptions.find((option) => option.id === parsed.definition.exerciseId)?.slug;
         const resolved = resolveMilestone({
           definition: parsed.definition,
           stored: existing ? storedFromRow(existing) : { achievedAt: null, achievedBodyweightKg: null, achievedThresholdKg: null },
@@ -251,6 +258,7 @@ export default function GoalsPage() {
           dueOn: parsed.dueOn,
           today: getTodayYyyyMmDd(),
           recalculate: true,
+          assistance: isAssistanceExercise(exerciseSlug),
         });
         payload.achieved_at = resolved.stored.achievedAt;
         payload.achieved_bodyweight_kg = resolved.stored.achievedBodyweightKg;

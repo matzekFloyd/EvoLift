@@ -6,6 +6,7 @@ import {
   formatPersonalBestDate,
   formatPersonalBestLoad,
   formatPersonalBestSet,
+  personalBestLoadMarkLabel,
   type PersonalBestRow,
 } from "@/lib/personal-bests";
 
@@ -17,13 +18,14 @@ type PersonalBestsPanelProps = {
 function rowDetail(row: PersonalBestRow): string {
   const best = formatPersonalBestSet(row.bestSet);
   const load = formatPersonalBestLoad(row.heaviestLoad);
-  return `Best set ${best}. Heaviest load ${load}.`;
+  return `Best set ${best}. ${personalBestLoadMarkLabel(row.isAssistance)} ${load}.`;
 }
 
 function rowMeta(row: PersonalBestRow): string {
+  const loadMeta = row.isAssistance ? "Least" : "Heaviest";
   const parts = [
     `Best ${formatPersonalBestDate(row.bestSet)}`,
-    `Heaviest ${formatPersonalBestDate(row.heaviestLoad)}`,
+    `${loadMeta} ${formatPersonalBestDate(row.heaviestLoad)}`,
   ];
   if (row.isAssistance) {
     parts.push("Assistance logged, not strength load");
@@ -60,15 +62,17 @@ export function PersonalBestsPanel({
         {rows.length} exercise{rows.length === 1 ? "" : "s"} with a logged best in this range.
       </p>
       <p className="mt-1 text-xs text-zinc-500">
-        Best set uses Total (kg), then reps. Heaviest load uses Loaded (kg).
+        Best set uses Total (kg), then reps. Heaviest load uses Loaded (kg). Assisted Dip and
+        Assisted Pull-Up use the least assistance for both marks.
       </p>
       <details className="mt-2 text-xs text-zinc-600">
         <summary className="cursor-pointer font-medium text-zinc-700">How ranking works</summary>
         <p className="mt-2 leading-relaxed">
           Warmups are left out. Best set picks the highest Total (kg), then the higher reps, then the
           earlier date. Heaviest load picks the highest Loaded (kg), then the earlier date. Dates are when
-          that mark was first hit in this range. Assisted Dip and Assisted Pull-Up still show numbers;
-          those figures are assistance, not the load you moved.
+          that mark was first hit in this range. On Assisted Dip and Assisted Pull-Up, Best set picks the
+          lowest assistance, then the higher reps, then the earlier date. Least assistance picks the lowest
+          Assistance (kg), then the earlier date. 0 kg is unassisted bodyweight.
         </p>
       </details>
 
@@ -111,7 +115,7 @@ export function PersonalBestsPanel({
                   date={formatPersonalBestDate(row.bestSet)}
                 />
                 <MarkBlock
-                  label="Heaviest load"
+                  label={personalBestLoadMarkLabel(row.isAssistance)}
                   value={formatPersonalBestLoad(row.heaviestLoad)}
                   date={formatPersonalBestDate(row.heaviestLoad)}
                 />

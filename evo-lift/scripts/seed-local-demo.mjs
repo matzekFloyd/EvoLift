@@ -77,6 +77,59 @@ const DEMO_TEMPLATES = [
 ];
 
 /** Extra sessions started from templates (notes used for idempotent top-up). */
+/**
+ * Assisted Dip history for the local demo. Logged kg is assistance, so later
+ * sessions use less help. 0 kg is unassisted. Warmups are heavier and must not
+ * become the mark. Notes keep the top-up idempotent.
+ */
+const ASSISTED_DIP_SLUG = "assisted-dip";
+const ASSISTED_DIP_SESSIONS = [
+  {
+    note: "Assisted Dip: 20 kg",
+    daysAgo: 35,
+    targetKg: 20,
+    sets: [
+      { reps: 5, weightKg: 30, isWarmup: true },
+      { reps: 8, weightKg: 25, isWarmup: false },
+      { reps: 8, weightKg: 25, isWarmup: false },
+      { reps: 6, weightKg: 20, isWarmup: false },
+    ],
+  },
+  {
+    note: "Assisted Dip: 15 kg",
+    daysAgo: 21,
+    targetKg: 15,
+    sets: [
+      { reps: 5, weightKg: 25, isWarmup: true },
+      { reps: 8, weightKg: 20, isWarmup: false },
+      { reps: 8, weightKg: 15, isWarmup: false },
+      { reps: 6, weightKg: 15, isWarmup: false },
+    ],
+  },
+  {
+    note: "Assisted Dip: 10 kg",
+    daysAgo: 10,
+    targetKg: 10,
+    sets: [
+      { reps: 3, weightKg: 20, isWarmup: true },
+      { reps: 8, weightKg: 15, isWarmup: false },
+      { reps: 8, weightKg: 10, isWarmup: false },
+      { reps: 10, weightKg: 10, isWarmup: false },
+    ],
+  },
+  {
+    note: "Assisted Dip: unassisted",
+    daysAgo: 3,
+    targetKg: 0,
+    sets: [
+      { reps: 3, weightKg: 15, isWarmup: true },
+      { reps: 8, weightKg: 5, isWarmup: false },
+      { reps: 8, weightKg: 0, isWarmup: false },
+      { reps: 10, weightKg: 0, isWarmup: false },
+    ],
+  },
+];
+
 const TEMPLATE_SESSION_SPECS = [
   { templateName: "Upper Power", weeksAgo: 1, dayOffset: 6, note: "Template: Upper Power" },
   { templateName: "Lower Strength", weeksAgo: 2, dayOffset: 6, note: "Template: Lower Strength" },
@@ -519,6 +572,85 @@ function buildPlannedSession(exerciseIdBySlug, planDay, performedOn, note) {
   return { sessions, sessionExercises };
 }
 
+function buildAssistedDipSession(exerciseId, spec, performed) {
+  const sessionId = randomUUID();
+  const sessionExerciseId = randomUUID();
+  const workingCount = spec.sets.filter((set) => !set.isWarmup).length;
+  return {
+    sessions: [
+      {
+        id: sessionId,
+        performed_on: toYyyyMmDd(performed),
+        notes: spec.note,
+        plan_id: null,
+        plan_day_id: null,
+        source_template_id: null,
+        ...finishedTimestamps(performed),
+      },
+    ],
+    sessionExercises: [
+      {
+        id: sessionExerciseId,
+        session_id: sessionId,
+        exercise_id: exerciseId,
+        position: 1,
+        target_sets: workingCount,
+        target_reps: 8,
+        target_weight_kg: spec.targetKg,
+        base_weight_kg: null,
+        notes: null,
+      },
+    ],
+    sets: spec.sets.map((set, setIndex) => ({
+      session_exercise_id: sessionExerciseId,
+      set_number: setIndex + 1,
+      reps: set.reps,
+      weight_kg: set.weightKg,
+      is_warmup: set.isWarmup,
+      performed_at: new Date(
+        performed.getFullYear(),
+        performed.getMonth(),
+        performed.getDate(),
+        18,
+        setIndex,
+      ).toISOString(),
+    })),
+  };
+}
+
+async function seedMissingAssistedDipSessions(supabase, userId, exerciseId) {
+  const notes = ASSISTED_DIP_SESSIONS.map((spec) => spec.note);
+  const { data: existing, error } = await supabase
+    .from("workout_sessions")
+    .select("notes")
+    .eq("user_id", userId)
+    .in("notes", notes);
+  if (error) {
+    throw new Error(`Could not read Assisted Dip sessions: ${error.message}`);
+  }
+  const have = new Set((existing ?? []).map((row) => row.notes));
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  let added = 0;
+  for (const spec of ASSISTED_DIP_SESSIONS) {
+    if (have.has(spec.note)) {
+      continue;
+    }
+    const performed = addDays(today, -spec.daysAgo);
+    const built = buildAssistedDipSession(exerciseId, spec, performed);
+    await insertChunks(
+      supabase,
+      "workout_sessions",
+      built.sessions.map((session) => ({ ...session, user_id: userId })),
+    );
+    await insertChunks(supabase, "workout_session_exercises", built.sessionExercises);
+    await insertChunks(supabase, "workout_sets", built.sets);
+    added += 1;
+  }
+  return added;
+}
+
 async function seedMissingPlannedSessions(supabase, userId, exerciseIdBySlug) {
   const notes = PLANNED_SESSION_SPECS.map((spec) => spec.note);
   const { data: existing, error } = await supabase
@@ -672,7 +804,7 @@ async function seed() {
     }
   }
 
-  const slugs = Object.values(LIFTS).map((lift) => lift.slug);
+  const slugs = [...Object.values(LIFTS).map((lift) => lift.slug), ASSISTED_DIP_SLUG];
   const { data: exercises, error: exerciseError } = await supabase
     .from("exercises")
     .select("id, slug")
@@ -724,6 +856,13 @@ async function seed() {
   const seededPlannedSessions = await seedMissingPlannedSessions(supabase, userId, exerciseIdBySlug);
   sessionCount += seededPlannedSessions;
 
+  const seededAssistedDipSessions = await seedMissingAssistedDipSessions(
+    supabase,
+    userId,
+    exerciseIdBySlug.get(ASSISTED_DIP_SLUG),
+  );
+  sessionCount += seededAssistedDipSessions;
+
   const createdLabel = created ? "Created" : "Using";
   const templateNames = templates.map((template) => template.name).join(", ");
   const templateCreated = templates.filter((template) => template.created).length;
@@ -731,6 +870,7 @@ async function seed() {
     seededPlanSessions ? `+${seededPlanSessions} history` : null,
     seededTemplateSessions ? `+${seededTemplateSessions} template` : null,
     seededPlannedSessions ? `+${seededPlannedSessions} planned` : null,
+    seededAssistedDipSessions ? `+${seededAssistedDipSessions} assisted dip` : null,
     removedPlans ? `-${removedPlans} old plans` : null,
   ].filter(Boolean);
   console.log(

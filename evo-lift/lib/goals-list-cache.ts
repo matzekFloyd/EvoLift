@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isAssistanceExercise } from "@/lib/assistance-exercise";
 import type { BodyweightLogEntry } from "@/lib/bodyweight-log";
 import { invalidateExerciseMetadataCache, loadExerciseMetadata } from "@/lib/exercise-metadata-cache";
 import type { ExercisePickerOption } from "@/lib/exercise-picker-options";
@@ -95,6 +96,7 @@ async function fetchGoalsList(
 
   const progressEntries: Array<[string, GoalProgress]> = [];
   const writes: Array<{ id: string; stored: StoredAchievement }> = [];
+  const slugByExerciseId = new Map(exerciseOptions.map((option) => [option.id, option.slug]));
   for (const row of milestones) {
     const resolved = resolveMilestone({
       definition: milestoneDefinition(row),
@@ -104,6 +106,7 @@ async function fetchGoalsList(
       dueOn: row.due_on,
       today,
       recalculate: false,
+      assistance: isAssistanceExercise(slugByExerciseId.get(row.exercise_id)),
     });
     progressEntries.push([row.id, resolved.progress]);
     if (resolved.shouldWrite) {

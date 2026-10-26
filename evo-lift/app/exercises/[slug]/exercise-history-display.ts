@@ -58,9 +58,13 @@ export type ExerciseHistoryStats = {
   bestTotalKg: number | null;
 };
 
-/** Same summary numbers as the exercise page. Warmups count as logged sets and are left out of load totals. */
+/**
+ * Same summary numbers as the exercise page. Warmups count as logged sets and are left out of load totals.
+ * On Assisted Dip and Assisted Pull-Up, `bestLoadedKg` is the lowest assistance, including 0 kg.
+ */
 export function summarizeExerciseHistory(
   rows: readonly ExerciseHistoryStatInput[],
+  options?: { assistance?: boolean },
 ): ExerciseHistoryStats {
   const bySession = new Map<string, number>();
   for (const row of rows) {
@@ -70,12 +74,14 @@ export function summarizeExerciseHistory(
   const workingRows = rows.filter((row) => !row.isWarmup);
   const loads = workingRows.map(loggedLoadKg).filter((value): value is number => value !== null);
   const totals = workingRows.map(setTotalKgForStats).filter((value): value is number => value !== null);
+  const bestLoadedKg =
+    loads.length === 0 ? null : options?.assistance ? Math.min(...loads) : Math.max(...loads);
   return {
     setCount: rows.length,
     avgSetsPerSession: counts.length === 0 ? null : counts.reduce((sum, count) => sum + count, 0) / counts.length,
     maxSetsInSession: counts.length === 0 ? null : Math.max(...counts),
     avgLoadedKg: loads.length === 0 ? null : loads.reduce((sum, value) => sum + value, 0) / loads.length,
-    bestLoadedKg: loads.length === 0 ? null : Math.max(...loads),
+    bestLoadedKg,
     avgTotalKg: totals.length === 0 ? null : totals.reduce((sum, value) => sum + value, 0) / totals.length,
     bestTotalKg: totals.length === 0 ? null : Math.max(...totals),
   };
