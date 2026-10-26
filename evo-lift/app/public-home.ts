@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { AUTH_REGISTER_PATH } from "@/lib/auth-email-redirect";
 import { APP_DOCUMENT_TITLE } from "@/lib/page-title";
 import { publicPageMetadata } from "@/lib/public-page-metadata";
 
@@ -14,7 +15,7 @@ export const PUBLIC_HOME_SUBHEAD = "Quick to write down while you train.";
 export const PUBLIC_HOME_FREE_LINE = "EvoLift is free.";
 
 export const PUBLIC_HOME_CTA_LABEL = "Start lifting";
-export const PUBLIC_HOME_CTA_HREF = "/login";
+export const PUBLIC_HOME_CTA_HREF = AUTH_REGISTER_PATH;
 
 export const PUBLIC_HOME_TERMS_LABEL = "Terms of use";
 export const PUBLIC_HOME_PRIVACY_LABEL = "Privacy policy";

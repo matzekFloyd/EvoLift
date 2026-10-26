@@ -4,6 +4,9 @@ export const AUTH_EMAIL_VERIFIED_PATH = "/login?verified=1";
 /** Path after password-recovery email; keeps `/login` open while the recovery session is active. */
 export const AUTH_EMAIL_RECOVERY_PATH = "/login?recovery=1";
 
+/** Public home opens Register. A visit to `/login` with no query stays on Log in. */
+export const AUTH_REGISTER_PATH = "/login?register=1";
+
 /** Path Google and Apple return to after the provider. No query, so it can sit on the redirect allow list. */
 export const AUTH_OAUTH_CALLBACK_PATH = "/auth/callback";
 
@@ -50,14 +53,26 @@ export function authOAuthRedirectUrl(input: {
 export function isAuthEmailRecoverySearch(
   search: string | URLSearchParams | null | undefined,
 ): boolean {
+  return authSearchParams(search)?.get("recovery") === "1";
+}
+
+/** True when the login URL should open Register (`?register=1`). */
+export function isAuthRegisterSearch(
+  search: string | URLSearchParams | null | undefined,
+): boolean {
+  return authSearchParams(search)?.get("register") === "1";
+}
+
+function authSearchParams(
+  search: string | URLSearchParams | null | undefined,
+): URLSearchParams | null {
   if (search == null) {
-    return false;
+    return null;
   }
-  const params =
-    typeof search === "string"
-      ? new URLSearchParams(search.startsWith("?") ? search.slice(1) : search)
-      : search;
-  return params.get("recovery") === "1";
+  if (typeof search === "string") {
+    return new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
+  }
+  return search;
 }
 
 function normalizeOrigin(value: string | null | undefined): string | null {

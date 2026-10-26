@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 import {
   friendlyAuthError,
+  loginArrivalMode,
   loginControlLabel,
   loginEmailError,
   loginPasswordError,
@@ -91,6 +92,22 @@ describe("login form", () => {
       }),
       null,
     );
+  });
+
+  it("opens Register from the home query and Log in from a direct visit", () => {
+    assert.equal(loginArrivalMode("register=1"), "register");
+    assert.equal(loginArrivalMode("?register=1"), "register");
+    assert.equal(loginArrivalMode(new URLSearchParams("register=1")), "register");
+    assert.equal(loginArrivalMode({ register: "1" }), "register");
+    assert.equal(loginArrivalMode({ register: ["1"] }), "register");
+    assert.equal(loginArrivalMode(""), "login");
+    assert.equal(loginArrivalMode(null), "login");
+    assert.equal(loginArrivalMode({}), "login");
+    assert.equal(loginArrivalMode("verified=1"), "login");
+    assert.equal(loginArrivalMode({ mfa: "1" }), "login");
+    assert.equal(loginArrivalMode("recovery=1"), "reset");
+    assert.equal(loginArrivalMode("?recovery=1&code=abc"), "reset");
+    assert.equal(loginArrivalMode({ recovery: "1", register: "1" }), "reset");
   });
 
   it("keeps the submit label busy until the page can leave", () => {

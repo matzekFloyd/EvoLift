@@ -4,9 +4,11 @@ import {
   AUTH_EMAIL_RECOVERY_PATH,
   AUTH_EMAIL_VERIFIED_PATH,
   AUTH_OAUTH_CALLBACK_PATH,
+  AUTH_REGISTER_PATH,
   authEmailRedirectUrl,
   authOAuthRedirectUrl,
   isAuthEmailRecoverySearch,
+  isAuthRegisterSearch,
   resolveAppOrigin,
 } from "./auth-email-redirect";
 
@@ -84,6 +86,17 @@ describe("auth-email-redirect", () => {
     assert.equal(isAuthEmailRecoverySearch("verified=1"), false);
     assert.equal(isAuthEmailRecoverySearch(""), false);
     assert.equal(isAuthEmailRecoverySearch(null), false);
+  });
+
+  it("detects the register arrival query", () => {
+    assert.equal(AUTH_REGISTER_PATH, "/login?register=1");
+    assert.equal(isAuthRegisterSearch("register=1"), true);
+    assert.equal(isAuthRegisterSearch("?register=1"), true);
+    assert.equal(isAuthRegisterSearch(new URLSearchParams("register=1")), true);
+    assert.equal(isAuthRegisterSearch("register=0"), false);
+    assert.equal(isAuthRegisterSearch("verified=1"), false);
+    assert.equal(isAuthRegisterSearch(""), false);
+    assert.equal(isAuthRegisterSearch(null), false);
   });
 
   it("returns null when no origin is available", () => {

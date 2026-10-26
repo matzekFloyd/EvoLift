@@ -1,6 +1,52 @@
+import { isAuthEmailRecoverySearch, isAuthRegisterSearch } from "@/lib/auth-email-redirect";
 import { passwordStrengthError } from "@/lib/password-policy";
 
 export type LoginPanelMode = "login" | "register" | "forgot" | "reset";
+
+export type LoginArrivalSearch =
+  | string
+  | URLSearchParams
+  | { [key: string]: string | string[] | undefined }
+  | null
+  | undefined;
+
+/**
+ * Tab shown when `/login` opens.
+ * Recovery stays on set-password. `?register=1` opens Register. Anything else, including a bare `/login`, opens Log in.
+ */
+export function loginArrivalMode(search: LoginArrivalSearch): LoginPanelMode {
+  const params = loginSearchParams(search);
+  if (isAuthEmailRecoverySearch(params)) {
+    return "reset";
+  }
+  if (isAuthRegisterSearch(params)) {
+    return "register";
+  }
+  return "login";
+}
+
+function loginSearchParams(search: LoginArrivalSearch): URLSearchParams {
+  if (search == null) {
+    return new URLSearchParams();
+  }
+  if (typeof search === "string") {
+    return new URLSearchParams(search.startsWith("?") ? search.slice(1) : search);
+  }
+  if (search instanceof URLSearchParams) {
+    return search;
+  }
+  const params = new URLSearchParams();
+  for (const [key, value] of Object.entries(search)) {
+    if (typeof value === "string") {
+      params.append(key, value);
+    } else if (Array.isArray(value)) {
+      for (const item of value) {
+        params.append(key, item);
+      }
+    }
+  }
+  return params;
+}
 
 export type LoginSubmitAction = LoginPanelMode | "mfa";
 

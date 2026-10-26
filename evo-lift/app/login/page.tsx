@@ -1,7 +1,7 @@
 "use client";
 
 import { CircleCheck } from "lucide-react";
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, use, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -22,6 +22,7 @@ import { StatusNotice } from "@/app/components/status-notice";
 import { actionLinkClassName, quietLinkClassName } from "@/app/components/inline-link-class";
 import {
   friendlyAuthError,
+  loginArrivalMode,
   loginControlLabel,
   loginEmailError,
   loginPasswordError,
@@ -53,9 +54,14 @@ import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 
 const LOGIN_A11Y_PREFIX = "login-auth";
 
-export default function LoginPage() {
+export default function LoginPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+  const arrivalMode = loginArrivalMode(use(searchParams));
   const router = useRouter();
-  const [mode, setMode] = useState<LoginPanelMode>("login");
+  const [mode, setMode] = useState<LoginPanelMode>(arrivalMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");

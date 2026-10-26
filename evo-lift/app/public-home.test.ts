@@ -55,9 +55,9 @@ describe("public home", () => {
     assert.equal(PUBLIC_APP_ORIGIN, "https://evolift.at");
   });
 
-  it("sends Start lifting to the login page", () => {
+  it("opens Register from Start lifting", () => {
     assert.equal(PUBLIC_HOME_CTA_LABEL, "Start lifting");
-    assert.equal(PUBLIC_HOME_CTA_HREF, "/login");
+    assert.equal(PUBLIC_HOME_CTA_HREF, "/login?register=1");
     assert.equal(PUBLIC_HOME_TERMS_LABEL, "Terms of use");
     assert.equal(PUBLIC_HOME_PRIVACY_LABEL, "Privacy policy");
   });
@@ -124,7 +124,7 @@ describe("public home", () => {
     assert.doesNotMatch(page, /aria-label/);
 
     assert.equal(PUBLIC_HOME_CTA_LABEL, "Start lifting");
-    assert.equal(PUBLIC_HOME_CTA_HREF, "/login");
+    assert.equal(PUBLIC_HOME_CTA_HREF, "/login?register=1");
     assert.equal(PUBLIC_HOME_TERMS_LABEL, "Terms of use");
     assert.equal(PUBLIC_HOME_PRIVACY_LABEL, "Privacy policy");
     assert.match(login, /label: "Register"/);
