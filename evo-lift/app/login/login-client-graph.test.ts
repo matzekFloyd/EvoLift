@@ -37,6 +37,13 @@ describe("login client graph", () => {
     assert.match(brand, />EvoLift</);
   });
 
+  it("opens on the arrival mode from the login query", () => {
+    const login = readFileSync(join(appDir, "login", "page.tsx"), "utf8");
+
+    assert.match(login, /const arrivalMode = loginArrivalMode\(use\(searchParams\)\)/);
+    assert.match(login, /useState<LoginPanelMode>\(arrivalMode\)/);
+  });
+
   it("exposes forgot-password recovery from login mode", () => {
     const login = readFileSync(join(appDir, "login", "page.tsx"), "utf8");
 
