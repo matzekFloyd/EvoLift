@@ -93,7 +93,7 @@ export default function PublicHomePage() {
             <PublicHomeInsightsExample />
           </div>
         </section>
-        <section>
+        <section className="flex flex-1 flex-col justify-center">
           <div className="mx-auto flex w-full max-w-5xl flex-col items-center gap-8 px-4 py-12 text-center sm:px-6 lg:flex-row lg:items-center lg:justify-between lg:gap-12 lg:text-left">
             <p className="w-full max-w-2xl text-3xl font-semibold text-zinc-900">
               {PUBLIC_HOME_CLOSE_LINES.map((line) => (

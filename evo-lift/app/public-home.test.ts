@@ -178,6 +178,7 @@ describe("public home", () => {
       ["...keep your plan and your pace."],
     );
     assert.match(page, /PUBLIC_HOME_CLOSE_LINES/);
+    assert.match(page, /flex flex-1 flex-col justify-center/);
     assert.doesNotMatch(page, /You leave with the numbers/);
     assert.match(page, /size="lg"/);
     assert.equal(PUBLIC_HOME_INSIGHTS_LIFT.exercise, PUBLIC_HOME_EXAMPLE.exercise);
