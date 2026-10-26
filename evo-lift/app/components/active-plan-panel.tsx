@@ -9,6 +9,7 @@ import { CollapsibleSection } from "@/app/components/collapsible-section";
 import { ContentPlaceholder } from "@/app/components/content-placeholder";
 import { AppDialog } from "@/app/components/app-dialog";
 import { DateInput } from "@/app/components/date-input";
+import { ExerciseBadgeChip } from "@/app/components/exercise-badge-chip";
 import { NotesTextareaField } from "@/app/components/notes-textarea-field";
 import { PanelInset } from "@/app/components/panel-inset";
 import { SectionHeading } from "@/app/components/section-heading";
@@ -19,6 +20,7 @@ import {
   homePlanDayShowsRowAction,
   homePlanDaysStartsOpen,
 } from "@/app/home-next-action-layout";
+import { planDayExerciseSlugs } from "@/app/plan-day-exercise-slugs";
 import { appPath } from "@/lib/app-paths";
 import { PRODUCT_TOUR_TARGET_IDS } from "@/lib/product-tour";
 import { continueSessionExerciseId } from "@/lib/continue-session-exercise";
@@ -83,6 +85,7 @@ type PlanDayView = {
   name: string;
   position: number;
   exerciseCount: number;
+  exerciseSlugs: string[];
 };
 
 type PlanSessionView = {
@@ -145,7 +148,9 @@ export function ActivePlanPanel({
     async function load() {
       const { data, error } = await supabaseBrowserClient
         .from("workout_plans")
-        .select("id, name, workout_plan_days(id, name, position, workout_plan_day_exercises(id))")
+        .select(
+          "id, name, workout_plan_days(id, name, position, workout_plan_day_exercises(position, exercises(slug)))",
+        )
         .eq("is_active", true)
         .maybeSingle();
 
@@ -171,6 +176,7 @@ export function ActivePlanPanel({
           name: day.name,
           position: day.position,
           exerciseCount: day.workout_plan_day_exercises?.length ?? 0,
+          exerciseSlugs: planDayExerciseSlugs(day.workout_plan_day_exercises),
         }))
         .sort((a, b) => a.position - b.position);
 
@@ -379,16 +385,23 @@ export function ActivePlanPanel({
                     </span>
                   ) : null}
                 </p>
+                {day.exerciseSlugs.length > 0 ? (
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {day.exerciseSlugs.map((slug, index) => (
+                      <ExerciseBadgeChip key={`${day.id}-${index}-${slug}`} slug={slug} />
+                    ))}
+                  </div>
+                ) : null}
                 {linked ? (
                   <Link
                     href={appPath(`/sessions/${linked.id}`)}
-                    className="text-xs font-medium text-sky-800 underline-offset-2 hover:underline"
+                    className="mt-1 inline-block text-xs font-medium text-sky-800 underline-offset-2 hover:underline"
                   >
                     {formatDateOnlyForLocale(linked.performedOn)}
                   </Link>
-                ) : (
+                ) : day.exerciseSlugs.length === 0 ? (
                   <p className="text-xs text-zinc-500">Not logged yet.</p>
-                )}
+                ) : null}
               </div>
               {showRowAction ? (
                 <ActionButton
