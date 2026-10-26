@@ -24,7 +24,7 @@ export const metadata: Metadata = publicHomeMetadata;
 function PublicHomeCta({ className }: { className: string }) {
   return (
     <div className={`flex justify-center lg:justify-start ${className}`}>
-      <ActionLink href={PUBLIC_HOME_CTA_HREF} variant="primary" size="lg">
+      <ActionLink href={PUBLIC_HOME_CTA_HREF} variant="primary" size="lg" className="public-home-cta">
         {PUBLIC_HOME_CTA_LABEL}
         <span className="relative -top-1 text-xs leading-none">*</span>
       </ActionLink>
@@ -38,6 +38,16 @@ const bandRowClassName =
 export default function PublicHomePage() {
   return (
     <div className="relative flex min-h-full flex-1 flex-col bg-zinc-50">
+      <style>{`
+        @media (prefers-reduced-motion: no-preference) {
+          .public-home-cta {
+            transition: transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+          }
+          .public-home-cta:active {
+            transform: scale(0.97);
+          }
+        }
+      `}</style>
       <a
         href="#offer"
         className="sr-only focus-visible:not-sr-only focus-visible:absolute focus-visible:top-4 focus-visible:left-4 focus-visible:z-20 focus-visible:rounded-md focus-visible:bg-white focus-visible:px-3 focus-visible:py-2 focus-visible:text-sm focus-visible:font-medium focus-visible:text-zinc-900 focus-visible:ring-2 focus-visible:ring-sky-700"

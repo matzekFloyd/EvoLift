@@ -91,6 +91,11 @@ describe("public home", () => {
     assert.match(page, /EvoLiftBrand/);
     assert.match(page, /ActionLink/);
     assert.match(page, /variant="primary"/);
+    assert.match(page, /className="public-home-cta"/);
+    assert.match(page, /@media \(prefers-reduced-motion: no-preference\) \{\s*\.public-home-cta \{/);
+    assert.match(page, /transition: transform 160ms cubic-bezier\(0\.23, 1, 0\.32, 1\)/);
+    assert.match(page, /\.public-home-cta:active \{\s*transform: scale\(0\.97\);/);
+    assert.doesNotMatch(page, /transition:\s*all/);
     assert.match(page, /PUBLIC_HOME_CTA_LABEL/);
     assert.match(page, /prefetch=\{false\}/);
     assert.doesNotMatch(page, /max-w-\[28rem\]|mt-auto|PUBLIC_HOME_REGISTER/);
