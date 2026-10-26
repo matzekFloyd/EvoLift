@@ -1,6 +1,7 @@
 import { Check, Mail } from "lucide-react";
 import type { AccountEmailState } from "@/app/account/use-account-email";
 import { SettingsSection, SettingsSectionBody } from "@/app/components/settings-section";
+import { TextField } from "@/app/components/text-field";
 import { SettingsSectionHeader } from "@/app/components/settings-section-header";
 import { StatusNotice } from "@/app/components/status-notice";
 
@@ -22,22 +23,22 @@ export function AccountEmailSection({
       <SettingsSectionBody>
         <label className="block text-sm font-medium">
           Current email
-          <input
+          <TextField
             type="email"
             readOnly
             value={userEmail ?? "unknown user"}
-            className="mt-1 w-full rounded-md border bg-zinc-50 px-3 py-2 text-sm text-zinc-700"
+            className="mt-1 w-full"
           />
         </label>
         <form onSubmit={handleSubmit} className="mt-4 space-y-3">
           <label className="block text-sm font-medium">
             New email
-            <input
+            <TextField
               type="email"
               required
               value={newEmail}
               onChange={(event) => setNewEmail(event.target.value)}
-              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+              className="mt-1 w-full"
               placeholder="new-email@example.com"
             />
           </label>

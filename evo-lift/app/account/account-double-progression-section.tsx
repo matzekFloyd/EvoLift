@@ -1,5 +1,6 @@
 import { Save, TrendingUp } from "lucide-react";
 import type { DoubleProgressionState } from "@/app/account/use-double-progression";
+import { SelectField } from "@/app/components/select-field";
 import { SettingsSection, SettingsSectionBody } from "@/app/components/settings-section";
 import { SettingsSectionHeader } from "@/app/components/settings-section-header";
 import { StatusNotice } from "@/app/components/status-notice";
@@ -25,14 +26,14 @@ export function AccountDoubleProgressionSection({
           <div className="grid gap-3 sm:grid-cols-3 sm:items-end">
             <label className="block min-w-0 text-sm font-medium">
               Use double progression
-              <select
+              <SelectField
                 value={enabled ? "yes" : "no"}
                 onChange={(event) => setEnabled(event.target.value === "yes")}
-                className="mt-1 block h-10 w-full rounded-md border bg-white px-3 text-sm"
+                className="mt-1 w-full"
               >
                 <option value="no">No</option>
                 <option value="yes">Yes</option>
-              </select>
+              </SelectField>
             </label>
             <div className="hidden sm:block" aria-hidden />
             <div className="grid min-w-0 grid-cols-2 gap-2">

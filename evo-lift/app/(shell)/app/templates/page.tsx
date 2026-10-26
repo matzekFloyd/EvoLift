@@ -1,6 +1,6 @@
 "use client";
 
-import { FileStack, Play, Trash2 } from "lucide-react";
+import { Play, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -12,6 +12,7 @@ import { NAMED_LIST_PLACEHOLDER_ROWS } from "@/app/components/content-placeholde
 import { PageAddAction } from "@/app/components/page-add-action";
 import { appPath } from "@/lib/app-paths";
 import { DateInput } from "@/app/components/date-input";
+import { NotesTextareaField } from "@/app/components/notes-textarea-field";
 import { PageShell } from "@/app/components/page-shell";
 import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
@@ -19,11 +20,16 @@ import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
 import { confirmSignedInUser } from "@/lib/confirm-signed-in-user";
 import { rememberedUserId } from "@/lib/signed-in-memory";
 import { invalidateTemplatesList, loadTemplatesList, peekTemplatesList, templatesListEpoch } from "@/lib/templates-list-cache";
+import { toggleNamedListSortDirection } from "@/lib/named-list-sort";
 import {
-  sortRowsByName,
-  toggleNamedListSortDirection,
-  type NamedListSortDirection,
-} from "@/lib/named-list-sort";
+  sortTemplateListRows,
+  TEMPLATE_LIST_EMPTY_ACTION,
+  TEMPLATE_LIST_EMPTY_LEAD,
+  TEMPLATE_LIST_EMPTY_TAIL,
+  templateEditHref,
+  templateExerciseCountLabel,
+  type TemplateListSort,
+} from "./template-list";
 import { getTodayYyyyMmDd } from "@/lib/session-date";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
@@ -47,12 +53,17 @@ export default function TemplatesPage() {
   const [isStartingSession, setIsStartingSession] = useState(false);
   const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [nameSortDirection, setNameSortDirection] = useState<NamedListSortDirection>("asc");
+  const [sort, setSort] = useState<TemplateListSort>({ key: "name", direction: "asc" });
 
-  const sortedTemplates = useMemo(
-    () => sortRowsByName(templates, nameSortDirection),
-    [nameSortDirection, templates],
-  );
+  const sortedTemplates = useMemo(() => sortTemplateListRows(templates, sort), [sort, templates]);
+
+  function toggleSort(key: TemplateListSort["key"]) {
+    setSort((current) =>
+      current.key === key
+        ? { key, direction: toggleNamedListSortDirection(current.direction) }
+        : { key, direction: "asc" },
+    );
+  }
 
   function showError(text: string) {
     setMessageTone("error");
@@ -185,10 +196,7 @@ export default function TemplatesPage() {
   return (
     <PageShell>
       <div className="flex items-center justify-between gap-3">
-        <h1 className="inline-flex items-center gap-2 text-2xl font-semibold tracking-tight">
-          <FileStack className="h-6 w-6 text-sky-700" />
-          Templates
-        </h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Templates</h1>
         <PageAddAction href={appPath("/templates/new")} label="Create template" />
       </div>
 
@@ -218,27 +226,44 @@ export default function TemplatesPage() {
             className="mt-4"
           />
         ) : loadError ? (
-          <p className="mt-4 text-sm text-red-600">{loadError}</p>
+          <StatusNotice className="mt-4" message={loadError} tone="error" />
         ) : templates.length === 0 ? (
-          <p className="mt-4 text-center text-sm text-zinc-600">No templates yet.</p>
+          <p className="mt-4 text-sm text-zinc-600">
+            {TEMPLATE_LIST_EMPTY_LEAD}{" "}
+            <Link
+              href={appPath("/templates/new")}
+              className="font-medium text-sky-800 underline-offset-2 hover:underline"
+            >
+              {TEMPLATE_LIST_EMPTY_ACTION}
+            </Link>{" "}
+            {TEMPLATE_LIST_EMPTY_TAIL}
+          </p>
         ) : (
           <NamedListTable
             className="mt-4"
-            sortDirection={nameSortDirection}
-            onToggleSort={() => setNameSortDirection((prev) => toggleNamedListSortDirection(prev))}
-            countHeading={
-              <>
-                <span className="sm:hidden">Ex.</span>
-                <span className="hidden sm:inline">Exercises</span>
-              </>
-            }
+            sortDirection={sort.direction}
+            nameSortActive={sort.key === "name"}
+            onToggleSort={() => toggleSort("name")}
+            countSort={{
+              label: "Exercises",
+              active: sort.key === "exercises",
+              direction: sort.direction,
+              onToggle: () => toggleSort("exercises"),
+              tracks: "count",
+            }}
+            embedActions
           >
             {sortedTemplates.map((row) => (
               <NamedListTableRow
                 key={row.id}
                 name={row.name}
-                href={appPath(`/templates/${row.id}/edit`)}
-                count={row.exerciseCount}
+                href={templateEditHref(row.id)}
+                detailInline
+                detail={
+                  <p className="justify-self-end text-sm whitespace-nowrap text-zinc-600 md:justify-self-start">
+                    {templateExerciseCountLabel(row.exerciseCount)}
+                  </p>
+                }
               >
                 <ActionButton
                   type="button"
@@ -280,32 +305,29 @@ export default function TemplatesPage() {
               className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
             />
           </label>
-          <label className="mt-3 block text-sm font-medium text-zinc-800">
-            Session notes (optional)
-            <textarea
+          <div className="mt-3">
+            <NotesTextareaField
+              label="Session notes (optional)"
               value={useSessionNotes}
-              onChange={(e) => setUseSessionNotes(e.target.value)}
-              className="mt-1 h-20 w-full rounded-md border px-3 py-2 text-sm"
+              onChange={setUseSessionNotes}
               maxLength={500}
+              heightClassName="h-20"
               placeholder="Optional notes for this session"
             />
-          </label>
+          </div>
           <div className="mt-4 flex flex-wrap justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setUseDialogTemplateId(null)}
-              className="rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
-            >
+            <ActionButton type="button" variant="secondary" size="md" onClick={() => setUseDialogTemplateId(null)}>
               Cancel
-            </button>
-            <button
+            </ActionButton>
+            <ActionButton
               type="button"
+              variant="primary"
+              size="md"
               disabled={isStartingSession}
               onClick={() => void confirmUseTemplate()}
-              className="rounded-md border border-sky-700 bg-sky-700 px-3 py-2 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60"
             >
               {isStartingSession ? "Starting…" : "Start session"}
-            </button>
+            </ActionButton>
           </div>
         </AppDialog>
       ) : null}
@@ -321,21 +343,18 @@ export default function TemplatesPage() {
             This removes the template only. Existing workout sessions stay unchanged.
           </p>
           <div className="mt-4 flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setDeleteTargetId(null)}
-              className="rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
-            >
+            <ActionButton type="button" variant="secondary" size="md" onClick={() => setDeleteTargetId(null)}>
               Cancel
-            </button>
-            <button
+            </ActionButton>
+            <ActionButton
               type="button"
+              variant="danger"
+              size="md"
               disabled={isDeleting}
               onClick={() => void confirmDelete()}
-              className="rounded-md border border-red-600 bg-red-600 px-3 py-2 text-sm font-medium text-white hover:border-red-700 hover:bg-red-700 disabled:opacity-60"
             >
               {isDeleting ? "Deleting…" : "Delete"}
-            </button>
+            </ActionButton>
           </div>
         </AppDialog>
       ) : null}

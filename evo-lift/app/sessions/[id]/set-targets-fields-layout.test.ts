@@ -5,7 +5,6 @@ import { fileURLToPath } from "node:url";
 import { describe, it } from "vitest";
 import {
   setTargetsFieldGridClassName,
-  setTargetsFieldInputClassName,
   setTargetsFieldLabelClassName,
 } from "./set-targets-fields-layout";
 
@@ -16,7 +15,9 @@ describe("set targets field layout", () => {
     assert.match(setTargetsFieldGridClassName, /grid-cols-3/);
     assert.match(setTargetsFieldGridClassName, /items-start/);
     assert.match(setTargetsFieldLabelClassName, /self-end/);
-    assert.doesNotMatch(setTargetsFieldInputClassName, /h-full|self-stretch/);
+    const source = readFileSync(join(sessionDir, "set-targets-fields.tsx"), "utf8");
+    assert.match(source, /<TextField/);
+    assert.doesNotMatch(source, /h-full|self-stretch/);
   });
 
   it("puts the three labels on the row above the inputs", () => {

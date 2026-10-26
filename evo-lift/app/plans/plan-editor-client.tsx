@@ -4,6 +4,8 @@ import { ArrowLeft, ChevronDown, ChevronUp, Plus, Save, Trash2 } from "lucide-re
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { ActionButton, ActionLink } from "@/app/components/action-button";
+import { Checkbox } from "@/app/components/checkbox";
+import { TextField } from "@/app/components/text-field";
 import {
   EditorHeading,
   OptionalNotesField,
@@ -19,6 +21,7 @@ import { AppDialog } from "@/app/components/app-dialog";
 import { PageShell } from "@/app/components/page-shell";
 import { StatusNotice } from "@/app/components/status-notice";
 import { MuscleAreaCoverageChart } from "@/app/components/muscle-area-coverage-chart";
+import { SampleWeek } from "@/app/components/sample-week-row";
 import { WorkoutExerciseDraftList } from "@/app/components/workout-exercise-draft-list";
 import {
   createDayDraft,
@@ -29,7 +32,7 @@ import {
   type DayDraft,
 } from "@/app/plans/plan-day-draft";
 import { appPath } from "@/lib/app-paths";
-import { normalizePlanDraft } from "@/lib/plan-draft";
+import { PLAN_DAY_LIMIT_MESSAGE, normalizePlanDraft, planDayLimitReached } from "@/lib/plan-draft";
 import type { Database } from "@/lib/supabase/database.types";
 import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
@@ -64,7 +67,7 @@ function DayOrderActions({
     <div
       className={
         besideSummary
-          ? "flex w-[6.75rem] shrink-0 flex-col gap-1.5 sm:w-auto sm:flex-row sm:gap-2 max-sm:[&>*]:w-full"
+          ? "flex w-full flex-row gap-2 max-md:[&>*]:min-w-0 max-md:[&>*]:flex-1 max-md:[&>*]:!w-auto md:w-auto md:shrink-0"
           : "flex w-full gap-2 sm:w-auto max-sm:[&>*]:min-w-0 max-sm:[&>*]:flex-1"
       }
     >
@@ -342,15 +345,27 @@ export function PlanEditorClient(props: Props) {
         <label className="block font-medium">
           Plan name
           <RequiredMark />
-          <input
+          <TextField
             required
             value={name}
             onChange={(event) => setName(event.target.value)}
-            className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+            className="mt-1 w-full"
             placeholder="e.g. Push pull"
             maxLength={120}
           />
         </label>
+
+        <Checkbox checked={isActive} onChange={setIsActive} align="start" className="w-full">
+          <span>
+            Active plan
+            <span className="mt-1 block text-xs font-normal text-zinc-500">
+              Home uses the active plan to choose the next day. Activating this plan clears the
+              previous one.
+            </span>
+          </span>
+        </Checkbox>
+
+        <SampleWeek dayCount={days.length} />
 
         <OptionalNotesField
           addLabel="Add plan notes"
@@ -360,31 +375,9 @@ export function PlanEditorClient(props: Props) {
           placeholder="Optional notes for this plan"
         />
 
-        <label className="flex items-start gap-2 font-medium">
-          <input
-            type="checkbox"
-            checked={isActive}
-            onChange={(event) => setIsActive(event.target.checked)}
-            className="mt-1"
-          />
-          <span>
-            Active plan
-            <span className="mt-1 block text-xs font-normal text-zinc-500">
-              Home uses the active plan to choose the next day. Activating this plan clears the
-              previous one.
-            </span>
-          </span>
-        </label>
-
         {message ? (
           <StatusNotice message={message} tone={messageTone} onDismiss={clearMessage} />
         ) : null}
-
-        <MuscleAreaCoverageChart
-          scope="plan"
-          rows={days.flatMap((day) => day.exerciseRows)}
-          exerciseOptions={exerciseOptions}
-        />
 
         <div className="space-y-3">
           {days.map((day, index) => {
@@ -411,7 +404,7 @@ export function PlanEditorClient(props: Props) {
                   className={
                     expanded
                       ? "flex flex-col gap-3 sm:flex-row sm:items-end sm:gap-2"
-                      : "flex items-center gap-2"
+                      : "flex flex-col gap-2 md:flex-row md:items-center"
                   }
                 >
                   <div
@@ -436,7 +429,7 @@ export function PlanEditorClient(props: Props) {
                           Day name
                           <RequiredMark />
                         </label>
-                        <input
+                        <TextField
                           id={`plan-day-name-${day.key}`}
                           required
                           autoFocus
@@ -448,7 +441,7 @@ export function PlanEditorClient(props: Props) {
                               ),
                             )
                           }
-                          className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+                          className="mt-1 w-full"
                           placeholder="e.g. Day A, Push"
                           maxLength={80}
                         />
@@ -503,12 +496,28 @@ export function PlanEditorClient(props: Props) {
           })}
         </div>
 
-        <div className="flex flex-wrap justify-end gap-2">
+        <MuscleAreaCoverageChart
+          scope="plan"
+          rows={days.flatMap((day) => day.exerciseRows)}
+          exerciseOptions={exerciseOptions}
+        />
+
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {planDayLimitReached(days.length) ? (
+            <p id="plan-day-limit" className="mr-auto text-sm text-zinc-600">
+              {PLAN_DAY_LIMIT_MESSAGE}
+            </p>
+          ) : null}
           <ActionButton
             type="button"
             variant="secondary"
             size="md"
+            disabled={planDayLimitReached(days.length)}
+            aria-describedby={planDayLimitReached(days.length) ? "plan-day-limit" : undefined}
             onClick={() => {
+              if (planDayLimitReached(days.length)) {
+                return;
+              }
               const day = createDayDraft();
               setDays((prev) => [...prev, day]);
               setExpandedDayKey(day.key);

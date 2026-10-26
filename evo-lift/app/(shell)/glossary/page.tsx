@@ -45,7 +45,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Double progression",
     definition:
-      "An optional target suggestion for the next session. It stays off until you turn it on under Account. When every working set hits the rep target, the next suggestion adds 2 reps at the same weight. After that higher target is hit, the next suggestion adds weight and goes back to the lower reps.",
+      "An optional target suggestion for the next session. It stays off until you turn it on under Account. When every working set hits the rep target, the next suggestion adds 2 reps at the same weight. After that higher target is hit, the next suggestion adds weight and goes back to the lower reps. When the lowest working set reaches the lower reps, the next suggestion uses those reps at the same weight. When a working set is under the lower reps, the next suggestion drops the weight and uses the lower reps.",
   },
   {
     term: "Exercise",
@@ -113,12 +113,17 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Plan",
     definition:
-      "An ordered cycle of days. One plan can be active. Starting a day copies its exercises and targets into a new workout session. Only one of those sessions can stay unfinished. Finish it before starting another day. Later edits do not change sessions you already started.",
+      "An ordered cycle of up to 7 days. One plan can be active. Starting a day copies its exercises and targets into a new workout session. Only one of those sessions can stay unfinished. Finish it before starting another day. Later edits do not change sessions you already started.",
   },
   {
     term: "Reps",
     definition:
       "How many times you complete the movement in a set. Written as a number plus reps, for example 5 reps.",
+  },
+  {
+    term: "Sample week",
+    definition:
+      "A typical spacing of a plan across seven days. Cells marked Day are training days. Cells marked Rest are days off. The plan still runs in day order. A cycle longer than seven days has no sample week.",
   },
   {
     term: "Set",

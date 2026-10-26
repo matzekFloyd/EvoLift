@@ -1,10 +1,14 @@
 "use client";
 
-import { Check, CheckCircle2, ChevronRight, Pencil, Plus, Trash2, X } from "lucide-react";
+import { Plus } from "lucide-react";
 import { type Dispatch, type SetStateAction, useLayoutEffect, useRef, useState } from "react";
 import { ActionButton } from "@/app/components/action-button";
+import { Checkbox } from "@/app/components/checkbox";
+import { TextField } from "@/app/components/text-field";
 import { CompactRowActions } from "@/app/components/compact-row-actions";
-import { panelInsetClass } from "@/app/components/panel-inset";
+import { TableRowActions } from "@/app/components/table-row-actions";
+import { PanelInset } from "@/app/components/panel-inset";
+import { addSetComposerVisible, type SessionLogPrimary } from "./session-log-primary";
 import {
   externalLoadFieldLabel,
   externalLoadValuePrefix,
@@ -21,6 +25,27 @@ import {
 } from "./last-session-set-comparison";
 import { canEditSetAsWarmup, showWarmupSetToggle, type SessionSetDraft } from "./session-set-draft";
 import type { WorkoutSetRow } from "./session-detail-actions";
+
+function SetStepButton({
+  label,
+  onClick,
+  children,
+}: {
+  label: string;
+  onClick: () => void;
+  children: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      className="rounded-md border border-zinc-300 bg-white px-2 py-0.5 text-xs tabular-nums text-zinc-800 hover:border-zinc-400 hover:bg-zinc-50"
+    >
+      {children}
+    </button>
+  );
+}
 
 function LastSessionSetNote({ line }: { line: string | null }) {
   if (!line) {
@@ -144,10 +169,8 @@ type SessionExerciseSetsProps = {
   onSaveEdit: (setId: string) => void;
   onCancelEdit: () => void;
   onDeleteSet: (setId: string) => void;
-  onMarkCompleted?: () => void;
-  isMarkingCompleted?: boolean;
-  onNextExercise: () => void;
-  onAddExercise: () => void;
+  /** Which control on this exercise is the filled action. */
+  logPrimary: SessionLogPrimary;
   onShowExtraSets: () => void;
   onExpandFullAddSetRow: () => void;
   /** Working sets from the previous session, in log order. Warmups are already omitted. */
@@ -181,10 +204,7 @@ export function SessionExerciseSets({
   onSaveEdit,
   onCancelEdit,
   onDeleteSet,
-  onMarkCompleted,
-  isMarkingCompleted = false,
-  onNextExercise,
-  onAddExercise,
+  logPrimary,
   onShowExtraSets,
   onExpandFullAddSetRow,
   previousWorkingSets = [],
@@ -194,9 +214,17 @@ export function SessionExerciseSets({
   const loadFieldLabel = externalLoadFieldLabel(exerciseSlug);
   const loadValuePrefix = externalLoadValuePrefix(exerciseSlug);
   const assistance = isAssistanceExercise(exerciseSlug);
-  const hideCompactNewSetComposer =
-    shouldUseSingleExerciseFlow && targetSetsMet && canManageSets && !compactShowExtraSetComposer;
-  const hideFullViewAddSetRow = targetSetsMet && canManageSets && !fullAddSetRowExpanded;
+  const composers = addSetComposerVisible({
+    canManageSets,
+    targetsMet: targetSetsMet,
+    singleExerciseFlow: shouldUseSingleExerciseFlow,
+    showExtraSetComposer: compactShowExtraSetComposer,
+    addRowExpanded: fullAddSetRowExpanded,
+  });
+  const hideCompactNewSetComposer = !composers.compact;
+  const hideFullViewAddSetRow = !composers.desktop;
+  const addSetPrimary = logPrimary === "add-set";
+  const saveSetPrimary = logPrimary === "save-set";
   const setColumnCount = canManageSets ? 6 : 5;
   const upcomingWorkingOrdinal = addDraft.isWarmup
     ? null
@@ -217,11 +245,11 @@ export function SessionExerciseSets({
       <div className="mt-3 space-y-3 md:hidden">
         {visibleSets.map((set, setIndex) =>
           editingSetId === set.id ? (
-            <div
+            <PanelInset
               key={set.id}
               data-compact-set-row=""
               data-compact-last-set={setIndex === visibleSets.length - 1 ? "" : undefined}
-              className={panelInsetClass("p-3")}
+              className="p-3"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
@@ -229,22 +257,20 @@ export function SessionExerciseSets({
                   <LastSessionSetNote line={comparisonFor(set, editDraft.isWarmup, true)} />
                 </div>
                 {canEditSetAsWarmup(visibleSets, set.id) ? (
-                  <label className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs text-zinc-700">
-                    <input
-                      type="checkbox"
-                      checked={editDraft.isWarmup}
-                      onChange={(event) =>
-                        onEditDraftChange((prev) => ({ ...prev, isWarmup: event.target.checked }))
-                      }
-                    />
+                  <Checkbox
+                    checked={editDraft.isWarmup}
+                    onChange={(isWarmup) => onEditDraftChange((prev) => ({ ...prev, isWarmup }))}
+                    className="shrink-0 whitespace-nowrap"
+                  >
                     Warmup?
-                  </label>
+                  </Checkbox>
                 ) : null}
               </div>
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <label className="text-xs font-medium text-zinc-600">
                   {loadFieldLabel}
-                  <input
+                  <TextField
+                    size="compact"
                     type="number"
                     min={0}
                     step="0.25"
@@ -252,37 +278,40 @@ export function SessionExerciseSets({
                     onChange={(event) =>
                       onEditDraftChange((prev) => ({ ...prev, weightKg: event.target.value }))
                     }
-                    className="mt-1 w-full rounded-md border bg-white px-2 py-1"
+                    className="mt-1 w-full"
                   />
                 </label>
                 <label className="text-xs font-medium text-zinc-600">
                   Reps
-                  <input
+                  <TextField
+                    size="compact"
                     type="number"
                     min={1}
                     value={editDraft.reps}
                     onChange={(event) =>
                       onEditDraftChange((prev) => ({ ...prev, reps: event.target.value }))
                     }
-                    className="mt-1 w-full rounded-md border bg-white px-2 py-1"
+                    className="mt-1 w-full"
                   />
                 </label>
               </div>
-              <div className="mt-3 flex justify-end gap-2">
+              <div className="mt-3 flex justify-end">
                 <CompactRowActions
                   isEditing
+                  disabled={isSavingSet}
+                  savePrimary={saveSetPrimary}
                   onEdit={() => {}}
                   onSave={() => onSaveEdit(set.id)}
                   onCancel={onCancelEdit}
                 />
               </div>
-            </div>
+            </PanelInset>
           ) : (
-            <div
+            <PanelInset
               key={set.id}
               data-compact-set-row=""
               data-compact-last-set={setIndex === visibleSets.length - 1 ? "" : undefined}
-              className={panelInsetClass("p-3")}
+              className="p-3"
             >
               {isCompactView ? (
                 <div className="flex items-center justify-between gap-2">
@@ -298,7 +327,9 @@ export function SessionExerciseSets({
                   {canManageSets ? (
                     <div className="flex shrink-0 items-center">
                       <CompactRowActions
+                        beside
                         isEditing={false}
+                        disabled={isSavingSet}
                         onEdit={() => onStartEdit(set)}
                         onSave={() => {}}
                         onCancel={() => {}}
@@ -335,121 +366,56 @@ export function SessionExerciseSets({
                     </p>
                   )}
                   {canManageSets ? (
-                    <div className="mt-3 flex justify-end gap-2">
-                      <button
-                        type="button"
-                        onClick={() => onDeleteSet(set.id)}
+                    <div className="mt-3 flex justify-end">
+                      <CompactRowActions
+                        isEditing={false}
                         disabled={isSavingSet}
-                        className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-50"
-                      >
-                        <Trash2 className="h-3 w-3 text-red-600" aria-hidden />
-                        Delete
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => onStartEdit(set)}
-                        disabled={isSavingSet}
-                        className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-50"
-                      >
-                        <Pencil className="h-3 w-3 text-sky-700" aria-hidden />
-                        Edit
-                      </button>
+                        onEdit={() => onStartEdit(set)}
+                        onSave={() => {}}
+                        onCancel={() => {}}
+                        onSecondary={() => onDeleteSet(set.id)}
+                        secondaryLabel="Delete"
+                      />
                     </div>
                   ) : null}
                 </>
               )}
-            </div>
+            </PanelInset>
           ),
         )}
         {canManageSets ? (
           hideCompactNewSetComposer ? (
-            <div
-              data-compact-next-action=""
-              className="rounded-md border border-sky-200 bg-sky-50/70 p-3 shadow-[0_1px_2px_rgba(0,0,0,0.05)]"
-            >
-              <p className="text-sm font-medium text-sky-950">All target working sets logged.</p>
-              {exerciseIndex < exerciseCount - 1 ? (
-                <ActionButton
-                  type="button"
-                  variant="primary"
-                  fullWidth
-                  className="mt-2"
-                  onClick={onNextExercise}
-                >
-                  <ChevronRight className="h-4 w-4 shrink-0" aria-hidden />
-                  Next exercise
-                </ActionButton>
-              ) : onMarkCompleted ? (
-                <ActionButton
-                  type="button"
-                  variant="primary"
-                  fullWidth
-                  className="mt-2"
-                  disabled={isMarkingCompleted || isSavingSet}
-                  onClick={onMarkCompleted}
-                >
-                  <Check className="h-4 w-4 shrink-0" aria-hidden />
-                  {isMarkingCompleted ? "Saving..." : "Finish session"}
-                </ActionButton>
-              ) : (
-                <p className="mt-2 text-xs text-zinc-600">
+            <PanelInset data-compact-next-action="" className="p-3">
+              <p className="text-sm font-medium text-zinc-900">All target working sets logged.</p>
+              {exerciseIndex >= exerciseCount - 1 ? (
+                <p className="mt-1 text-xs text-zinc-600">
                   Last exercise in this session. Add another exercise when you are ready, or finish
                   logging.
                 </p>
-              )}
-              {exerciseIndex < exerciseCount - 1 && onMarkCompleted ? (
-                <ActionButton
-                  type="button"
-                  variant="secondary"
-                  iconColor="sky"
-                  fullWidth
-                  className="mt-2"
-                  disabled={isMarkingCompleted || isSavingSet}
-                  onClick={onMarkCompleted}
-                >
-                  <Check className="h-4 w-4 shrink-0" aria-hidden />
-                  {isMarkingCompleted ? "Saving..." : "Finish session"}
-                </ActionButton>
-              ) : null}
-              {exerciseIndex >= exerciseCount - 1 ? (
-                <ActionButton
-                  type="button"
-                  variant={onMarkCompleted ? "secondary" : "primary"}
-                  iconColor={onMarkCompleted ? "sky" : "auto"}
-                  fullWidth
-                  className="mt-2"
-                  onClick={onAddExercise}
-                >
-                  <Plus className="h-4 w-4 shrink-0" aria-hidden />
-                  Add exercise
-                </ActionButton>
               ) : null}
               <ActionButton
                 type="button"
                 variant="secondary"
-                iconColor="sky"
                 size="sm"
                 fullWidth
                 className="mt-2"
                 title="Show the add-set form to log more sets."
                 onClick={onShowExtraSets}
               >
-                <Plus className="h-4 w-4 shrink-0" aria-hidden />
+                <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden />
                 Add more sets
               </ActionButton>
-            </div>
+            </PanelInset>
           ) : (
-            <div
+            <PanelInset
+              tone="accent"
               id={`compact-new-set-panel-${sessionExerciseId}`}
               data-compact-next-action=""
-              className="rounded-md border border-sky-300 bg-sky-50 p-3"
+              className="p-3"
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
-                  <p className="inline-flex shrink-0 items-center gap-1 text-sm font-medium text-sky-950">
-                    <Plus className="h-3 w-3 text-sky-700" aria-hidden />
-                    New set
-                  </p>
+                  <p className="text-sm font-medium text-sky-950">New set</p>
                   <LastSessionSetNote
                     line={lastSessionComparisonLine(previousWorkingSets, upcomingWorkingOrdinal, {
                       assistance,
@@ -458,14 +424,13 @@ export function SessionExerciseSets({
                   />
                 </div>
                 {showWarmupToggle ? (
-                  <label className="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap text-xs text-zinc-700">
-                    <input
-                      type="checkbox"
-                      checked={addDraft.isWarmup}
-                      onChange={(event) => onUpdateAddDraft("isWarmup", event.target.checked)}
-                    />
+                  <Checkbox
+                    checked={addDraft.isWarmup}
+                    onChange={(isWarmup) => onUpdateAddDraft("isWarmup", isWarmup)}
+                    className="shrink-0 whitespace-nowrap"
+                  >
                     Warmup?
-                  </label>
+                  </Checkbox>
                 ) : (
                   <SetKindIndicator isWarmup={false} density="compact" />
                 )}
@@ -473,18 +438,19 @@ export function SessionExerciseSets({
               <div className="mt-2 grid grid-cols-2 gap-2">
                 <label className="text-sm font-medium text-zinc-700">
                   {loadFieldLabel}
-                  <input
+                  <TextField
+                    size="compact"
                     type="number"
                     min={0}
                     step="0.25"
                     value={addDraft.weightKg}
                     onChange={(event) => onUpdateAddDraft("weightKg", event.target.value)}
-                    className="mt-1 w-full rounded-md border bg-white px-2 py-1"
+                    className="mt-1 w-full"
                     placeholder={assistance ? "Assistance" : "Weight"}
                   />
                   <div className="mt-1 flex gap-1">
-                    <button
-                      type="button"
+                    <SetStepButton
+                      label={`Decrease ${loadFieldLabel} by 2.5`}
                       onClick={() =>
                         onUpdateAddDraft(
                           "weightKg",
@@ -493,78 +459,71 @@ export function SessionExerciseSets({
                           ),
                         )
                       }
-                      aria-label={`Decrease ${loadFieldLabel} by 2.5`}
-                      className="rounded border border-zinc-300 bg-white px-2 py-0.5 text-xs text-zinc-800"
                     >
                       -2.5
-                    </button>
-                    <button
-                      type="button"
+                    </SetStepButton>
+                    <SetStepButton
+                      label={`Increase ${loadFieldLabel} by 2.5`}
                       onClick={() =>
                         onUpdateAddDraft(
                           "weightKg",
                           String(Number((Number(addDraft.weightKg || "0") + 2.5).toFixed(1))),
                         )
                       }
-                      aria-label={`Increase ${loadFieldLabel} by 2.5`}
-                      className="rounded border border-zinc-300 bg-white px-2 py-0.5 text-xs text-zinc-800"
                     >
                       +2.5
-                    </button>
+                    </SetStepButton>
                   </div>
                 </label>
                 <label className="text-sm font-medium text-zinc-700">
                   Reps
-                  <input
+                  <TextField
+                    size="compact"
                     type="number"
                     min={1}
                     value={addDraft.reps}
                     onChange={(event) => onUpdateAddDraft("reps", event.target.value)}
-                    className="mt-1 w-full rounded-md border bg-white px-2 py-1"
+                    className="mt-1 w-full"
                     placeholder="Reps"
                   />
                   <div className="mt-1 flex gap-1">
-                    <button
-                      type="button"
+                    <SetStepButton
+                      label="Decrease reps by 1"
                       onClick={() =>
                         onUpdateAddDraft(
                           "reps",
                           String(Math.max(1, Number(addDraft.reps || "1") - 1)),
                         )
                       }
-                      aria-label="Decrease reps by 1"
-                      className="rounded border border-zinc-300 bg-white px-2 py-0.5 text-xs text-zinc-800"
                     >
                       -1
-                    </button>
-                    <button
-                      type="button"
+                    </SetStepButton>
+                    <SetStepButton
+                      label="Increase reps by 1"
                       onClick={() =>
                         onUpdateAddDraft(
                           "reps",
                           String(Math.max(1, Number(addDraft.reps || "0") + 1)),
                         )
                       }
-                      aria-label="Increase reps by 1"
-                      className="rounded border border-zinc-300 bg-white px-2 py-0.5 text-xs text-zinc-800"
                     >
                       +1
-                    </button>
+                    </SetStepButton>
                   </div>
                 </label>
               </div>
-              <div className="mt-3 flex justify-end">
-                <button
-                  type="button"
-                  onClick={onAddSet}
-                  disabled={isSavingSet || isPlannedSession}
-                  className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-white px-2 py-1 text-sm text-zinc-800"
-                >
-                  <Plus className="h-3.5 w-3.5 text-sky-700" aria-hidden />
-                  Add set
-                </button>
-              </div>
-            </div>
+              <ActionButton
+                type="button"
+                variant={addSetPrimary ? "primary" : "secondary"}
+                fullWidth
+                className="mt-3 !h-11"
+                disabled={isSavingSet || isPlannedSession}
+                onClick={onAddSet}
+              >
+                <Plus className="h-4 w-4 shrink-0" aria-hidden />
+                Add set
+              </ActionButton>
+            </PanelInset>
           )
         ) : null}
       </div>
@@ -588,22 +547,21 @@ export function SessionExerciseSets({
                   <tr key={set.id} className="border-b bg-white">
                     <td className="px-2 py-2">
                       {canEditSetAsWarmup(visibleSets, set.id) ? (
-                        <label className="inline-flex cursor-pointer items-center gap-2 text-zinc-800">
-                          <input
-                            type="checkbox"
-                            checked={editDraft.isWarmup}
-                            onChange={(event) =>
-                              onEditDraftChange((prev) => ({ ...prev, isWarmup: event.target.checked }))
-                            }
-                            className="rounded border-zinc-300 text-sky-700 focus:ring-sky-600"
-                          />
-                          <span className="text-xs">Warmup?</span>
-                        </label>
+                        <Checkbox
+                          checked={editDraft.isWarmup}
+                          onChange={(isWarmup) =>
+                            onEditDraftChange((prev) => ({ ...prev, isWarmup }))
+                          }
+                          className="whitespace-nowrap"
+                        >
+                          Warmup?
+                        </Checkbox>
                       ) : null}
                     </td>
                     <td className="px-2 py-2">{set.set_number}</td>
                     <td className="px-2 py-2">
-                      <input
+                      <TextField
+                        size="compact"
                         type="number"
                         min={0}
                         step="0.25"
@@ -612,11 +570,12 @@ export function SessionExerciseSets({
                           onEditDraftChange((prev) => ({ ...prev, weightKg: event.target.value }))
                         }
                         aria-label={loadFieldLabel}
-                        className="w-24 rounded-md border bg-white px-2 py-1"
+                        className="w-24"
                       />
                     </td>
                     <td className="px-2 py-2">
-                      <input
+                      <TextField
+                        size="compact"
                         type="number"
                         min={1}
                         value={editDraft.reps}
@@ -624,7 +583,7 @@ export function SessionExerciseSets({
                           onEditDraftChange((prev) => ({ ...prev, reps: event.target.value }))
                         }
                         aria-label="Reps"
-                        className="w-20 rounded-md border bg-white px-2 py-1"
+                        className="w-20"
                       />
                     </td>
                     <td className="px-2 py-2 text-xs tabular-nums text-zinc-600">
@@ -632,26 +591,14 @@ export function SessionExerciseSets({
                     </td>
                     {canManageSets ? (
                       <td className="px-2 py-2">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => onSaveEdit(set.id)}
-                            disabled={isSavingSet}
-                            className="inline-flex w-24 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
-                          >
-                            <Check className="h-3 w-3 text-emerald-600" aria-hidden />
-                            Save
-                          </button>
-                          <button
-                            type="button"
-                            onClick={onCancelEdit}
-                            disabled={isSavingSet}
-                            className="inline-flex w-24 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
-                          >
-                            <X className="h-3 w-3 text-zinc-500" aria-hidden />
-                            Cancel
-                          </button>
-                        </div>
+                        <CompactRowActions
+                          isEditing
+                          disabled={isSavingSet}
+                          savePrimary={saveSetPrimary}
+                          onEdit={() => {}}
+                          onSave={() => onSaveEdit(set.id)}
+                          onCancel={onCancelEdit}
+                        />
                       </td>
                     ) : null}
                   </tr>
@@ -684,43 +631,30 @@ export function SessionExerciseSets({
                     </td>
                     {canManageSets ? (
                       <td className="px-2 py-2">
-                        <div className="flex justify-end gap-2">
-                          <button
-                            type="button"
-                            onClick={() => onDeleteSet(set.id)}
-                            disabled={isSavingSet}
-                            className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
-                          >
-                            <Trash2 className="h-3 w-3 text-red-600" aria-hidden />
-                            Delete
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => onStartEdit(set)}
-                            disabled={isSavingSet}
-                            className="inline-flex items-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-2 py-1 text-xs text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
-                          >
-                            <Pencil className="h-3 w-3 text-sky-700" aria-hidden />
-                            Edit
-                          </button>
-                        </div>
+                        <CompactRowActions
+                          isEditing={false}
+                          disabled={isSavingSet}
+                          onEdit={() => onStartEdit(set)}
+                          onSave={() => {}}
+                          onCancel={() => {}}
+                          onSecondary={() => onDeleteSet(set.id)}
+                          secondaryLabel="Delete"
+                        />
                       </td>
                     ) : null}
                   </tr>
                 ),
               )}
               {canManageSets && hideFullViewAddSetRow ? (
-                <tr className="border-b bg-sky-50/50">
+                <tr className="border-b bg-zinc-50">
                   <td colSpan={setColumnCount} className="px-2 py-2">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <span className="inline-flex items-center gap-1.5 text-sm font-medium text-sky-950">
-                        <CheckCircle2 className="h-4 w-4 shrink-0 text-sky-700" aria-hidden />
+                      <span className="text-sm font-medium text-zinc-900">
                         All target working sets logged.
                       </span>
                       <ActionButton
                         type="button"
                         variant="secondary"
-                        iconColor="sky"
                         size="sm"
                         title="Show the add-set row to log more sets."
                         onClick={onExpandFullAddSetRow}
@@ -736,43 +670,40 @@ export function SessionExerciseSets({
                 <tr>
                   <td className="px-2 py-2">
                     {showWarmupToggle ? (
-                      <label className="inline-flex cursor-pointer items-center gap-2 text-zinc-800">
-                        <input
-                          type="checkbox"
-                          checked={addDraft.isWarmup}
-                          onChange={(event) => onUpdateAddDraft("isWarmup", event.target.checked)}
-                          className="rounded border-zinc-300 text-sky-700 focus:ring-sky-600"
-                        />
-                        <span className="text-xs">Warmup?</span>
-                      </label>
+                      <Checkbox
+                        checked={addDraft.isWarmup}
+                        onChange={(isWarmup) => onUpdateAddDraft("isWarmup", isWarmup)}
+                        className="whitespace-nowrap"
+                      >
+                        Warmup?
+                      </Checkbox>
                     ) : null}
                   </td>
                   <td className="px-2 py-2">
-                    <span className="inline-flex items-center gap-1 text-xs text-zinc-600">
-                      <Plus className="h-3 w-3 text-sky-700" aria-hidden />
-                      New
-                    </span>
+                    <span className="text-xs text-zinc-600">New</span>
                   </td>
                   <td className="px-2 py-2">
-                    <input
+                    <TextField
+                      size="compact"
                       type="number"
                       min={0}
                       step="0.25"
                       value={addDraft.weightKg}
                       onChange={(event) => onUpdateAddDraft("weightKg", event.target.value)}
                       aria-label={loadFieldLabel}
-                      className="w-24 rounded-md border bg-white px-2 py-1"
+                      className="w-24"
                       placeholder={assistance ? "Assistance" : "Weight"}
                     />
                   </td>
                   <td className="px-2 py-2">
-                    <input
+                    <TextField
+                      size="compact"
                       type="number"
                       min={1}
                       value={addDraft.reps}
                       onChange={(event) => onUpdateAddDraft("reps", event.target.value)}
                       aria-label="Reps"
-                      className="w-20 rounded-md border bg-white px-2 py-1"
+                      className="w-20"
                       placeholder="Reps"
                     />
                   </td>
@@ -783,17 +714,18 @@ export function SessionExerciseSets({
                     })}
                   </td>
                   <td className="px-2 py-2">
-                    <div className="flex items-center justify-end gap-2">
-                      <button
+                    <TableRowActions>
+                      <ActionButton
                         type="button"
-                        onClick={onAddSet}
+                        size="sm"
+                        variant={addSetPrimary ? "primary" : "secondary"}
                         disabled={isSavingSet || isPlannedSession}
-                        className="inline-flex w-24 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-2 py-1 text-xs text-white hover:border-sky-600 hover:bg-sky-600"
+                        onClick={onAddSet}
                       >
-                        <Plus className="h-3.5 w-3.5 text-white" aria-hidden />
+                        <Plus className="h-3.5 w-3.5 shrink-0" aria-hidden />
                         Add set
-                      </button>
-                    </div>
+                      </ActionButton>
+                    </TableRowActions>
                   </td>
                 </tr>
               ) : null}

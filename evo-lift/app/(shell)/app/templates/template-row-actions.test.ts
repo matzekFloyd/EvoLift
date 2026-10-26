@@ -14,6 +14,7 @@ describe("template row actions", () => {
     );
     assert.match(page, /PageAddAction href=\{appPath\("\/templates\/new"\)\} label="Create template"/);
     assert.match(page, /variant="secondary"[\s\S]{0,160}\n\s*Use\n/);
-    assert.equal(page.includes('variant="primary"'), false);
+    assert.match(page, /variant="primary"[\s\S]{0,240}Start session/);
+    assert.equal(page.match(/variant="primary"/g)?.length, 1);
   });
 });

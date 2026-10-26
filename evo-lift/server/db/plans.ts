@@ -14,6 +14,7 @@ const PLAN_ERROR_MESSAGES = [
   "Plan notes cannot be longer than 500 characters.",
   "Please provide the plan days.",
   "Please enter a name for each day.",
+  "A plan can have at most 7 days.",
   "Day name cannot be longer than 80 characters.",
   "Each day can only appear once.",
   "That day is not part of this plan.",

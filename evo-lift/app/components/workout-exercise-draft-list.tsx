@@ -19,6 +19,7 @@ import { SectionHeading } from "@/app/components/section-heading";
 import { ExerciseSearchSelect } from "@/app/components/exercise-search-select";
 import { InfoPopover } from "@/app/components/info-popover";
 import { NotesTextareaField } from "@/app/components/notes-textarea-field";
+import { TextField } from "@/app/components/text-field";
 import { TargetWeightSuggestion } from "@/app/components/target-weight-suggestion";
 import {
   createEmptyExerciseRow,
@@ -445,7 +446,7 @@ export function WorkoutExerciseDraftList({
                 {rowUsesAssistance ? null : (
                   <label className="col-span-4 block text-xs font-medium">
                     Base weight (kg)
-                    <input
+                    <TextField
                       type="number"
                       min={0}
                       step="0.25"
@@ -453,7 +454,8 @@ export function WorkoutExerciseDraftList({
                       onChange={(event) =>
                         updateExerciseRow(index, "baseWeightKg", event.target.value)
                       }
-                      className="mt-1 w-full rounded-md border bg-white px-2 py-1.5 text-sm"
+                      size="compact"
+                      className="mt-1 w-full"
                       placeholder="e.g. 20"
                     />
                     <div className="mt-1 flex flex-wrap gap-1">
@@ -494,14 +496,15 @@ export function WorkoutExerciseDraftList({
                 <div className="grid grid-cols-3 gap-2">
                   <label className="col-span-1 block text-xs font-medium">
                     Sets
-                    <input
+                    <TextField
                       type="number"
                       min={1}
                       value={row.targetSets}
                       onChange={(event) =>
                         updateExerciseRow(index, "targetSets", event.target.value)
                       }
-                      className="mt-1 w-full rounded-md border bg-white px-2 py-1.5 text-sm"
+                      size="compact"
+                      className="mt-1 w-full"
                       placeholder="e.g. 3"
                     />
                   </label>
@@ -509,7 +512,7 @@ export function WorkoutExerciseDraftList({
                     {targetWeightFieldLabel(
                       row.exerciseId ? exerciseSlugById.get(row.exerciseId) : undefined,
                     )}
-                    <input
+                    <TextField
                       type="number"
                       min={0}
                       step="0.25"
@@ -517,20 +520,22 @@ export function WorkoutExerciseDraftList({
                       onChange={(event) =>
                         updateExerciseRow(index, "targetWeightKg", event.target.value)
                       }
-                      className="mt-1 w-full rounded-md border bg-white px-2 py-1.5 text-sm"
+                      size="compact"
+                      className="mt-1 w-full"
                       placeholder="e.g. 60"
                     />
                   </label>
                   <label className="col-span-1 block text-xs font-medium">
                     Reps
-                    <input
+                    <TextField
                       type="number"
                       min={1}
                       value={row.targetReps}
                       onChange={(event) =>
                         updateExerciseRow(index, "targetReps", event.target.value)
                       }
-                      className="mt-1 w-full rounded-md border bg-white px-2 py-1.5 text-sm"
+                      size="compact"
+                      className="mt-1 w-full"
                       placeholder="e.g. 8"
                     />
                   </label>
@@ -642,7 +647,7 @@ export function WorkoutExerciseDraftList({
                   {rowUsesAssistance ? null : (
                     <label className="col-span-4 block text-sm font-medium">
                       Base weight (kg)
-                      <input
+                      <TextField
                         type="number"
                         min={0}
                         step="0.25"
@@ -650,7 +655,7 @@ export function WorkoutExerciseDraftList({
                         onChange={(event) =>
                           updateExerciseRow(index, "baseWeightKg", event.target.value)
                         }
-                        className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                        className="mt-1 w-full"
                         placeholder="e.g. 20"
                       />
                       <div className="mt-1 flex flex-wrap gap-1">
@@ -692,14 +697,14 @@ export function WorkoutExerciseDraftList({
                 <div className="grid grid-cols-12 items-end gap-2">
                   <label className="col-span-4 block text-sm font-medium">
                     Sets
-                    <input
+                    <TextField
                       type="number"
                       min={1}
                       value={row.targetSets}
                       onChange={(event) =>
                         updateExerciseRow(index, "targetSets", event.target.value)
                       }
-                      className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                      className="mt-1 w-full"
                       placeholder="e.g. 3"
                     />
                   </label>
@@ -707,7 +712,7 @@ export function WorkoutExerciseDraftList({
                     {targetWeightFieldLabel(
                       row.exerciseId ? exerciseSlugById.get(row.exerciseId) : undefined,
                     )}
-                    <input
+                    <TextField
                       type="number"
                       min={0}
                       step="0.25"
@@ -715,20 +720,20 @@ export function WorkoutExerciseDraftList({
                       onChange={(event) =>
                         updateExerciseRow(index, "targetWeightKg", event.target.value)
                       }
-                      className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                      className="mt-1 w-full"
                       placeholder="e.g. 60"
                     />
                   </label>
                   <label className="col-span-4 block text-sm font-medium">
                     Reps
-                    <input
+                    <TextField
                       type="number"
                       min={1}
                       value={row.targetReps}
                       onChange={(event) =>
                         updateExerciseRow(index, "targetReps", event.target.value)
                       }
-                      className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                      className="mt-1 w-full"
                       placeholder="e.g. 8"
                     />
                   </label>

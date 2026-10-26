@@ -3,7 +3,8 @@
 import { ArrowLeft, Save } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ActionButton } from "@/app/components/action-button";
+import { ActionButton, ActionLink } from "@/app/components/action-button";
+import { TextField } from "@/app/components/text-field";
 import {
   EditorHeading,
   OptionalNotesField,
@@ -268,20 +269,11 @@ export function TemplateEditorClient(props: Props) {
     }
   }
 
-  function goBack() {
-    clearMessage();
-    if (window.history.length > 1) {
-      router.back();
-      return;
-    }
-    router.push(appPath("/templates"));
-  }
-
   const back = (
-    <ActionButton type="button" onClick={goBack} variant="secondary" size="md">
+    <ActionLink href={appPath("/templates")} variant="secondary" size="md">
       <ArrowLeft className="h-4 w-4" aria-hidden />
       Back
-    </ActionButton>
+    </ActionLink>
   );
 
   if (isChecking) {
@@ -312,11 +304,11 @@ export function TemplateEditorClient(props: Props) {
         <label className="block font-medium">
           Template name
           <RequiredMark />
-          <input
+          <TextField
             required
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+            className="mt-1 w-full"
             placeholder="e.g. Upper body"
             maxLength={120}
           />
@@ -334,12 +326,6 @@ export function TemplateEditorClient(props: Props) {
           <StatusNotice message={message} tone={messageTone} onDismiss={clearMessage} />
         ) : null}
 
-        <MuscleAreaCoverageChart
-          scope="template"
-          rows={exerciseRows}
-          exerciseOptions={exerciseOptions}
-        />
-
         <WorkoutExerciseDraftList
           exerciseRows={exerciseRows}
           setExerciseRows={setExerciseRows}
@@ -347,6 +333,12 @@ export function TemplateEditorClient(props: Props) {
           hiddenExerciseIds={hiddenExerciseIds}
           exerciseDefaultsById={exerciseDefaultsById}
           maxNotesLength={maxNotesLength}
+        />
+
+        <MuscleAreaCoverageChart
+          scope="template"
+          rows={exerciseRows}
+          exerciseOptions={exerciseOptions}
         />
 
         <div className="flex justify-end">

@@ -1,12 +1,14 @@
 "use client";
 
 import { ChevronDown, ChevronUp, Plus } from "lucide-react";
+import { ActionButton } from "@/app/components/action-button";
 import type { Dispatch, SetStateAction } from "react";
 import {
   ExerciseSearchSelect,
   type ExerciseSearchSelectProps,
 } from "@/app/components/exercise-search-select";
 import { NotesTextareaField } from "@/app/components/notes-textarea-field";
+import { TextField } from "@/app/components/text-field";
 import { TargetWeightSuggestion } from "@/app/components/target-weight-suggestion";
 import { isAssistanceExercise, targetWeightFieldLabel } from "@/lib/assistance-exercise";
 import { targetSuggestionsEnabled } from "@/lib/target-weight-suggestion";
@@ -133,13 +135,13 @@ export function SessionAddExercisePanel(props: SessionAddExercisePanelProps) {
             {usesAssistance ? null : (
               <label className="block text-sm font-medium">
                 Base weight (kg)
-                <input
+                <TextField
                   type="number"
                   min={0}
                   step="0.25"
                   value={draft.baseWeightKg}
                   onChange={(event) => setField("baseWeightKg", event.target.value)}
-                  className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                  className="mt-1 w-full"
                   placeholder="e.g. 20"
                 />
                 <div className="mt-1 flex flex-wrap gap-1">
@@ -161,35 +163,35 @@ export function SessionAddExercisePanel(props: SessionAddExercisePanelProps) {
             </p>
             <label className="block text-sm font-medium">
               Target working sets
-              <input
+              <TextField
                 type="number"
                 min={1}
                 value={draft.targetSets}
                 onChange={(event) => setField("targetSets", event.target.value)}
-                className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                className="mt-1 w-full"
                 placeholder="e.g. 3"
               />
             </label>
             <label className="block text-sm font-medium">
               {targetWeightFieldLabel(slug)}
-              <input
+              <TextField
                 type="number"
                 min={0}
                 step="0.25"
                 value={draft.targetWeightKg}
                 onChange={(event) => setField("targetWeightKg", event.target.value)}
-                className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                className="mt-1 w-full"
                 placeholder="e.g. 60"
               />
             </label>
             <label className="block text-sm font-medium">
               Target reps (working sets)
-              <input
+              <TextField
                 type="number"
                 min={1}
                 value={draft.targetReps}
                 onChange={(event) => setField("targetReps", event.target.value)}
-                className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                className="mt-1 w-full"
                 placeholder="e.g. 8"
               />
             </label>
@@ -209,15 +211,16 @@ export function SessionAddExercisePanel(props: SessionAddExercisePanelProps) {
             </div>
           </div>
           <div className="mt-4 flex justify-end">
-            <button
+            <ActionButton
               type="button"
+              variant="secondary"
+              iconColor="sky"
               onClick={onSubmit}
               disabled={isAdding}
-              className="inline-flex h-10 items-center justify-center gap-1 rounded-md border px-3 py-2 text-sm hover:border-sky-400 hover:bg-zinc-100 hover:text-zinc-900 disabled:opacity-60"
             >
-              <Plus className="h-3.5 w-3.5 text-sky-700" aria-hidden />
+              <Plus className="h-4 w-4" aria-hidden />
               {isAdding ? "Adding..." : "Add exercise"}
-            </button>
+            </ActionButton>
           </div>
         </>
       ) : null}
@@ -248,47 +251,47 @@ export function SessionAddExerciseSheet(props: SessionAddExerciseSheetProps) {
           {usesAssistance ? null : (
             <label className="block text-sm font-medium">
               Base (kg)
-              <input
+              <TextField
                 type="number"
                 min={0}
                 step="0.25"
                 value={draft.baseWeightKg}
                 onChange={(event) => setField("baseWeightKg", event.target.value)}
-                className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                className="mt-1 w-full"
               />
             </label>
           )}
           <label className="block text-sm font-medium">
             Target working sets
-            <input
+            <TextField
               type="number"
               min={1}
               value={draft.targetSets}
               onChange={(event) => setField("targetSets", event.target.value)}
-              className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+              className="mt-1 w-full"
               placeholder="e.g. 3"
             />
           </label>
           <label className="block text-sm font-medium">
             {targetWeightFieldLabel(slug)}
-            <input
+            <TextField
               type="number"
               min={0}
               step="0.25"
               value={draft.targetWeightKg}
               onChange={(event) => setField("targetWeightKg", event.target.value)}
-              className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+              className="mt-1 w-full"
               placeholder="e.g. 60"
             />
           </label>
           <label className="block text-sm font-medium">
             Target reps (working sets)
-            <input
+            <TextField
               type="number"
               min={1}
               value={draft.targetReps}
               onChange={(event) => setField("targetReps", event.target.value)}
-              className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+              className="mt-1 w-full"
               placeholder="e.g. 8"
             />
           </label>
@@ -302,22 +305,19 @@ export function SessionAddExerciseSheet(props: SessionAddExerciseSheetProps) {
           maxLength={maxExerciseNotesLength}
         />
         <div className="mt-1 flex gap-2">
-          <button
-            type="button"
-            onClick={onClose}
-            className="inline-flex h-10 flex-1 items-center justify-center rounded-md border border-zinc-300 bg-zinc-50 px-3 text-sm text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
-          >
+          <ActionButton type="button" variant="secondary" onClick={onClose} className="!h-11 !w-auto min-w-0 flex-1">
             Cancel
-          </button>
-          <button
+          </ActionButton>
+          <ActionButton
             type="button"
+            variant="primary"
             onClick={onSubmit}
             disabled={isAdding}
-            className="inline-flex h-10 flex-1 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-3 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60"
+            className="!h-11 !w-auto min-w-0 flex-1"
           >
-            <Plus className="h-3.5 w-3.5 text-white" aria-hidden />
+            <Plus className="h-4 w-4" aria-hidden />
             {isAdding ? "Adding..." : "Add"}
-          </button>
+          </ActionButton>
         </div>
       </div>
     </SessionBottomSheet>

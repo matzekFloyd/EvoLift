@@ -12,6 +12,7 @@ import {
   appTableThClassName,
 } from "@/app/components/app-table";
 import { DateInput } from "@/app/components/date-input";
+import { TextField } from "@/app/components/text-field";
 import { StatusNotice } from "@/app/components/status-notice";
 import { TableRowActions } from "@/app/components/table-row-actions";
 import { accountFieldsChanged } from "@/app/account/account-section-dirty";
@@ -140,12 +141,14 @@ export function BodyweightLogPanel({ entries, today, onSave, onRemove }: Bodywei
                   </td>
                   <td className={appTableTdClassName}>
                     {isEditing ? (
-                      <input
+                      <TextField
+                        size="compact"
                         type="number"
                         step="0.1"
                         value={editWeight}
                         onChange={(event) => setEditWeight(event.target.value)}
-                        className="h-9 w-full rounded-md border bg-white px-2 py-1 text-sm"
+                        aria-label="Bodyweight (kg)"
+                        className="h-9 w-full"
                       />
                     ) : (
                       row.bodyweightKg

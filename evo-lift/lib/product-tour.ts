@@ -90,7 +90,7 @@ export function productTourSteps(): readonly ProductTourStep[] {
     {
       id: "plan",
       title: "Plan",
-      body: "A plan is an ordered cycle of days. One plan can be active. Starting a day copies its exercises and targets into a new workout session.",
+      body: "A plan is an ordered cycle of up to 7 days. One plan can be active. Starting a day copies its exercises and targets into a new workout session.",
       targetId: PRODUCT_TOUR_TARGET_IDS.plan,
       nextPath: productTourGoalsPath(),
       prevPath: null,
