@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { ActionButton } from "@/app/components/action-button";
 import { HISTORY_PAGE_SIZE_OPTIONS, type HistoryPageSize } from "@/app/components/history-paging";
 
@@ -74,17 +75,19 @@ export function HistoryPageNav({ page, totalPages, onPageChange }: HistoryPageNa
           size="sm"
           className="font-normal"
         >
+          <ChevronLeft className="h-3.5 w-3.5" aria-hidden />
           Previous
         </ActionButton>
         <ActionButton
           type="button"
           onClick={() => onPageChange(Math.min(totalPages, page + 1))}
           disabled={page >= totalPages}
-          variant="primary"
+          variant="secondary"
           size="sm"
           className="font-normal"
         >
           Next
+          <ChevronRight className="h-3.5 w-3.5" aria-hidden />
         </ActionButton>
       </div>
     </div>

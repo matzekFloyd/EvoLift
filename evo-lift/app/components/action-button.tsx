@@ -127,6 +127,9 @@ type ActionLinkProps = {
   iconColor?: ActionButtonIconColor;
   className?: string;
   children: ReactNode;
+  id?: string;
+  "aria-label"?: string;
+  title?: string;
 };
 
 /** Same control as `ActionButton`, as a link. */
@@ -139,12 +142,18 @@ export function ActionLink({
   iconColor = "auto",
   className = "",
   children,
+  id,
+  "aria-label": ariaLabel,
+  title,
 }: ActionLinkProps) {
   const onPanelInset = usePanelInsetSurface();
 
   return (
     <Link
+      id={id}
       href={href}
+      aria-label={ariaLabel}
+      title={title}
       className={actionControlClassName({
         variant,
         size,

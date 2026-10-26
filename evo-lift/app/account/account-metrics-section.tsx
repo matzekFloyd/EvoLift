@@ -62,7 +62,7 @@ export function AccountMetricsSection({ metrics }: { metrics: AccountMetricsStat
                 max={todayIso}
                 value={dateOfBirth}
                 onChange={(event) => setDateOfBirth(event.target.value)}
-                className="mt-1 w-full rounded-md border bg-white px-3 py-2 text-sm"
+                className="mt-1 w-full"
               />
               {exactAge != null ? (
                 <span className="mt-1 block text-sm text-zinc-500">{exactAge} years old</span>

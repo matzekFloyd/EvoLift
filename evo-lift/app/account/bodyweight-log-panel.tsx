@@ -133,7 +133,8 @@ export function BodyweightLogPanel({ entries, today, onSave, onRemove }: Bodywei
                         max={today}
                         value={editDate}
                         onChange={(event) => setEditDate(event.target.value)}
-                        className="h-9 w-full rounded-md border bg-white px-2 py-1 text-sm"
+                        size="compact"
+                        className="w-full"
                       />
                     ) : (
                       formatDateOnlyForLocale(row.loggedOn)

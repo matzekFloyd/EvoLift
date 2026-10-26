@@ -40,8 +40,8 @@ type WorkoutActivityHeatmapProps = {
 };
 
 const INTENSITY_LEGEND: ActivityIntensity[] = ["rest", "no-sets", "workout"];
-/** Day rows stay this tall. Columns still fill the card, so a short range does not grow into large squares. */
-const HEATMAP_ROW_PX = 32;
+/** Day rows stay short so the grid does not outweigh the next session. */
+const HEATMAP_ROW_PX = 20;
 
 function ActivityRangeLine({ sentence }: { sentence: string }) {
   return (

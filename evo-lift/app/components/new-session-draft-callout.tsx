@@ -1,9 +1,8 @@
 "use client";
 
-import Link from "next/link";
-import { useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useSyncExternalStore } from "react";
 import { ArrowRight, FileEdit, Trash2 } from "lucide-react";
-import { ActionButton } from "@/app/components/action-button";
+import { ActionButton, ActionLink } from "@/app/components/action-button";
 import {
   formatRelativePastFromIso,
   getNewSessionDraftStorageKey,
@@ -43,9 +42,16 @@ function readDraftSummary(userId: string): DraftSummary | null {
 
 export type NewSessionDraftCalloutProps = {
   userId: string;
+  /** Filled Continue when this draft is the forward action. Otherwise the banner stays quiet. */
+  focal?: boolean;
+  onVisibleChange?: (visible: boolean) => void;
 };
 
-export function NewSessionDraftCallout({ userId }: NewSessionDraftCalloutProps) {
+export function NewSessionDraftCallout({
+  userId,
+  focal = true,
+  onVisibleChange,
+}: NewSessionDraftCalloutProps) {
   const [isCompactActions, setIsCompactActions] = useState(false);
 
   useLayoutEffect(() => {
@@ -91,6 +97,14 @@ export function NewSessionDraftCallout({ userId }: NewSessionDraftCalloutProps) 
     () => null,
   );
 
+  useLayoutEffect(() => {
+    onVisibleChange?.(summary != null);
+  }, [onVisibleChange, summary]);
+
+  useEffect(() => {
+    return () => onVisibleChange?.(false);
+  }, [onVisibleChange]);
+
   function discard() {
     window.localStorage.removeItem(getNewSessionDraftStorageKey(userId));
     notifyNewSessionDraftChanged();
@@ -102,7 +116,11 @@ export function NewSessionDraftCallout({ userId }: NewSessionDraftCalloutProps) 
 
   return (
     <div
-      className="rounded-md border border-sky-200 bg-sky-50 px-3 py-3 text-sm text-sky-950"
+      className={
+        focal
+          ? "rounded-md border border-sky-200 bg-sky-50 px-3 py-3 text-sm text-sky-950"
+          : "rounded-md border border-zinc-200 bg-zinc-50 px-3 py-3 text-sm text-zinc-800"
+      }
       role="status"
     >
       <div
@@ -113,10 +131,15 @@ export function NewSessionDraftCallout({ userId }: NewSessionDraftCalloutProps) 
         }
       >
         <div className={`flex gap-2 ${isCompactActions ? "min-w-0 flex-1" : "min-w-0"}`}>
-          <FileEdit className="mt-0.5 h-4 w-4 shrink-0 text-sky-800" aria-hidden />
+          <FileEdit
+            className={`mt-0.5 h-4 w-4 shrink-0 ${focal ? "text-sky-800" : "text-zinc-500"}`}
+            aria-hidden
+          />
           <div className="min-w-0">
-            <p className="font-medium text-sky-950">Draft: new workout session</p>
-            <p className="mt-0.5 text-xs text-sky-900/85">
+            <p className={`font-medium ${focal ? "text-sky-950" : "text-zinc-900"}`}>
+              Draft: new workout session
+            </p>
+            <p className={`mt-0.5 text-xs ${focal ? "text-sky-900/85" : "text-zinc-600"}`}>
               {summary.editedLine ? `${summary.editedLine} · ` : null}
               Performed on: {summary.performedOnDisplay}
             </p>
@@ -134,37 +157,36 @@ export function NewSessionDraftCallout({ userId }: NewSessionDraftCalloutProps) 
             variant="secondary"
             size="sm"
             iconColor="sky"
+            raised
             onClick={discard}
-            aria-label="Discard draft"
+            aria-label={isCompactActions ? "Discard draft" : undefined}
             title="Discard draft"
             className={
               isCompactActions
-                ? "h-9 w-9 shrink-0 gap-0 px-0"
-                : "h-9 min-h-9 flex-1 basis-0 justify-center px-2 sm:min-w-0"
+                ? "!h-9 !w-9 shrink-0 gap-0 !px-0"
+                : "!h-9 min-h-9 !w-auto flex-1 basis-0 justify-center !px-2 sm:min-w-0"
             }
           >
             <Trash2 className="h-4 w-4 shrink-0" aria-hidden />
             <span className={isCompactActions ? "sr-only" : undefined}>Discard draft</span>
           </ActionButton>
-          <Link
+          <ActionLink
             href={appPath("/sessions/new?resume=1")}
-            aria-label="Continue to draft"
+            variant={focal ? "primary" : "secondary"}
+            iconColor={focal ? "auto" : "sky"}
+            size="sm"
+            raised={!focal}
+            aria-label={isCompactActions ? "Continue to draft" : undefined}
             title="Continue to draft"
             className={
               isCompactActions
-                ? "inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md border border-sky-700 bg-sky-700 text-white hover:border-sky-600 hover:bg-sky-600"
-                : "inline-flex h-9 min-h-9 flex-1 basis-0 items-center justify-center gap-1.5 rounded-md border border-sky-700 bg-sky-700 px-2 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600"
+                ? "!h-9 !w-9 shrink-0 gap-0 !px-0"
+                : "!h-9 min-h-9 !w-auto flex-1 basis-0 justify-center !px-2 sm:min-w-0"
             }
           >
-            {!isCompactActions ? (
-              <>
-                <span>Continue</span>
-                <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
-              </>
-            ) : (
-              <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
-            )}
-          </Link>
+            {!isCompactActions ? <span>Continue</span> : null}
+            <ArrowRight className="h-4 w-4 shrink-0" aria-hidden />
+          </ActionLink>
         </div>
       </div>
     </div>

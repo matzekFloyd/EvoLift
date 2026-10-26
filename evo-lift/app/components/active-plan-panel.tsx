@@ -10,22 +10,20 @@ import { ContentPlaceholder } from "@/app/components/content-placeholder";
 import { AppDialog } from "@/app/components/app-dialog";
 import { DateInput } from "@/app/components/date-input";
 import { ExerciseBadgeChip } from "@/app/components/exercise-badge-chip";
+import { NotesTextareaField } from "@/app/components/notes-textarea-field";
 import { PanelInset } from "@/app/components/panel-inset";
 import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
 import {
   homeCompetingCtaVariant,
+  homeForwardActionClassName,
   homePlanDayShowsRowAction,
   homePlanDaysStartsOpen,
 } from "@/app/home-next-action-layout";
-import { homeExerciseBadgeTone } from "@/app/home-sessions";
+import { planDayExerciseSlugs } from "@/app/plan-day-exercise-slugs";
 import { appPath } from "@/lib/app-paths";
 import { PRODUCT_TOUR_TARGET_IDS } from "@/lib/product-tour";
 import { continueSessionExerciseId } from "@/lib/continue-session-exercise";
-import {
-  scheduledSessionsBesidePlan,
-  type ScheduledHomeSession,
-} from "@/app/home-scheduled-sessions";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
 import {
@@ -87,6 +85,7 @@ type PlanDayView = {
   name: string;
   position: number;
   exerciseCount: number;
+  exerciseSlugs: string[];
 };
 
 type PlanSessionView = {
@@ -105,21 +104,22 @@ type ActivePlanView = {
 };
 
 type ActivePlanPanelProps = {
-  scheduledSessions?: ScheduledHomeSession[];
-  /** True when Home shows a non-plan in-progress strip above this panel. */
-  hasStandaloneInProgress?: boolean;
+  /** True when Continue or a draft already owns the filled action. */
+  forwardActionTaken?: boolean;
   openingSessionId?: string | null;
   onOpenSession?: (sessionId: string, exerciseId?: string | null) => void;
   /** Open plan session ids so Home can keep them out of the standalone strip. */
   onPlanOpenSessionIdsChange?: (sessionIds: string[]) => void;
+  /** True once a plan is loaded and can offer Start or Continue. */
+  onForwardActionChange?: (owns: boolean) => void;
 };
 
 export function ActivePlanPanel({
-  scheduledSessions = [],
-  hasStandaloneInProgress = false,
+  forwardActionTaken = false,
   openingSessionId = null,
   onOpenSession,
   onPlanOpenSessionIdsChange,
+  onForwardActionChange,
 }: ActivePlanPanelProps) {
   const router = useRouter();
   const continueRequestRef = useRef(0);
@@ -148,7 +148,9 @@ export function ActivePlanPanel({
     async function load() {
       const { data, error } = await supabaseBrowserClient
         .from("workout_plans")
-        .select("id, name, workout_plan_days(id, name, position, workout_plan_day_exercises(id))")
+        .select(
+          "id, name, workout_plan_days(id, name, position, workout_plan_day_exercises(position, exercises(slug)))",
+        )
         .eq("is_active", true)
         .maybeSingle();
 
@@ -174,6 +176,7 @@ export function ActivePlanPanel({
           name: day.name,
           position: day.position,
           exerciseCount: day.workout_plan_day_exercises?.length ?? 0,
+          exerciseSlugs: planDayExerciseSlugs(day.workout_plan_day_exercises),
         }))
         .sort((a, b) => a.position - b.position);
 
@@ -225,18 +228,12 @@ export function ActivePlanPanel({
     (openingSessionId === nextOpenSession.id || resolvingContinueId === nextOpenSession.id);
   const continuableDayName =
     plan?.days.find((day) => day.id === continuable?.planDayId)?.name ?? null;
-  const besidePlan = isLoading
-    ? []
-    : scheduledSessionsBesidePlan(
-        scheduledSessions,
-        [...latestByDay.values()].map((session) => session.id),
-      );
-  const scheduledLabel = plan ? "Also scheduled" : "Scheduled";
   const startDay = plan?.days.find((day) => day.id === startDayId) ?? null;
   const startReusesUpcoming = startDay
     ? upcomingSessionOnPlanDay(sessions, startDay.id, today) != null
     : false;
-  const planHeaderCtaVariant = homeCompetingCtaVariant(hasStandaloneInProgress);
+  const planHeaderCtaVariant = homeCompetingCtaVariant(forwardActionTaken);
+  const planIsFocal = planHeaderCtaVariant === "primary";
 
   useEffect(() => {
     if (!onPlanOpenSessionIdsChange) {
@@ -255,6 +252,13 @@ export function ActivePlanPanel({
     }
     onPlanOpenSessionIdsChange([...ids]);
   }, [isLoading, onPlanOpenSessionIdsChange, sessions]);
+
+  useEffect(() => {
+    if (isLoading || !onForwardActionChange) {
+      return;
+    }
+    onForwardActionChange(plan != null && loadError == null);
+  }, [isLoading, loadError, onForwardActionChange, plan]);
 
   async function openContinuableSession(sessionId: string) {
     if (openingSessionId || resolvingContinueId) {
@@ -381,16 +385,23 @@ export function ActivePlanPanel({
                     </span>
                   ) : null}
                 </p>
+                {day.exerciseSlugs.length > 0 ? (
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {day.exerciseSlugs.map((slug, index) => (
+                      <ExerciseBadgeChip key={`${day.id}-${index}-${slug}`} slug={slug} />
+                    ))}
+                  </div>
+                ) : null}
                 {linked ? (
                   <Link
                     href={appPath(`/sessions/${linked.id}`)}
-                    className="text-xs font-medium text-sky-800 underline-offset-2 hover:underline"
+                    className="mt-1 inline-block text-xs font-medium text-sky-800 underline-offset-2 hover:underline"
                   >
                     {formatDateOnlyForLocale(linked.performedOn)}
                   </Link>
-                ) : (
+                ) : day.exerciseSlugs.length === 0 ? (
                   <p className="text-xs text-zinc-500">Not logged yet.</p>
-                )}
+                ) : null}
               </div>
               {showRowAction ? (
                 <ActionButton
@@ -422,7 +433,7 @@ export function ActivePlanPanel({
     ) : null;
 
   return (
-    <section className="panel p-5">
+    <section className={planIsFocal ? "rounded-xl border border-sky-300 bg-sky-50 p-5" : "panel p-5"}>
       <div id={PRODUCT_TOUR_TARGET_IDS.plan}>
         <div className="mb-2">
           <SectionHeading>Plan</SectionHeading>
@@ -431,17 +442,17 @@ export function ActivePlanPanel({
         {isLoading ? (
           <ContentPlaceholder label="Loading plan..." rowClassName={HOME_PLAN_LOADING_CLASSNAME} />
         ) : loadError ? (
-          <p className="text-sm text-red-600">{loadError}</p>
+          <StatusNotice message={loadError} tone="error" />
         ) : !plan ? (
           <p className="text-sm text-zinc-600">
             No active plan.{" "}
             <Link href={appPath("/plans")} className="font-medium text-sky-800 underline-offset-2 hover:underline">
               Choose a plan
-            </Link>{" "}
-            or start a workout session without one.
+            </Link>
+            .
           </p>
         ) : (
-          <div className="flex items-center justify-between gap-2">
+          <div className="mt-3 flex items-center justify-between gap-3">
             <div className="min-w-0">
               <Link
                 href={appPath(`/plans/${plan.id}/edit`)}
@@ -450,11 +461,18 @@ export function ActivePlanPanel({
                 {plan.name}
               </Link>
               {nextDay ? (
-                <p className="mt-0.5 text-xs text-zinc-600">
-                  Next: <span className="font-medium text-zinc-800">{nextDay.name}</span>
+                <p
+                  className={
+                    planIsFocal
+                      ? "mt-1 text-2xl font-medium tracking-tight text-zinc-900"
+                      : "mt-0.5 text-sm text-zinc-600"
+                  }
+                >
+                  <span className="font-normal text-zinc-600">Next: </span>
+                  <span className="font-medium text-zinc-900">{nextDay.name}</span>
                 </p>
               ) : (
-                <p className="mt-0.5 text-xs text-zinc-600">Add a day before starting a session.</p>
+                <p className="mt-0.5 text-sm text-zinc-600">Add a day before starting a session.</p>
               )}
             </div>
             <ActionButton
@@ -462,7 +480,7 @@ export function ActivePlanPanel({
               variant={planHeaderCtaVariant}
               iconColor={planHeaderCtaVariant === "secondary" ? "sky" : "auto"}
               size="md"
-              className="shrink-0"
+              className={homeForwardActionClassName}
               disabled={
                 nextOpenSession
                   ? isOpeningContinue
@@ -488,19 +506,9 @@ export function ActivePlanPanel({
               }}
             >
               {nextOpenSession ? (
-                <Play
-                  className={
-                    planHeaderCtaVariant === "primary" ? "h-4 w-4 text-white" : "h-4 w-4"
-                  }
-                  aria-hidden
-                />
+                <Play className="h-4 w-4" aria-hidden />
               ) : (
-                <ChevronRight
-                  className={
-                    planHeaderCtaVariant === "primary" ? "h-4 w-4 text-white" : "h-4 w-4"
-                  }
-                  aria-hidden
-                />
+                <ChevronRight className="h-4 w-4" aria-hidden />
               )}
               {nextOpenSession
                 ? isOpeningContinue
@@ -534,53 +542,6 @@ export function ActivePlanPanel({
         </div>
       ) : null}
 
-      {besidePlan.length > 0 ? (
-        <div className="mt-3 space-y-2">
-          <p className="text-xs font-medium text-zinc-600">{scheduledLabel}</p>
-          <ul className="space-y-2">
-            {besidePlan.map((session) => (
-              <PanelInset
-                as="li"
-                key={session.id}
-                className="flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="min-w-0 space-y-1">
-                  <p className="text-sm font-medium text-zinc-900">
-                    {formatDateOnlyForLocale(session.performedOn)}
-                  </p>
-                  {session.notes.trim() ? (
-                    <p className="truncate text-xs text-zinc-600">{session.notes.trim()}</p>
-                  ) : null}
-                  {session.badges.length > 0 ? (
-                    <div className="flex flex-wrap gap-1">
-                      {session.badges.map((badge) => (
-                        <ExerciseBadgeChip
-                          key={`${session.id}-${badge.slug}`}
-                          slug={badge.slug}
-                          variant={homeExerciseBadgeTone(badge)}
-                        />
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-xs text-zinc-500">No exercises yet.</p>
-                  )}
-                </div>
-                <ActionButton
-                  type="button"
-                  variant="secondary"
-                  size="sm"
-                  className="shrink-0"
-                  disabled={!onOpenSession || openingSessionId === session.id}
-                  onClick={() => onOpenSession?.(session.id)}
-                >
-                  {openingSessionId === session.id ? "Opening..." : "Open"}
-                </ActionButton>
-              </PanelInset>
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
       {startDay && plan ? (
         <AppDialog titleId="start-plan-day-title" onClose={() => setStartDayId(null)}>
           <SectionHeading id="start-plan-day-title">
@@ -605,35 +566,31 @@ export function ActivePlanPanel({
               required
               value={performedOn}
               onChange={(event) => setPerformedOn(event.target.value)}
-              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+              className="mt-1 w-full"
             />
           </label>
-          <label className="mt-3 block text-sm font-medium text-zinc-800">
-            Session notes (optional)
-            <textarea
+          <div className="mt-3">
+            <NotesTextareaField
+              label="Session notes (optional)"
               value={sessionNotes}
-              onChange={(event) => setSessionNotes(event.target.value)}
-              className="mt-1 h-20 w-full rounded-md border px-3 py-2 text-sm"
-              maxLength={500}
+              onChange={setSessionNotes}
               placeholder="Optional notes for this session"
+              maxLength={500}
+              heightClassName="h-20"
             />
-          </label>
+          </div>
           <div className="mt-4 flex flex-wrap justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setStartDayId(null)}
-              className="rounded-md border border-zinc-300 bg-zinc-50 px-3 py-2 text-sm font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100"
-            >
+            <ActionButton type="button" variant="secondary" onClick={() => setStartDayId(null)}>
               Cancel
-            </button>
-            <button
+            </ActionButton>
+            <ActionButton
               type="button"
+              variant="primary"
               disabled={isStarting}
               onClick={() => void confirmStart()}
-              className="rounded-md border border-sky-700 bg-sky-700 px-3 py-2 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60"
             >
               {isStarting ? "Starting…" : "Start session"}
-            </button>
+            </ActionButton>
           </div>
         </AppDialog>
       ) : null}

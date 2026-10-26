@@ -1,17 +1,20 @@
 "use client";
 
-import { Trophy } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { ActionButton } from "@/app/components/action-button";
-import { AppTable } from "@/app/components/app-table";
+import {
+  AppTable,
+  appTableHeadRowClassName,
+  appTableRowClassName,
+  appTableTdClassName,
+  appTableThClassName,
+} from "@/app/components/app-table";
 import { ExerciseBadgeChip } from "@/app/components/exercise-badge-chip";
+import { GoalReachedMark } from "@/app/components/goal-reached-mark";
+import { HistoryPageNav } from "@/app/components/history-page-controls";
 import { homeExerciseBadgeTone } from "@/app/home-sessions";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 
 type SortDirection = "asc" | "desc";
-
-/** Same left edge as the cell content. */
-const sessionsTableThClassName = "px-2 py-2 text-left font-medium text-zinc-700";
 
 export type SessionsTableBadge = {
   slug: string;
@@ -117,27 +120,25 @@ export function SessionsTable({
             {showNotesColumn ? <col className={compactMode ? "w-[140px]" : "w-[180px]"} /> : null}
           </colgroup>
           <thead>
-            <tr className="border-b border-zinc-200 bg-zinc-200/60">
-              <th className={sessionsTableThClassName}>
+            <tr className={appTableHeadRowClassName}>
+              <th className={appTableThClassName}>
                 <button
                   type="button"
                   onClick={togglePerformedOnSort}
-                  className="inline-flex items-center gap-1"
+                  className="inline-flex items-center gap-1 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60"
                 >
                   {dateHeaderLabel} {renderPerformedOnSortIndicator()}
                 </button>
               </th>
-              <th className={sessionsTableThClassName}>Exercises</th>
-              {showNotesColumn ? (
-                <th className={sessionsTableThClassName}>Notes</th>
-              ) : null}
+              <th className={appTableThClassName}>Exercises</th>
+              {showNotesColumn ? <th className={appTableThClassName}>Notes</th> : null}
             </tr>
           </thead>
           <tbody>
             {sortedRows.length === 0 ? (
               <tr>
                 <td
-                  className="break-words whitespace-normal px-2 py-4 text-zinc-600"
+                  className={`${appTableTdClassName} break-words whitespace-normal text-zinc-600`}
                   colSpan={showNotesColumn ? 3 : 2}
                 >
                   {emptyMessage}
@@ -156,30 +157,24 @@ export function SessionsTable({
                 return (
                   <tr
                     key={row.id}
-                    className={`border-b last:border-b-0 ${
-                      isOpening
-                        ? "cursor-progress !bg-sky-100 hover:!bg-sky-100"
-                        : isHighlighted
-                          ? "cursor-pointer !bg-sky-100/70 hover:!bg-sky-100"
-                          : "cursor-pointer hover:bg-sky-50"
-                    }`}
+                    className={[
+                      appTableRowClassName,
+                      "cursor-pointer",
+                      isOpening ? "cursor-progress !bg-sky-100 hover:!bg-sky-100" : "",
+                      !isOpening && isHighlighted ? "!bg-sky-100/70 hover:!bg-sky-100" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
                     onClick={() => onOpenRow(row.id)}
                   >
-                    <td className="px-2 py-2">
+                    <td className={appTableTdClassName}>
                       <span className="inline-flex items-center gap-1 whitespace-nowrap">
                         {formatDateOnlyForLocale(row.performedOn)}
-                        {goalLabel ? (
-                          <Trophy
-                            className="h-3.5 w-3.5 shrink-0 fill-yellow-400 text-amber-500"
-                            strokeWidth={1.75}
-                            role="img"
-                            aria-label={`Goal reached: ${goalLabel}`}
-                          />
-                        ) : null}
+                        {goalLabel ? <GoalReachedMark label={goalLabel} /> : null}
                         {isOpening ? <span className="text-xs font-medium text-sky-700">Opening...</span> : null}
                       </span>
                     </td>
-                    <td className="px-2 py-2">
+                    <td className={appTableTdClassName}>
                       <div className="flex flex-wrap items-center gap-1">
                         {row.badges.slice(0, 8).map((item, index) => (
                           <ExerciseBadgeChip
@@ -194,7 +189,7 @@ export function SessionsTable({
                       </div>
                     </td>
                     {showNotesColumn ? (
-                      <td className="px-2 py-2">
+                      <td className={appTableTdClassName}>
                         <span>{visibleNotes}</span>
                         {needsTruncate ? (
                           <button
@@ -216,35 +211,7 @@ export function SessionsTable({
             )}
           </tbody>
       </AppTable>
-      {sortedRows.length > 0 && totalPages > 1 ? (
-        <div className="flex items-center justify-between pt-1 text-sm">
-          <p className="text-zinc-600">
-            Page {currentPage} of {totalPages}
-          </p>
-          <div className="flex items-center gap-2">
-            <ActionButton
-              type="button"
-              onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-              variant="secondary"
-              size="sm"
-              className="font-normal"
-            >
-              Previous
-            </ActionButton>
-            <ActionButton
-              type="button"
-              onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
-              variant="primary"
-              size="sm"
-              className="font-normal"
-            >
-              Next
-            </ActionButton>
-          </div>
-        </div>
-      ) : null}
+      <HistoryPageNav page={currentPage} totalPages={totalPages} onPageChange={setCurrentPage} />
     </div>
   );
 }

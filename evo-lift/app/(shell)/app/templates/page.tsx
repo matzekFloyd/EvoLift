@@ -302,7 +302,7 @@ export default function TemplatesPage() {
               required
               value={usePerformedOn}
               onChange={(e) => setUsePerformedOn(e.target.value)}
-              className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
+              className="mt-1 w-full"
             />
           </label>
           <div className="mt-3">
