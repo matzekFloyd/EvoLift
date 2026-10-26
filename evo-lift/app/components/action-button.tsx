@@ -9,7 +9,7 @@ import {
 } from "@/app/components/action-button-icon";
 import { usePanelInsetSurface } from "@/app/components/panel-inset";
 
-type ActionButtonSize = "sm" | "md";
+type ActionButtonSize = "sm" | "md" | "lg";
 
 type ActionButtonProps = {
   variant?: ActionButtonVariant;
@@ -40,6 +40,7 @@ const raisedSecondaryClass =
 const sizeClassByType: Record<ActionButtonSize, string> = {
   sm: "h-9 px-3 text-xs",
   md: "h-10 px-3 py-2 text-sm",
+  lg: "h-12 px-5 text-base",
 };
 
 const iconClassByType: Record<Exclude<ActionButtonIconColor, "auto">, string> = {

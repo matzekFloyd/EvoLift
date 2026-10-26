@@ -61,6 +61,8 @@ describe("sampleWeek", () => {
     assert.equal(sampleWeekDayCountLabel(4), "4 days");
     const row = readFileSync(path.join(repoRoot, "evo-lift/app/components/sample-week-row.tsx"), "utf8");
     assert.match(row, /sampleWeekDayCountLabel/);
+    assert.match(row, /stacked \? "Train" : SAMPLE_WEEK_DAY_LABEL/);
+    assert.match(row, /stacked \? null/);
     assert.match(row, /\{view\.message\}/);
   });
 
