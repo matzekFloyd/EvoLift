@@ -427,13 +427,13 @@ export function ActivePlanPanel({
               key={day.id}
               tone={isNext ? "accent" : "muted"}
               className={`flex items-center justify-between gap-2 px-3 py-2${
-                rowIsControl ? " relative" : ""
+                rowIsControl ? ` relative ${homePlanDayRowHoverClass(isNext)}` : ""
               }`}
             >
               {rowIsControl ? (
                 <button
                   type="button"
-                  className={`absolute inset-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-500/60 ${homePlanDayRowHoverClass(isNext)}`}
+                  className="absolute inset-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-500/60"
                   aria-label={
                     rowStarts
                       ? homePlanDayRowStartLabel(day.name)

@@ -127,10 +127,10 @@ export function homePlanDayRowStartLabel(dayName: string): string {
 
 /**
  * Wash for a phone day row. Next is already sky, so it deepens.
- * Other days lift off the muted inset.
+ * Other days pick up the same sky hover as other tappable rows.
  */
 export function homePlanDayRowHoverClass(isNext: boolean): string {
   return isNext
-    ? "transition-colors hover:bg-sky-100 active:bg-sky-100"
-    : "transition-colors hover:bg-zinc-100 active:bg-zinc-100";
+    ? "transition-colors hover:border-sky-400 hover:bg-sky-200 active:border-sky-400 active:bg-sky-200"
+    : "transition-colors hover:border-sky-300 hover:bg-sky-100 active:border-sky-300 active:bg-sky-100";
 }

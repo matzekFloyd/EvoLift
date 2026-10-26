@@ -202,10 +202,10 @@ describe("homePlanDayRowStartsSession", () => {
       true,
     );
     assert.equal(homePlanDayRowStartLabel("Push"), "Start session from Push");
-    assert.match(homePlanDayRowHoverClass(false), /hover:bg-zinc-100/);
-    assert.match(homePlanDayRowHoverClass(false), /active:bg-zinc-100/);
-    assert.match(homePlanDayRowHoverClass(true), /hover:bg-sky-100/);
-    assert.doesNotMatch(homePlanDayRowHoverClass(true), /zinc-100/);
+    assert.match(homePlanDayRowHoverClass(false), /hover:bg-sky-100/);
+    assert.match(homePlanDayRowHoverClass(false), /hover:border-sky-300/);
+    assert.match(homePlanDayRowHoverClass(true), /hover:bg-sky-200/);
+    assert.doesNotMatch(homePlanDayRowHoverClass(true), /hover:bg-sky-100/);
   });
 
   it("does not start from the row on a wide screen, an empty day, or while a day is open", () => {
