@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 
-export type PanelInsetTone = "muted" | "accent";
+export type PanelInsetTone = "muted" | "accent" | "contrast";
 
 /** Grey group inside a white panel. Same border, radius, and fill on every page. */
 export const panelInsetClassName = "rounded-md border border-zinc-200 bg-zinc-50/80";
@@ -17,9 +17,13 @@ export const panelInsetClassName = "rounded-md border border-zinc-200 bg-zinc-50
 /** Soft primary tint for highlighted / “next” rows inside a white panel. */
 export const panelInsetAccentClassName = "rounded-md border border-sky-300 bg-sky-50";
 
+/** White row on a tinted panel, so the row does not repeat the panel fill. */
+export const panelInsetContrastClassName = "rounded-md border border-zinc-300 bg-white";
+
 const toneClassByType: Record<PanelInsetTone, string> = {
   muted: panelInsetClassName,
   accent: panelInsetAccentClassName,
+  contrast: panelInsetContrastClassName,
 };
 
 export function panelInsetClass(className?: string, tone: PanelInsetTone = "muted") {
@@ -28,7 +32,10 @@ export function panelInsetClass(className?: string, tone: PanelInsetTone = "mute
 
 const PanelInsetSurfaceContext = createContext(false);
 
-/** True when rendering inside `PanelInset` (secondary ActionButtons raise automatically). */
+/**
+ * True when a nested control should raise to white.
+ * A contrast row is already white, so controls keep their zinc surface.
+ */
 export function usePanelInsetSurface(): boolean {
   return useContext(PanelInsetSurfaceContext);
 }
@@ -59,7 +66,7 @@ export function PanelInset<T extends ElementType = "div">({
 }: PanelInsetProps<T>) {
   const Tag = as ?? "div";
   return (
-    <PanelInsetSurfaceContext.Provider value={true}>
+    <PanelInsetSurfaceContext.Provider value={tone !== "contrast"}>
       {createElement(
         Tag,
         {
