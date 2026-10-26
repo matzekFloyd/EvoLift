@@ -15,6 +15,13 @@ import { ActivePlanPanel } from "@/app/components/active-plan-panel";
 import { NewSessionDraftCallout } from "@/app/components/new-session-draft-callout";
 import { SessionsTable, type SessionsTableRow } from "@/app/components/sessions-table";
 import { ActivityDaySessionDialog } from "@/app/components/activity-day-session-dialog";
+import { DateRangePresetButtons } from "@/app/components/date-range-preset-buttons";
+import {
+  applyDateRangePreset,
+  markedDateRangePreset,
+  openingDateRange,
+  pastWorkoutsAllDateRange,
+} from "@/app/components/date-range-presets";
 import { WorkoutActivityChart } from "@/app/components/chart-dynamic";
 import { activityDayOpen, activityDaySessionIds } from "@/app/home-activity-day";
 import { sessionDetailExercisePath } from "@/app/sessions/[id]/session-detail-query";
@@ -39,7 +46,6 @@ import { HOME_PAST_WORKOUT_PLACEHOLDER_ROWS } from "@/app/home-loading-layout";
 import type { ScheduledHomeSession } from "@/app/home-scheduled-sessions";
 import {
   formatDateToYyyyMmDd,
-  getDefaultDateRange,
   getTodayYyyyMmDd,
   normalizeSessionDateOnly,
 } from "@/lib/session-date";
@@ -93,7 +99,8 @@ function initialHomeView() {
 export default function Home() {
   const router = useRouter();
   const todayYyyyMmDd = getTodayYyyyMmDd();
-  const defaultDateRange = useMemo(() => getDefaultDateRange(new Date()), []);
+  const presetToday = useMemo(() => new Date(), []);
+  const defaultDateRange = useMemo(() => openingDateRange(presetToday), [presetToday]);
   const [cachedHome] = useState(initialHomeView);
   const [isSmallPhone, setIsSmallPhone] = useState(false);
   const [isChecking, setIsChecking] = useState(cachedHome == null);
@@ -406,7 +413,7 @@ export default function Home() {
   );
 
   const pastRangeControls = (
-    <div className="grid w-full grid-cols-2 items-end gap-2 sm:flex sm:w-auto sm:flex-nowrap">
+    <div className="grid w-full grid-cols-2 items-end gap-2 sm:flex sm:w-auto sm:flex-wrap sm:justify-end">
       <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-zinc-600">
         <span>From</span>
         <DateInput
@@ -425,6 +432,16 @@ export default function Home() {
           className="w-full rounded-md border bg-white px-2 py-1 text-sm sm:w-[9.5rem]"
         />
       </label>
+      <div className="col-span-2 sm:col-auto">
+        <DateRangePresetButtons
+          marked={markedDateRangePreset(dateFrom, dateTo, presetToday, pastWorkoutsAllDateRange)}
+          onSelect={(range) => {
+            const next = applyDateRangePreset(range, presetToday, pastWorkoutsAllDateRange);
+            setDateFrom(next.from);
+            setDateTo(next.to);
+          }}
+        />
+      </div>
       <ActionButton
         type="button"
         onClick={() => {

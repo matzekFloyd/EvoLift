@@ -30,7 +30,7 @@ describe("session dates", () => {
     assert.equal(getTodayYyyyMmDd(), localToday());
   });
 
-  it("opens on about three months through today", () => {
+  it("spans 12 weeks through today", () => {
     assert.deepEqual(getDefaultDateRange(new Date(2026, 9, 14)), {
       from: "2026-07-23",
       to: "2026-10-14",

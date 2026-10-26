@@ -22,8 +22,8 @@ export function formatDateToYyyyMmDd(date: Date): string {
 }
 
 /**
- * Date filters open on about 3 months, through today.
- * The start is 83 days back so the inclusive span is 84 days, matching the 12-week preset.
+ * Inclusive 12-week window through today (84 days).
+ * Date filters and the Insights 12w preset open on this span.
  */
 export function getDefaultDateRange(today: Date): { from: string; to: string } {
   const fromDate = new Date(today);

@@ -2,6 +2,8 @@ import { FilterX } from "lucide-react";
 import { ActionButton } from "@/app/components/action-button";
 import { Checkbox } from "@/app/components/checkbox";
 import { DateInput } from "@/app/components/date-input";
+import { DateRangePresetButtons } from "@/app/components/date-range-preset-buttons";
+import { applyDateRangePreset, markedDateRangePreset } from "@/app/components/date-range-presets";
 import { panelInsetClass } from "@/app/components/panel-inset";
 import { getTodayYyyyMmDd } from "@/lib/session-date";
 
@@ -16,6 +18,8 @@ type ExerciseFiltersSectionProps = {
   hasWarmupSets: boolean;
   isFullyCleared: boolean;
   clearRange: { from: string; to: string };
+  /** Same calendar day used for the 12-week opening range, so a preset matches those dates. */
+  presetToday: Date;
   onCommit: (patch: ExerciseFiltersPatch) => void;
 };
 
@@ -28,6 +32,7 @@ export function ExerciseFiltersSection({
   hasWarmupSets,
   isFullyCleared,
   clearRange,
+  presetToday,
   onCommit,
 }: ExerciseFiltersSectionProps) {
   return (
@@ -37,7 +42,7 @@ export function ExerciseFiltersSection({
         <span className="font-medium text-zinc-800">{totalCount}</span> sets
       </p>
       <div className="flex flex-col gap-2">
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 items-end gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto]">
           <label className="block min-w-0 text-xs font-medium text-zinc-600">
             From
             <DateInput
@@ -56,6 +61,15 @@ export function ExerciseFiltersSection({
               className="mt-1 min-w-0 w-full max-w-full rounded-md border bg-white px-2 py-1.5 text-sm"
             />
           </label>
+          <div className="col-span-2 sm:col-span-1">
+            <DateRangePresetButtons
+              marked={markedDateRangePreset(from, to, presetToday, clearRange)}
+              onSelect={(range) => {
+                const next = applyDateRangePreset(range, presetToday, clearRange);
+                onCommit({ from: next.from, to: next.to });
+              }}
+            />
+          </div>
         </div>
         <div className="flex flex-row flex-wrap items-center justify-between gap-x-2 gap-y-1">
           {hasWarmupSets ? (
