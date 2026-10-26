@@ -19,7 +19,7 @@
     "check:route-js": "node scripts/check-route-js-budget.mjs"
   },
   "dependencies": {
-    "@modelcontextprotocol/server": "^2.3.1",
+    "@modelcontextprotocol/server": "^2.4.0",
     "@supabase/ssr": "0.6.1",
     "@supabase/supabase-js": "2.118.0",
     "lucide-react": "^1.59.0",
