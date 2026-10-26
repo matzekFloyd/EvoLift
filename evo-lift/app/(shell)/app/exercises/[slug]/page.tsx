@@ -608,6 +608,18 @@ function ExerciseDetailPageContent() {
         ) : (
           <div className="flex flex-col gap-4">
             {insightReady ? <ExerciseInsightPanel report={exerciseInsight} slug={slug ?? ""} /> : null}
+            <ExerciseFiltersSection
+              shownCount={filteredHistoryRows.length}
+              totalCount={historyRows.length}
+              from={filterState.from}
+              to={filterState.to}
+              hideWarmups={filterState.hideWarmups}
+              hasWarmupSets={hasWarmupSets}
+              isFullyCleared={isExerciseFiltersFullyCleared}
+              clearRange={fullHistoryClearDateRange}
+              presetToday={presetToday}
+              onCommit={commitExerciseFilters}
+            />
             <SegmentedTabs<ExerciseDetailPanelTab>
               value={detailPanelTab}
               onChange={setDetailPanelTab}
@@ -637,18 +649,6 @@ function ExerciseDetailPageContent() {
               hidden={detailPanelTab !== "data"}
               className="flex flex-col gap-4"
             >
-              <ExerciseFiltersSection
-                shownCount={filteredHistoryRows.length}
-                totalCount={historyRows.length}
-                from={filterState.from}
-                to={filterState.to}
-                hideWarmups={filterState.hideWarmups}
-                hasWarmupSets={hasWarmupSets}
-                isFullyCleared={isExerciseFiltersFullyCleared}
-                clearRange={fullHistoryClearDateRange}
-                presetToday={presetToday}
-                onCommit={commitExerciseFilters}
-              />
               <ExerciseSummarySection
                 loggedSetCount={filteredHistoryRows.length}
                 stats={historyStats}
