@@ -6,8 +6,15 @@ import {
   homeForwardActionClassName,
   homeHeaderAddVariant,
   homeInProgressCtaVariant,
+  HOME_PLAN_COMPACT_MEDIA_QUERY,
+  homePlanDayFinishBeforeStartMessage,
+  homePlanDayRowHoverClass,
+  homePlanDayRowStartLabel,
+  homePlanDayRowStartsSession,
   homePlanDayShowsRowAction,
+  homePlanDayStartBlockedMessage,
   homePlanDaysStartsOpen,
+  PLAN_DAY_NEEDS_EXERCISE_MESSAGE,
   homePlanIsFocal,
   homeSessionTableStartsOpen,
 } from "./home-next-action-layout";
@@ -123,25 +130,123 @@ describe("home forward action", () => {
 });
 
 describe("homePlanDayShowsRowAction", () => {
-  it("hides the row action when the header already covers that day", () => {
+  it("hides every row Start button on a phone", () => {
+    assert.equal(HOME_PLAN_COMPACT_MEDIA_QUERY, "(max-width: 768px)");
     assert.equal(
-      homePlanDayShowsRowAction({ isContinuable: true, isNext: true, hasContinuable: true }),
+      homePlanDayShowsRowAction({
+        isCompact: true,
+        isContinuable: false,
+        isNext: false,
+        hasContinuable: false,
+      }),
       false,
     );
     assert.equal(
-      homePlanDayShowsRowAction({ isContinuable: false, isNext: true, hasContinuable: false }),
+      homePlanDayShowsRowAction({
+        isCompact: true,
+        isContinuable: false,
+        isNext: true,
+        hasContinuable: false,
+      }),
       false,
     );
   });
 
-  it("keeps Start on other days", () => {
+  it("hides the row action when the header already covers that day", () => {
     assert.equal(
-      homePlanDayShowsRowAction({ isContinuable: false, isNext: false, hasContinuable: true }),
+      homePlanDayShowsRowAction({
+        isCompact: false,
+        isContinuable: true,
+        isNext: true,
+        hasContinuable: true,
+      }),
+      false,
+    );
+    assert.equal(
+      homePlanDayShowsRowAction({
+        isCompact: false,
+        isContinuable: false,
+        isNext: true,
+        hasContinuable: false,
+      }),
+      false,
+    );
+  });
+
+  it("keeps Start on other days from the compact breakpoint up", () => {
+    assert.equal(
+      homePlanDayShowsRowAction({
+        isCompact: false,
+        isContinuable: false,
+        isNext: false,
+        hasContinuable: true,
+      }),
       true,
     );
     assert.equal(
-      homePlanDayShowsRowAction({ isContinuable: false, isNext: false, hasContinuable: false }),
+      homePlanDayShowsRowAction({
+        isCompact: false,
+        isContinuable: false,
+        isNext: false,
+        hasContinuable: false,
+      }),
       true,
+    );
+  });
+});
+
+describe("homePlanDayRowStartsSession", () => {
+  it("opens Start session from a phone row that has exercises and no open day", () => {
+    assert.equal(
+      homePlanDayRowStartsSession({ isCompact: true, exerciseCount: 2, hasContinuable: false }),
+      true,
+    );
+    assert.equal(homePlanDayRowStartLabel("Push"), "Start session from Push");
+    assert.match(homePlanDayRowHoverClass(false), /hover:bg-zinc-100/);
+    assert.match(homePlanDayRowHoverClass(false), /active:bg-zinc-100/);
+    assert.match(homePlanDayRowHoverClass(true), /hover:bg-sky-100/);
+    assert.doesNotMatch(homePlanDayRowHoverClass(true), /zinc-100/);
+  });
+
+  it("does not start from the row on a wide screen, an empty day, or while a day is open", () => {
+    assert.equal(
+      homePlanDayRowStartsSession({ isCompact: false, exerciseCount: 2, hasContinuable: false }),
+      false,
+    );
+    assert.equal(
+      homePlanDayRowStartsSession({ isCompact: true, exerciseCount: 0, hasContinuable: false }),
+      false,
+    );
+    assert.equal(
+      homePlanDayRowStartsSession({ isCompact: true, exerciseCount: 2, hasContinuable: true }),
+      false,
+    );
+  });
+
+  it("keeps the existing reason when a phone row cannot start", () => {
+    assert.equal(
+      homePlanDayStartBlockedMessage({
+        hasContinuable: false,
+        exerciseCount: 0,
+        continuableDayName: null,
+      }),
+      PLAN_DAY_NEEDS_EXERCISE_MESSAGE,
+    );
+    assert.equal(
+      homePlanDayStartBlockedMessage({
+        hasContinuable: true,
+        exerciseCount: 2,
+        continuableDayName: "Pull",
+      }),
+      homePlanDayFinishBeforeStartMessage("Pull"),
+    );
+    assert.equal(
+      homePlanDayStartBlockedMessage({
+        hasContinuable: false,
+        exerciseCount: 2,
+        continuableDayName: null,
+      }),
+      null,
     );
   });
 });

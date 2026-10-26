@@ -1,3 +1,5 @@
+import { PLAN_ALREADY_OPEN_MESSAGE } from "@/lib/plan-cycle";
+
 /** Session list under Past workouts starts closed. The chart is the history. */
 export function homeSessionTableStartsOpen(): boolean {
   return false;
@@ -59,15 +61,29 @@ export function homeCompetingCtaVariant(
   return hasStandaloneInProgress ? "secondary" : "primary";
 }
 
+/** Phone layout for the plan day list. Same split as the compact home layout. */
+export const HOME_PLAN_COMPACT_MEDIA_QUERY = "(max-width: 768px)";
+
+export const PLAN_DAY_NEEDS_EXERCISE_MESSAGE = "Add at least one exercise to this day.";
+
+export function homePlanDayFinishBeforeStartMessage(dayName: string | null): string {
+  return dayName ? `Finish ${dayName} before starting another day.` : PLAN_ALREADY_OPEN_MESSAGE;
+}
+
 /**
- * Day row Start/Continue is hidden when the plan header already covers that day
- * (Continue for the open day, or Start for Next when nothing is open).
+ * Day row Start is hidden on a phone. From the compact breakpoint up it is hidden
+ * when the plan header already covers that day (Continue for the open day, or
+ * Start for Next when nothing is open).
  */
 export function homePlanDayShowsRowAction(input: {
+  isCompact: boolean;
   isContinuable: boolean;
   isNext: boolean;
   hasContinuable: boolean;
 }): boolean {
+  if (input.isCompact) {
+    return false;
+  }
   if (input.isContinuable) {
     return false;
   }
@@ -75,4 +91,46 @@ export function homePlanDayShowsRowAction(input: {
     return false;
   }
   return true;
+}
+
+/**
+ * On a phone, the day row opens Start session when the day has exercises and
+ * no plan day is already open. A wide screen keeps the Start button instead.
+ */
+export function homePlanDayRowStartsSession(input: {
+  isCompact: boolean;
+  exerciseCount: number;
+  hasContinuable: boolean;
+}): boolean {
+  return input.isCompact && input.exerciseCount > 0 && !input.hasContinuable;
+}
+
+/** Why a day row cannot start, or null when the row may open Start session. */
+export function homePlanDayStartBlockedMessage(input: {
+  hasContinuable: boolean;
+  exerciseCount: number;
+  continuableDayName: string | null;
+}): string | null {
+  if (input.hasContinuable) {
+    return homePlanDayFinishBeforeStartMessage(input.continuableDayName);
+  }
+  if (input.exerciseCount === 0) {
+    return PLAN_DAY_NEEDS_EXERCISE_MESSAGE;
+  }
+  return null;
+}
+
+/** Accessible name for a phone day row that opens Start session. */
+export function homePlanDayRowStartLabel(dayName: string): string {
+  return `Start session from ${dayName}`;
+}
+
+/**
+ * Wash for a phone day row. Next is already sky, so it deepens.
+ * Other days lift off the muted inset.
+ */
+export function homePlanDayRowHoverClass(isNext: boolean): string {
+  return isNext
+    ? "transition-colors hover:bg-sky-100 active:bg-sky-100"
+    : "transition-colors hover:bg-zinc-100 active:bg-zinc-100";
 }

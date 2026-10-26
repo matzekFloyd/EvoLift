@@ -15,9 +15,15 @@ import { PanelInset } from "@/app/components/panel-inset";
 import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
 import {
+  HOME_PLAN_COMPACT_MEDIA_QUERY,
   homeCompetingCtaVariant,
   homeForwardActionClassName,
+  homePlanDayFinishBeforeStartMessage,
+  homePlanDayRowHoverClass,
+  homePlanDayRowStartLabel,
+  homePlanDayRowStartsSession,
   homePlanDayShowsRowAction,
+  homePlanDayStartBlockedMessage,
   homePlanDaysStartsOpen,
 } from "@/app/home-next-action-layout";
 import { planDayExerciseSlugs } from "@/app/plan-day-exercise-slugs";
@@ -103,6 +109,28 @@ type ActivePlanView = {
   days: PlanDayView[];
 };
 
+function PlanDaySummary({ day, isNext }: { day: PlanDayView; isNext: boolean }) {
+  return (
+    <>
+      <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-zinc-900">
+        {day.name}
+        {isNext ? (
+          <span className="rounded-full border border-sky-200 bg-white px-2 py-0.5 text-[10px] font-medium text-sky-800">
+            Next
+          </span>
+        ) : null}
+      </p>
+      {day.exerciseSlugs.length > 0 ? (
+        <div className="mt-1 flex flex-wrap gap-1">
+          {day.exerciseSlugs.map((slug, index) => (
+            <ExerciseBadgeChip key={`${day.id}-${index}-${slug}`} slug={slug} />
+          ))}
+        </div>
+      ) : null}
+    </>
+  );
+}
+
 type ActivePlanPanelProps = {
   /** True when Continue or a draft already owns the filled action. */
   forwardActionTaken?: boolean;
@@ -135,11 +163,20 @@ export function ActivePlanPanel({
   const [sessionNotes, setSessionNotes] = useState("");
   const [isStarting, setIsStarting] = useState(false);
   const [resolvingContinueId, setResolvingContinueId] = useState<string | null>(null);
+  const [isCompact, setIsCompact] = useState(false);
 
   useEffect(() => {
     return () => {
       continueRequestRef.current += 1;
     };
+  }, []);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia(HOME_PLAN_COMPACT_MEDIA_QUERY);
+    const apply = () => setIsCompact(mediaQuery.matches);
+    apply();
+    mediaQuery.addEventListener("change", apply);
+    return () => mediaQuery.removeEventListener("change", apply);
   }, []);
 
   useEffect(() => {
@@ -288,11 +325,7 @@ export function ActivePlanPanel({
 
   function openStart(dayId: string) {
     if (continuable && continuable.planDayId !== dayId) {
-      setMessage(
-        continuableDayName
-          ? `Finish ${continuableDayName} before starting another day.`
-          : PLAN_ALREADY_OPEN_MESSAGE,
-      );
+      setMessage(homePlanDayFinishBeforeStartMessage(continuableDayName));
       return;
     }
     setStartDayId(dayId);
@@ -364,43 +397,73 @@ export function ActivePlanPanel({
           const isContinuable = continuable?.planDayId === day.id;
           const linked = isContinuable ? continuable : (openSession ?? latest);
           const isNext = day.id === nextDayId;
+          const hasContinuable = continuable != null;
           const showRowAction = homePlanDayShowsRowAction({
+            isCompact,
             isContinuable,
             isNext,
-            hasContinuable: continuable != null,
+            hasContinuable,
           });
+          const rowStarts = homePlanDayRowStartsSession({
+            isCompact,
+            exerciseCount: day.exerciseCount,
+            hasContinuable,
+          });
+          const blockedMessage = homePlanDayStartBlockedMessage({
+            hasContinuable,
+            exerciseCount: day.exerciseCount,
+            continuableDayName,
+          });
+          const rowExplainsBlock = isCompact && !isContinuable && blockedMessage != null;
+          const rowIsControl = rowStarts || rowExplainsBlock;
+          const summary = <PlanDaySummary day={day} isNext={isNext} />;
+          const notLoggedYet =
+            !linked && day.exerciseSlugs.length === 0 ? (
+              <p className="text-xs text-zinc-500">Not logged yet.</p>
+            ) : null;
           return (
             <PanelInset
               as="li"
               key={day.id}
               tone={isNext ? "accent" : "muted"}
-              className="flex items-center justify-between gap-2 px-3 py-2"
+              className={`flex items-center justify-between gap-2 px-3 py-2${
+                rowIsControl ? " relative" : ""
+              }`}
             >
-              <div className="min-w-0">
-                <p className="flex flex-wrap items-center gap-2 text-sm font-medium text-zinc-900">
-                  {day.name}
-                  {isNext ? (
-                    <span className="rounded-full border border-sky-200 bg-white px-2 py-0.5 text-[10px] font-medium text-sky-800">
-                      Next
-                    </span>
-                  ) : null}
-                </p>
-                {day.exerciseSlugs.length > 0 ? (
-                  <div className="mt-1 flex flex-wrap gap-1">
-                    {day.exerciseSlugs.map((slug, index) => (
-                      <ExerciseBadgeChip key={`${day.id}-${index}-${slug}`} slug={slug} />
-                    ))}
-                  </div>
-                ) : null}
+              {rowIsControl ? (
+                <button
+                  type="button"
+                  className={`absolute inset-0 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-500/60 ${homePlanDayRowHoverClass(isNext)}`}
+                  aria-label={
+                    rowStarts
+                      ? homePlanDayRowStartLabel(day.name)
+                      : `${day.name}. ${blockedMessage ?? ""}`
+                  }
+                  onClick={() => {
+                    if (rowStarts) {
+                      openStart(day.id);
+                      return;
+                    }
+                    if (blockedMessage) {
+                      setMessage(blockedMessage);
+                    }
+                  }}
+                />
+              ) : null}
+              <div
+                className={`min-w-0 flex-1${rowIsControl ? " pointer-events-none relative z-10" : ""}`}
+              >
+                {summary}
+                {notLoggedYet}
                 {linked ? (
                   <Link
                     href={appPath(`/sessions/${linked.id}`)}
-                    className="mt-1 inline-block text-xs font-medium text-sky-800 underline-offset-2 hover:underline"
+                    className={`mt-1 inline-block text-xs font-medium text-sky-800 underline-offset-2 hover:underline${
+                      rowIsControl ? " pointer-events-auto" : ""
+                    }`}
                   >
                     {formatDateOnlyForLocale(linked.performedOn)}
                   </Link>
-                ) : day.exerciseSlugs.length === 0 ? (
-                  <p className="text-xs text-zinc-500">Not logged yet.</p>
                 ) : null}
               </div>
               {showRowAction ? (
@@ -410,16 +473,8 @@ export function ActivePlanPanel({
                   iconColor="sky"
                   size="sm"
                   className="shrink-0"
-                  disabled={continuable != null || day.exerciseCount === 0}
-                  title={
-                    continuable != null
-                      ? continuableDayName
-                        ? `Finish ${continuableDayName} before starting another day.`
-                        : PLAN_ALREADY_OPEN_MESSAGE
-                      : day.exerciseCount === 0
-                        ? "Add at least one exercise to this day."
-                        : undefined
-                  }
+                  disabled={blockedMessage != null}
+                  title={blockedMessage ?? undefined}
                   onClick={() => openStart(day.id)}
                 >
                   <Play className="h-3.5 w-3.5" aria-hidden />
