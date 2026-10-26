@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isAssistanceExercise } from "@/lib/assistance-exercise";
 import { milestoneDefinitionChanged, resolveMilestone } from "@/lib/milestone-progress";
 import { getTodayYyyyMmDd } from "@/lib/session-date";
 import type { Database } from "@/lib/supabase/database.types";
@@ -76,10 +77,19 @@ export async function getGoal(client: Client, userId: string, goalId: string): P
   return data;
 }
 
+async function exerciseUsesAssistance(client: Client, exerciseId: string): Promise<boolean> {
+  const { data, error } = await client.from("exercises").select("slug").eq("id", exerciseId).maybeSingle();
+  if (error) {
+    throw new Error(`Could not save this goal: ${error.message}`);
+  }
+  return isAssistanceExercise(data?.slug);
+}
+
 export async function createGoal(client: Client, userId: string, goal: ParsedGoal): Promise<GoalRow> {
-  const [sets, bodyweightEntries] = await Promise.all([
+  const [sets, bodyweightEntries, assistance] = await Promise.all([
     loadMilestoneWorkingSets(client, [goal.definition.exerciseId], userId),
     loadBodyweightLog(client, userId),
+    exerciseUsesAssistance(client, goal.definition.exerciseId),
   ]);
   const resolved = resolveMilestone({
     definition: goal.definition,
@@ -89,6 +99,7 @@ export async function createGoal(client: Client, userId: string, goal: ParsedGoa
     dueOn: goal.dueOn,
     today: getTodayYyyyMmDd(),
     recalculate: true,
+    assistance,
   });
   return insertGoal(client, userId, goal, {
     achieved_at: resolved.stored.achievedAt,
@@ -114,9 +125,10 @@ export async function updateGoal(
     achieved_threshold_kg: existing.achieved_threshold_kg,
   };
   if (changed) {
-    const [sets, bodyweightEntries] = await Promise.all([
+    const [sets, bodyweightEntries, assistance] = await Promise.all([
       loadMilestoneWorkingSets(client, [goal.definition.exerciseId], userId),
       loadBodyweightLog(client, userId),
+      exerciseUsesAssistance(client, goal.definition.exerciseId),
     ]);
     const resolved = resolveMilestone({
       definition: goal.definition,
@@ -132,6 +144,7 @@ export async function updateGoal(
       dueOn: goal.dueOn,
       today: getTodayYyyyMmDd(),
       recalculate: true,
+      assistance,
     });
     achievement = {
       achieved_at: resolved.stored.achievedAt,

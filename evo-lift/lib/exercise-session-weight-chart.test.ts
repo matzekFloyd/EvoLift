@@ -80,6 +80,22 @@ describe("buildExerciseSessionWeightChartPoints", () => {
     assert.equal(points[1]?.xTickLabel.includes("("), false);
     assert.match(points[2]?.xTickLabel ?? "", /\(2\)/);
   });
+
+  it("plots the least assistance, including 0 kg, and a later set on a tie", () => {
+    const points = buildExerciseSessionWeightChartPoints(
+      [
+        row({ setNumber: 1, weightKg: 20, totalKg: 20 }),
+        row({ setNumber: 2, weightKg: 10, totalKg: 10 }),
+        row({ setNumber: 3, weightKg: 0, totalKg: 0 }),
+        row({ setNumber: 4, weightKg: 0, totalKg: 0 }),
+        row({ setNumber: 5, weightKg: 5, totalKg: 5, isWarmup: true }),
+      ],
+      { assistance: true },
+    );
+    assert.equal(points.length, 1);
+    assert.equal(points[0]?.heaviestSetNumber, 4);
+    assert.equal(points[0]?.heaviestLoadedKg, 0);
+  });
 });
 
 describe("weight chart copy and axis", () => {
@@ -101,6 +117,16 @@ describe("weight chart copy and axis", () => {
     assert.equal(
       buildWeightChangeSentence([point()], "loaded", { assistance: true }),
       "Last session: 60.0 kg assistance. Log another session to see the change.",
+    );
+    const moreHelp = point({ heaviestLoadedKg: 20, heaviestTotalKg: 20 });
+    const lessHelp = point({ heaviestLoadedKg: 10, heaviestTotalKg: 10 });
+    assert.equal(
+      buildWeightChangeSentence([moreHelp, lessHelp], "loaded", { assistance: true }),
+      "Last session: 10.0 kg assistance, 10.0 kg less assistance than the session before.",
+    );
+    assert.equal(
+      buildWeightChangeSentence([lessHelp, moreHelp], "loaded", { assistance: true }),
+      "Last session: 20.0 kg assistance, 10.0 kg more assistance than the session before.",
     );
   });
 

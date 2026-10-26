@@ -69,6 +69,9 @@ describe("milestone totals and copy", () => {
     assert.equal(workingSetTotalKg(null, 20), null);
     assert.equal(workingSetTotalKg(-1, 20), null);
     assert.equal(workingSetTotalKg(0, 0), null);
+    assert.equal(workingSetTotalKg(0, null, { assistance: true }), 0);
+    assert.equal(workingSetTotalKg(12.5, 20, { assistance: true }), 12.5);
+    assert.equal(workingSetTotalKg(null, 0, { assistance: true }), null);
   });
 
   it("formats a target, a gap, and a best set", () => {
@@ -79,6 +82,10 @@ describe("milestone totals and copy", () => {
     assert.equal(formatBodyweightMultiple(2), "2.0");
     assert.equal(formatBodyweightMultiple(1.25), "1.25");
     assert.equal(formatMilestoneTarget(definition()), "100 kg × 5 reps");
+    assert.equal(
+      formatMilestoneTarget(definition({ targetWeightKg: 20, minReps: 8 }), { assistance: true }),
+      "20 kg assistance × 8 reps",
+    );
     assert.equal(
       formatMilestoneTarget(definition({ milestoneType: "bodyweight_multiple", bodyweightMultiple: 1.5 })),
       "1.5× bodyweight",
@@ -347,5 +354,63 @@ describe("resolveMilestone", () => {
     assert.equal(kept.shouldWrite, false);
     assert.equal(kept.stored.achievedBodyweightKg, 80);
     assert.equal(kept.stored.achievedThresholdKg, 120);
+  });
+
+  it("reaches an assistance goal at or below the target, including 0 kg", () => {
+    const assistanceGoal = definition({ exerciseId: "dip", targetWeightKg: 20, minReps: 8 });
+    const input = {
+      definition: assistanceGoal,
+      stored: emptyStored,
+      bodyweightEntries: [],
+      dueOn: null,
+      today: "2026-10-14",
+      recalculate: true,
+      assistance: true,
+    };
+    const farther = resolveMilestone({
+      ...input,
+      sets: [set({ exerciseId: "dip", totalKg: 40, reps: 8 })],
+    });
+    const closer = resolveMilestone({
+      ...input,
+      sets: [set({ exerciseId: "dip", totalKg: 25, reps: 8 })],
+    });
+    assert.equal(farther.progress.kind, "active");
+    assert.equal(closer.progress.kind, "active");
+    if (farther.progress.kind === "active" && closer.progress.kind === "active") {
+      assert.equal(farther.progress.bestTotalKg, 40);
+      assert.equal(closer.progress.bestTotalKg, 25);
+      assert.ok(closer.progress.percent > farther.progress.percent);
+      assert.ok(closer.progress.gapKg < farther.progress.gapKg);
+    }
+
+    const reached = resolveMilestone({
+      ...input,
+      sets: [
+        set({ exerciseId: "dip", totalKg: 40, reps: 8, performedAt: "2026-10-01T12:00:00Z" }),
+        set({ exerciseId: "dip", totalKg: 15, reps: 7, performedAt: "2026-10-02T12:00:00Z" }),
+        set({ exerciseId: "dip", totalKg: 15, reps: 8, performedAt: "2026-10-03T12:00:00Z" }),
+        set({ exerciseId: "dip", totalKg: 0, reps: 8, performedAt: "2026-10-04T12:00:00Z" }),
+        set({ exerciseId: "dip", totalKg: 0, reps: 8, isWarmup: true, performedAt: "2026-10-01T08:00:00Z" }),
+      ],
+    });
+    assert.equal(reached.progress.kind, "achieved");
+    assert.equal(reached.stored.achievedAt, "2026-10-03T12:00:00Z");
+    if (reached.progress.kind === "achieved") {
+      assert.equal(reached.progress.bestTotalKg, 0);
+      assert.equal(reached.progress.bestReps, 8);
+      assert.equal(reached.progress.percent, 100);
+    }
+
+    const unchanged = resolveMilestone({
+      definition: definition(),
+      stored: emptyStored,
+      sets: [set({ totalKg: 110 })],
+      bodyweightEntries: [],
+      dueOn: null,
+      today: "2026-10-14",
+      recalculate: true,
+    });
+    assert.equal(unchanged.progress.kind, "achieved");
   });
 });

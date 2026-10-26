@@ -52,13 +52,23 @@ export function roundKg(value: number): number {
   return Math.round(value * 100) / 100;
 }
 
-export function workingSetTotalKg(loadedKg: number | null, baseKg: number | null): number | null {
+export function workingSetTotalKg(
+  loadedKg: number | null,
+  baseKg: number | null,
+  options?: { assistance?: boolean },
+): number | null {
   if (loadedKg == null) {
     return null;
   }
   const loaded = Number(loadedKg);
+  if (!Number.isFinite(loaded) || loaded < 0) {
+    return null;
+  }
+  if (options?.assistance) {
+    return roundKg(loaded);
+  }
   const base = baseKg == null ? 0 : Number(baseKg);
-  if (!Number.isFinite(loaded) || loaded < 0 || !Number.isFinite(base) || base < 0) {
+  if (!Number.isFinite(base) || base < 0) {
     return null;
   }
   const total = roundKg(loaded + base);
@@ -89,24 +99,31 @@ function qualifyingSets(
   sets: MilestoneWorkingSet[],
   exerciseId: string,
   minReps: number,
+  lowerIsBetter = false,
 ): MilestoneWorkingSet[] {
-  return sets.filter(
-    (set) =>
-      set.exerciseId === exerciseId &&
-      !set.isWarmup &&
-      set.reps >= minReps &&
-      set.totalKg > 0,
-  );
+  return sets.filter((set) => {
+    if (set.exerciseId !== exerciseId || set.isWarmup || set.reps < minReps) {
+      return false;
+    }
+    if (!Number.isFinite(set.totalKg) || set.totalKg < 0) {
+      return false;
+    }
+    return lowerIsBetter || set.totalKg > 0;
+  });
 }
 
-function bestQualifyingSet(sets: MilestoneWorkingSet[]): MilestoneWorkingSet | null {
+function bestQualifyingSet(
+  sets: MilestoneWorkingSet[],
+  lowerIsBetter = false,
+): MilestoneWorkingSet | null {
   let best: MilestoneWorkingSet | null = null;
   for (const set of sets) {
-    if (
-      !best ||
-      set.totalKg > best.totalKg ||
-      (set.totalKg === best.totalKg && set.performedAt < best.performedAt)
-    ) {
+    if (!best) {
+      best = set;
+      continue;
+    }
+    const betterKg = lowerIsBetter ? set.totalKg < best.totalKg : set.totalKg > best.totalKg;
+    if (betterKg || (set.totalKg === best.totalKg && set.performedAt < best.performedAt)) {
       best = set;
     }
   }
@@ -116,10 +133,14 @@ function bestQualifyingSet(sets: MilestoneWorkingSet[]): MilestoneWorkingSet | n
 function earliestReachingSet(
   sets: MilestoneWorkingSet[],
   thresholdKg: number,
+  lowerIsBetter = false,
 ): MilestoneWorkingSet | null {
   let earliest: MilestoneWorkingSet | null = null;
+  const threshold = roundKg(thresholdKg);
   for (const set of sets) {
-    if (roundKg(set.totalKg) < roundKg(thresholdKg)) {
+    const total = roundKg(set.totalKg);
+    const reaches = lowerIsBetter ? total <= threshold : total >= threshold;
+    if (!reaches) {
       continue;
     }
     if (!earliest || set.performedAt < earliest.performedAt) {
@@ -149,16 +170,12 @@ function progressFromThreshold(
   best: MilestoneWorkingSet | null,
   achievedAt: string | null,
   pastDue: boolean,
+  lowerIsBetter = false,
 ): GoalProgress {
-  const gapKg = best ? Math.max(0, roundKg(thresholdKg - best.totalKg)) : thresholdKg;
-  const percent =
-    thresholdKg <= 0
-      ? 0
-      : best
-        ? Math.min(100, (best.totalKg / thresholdKg) * 100)
-        : kind === "achieved"
-          ? 100
-          : 0;
+  const gapKg = best
+    ? Math.max(0, roundKg(lowerIsBetter ? best.totalKg - thresholdKg : thresholdKg - best.totalKg))
+    : thresholdKg;
+  const percent = goalPercent(kind, thresholdKg, best, lowerIsBetter);
   return {
     kind,
     thresholdKg,
@@ -169,6 +186,27 @@ function progressFromThreshold(
     achievedAt,
     pastDue,
   };
+}
+
+function goalPercent(
+  kind: "active" | "achieved",
+  thresholdKg: number,
+  best: MilestoneWorkingSet | null,
+  lowerIsBetter: boolean,
+): number {
+  if (thresholdKg <= 0) {
+    return 0;
+  }
+  if (!best) {
+    return kind === "achieved" ? 100 : 0;
+  }
+  if (lowerIsBetter) {
+    if (best.totalKg <= 0) {
+      return 100;
+    }
+    return Math.min(100, (thresholdKg / best.totalKg) * 100);
+  }
+  return Math.min(100, (best.totalKg / thresholdKg) * 100);
 }
 
 function achievementsEqual(left: StoredAchievement, right: StoredAchievement): boolean {
@@ -297,11 +335,27 @@ export function resolveMilestone(input: {
   today: string;
   /** True after the exercise, type, target, multiple, or rep condition changes. */
   recalculate: boolean;
+  /**
+   * Assisted Dip and Assisted Pull-Up. An absolute goal is reached at or below the target assistance.
+   * 0 kg counts as unassisted. A higher assistance is farther from the goal.
+   */
+  assistance?: boolean;
 }): { progress: GoalProgress; stored: StoredAchievement; shouldWrite: boolean } {
-  const qualifying = qualifyingSets(input.sets, input.definition.exerciseId, input.definition.minReps);
-  const best = bestQualifyingSet(qualifying);
+  const lowerIsBetter = input.assistance === true && input.definition.milestoneType === "absolute";
+  const qualifying = qualifyingSets(
+    input.sets,
+    input.definition.exerciseId,
+    input.definition.minReps,
+    lowerIsBetter,
+  );
+  const best = bestQualifyingSet(qualifying, lowerIsBetter);
 
-  if (!input.recalculate && input.stored.achievedAt && input.stored.achievedThresholdKg != null) {
+  if (
+    !lowerIsBetter &&
+    !input.recalculate &&
+    input.stored.achievedAt &&
+    input.stored.achievedThresholdKg != null
+  ) {
     return {
       progress: progressFromThreshold(
         "achieved",
@@ -336,7 +390,7 @@ export function resolveMilestone(input: {
     };
   }
 
-  const hitting = earliestReachingSet(qualifying, threshold);
+  const hitting = earliestReachingSet(qualifying, threshold, lowerIsBetter);
   if (hitting) {
     const next: StoredAchievement = {
       achievedAt: hitting.performedAt,
@@ -344,7 +398,7 @@ export function resolveMilestone(input: {
       achievedThresholdKg: threshold,
     };
     return {
-      progress: progressFromThreshold("achieved", threshold, best, next.achievedAt, false),
+      progress: progressFromThreshold("achieved", threshold, best, next.achievedAt, false, lowerIsBetter),
       stored: next,
       shouldWrite: !achievementsEqual(input.stored, next),
     };
@@ -358,6 +412,7 @@ export function resolveMilestone(input: {
       best,
       null,
       isPastDue(input.dueOn, input.today, false),
+      lowerIsBetter,
     ),
     stored: cleared ? emptyAchievement : input.stored,
     shouldWrite: cleared,
@@ -382,12 +437,17 @@ export function formatBodyweightMultiple(value: number): string {
   return rounded.toFixed(2).replace(/0$/, "");
 }
 
-export function formatMilestoneTarget(definition: MilestoneDefinition): string {
+export function formatMilestoneTarget(
+  definition: MilestoneDefinition,
+  options?: { assistance?: boolean },
+): string {
   if (definition.milestoneType === "bodyweight_multiple" && definition.bodyweightMultiple != null) {
     return `${formatBodyweightMultiple(definition.bodyweightMultiple)}× bodyweight`;
   }
   if (definition.targetWeightKg != null) {
-    return `${formatKgAmount(definition.targetWeightKg)} × ${formatRepCount(definition.minReps)}`;
+    const weight = formatKgAmount(definition.targetWeightKg);
+    const reps = formatRepCount(definition.minReps);
+    return options?.assistance ? `${weight} assistance × ${reps}` : `${weight} × ${reps}`;
   }
   return "Goal";
 }

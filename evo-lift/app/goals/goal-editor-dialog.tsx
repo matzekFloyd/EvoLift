@@ -9,6 +9,7 @@ import { SectionHeading } from "@/app/components/section-heading";
 import { SegmentedTabs } from "@/app/components/segmented-tabs";
 import { StatusNotice } from "@/app/components/status-notice";
 import type { GoalDraft } from "@/app/goals/goal-draft";
+import { isAssistanceExercise } from "@/lib/assistance-exercise";
 import type { ExercisePickerOption } from "@/lib/exercise-picker-options";
 
 export type { GoalDraft } from "@/app/goals/goal-draft";
@@ -36,11 +37,17 @@ export function GoalEditorDialog({
   onSave,
 }: GoalEditorDialogProps) {
   const isEdit = draft.id != null;
+  const selectedSlug = exerciseOptions.find((option) => option.id === draft.exerciseId)?.slug;
+  const assistanceExercise = isAssistanceExercise(selectedSlug);
+  const assistance = assistanceExercise && draft.milestoneType === "absolute";
+  const weightLabel = assistanceExercise ? "Assistance (kg)" : "Total (kg)";
   return (
     <AppDialog titleId="goal-editor-title" onClose={onClose}>
       <SectionHeading id="goal-editor-title">{isEdit ? "Edit goal" : "Create goal"}</SectionHeading>
       <p className="mt-1 text-sm text-zinc-600">
-        Total (kg) is loaded weight plus the session base. Warm-up sets do not count.
+        {assistance
+          ? "Assistance (kg) is the help on the set. The goal is reached at that assistance or less, at the minimum reps. 0 kg is unassisted bodyweight. Warm-up sets do not count."
+          : "Total (kg) is loaded weight plus the session base. Warm-up sets do not count."}
       </p>
 
       {error ? <StatusNotice message={error} tone="error" className="mt-3" /> : null}
@@ -67,7 +74,7 @@ export function GoalEditorDialog({
           value={draft.milestoneType}
           onChange={(milestoneType) => onChange({ ...draft, milestoneType })}
           options={[
-            { value: "absolute", label: "Total (kg)" },
+            { value: "absolute", label: weightLabel },
             { value: "bodyweight_multiple", label: "Bodyweight" },
           ]}
         />
@@ -75,7 +82,7 @@ export function GoalEditorDialog({
 
       {draft.milestoneType === "absolute" ? (
         <label className="mt-4 block text-sm font-medium text-zinc-800">
-          Total (kg)
+          {weightLabel}
           <TextField
             value={draft.targetWeightKg}
             onChange={(event) => onChange({ ...draft, targetWeightKg: event.target.value })}

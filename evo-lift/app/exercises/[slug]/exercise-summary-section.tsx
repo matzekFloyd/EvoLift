@@ -79,14 +79,14 @@ export function ExerciseSummarySection({
               }
             />
             <KpiBadge
-              label={assistance ? "Max assistance (kg)" : "Max loaded (kg)"}
+              label={assistance ? "Least assistance (kg)" : "Max loaded (kg)"}
               value={maxLoadedText}
               icon={<Weight className="h-4 w-4" />}
               tone={kpiBadgeTone("strength")}
               className={exerciseSummaryLoadCardClassName(assistance)}
               description={
                 assistance
-                  ? "Highest assistance on a single working set (no warmups). Only sets with logged assistance."
+                  ? "Lowest assistance on a working set (no warmups), including 0 kg. 0 kg is unassisted bodyweight."
                   : "Heaviest single working set by loaded weight (no warmups). Only sets with logged weight."
               }
             />

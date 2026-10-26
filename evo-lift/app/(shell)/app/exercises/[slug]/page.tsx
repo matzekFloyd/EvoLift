@@ -497,13 +497,13 @@ function ExerciseDetailPageContent() {
   );
 
   const historyStats = useMemo(
-    () => summarizeExerciseHistory(filteredHistoryRows),
-    [filteredHistoryRows],
+    () => summarizeExerciseHistory(filteredHistoryRows, { assistance }),
+    [assistance, filteredHistoryRows],
   );
 
   const sessionWeightChartPoints = useMemo(
-    () => buildExerciseSessionWeightChartPoints(filteredHistoryRows),
-    [filteredHistoryRows],
+    () => buildExerciseSessionWeightChartPoints(filteredHistoryRows, { assistance }),
+    [assistance, filteredHistoryRows],
   );
 
   const sessionE1rmChartPoints = useMemo(

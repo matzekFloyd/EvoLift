@@ -108,7 +108,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Personal best",
     definition:
-      "On Insights, your strongest working sets in the selected date range. Best set is the highest Total (kg), then reps. Heaviest load is the highest Loaded (kg). Each mark shows the date it was first hit. Warmups do not count. Assisted Dip and Assisted Pull-Up list assistance, not strength load.",
+      "On Insights, your strongest working sets in the selected date range. Best set is the highest Total (kg), then reps. Heaviest load is the highest Loaded (kg). Each mark shows the date it was first hit. Warmups do not count. On Assisted Dip and Assisted Pull-Up, Best set is the lowest assistance, then more reps, then the earlier date. Least assistance is the lowest Assistance (kg), then the earlier date. 0 kg is unassisted bodyweight.",
   },
   {
     term: "Plan",

@@ -35,13 +35,16 @@ function loggedLoadKg(row: ExerciseSessionWeightSetRow): number | null {
 }
 
 /**
- * One chart point per workout **session**: **heaviest working set** by **Total (kg)** among sets
- * with a **logged** load (same gate as loaded / total KPIs on the exercise page). Warmups excluded.
- * Tie on total: higher **set number** wins (favors the later / “top” set in session order).
+ * One chart point per workout session: the heaviest working set by Total (kg) among sets
+ * with a logged load. Warmups are excluded. A tie on total goes to the later set number.
+ * On Assisted Dip and Assisted Pull-Up, the point is the least assistance, including 0 kg,
+ * and a tie goes to the later set.
  */
 export function buildExerciseSessionWeightChartPoints(
   rows: ExerciseSessionWeightSetRow[],
+  options?: { assistance?: boolean },
 ): ExerciseSessionWeightChartPoint[] {
+  const assistance = options?.assistance === true;
   const bySession = new Map<string, ExerciseSessionWeightSetRow[]>();
   for (const row of rows) {
     const list = bySession.get(row.sessionId) ?? [];
@@ -59,6 +62,14 @@ export function buildExerciseSessionWeightChartPoints(
 
     let best = eligible[0];
     for (const r of eligible) {
+      if (assistance) {
+        const load = loggedLoadKg(r) ?? Number.POSITIVE_INFINITY;
+        const bestLoad = loggedLoadKg(best) ?? Number.POSITIVE_INFINITY;
+        if (load < bestLoad || (load === bestLoad && r.setNumber > best.setNumber)) {
+          best = r;
+        }
+        continue;
+      }
       if (r.totalKg > best.totalKg) {
         best = r;
         continue;
@@ -118,12 +129,14 @@ function formatKg(value: number): string {
   return `${value.toFixed(1)} kg`;
 }
 
-function comparedWithPrevious(delta: number): string {
+function comparedWithPrevious(delta: number, noun?: string): string {
   if (Math.abs(delta) < 0.05) {
     return "the same as the session before";
   }
   const amount = formatKg(Math.abs(delta));
-  return `${amount} ${delta > 0 ? "more" : "less"} than the session before`;
+  const direction = delta > 0 ? "more" : "less";
+  const named = noun ? `${direction} ${noun}` : direction;
+  return `${amount} ${named} than the session before`;
 }
 
 /** Last session versus the session before, for the series on screen. */
@@ -160,7 +173,8 @@ export function buildWeightChangeSentence(
   const previousValue =
     mode === "total" && !assistance ? previous.heaviestTotalKg : previous.heaviestLoadedKg;
   const unit = mode === "total" && !assistance ? "total" : loadUnit;
-  return `Last session: ${formatKg(lastValue)} ${unit}, ${comparedWithPrevious(lastValue - previousValue)}.`;
+  const comparison = comparedWithPrevious(lastValue - previousValue, assistance ? "assistance" : undefined);
+  return `Last session: ${formatKg(lastValue)} ${unit}, ${comparison}.`;
 }
 
 /** Y-axis bounds around the plotted weights so small changes stay visible. */

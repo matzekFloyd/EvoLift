@@ -372,7 +372,8 @@ export async function loadInsightsHistory(
       }
       // Assistance is counterweight help; do not add base weight into a "total".
       const totalKg = assistanceSet ? loaded : loaded + (Number.isFinite(base) ? base : 0);
-      if (totalKg <= 0) {
+      // 0 kg assistance is unassisted bodyweight and still a personal best. Other exercises need a positive total.
+      if (totalKg <= 0 && !assistanceSet) {
         continue;
       }
       samples.push({

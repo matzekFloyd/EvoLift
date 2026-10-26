@@ -1,6 +1,7 @@
 import { NextRequest } from "next/server";
 import { summarizeExerciseHistory } from "@/app/exercises/[slug]/exercise-history-display";
 import { sortExerciseHistoryRowsCanonical } from "@/app/exercises/[slug]/exercise-history";
+import { isAssistanceExercise } from "@/lib/assistance-exercise";
 import { ApiHttpError, handleApi, jsonData, readRouteParams } from "@/server/api/http";
 import { parseHistoryQuery } from "@/server/api/insights-response";
 import { loadExerciseHistory } from "@/server/db/exercise-history";
@@ -31,7 +32,7 @@ export async function GET(
       return true;
     });
     const ordered = sortExerciseHistoryRowsCanonical(inRange);
-    const stats = summarizeExerciseHistory(ordered);
+    const stats = summarizeExerciseHistory(ordered, { assistance: isAssistanceExercise(slug) });
     return jsonData({
       exercise: { id: loaded.id, slug: loaded.slug, name: loaded.name },
       from: query.from,

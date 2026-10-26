@@ -30,8 +30,9 @@ export function ExerciseWeightChartSection({
           <div className="space-y-2">
             {assistance ? (
               <p>
-                Each point uses the hardest working set by assistance in that session. The chart
-                shows Assistance (kg). Blank or 0 is unassisted bodyweight. Warmups are omitted.
+                Each point is the working set with the least assistance in that session. A later
+                set wins a tie. The chart shows Assistance (kg). 0 kg is unassisted bodyweight.
+                Less assistance is closer to unassisted. Warmups are omitted.
               </p>
             ) : (
               <>

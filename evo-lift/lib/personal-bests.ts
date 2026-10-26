@@ -33,9 +33,9 @@ export type PersonalBestRow = {
   label: string;
   href: string;
   isAssistance: boolean;
-  /** Highest Total (kg), then reps, then earliest date. */
+  /** Highest Total (kg), then reps, then earliest date. Least assistance on Assisted Dip and Assisted Pull-Up. */
   bestSet: PersonalBestMark | null;
-  /** Highest Loaded (kg), then earliest date. */
+  /** Highest Loaded (kg), then earliest date. Least assistance on Assisted Dip and Assisted Pull-Up. */
   heaviestLoad: PersonalBestMark | null;
 };
 
@@ -43,7 +43,9 @@ export { isAssistanceExercise };
 
 /**
  * Best set: highest Total (kg), then higher reps, then earlier performed-on date.
- * Heaviest load: highest Loaded (kg) / assistance, then earlier performed-on date.
+ * Heaviest load: highest Loaded (kg), then earlier performed-on date.
+ * On Assisted Dip and Assisted Pull-Up both marks use the lowest assistance, including 0 kg.
+ * Best set then prefers more reps, then the earlier date. Least assistance then prefers the earlier date.
  */
 export function buildPersonalBestRows(
   catalog: readonly PersonalBestCatalogExercise[],
@@ -59,8 +61,9 @@ export function buildPersonalBestRows(
   const rows: PersonalBestRow[] = [];
   for (const exercise of catalog) {
     const sets = byExercise.get(exercise.id) ?? [];
-    const bestSet = pickBestSet(sets);
-    const heaviestLoad = pickHeaviestLoad(sets);
+    const assistance = isAssistanceExercise(exercise.slug);
+    const bestSet = pickBestSet(sets, assistance);
+    const heaviestLoad = pickHeaviestLoad(sets, assistance);
     if (bestSet == null && heaviestLoad == null) {
       continue;
     }
@@ -69,7 +72,7 @@ export function buildPersonalBestRows(
       slug: exercise.slug,
       label: exercise.label,
       href: appPath(`/exercises/${exercise.slug}`),
-      isAssistance: isAssistanceExercise(exercise.slug),
+      isAssistance: assistance,
       bestSet,
       heaviestLoad,
     });
@@ -78,18 +81,31 @@ export function buildPersonalBestRows(
   return rows.sort((left, right) => left.label.localeCompare(right.label));
 }
 
-function pickBestSet(sets: readonly PersonalBestSetSample[]): PersonalBestMark | null {
+function markKg(sample: PersonalBestSetSample, assistance: boolean): number {
+  return assistance ? sample.loadedKg : sample.totalKg;
+}
+
+function pickBestSet(
+  sets: readonly PersonalBestSetSample[],
+  assistance: boolean,
+): PersonalBestMark | null {
   let best: PersonalBestSetSample | null = null;
   for (const sample of sets) {
-    if (!Number.isFinite(sample.totalKg) || sample.totalKg <= 0 || sample.reps < 1) {
+    const kg = markKg(sample, assistance);
+    if (!Number.isFinite(kg) || sample.reps < 1) {
+      continue;
+    }
+    if (assistance ? kg < 0 : kg <= 0) {
       continue;
     }
     if (!best) {
       best = sample;
       continue;
     }
-    if (sample.totalKg !== best.totalKg) {
-      if (sample.totalKg > best.totalKg) {
+    const bestKg = markKg(best, assistance);
+    if (kg !== bestKg) {
+      const better = assistance ? kg < bestKg : kg > bestKg;
+      if (better) {
         best = sample;
       }
       continue;
@@ -107,10 +123,13 @@ function pickBestSet(sets: readonly PersonalBestSetSample[]): PersonalBestMark |
   if (!best) {
     return null;
   }
-  return { valueKg: best.totalKg, reps: best.reps, performedOn: best.performedOn };
+  return { valueKg: markKg(best, assistance), reps: best.reps, performedOn: best.performedOn };
 }
 
-function pickHeaviestLoad(sets: readonly PersonalBestSetSample[]): PersonalBestMark | null {
+function pickHeaviestLoad(
+  sets: readonly PersonalBestSetSample[],
+  assistance: boolean,
+): PersonalBestMark | null {
   let best: PersonalBestSetSample | null = null;
   for (const sample of sets) {
     if (!Number.isFinite(sample.loadedKg) || sample.loadedKg < 0) {
@@ -121,7 +140,8 @@ function pickHeaviestLoad(sets: readonly PersonalBestSetSample[]): PersonalBestM
       continue;
     }
     if (sample.loadedKg !== best.loadedKg) {
-      if (sample.loadedKg > best.loadedKg) {
+      const better = assistance ? sample.loadedKg < best.loadedKg : sample.loadedKg > best.loadedKg;
+      if (better) {
         best = sample;
       }
       continue;
@@ -134,6 +154,11 @@ function pickHeaviestLoad(sets: readonly PersonalBestSetSample[]): PersonalBestM
     return null;
   }
   return { valueKg: best.loadedKg, reps: null, performedOn: best.performedOn };
+}
+
+/** Second mark on Personal bests. Assisted moves show least assistance. */
+export function personalBestLoadMarkLabel(isAssistance: boolean): string {
+  return isAssistance ? "Least assistance" : "Heaviest load";
 }
 
 export function formatPersonalBestSet(mark: PersonalBestMark | null): string {
