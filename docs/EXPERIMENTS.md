@@ -10,14 +10,14 @@ No card. Closed 2026-10-26 without promoting the backlog. Under about 100 visits
 
 Next build, when asked:
 
-- [ ] Ship the heading “Log each set before the next one starts.” and the note “Create an account. There is no charge.” with the type and spacing already decided — [#424](https://github.com/matzekFloyd/EvoLift/issues/424)
+- [x] Ship the heading “Log each set before the next one starts.” and the note “Create an account. There is no charge.” with the type and spacing already decided — [#424](https://github.com/matzekFloyd/EvoLift/issues/424)
 - [ ] Then open Register from Start lifting, and match the label to that screen — [#464](https://github.com/matzekFloyd/EvoLift/issues/464)
 
 ## Experiment Backlog
 
 | Order | Idea | ICE (impact/confidence/ease) | Owner | Priority | Status |
 |---|---|---|---|---|---|
-| 1 | Replace the heading with “Log each set before the next one starts.” Add the note “Create an account. There is no charge.” Keep a single Start lifting button. Heading 30px, weight matches size, line height 1.25, centered. The note is 16px with line height about 1.6. Button and legal links stay 14px. Spacing on the 4/8/16/24/32/48/64 scale. IBM Plex Sans only. No new colors. | 270 (9/5/6) | product | P1 | decided — not shipped |
+| 1 | Replace the heading with “Log each set before the next one starts.” Add the note “Create an account. There is no charge.” Keep a single Start lifting button. Heading 30px, weight matches size, line height 1.25, centered. The note is 16px with line height about 1.6. Button and legal links stay 14px. Spacing on the 4/8/16/24/32/48/64 scale. IBM Plex Sans only. No new colors. | 270 (9/5/6) | product | P1 | shipped |
 | 2 | Open Register from Start lifting, and use a label that matches that screen. This is the constraint: a new lifter cannot land on Log in. No error message on `/`. | 486 (6/9/9) | product | P1 | backlog |
 | 3 | Say that the click creates an account and there is no charge. | 240 (5/6/8) | product | P2 | backlog |
 | 4 | Offer a sample session a visitor can read without an account. | 72 (6/4/3) | product | P3 | backlog |

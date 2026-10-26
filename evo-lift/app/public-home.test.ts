@@ -7,6 +7,7 @@ import { quietLinkClassName } from "@/app/components/inline-link-class";
 import { APP_DOCUMENT_TITLE } from "@/lib/page-title";
 import { PUBLIC_APP_ORIGIN } from "@/lib/public-app-origin";
 import {
+  PUBLIC_HOME_ACCOUNT_NOTE,
   PUBLIC_HOME_CTA_HREF,
   PUBLIC_HOME_CTA_LABEL,
   PUBLIC_HOME_HEADING,
@@ -19,7 +20,8 @@ const appDir = dirname(fileURLToPath(import.meta.url));
 
 describe("public home", () => {
   it("uses the product name and one-line statement as the search snippet", () => {
-    assert.equal(PUBLIC_HOME_HEADING, "Log workouts, plans, and progress.");
+    assert.equal(PUBLIC_HOME_HEADING, "Log each set before the next one starts.");
+    assert.equal(PUBLIC_HOME_ACCOUNT_NOTE, "Create an account. There is no charge.");
     assert.deepEqual(publicHomeMetadata, {
       title: { absolute: APP_DOCUMENT_TITLE },
       description: PUBLIC_HOME_HEADING,
@@ -48,7 +50,18 @@ describe("public home", () => {
 
     assert.equal(page.match(/<h1\b/g)?.length, 1);
     assert.match(page, /PUBLIC_HOME_HEADING/);
-    assert.match(page, /text-balance text-center text-3xl font-medium leading-tight tracking-tight text-zinc-900/);
+    assert.match(page, /pt-12 sm:pt-16/);
+    assert.match(
+      page,
+      /max-w-\[65ch\] text-balance text-center text-3xl font-semibold leading-tight tracking-tight text-zinc-900/,
+    );
+    assert.match(page, /PUBLIC_HOME_ACCOUNT_NOTE/);
+    assert.match(
+      page,
+      /mt-4 max-w-\[65ch\] text-balance text-center text-base leading-relaxed text-zinc-700/,
+    );
+    assert.match(page, /className="mt-12"/);
+    assert.match(page, /mt-16 flex flex-wrap items-center justify-center gap-x-4 gap-y-1/);
     assert.match(page, /flex w-full flex-col items-center text-center/);
     assert.match(page, /from-sky-200 via-sky-100 to-sky-50/);
     assert.match(page, /markClassName="h-12 w-12"/);

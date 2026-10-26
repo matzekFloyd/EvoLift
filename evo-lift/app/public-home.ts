@@ -2,8 +2,11 @@ import type { Metadata } from "next";
 import { APP_DOCUMENT_TITLE } from "@/lib/page-title";
 import { publicPageMetadata } from "@/lib/public-page-metadata";
 
-/** One-line product statement. Also the search description for the public origin. */
-export const PUBLIC_HOME_HEADING = "Log workouts, plans, and progress.";
+/** Offer sentence. Also the search description for the public origin. */
+export const PUBLIC_HOME_HEADING = "Log each set before the next one starts.";
+
+/** Expectation under the offer. Not a second action. */
+export const PUBLIC_HOME_ACCOUNT_NOTE = "Create an account. There is no charge.";
 
 export const PUBLIC_HOME_CTA_LABEL = "Start lifting";
 export const PUBLIC_HOME_CTA_HREF = "/login";
