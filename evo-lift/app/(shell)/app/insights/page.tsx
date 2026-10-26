@@ -20,7 +20,7 @@ import {
 } from "@/app/components/chart-dynamic";
 import { LiftComparisonPanel } from "@/app/components/lift-comparison-panel";
 import { PersonalBestsPanel } from "@/app/components/personal-bests-panel";
-import { DateInput } from "@/app/components/date-input";
+import { DateRangeFields } from "@/app/components/date-range-fields";
 import { PageShell } from "@/app/components/page-shell";
 import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
@@ -45,7 +45,6 @@ import {
 } from "@/lib/insights-data";
 import { buildPersonalBestRows } from "@/lib/personal-bests";
 import { withWeeklyMovingAverage } from "@/app/insights/insights-weekly-chart-data";
-import { DateRangePresetButtons } from "@/app/components/date-range-preset-buttons";
 import { getInsightsPresetRange } from "@/app/insights/insights-presets";
 import { getTodayYyyyMmDd } from "@/lib/session-date";
 
@@ -347,35 +346,20 @@ export default function InsightsPage() {
       <section className="panel space-y-3 p-5">
         <CollapsibleSection title="Date filter" alwaysOpen>
           <div className="flex flex-col gap-2">
-            <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
-              <label className="block text-xs font-medium text-zinc-600">
-                From
-                <DateInput
-                  value={dateFrom}
-                  onChange={(event) => setDateFrom(event.target.value)}
-                  max={todayYyyyMmDd}
-                  className="mt-1 w-full rounded-md border bg-white px-2 py-1.5 text-sm"
-                />
-              </label>
-              <label className="block text-xs font-medium text-zinc-600">
-                To
-                <DateInput
-                  value={dateTo}
-                  onChange={(event) => setDateTo(event.target.value)}
-                  max={todayYyyyMmDd}
-                  className="mt-1 w-full rounded-md border bg-white px-2 py-1.5 text-sm"
-                />
-              </label>
-              <DateRangePresetButtons
-                marked={selectedRange}
-                onSelect={(range) => {
-                  setSelectedRange(range);
-                  const preset = getInsightsPresetRange(range, new Date());
-                  setDateFrom(preset.from);
-                  setDateTo(preset.to);
-                }}
-              />
-            </div>
+            <DateRangeFields
+              from={dateFrom}
+              to={dateTo}
+              max={todayYyyyMmDd}
+              marked={selectedRange}
+              onFromChange={setDateFrom}
+              onToChange={setDateTo}
+              onSelectRange={(range) => {
+                setSelectedRange(range);
+                const preset = getInsightsPresetRange(range, new Date());
+                setDateFrom(preset.from);
+                setDateTo(preset.to);
+              }}
+            />
             <ActionButton
               type="button"
               onClick={() => {

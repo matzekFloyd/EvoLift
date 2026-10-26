@@ -1,6 +1,7 @@
 import { useRouter } from "next/navigation";
 import { appPath } from "@/lib/app-paths";
-import { FilterX, Medal, Trophy } from "lucide-react";
+import { FilterX, Medal } from "lucide-react";
+import { GoalReachedMark } from "@/app/components/goal-reached-mark";
 import { ActionButton } from "@/app/components/action-button";
 import { AppTable } from "@/app/components/app-table";
 import {
@@ -31,17 +32,6 @@ import {
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 
 const COMPACT_HISTORY_TYPE_CELL = "hidden @min-[22rem]:flex @min-[22rem]:justify-center @min-[22rem]:items-center";
-
-function GoalReachedMark({ label }: { label: string }) {
-  return (
-    <Trophy
-      className="h-3.5 w-3.5 shrink-0 fill-yellow-400 text-amber-500"
-      strokeWidth={1.75}
-      role="img"
-      aria-label={`Goal reached: ${label}`}
-    />
-  );
-}
 
 type ExerciseSetHistorySectionProps = {
   /** Number of rows after filters (before paging). */

@@ -641,7 +641,7 @@ function NewSessionPageContent() {
               required
               value={performedOn}
               onChange={(event) => setPerformedOn(event.target.value)}
-              className="mt-1 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm"
+              className="mt-1 w-full"
             />
           </label>
 

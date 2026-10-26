@@ -112,7 +112,7 @@ export function GoalEditorDialog({
         <DateInput
           value={draft.dueOn}
           onChange={(event) => onChange({ ...draft, dueOn: event.target.value })}
-          className={fieldClassName}
+          className="mt-1 w-full"
         />
       </label>
 

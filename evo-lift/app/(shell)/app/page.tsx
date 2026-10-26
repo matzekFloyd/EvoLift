@@ -1,21 +1,21 @@
 "use client";
 
-import { FilterX, Play } from "lucide-react";
+import { FilterX, Play, Plus } from "lucide-react";
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { ActionButton } from "@/app/components/action-button";
+import { ActionButton, ActionLink } from "@/app/components/action-button";
 import { CollapsibleSection } from "@/app/components/collapsible-section";
-import { PageAddAction } from "@/app/components/page-add-action";
-import { DateInput } from "@/app/components/date-input";
 import { ContentPlaceholder } from "@/app/components/content-placeholder";
+import { DateRangeFields } from "@/app/components/date-range-fields";
 import { ExerciseBadgeChip } from "@/app/components/exercise-badge-chip";
 import { PageShell } from "@/app/components/page-shell";
 import { SectionHeading } from "@/app/components/section-heading";
+import { StatusNotice } from "@/app/components/status-notice";
 import { ActivePlanPanel } from "@/app/components/active-plan-panel";
 import { NewSessionDraftCallout } from "@/app/components/new-session-draft-callout";
 import { SessionsTable, type SessionsTableRow } from "@/app/components/sessions-table";
 import { ActivityDaySessionDialog } from "@/app/components/activity-day-session-dialog";
-import { DateRangePresetButtons } from "@/app/components/date-range-preset-buttons";
 import {
   applyDateRangePreset,
   markedDateRangePreset,
@@ -39,11 +39,14 @@ import { rememberedUserId } from "@/lib/signed-in-memory";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { homeExerciseBadgeTone, homeExerciseBadges, homeSetCount } from "@/app/home-sessions";
 import {
-  homeCompetingCtaVariant,
+  homeDraftIsFocal,
+  homeForwardActionClassName,
+  homeHeaderAddVariant,
+  homeInProgressCtaVariant,
+  homePlanIsFocal,
   homeSessionTableStartsOpen,
 } from "@/app/home-next-action-layout";
 import { HOME_PAST_WORKOUT_PLACEHOLDER_ROWS } from "@/app/home-loading-layout";
-import type { ScheduledHomeSession } from "@/app/home-scheduled-sessions";
 import {
   formatDateToYyyyMmDd,
   getTodayYyyyMmDd,
@@ -120,6 +123,8 @@ export default function Home() {
   const [userId, setUserId] = useState<string | null>(cachedHome?.userId ?? null);
   const [goalReachedByDate, setGoalReachedByDate] = useState<Record<string, string>>({});
   const [planOpenSessionIds, setPlanOpenSessionIds] = useState<string[]>([]);
+  const [planOwnsForwardAction, setPlanOwnsForwardAction] = useState(true);
+  const [draftVisible, setDraftVisible] = useState(false);
   const reloadHomeSessionsRef = useRef<() => void>(() => {});
 
   useEffect(() => {
@@ -226,7 +231,7 @@ export default function Home() {
     };
   }, []);
 
-  const { inProgressSessions, plannedSessions, historySessions } = useMemo(() => {
+  const { inProgressSessions, historySessions } = useMemo(() => {
     const partitioned = partitionHomeSessions(
       sessions.map((session) => ({
         id: session.id,
@@ -239,7 +244,6 @@ export default function Home() {
     );
     return {
       inProgressSessions: partitioned.inProgress.map((item) => item.row),
-      plannedSessions: partitioned.planned.map((item) => item.row),
       historySessions: partitioned.history.map((item) => item.row),
     };
   }, [sessions, todayYyyyMmDd]);
@@ -249,6 +253,14 @@ export default function Home() {
     () => inProgressSessions.filter((session) => !planOpenSessionIdSet.has(session.id)),
     [inProgressSessions, planOpenSessionIdSet],
   );
+
+  const handlePlanOwnsForwardAction = useCallback((owns: boolean) => {
+    setPlanOwnsForwardAction((prev) => (prev === owns ? prev : owns));
+  }, []);
+
+  const handleDraftVisible = useCallback((visible: boolean) => {
+    setDraftVisible((prev) => (prev === visible ? prev : visible));
+  }, []);
 
   const handlePlanOpenSessionIdsChange = useCallback((ids: string[]) => {
     const sorted = [...ids].sort();
@@ -401,138 +413,167 @@ export default function Home() {
     });
   }, [dayChoiceIds, exerciseBadgesBySessionId, filteredSessions]);
 
-  const scheduledSessions: ScheduledHomeSession[] = useMemo(
-    () =>
-      plannedSessions.map((session) => ({
-        id: session.id,
-        performedOn: session.performed_on,
-        notes: session.notes ?? "",
-        badges: exerciseBadgesBySessionId.get(session.id) ?? [],
-      })),
-    [exerciseBadgesBySessionId, plannedSessions],
-  );
+  const draftIsFocal = homeDraftIsFocal(draftVisible, standaloneInProgressSessions.length > 0);
+  const planIsFocal = homePlanIsFocal({
+    hasStandaloneInProgress: standaloneInProgressSessions.length > 0,
+    draftIsFocal,
+    planOwnsForwardAction,
+  });
+  const createSessionIsFocal =
+    homeHeaderAddVariant({
+      hasStandaloneInProgress: standaloneInProgressSessions.length > 0,
+      draftIsFocal,
+      planOwnsForwardAction,
+    }) === "primary";
+  const quietCreateSession = createSessionIsFocal
+    ? null
+    : { id: PRODUCT_TOUR_TARGET_IDS.createSession, href: appPath("/sessions/new") };
+  const focalSession = standaloneInProgressSessions[0] ?? null;
+  const laterInProgressSessions = standaloneInProgressSessions.slice(1);
 
   const pastRangeControls = (
-    <div className="grid w-full grid-cols-2 items-end gap-2 sm:flex sm:w-auto sm:flex-wrap sm:justify-end">
-      <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-zinc-600">
-        <span>From</span>
-        <DateInput
-          value={dateFrom}
-          onChange={(event) => setDateFrom(event.target.value)}
-          max={todayYyyyMmDd}
-          className="w-full rounded-md border bg-white px-2 py-1 text-sm sm:w-[9.5rem]"
-        />
-      </label>
-      <label className="flex min-w-0 flex-col gap-1 text-xs font-medium text-zinc-600">
-        <span>To</span>
-        <DateInput
-          value={dateTo}
-          onChange={(event) => setDateTo(event.target.value)}
-          max={todayYyyyMmDd}
-          className="w-full rounded-md border bg-white px-2 py-1 text-sm sm:w-[9.5rem]"
-        />
-      </label>
-      <div className="col-span-2 sm:col-auto">
-        <DateRangePresetButtons
-          marked={markedDateRangePreset(dateFrom, dateTo, presetToday, pastWorkoutsAllDateRange)}
-          onSelect={(range) => {
-            const next = applyDateRangePreset(range, presetToday, pastWorkoutsAllDateRange);
-            setDateFrom(next.from);
-            setDateTo(next.to);
+    <DateRangeFields
+      from={dateFrom}
+      to={dateTo}
+      max={todayYyyyMmDd}
+      marked={markedDateRangePreset(dateFrom, dateTo, presetToday, pastWorkoutsAllDateRange)}
+      onFromChange={setDateFrom}
+      onToChange={setDateTo}
+      onSelectRange={(range) => {
+        const next = applyDateRangePreset(range, presetToday, pastWorkoutsAllDateRange);
+        setDateFrom(next.from);
+        setDateTo(next.to);
+      }}
+      trailing={
+        <ActionButton
+          type="button"
+          onClick={() => {
+            setDateFrom(defaultDateRange.from);
+            setDateTo(defaultDateRange.to);
           }}
-        />
-      </div>
-      <ActionButton
-        type="button"
-        onClick={() => {
-          setDateFrom(defaultDateRange.from);
-          setDateTo(defaultDateRange.to);
-        }}
-        disabled={dateFrom === defaultDateRange.from && dateTo === defaultDateRange.to}
-        variant="secondary"
-        size="sm"
-        className="col-span-2 w-full justify-center text-sm font-normal text-amber-800 hover:text-amber-900 sm:col-auto sm:w-auto sm:shrink-0"
-        iconColor="amber"
-      >
-        <FilterX className="h-3.5 w-3.5" />
-        Clear filters
-      </ActionButton>
-    </div>
+          disabled={dateFrom === defaultDateRange.from && dateTo === defaultDateRange.to}
+          variant="secondary"
+          size="sm"
+          className="text-sm font-normal text-amber-800 hover:text-amber-900"
+          iconColor="amber"
+        >
+          <FilterX className="h-3.5 w-3.5" aria-hidden />
+          Clear filters
+        </ActionButton>
+      }
+    />
   );
 
   return (
     <PageShell>
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold tracking-tight">Workout sessions</h1>
-        <PageAddAction
-          id={PRODUCT_TOUR_TARGET_IDS.createSession}
-          href={appPath("/sessions/new")}
-          label="Create session"
-          variant={homeCompetingCtaVariant(standaloneInProgressSessions.length > 0)}
-        />
+      <div className="flex items-baseline justify-between gap-3">
+        <h1 className="text-lg font-medium text-zinc-800">Workout sessions</h1>
+        {quietCreateSession ? (
+          <Link
+            id={quietCreateSession.id}
+            href={quietCreateSession.href}
+            className="shrink-0 text-sm font-medium text-zinc-800 underline-offset-2 hover:text-sky-800 hover:underline"
+          >
+            Create session
+          </Link>
+        ) : null}
       </div>
-      {userId ? <NewSessionDraftCallout userId={userId} /> : null}
-      {standaloneInProgressSessions.length > 0 ? (
-        <section className="panel p-5" aria-label="In progress">
-          <div className="mb-2">
-            <SectionHeading>In progress</SectionHeading>
+      {createSessionIsFocal ? (
+        <section className="flex items-center justify-between gap-3 rounded-xl border border-sky-300 bg-sky-50 p-5">
+          <p className="text-sm text-zinc-700">No workout in progress.</p>
+          <ActionLink
+            id={PRODUCT_TOUR_TARGET_IDS.createSession}
+            href={appPath("/sessions/new")}
+            variant="primary"
+            size="md"
+            className="shrink-0"
+          >
+            <Plus className="h-4 w-4" aria-hidden />
+            Create session
+          </ActionLink>
+        </section>
+      ) : null}
+      {userId ? (
+        <NewSessionDraftCallout
+          userId={userId}
+          focal={draftIsFocal}
+          onVisibleChange={handleDraftVisible}
+        />
+      ) : null}
+      {focalSession ? (
+        <section className="rounded-xl border border-sky-300 bg-sky-50 p-5" aria-label="In progress">
+          <div className="flex items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm text-zinc-600">In progress</p>
+              <p className="mt-1 text-2xl font-medium tracking-tight text-zinc-900">
+                {formatDateOnlyForLocale(focalSession.performed_on)}
+              </p>
+              {focalSession.notes?.trim() ? (
+                <p className="mt-1 truncate text-sm text-zinc-700">{focalSession.notes.trim()}</p>
+              ) : null}
+            </div>
+            <ActionButton
+              type="button"
+              variant={homeInProgressCtaVariant(true)}
+              size="md"
+              className={homeForwardActionClassName}
+              disabled={openingSessionId === focalSession.id}
+              onClick={() => openSession(focalSession.id)}
+            >
+              <Play className="h-4 w-4" aria-hidden />
+              {openingSessionId === focalSession.id ? "Opening..." : "Continue"}
+            </ActionButton>
           </div>
-          <ul className="space-y-2">
-            {standaloneInProgressSessions.map((session) => {
-              const badges = exerciseBadgesBySessionId.get(session.id) ?? [];
-              return (
-                <li
-                  key={session.id}
-                  className="flex items-center justify-between gap-2"
-                >
-                  <div className="min-w-0 space-y-1">
-                    <p className="text-sm font-medium text-zinc-900">
-                      {formatDateOnlyForLocale(session.performed_on)}
-                    </p>
-                    {session.notes?.trim() ? (
-                      <p className="truncate text-xs text-zinc-600">{session.notes.trim()}</p>
-                    ) : null}
-                    {badges.length > 0 ? (
-                      <div className="flex flex-wrap gap-1">
-                        {badges.map((badge) => (
-                          <ExerciseBadgeChip
-                            key={`${session.id}-${badge.slug}`}
-                            slug={badge.slug}
-                            variant={homeExerciseBadgeTone(badge)}
-                          />
-                        ))}
-                      </div>
-                    ) : (
-                      <p className="text-xs text-zinc-500">No exercises yet.</p>
-                    )}
-                  </div>
+          {(exerciseBadgesBySessionId.get(focalSession.id) ?? []).length > 0 ? (
+            <div className="mt-3 flex flex-wrap gap-1">
+              {(exerciseBadgesBySessionId.get(focalSession.id) ?? []).map((badge) => (
+                <ExerciseBadgeChip
+                  key={`${focalSession.id}-${badge.slug}`}
+                  slug={badge.slug}
+                  variant={homeExerciseBadgeTone(badge)}
+                />
+              ))}
+            </div>
+          ) : (
+            <p className="mt-2 text-sm text-zinc-600">No exercises yet.</p>
+          )}
+          {laterInProgressSessions.length > 0 ? (
+            <ul className="mt-4 space-y-2 border-t border-sky-200 pt-3">
+              {laterInProgressSessions.map((session) => (
+                <li key={session.id} className="flex items-center justify-between gap-3">
+                  <p className="min-w-0 truncate text-sm text-zinc-800">
+                    {formatDateOnlyForLocale(session.performed_on)}
+                  </p>
                   <ActionButton
                     type="button"
-                    variant="primary"
+                    variant={homeInProgressCtaVariant(false)}
+                    iconColor="sky"
                     size="sm"
-                    className="shrink-0"
                     disabled={openingSessionId === session.id}
                     onClick={() => openSession(session.id)}
                   >
-                    <Play className="h-3.5 w-3.5 text-white" />
+                    <Play className="h-3.5 w-3.5" aria-hidden />
                     {openingSessionId === session.id ? "Opening..." : "Continue"}
                   </ActionButton>
                 </li>
-              );
-            })}
-          </ul>
+              ))}
+            </ul>
+          ) : null}
         </section>
       ) : null}
       <ActivePlanPanel
-        scheduledSessions={scheduledSessions}
-        hasStandaloneInProgress={standaloneInProgressSessions.length > 0}
+        forwardActionTaken={!planIsFocal && planOwnsForwardAction}
         openingSessionId={openingSessionId}
         onOpenSession={openSession}
         onPlanOpenSessionIdsChange={handlePlanOpenSessionIdsChange}
+        onForwardActionChange={handlePlanOwnsForwardAction}
       />
-      <section className="panel p-5" aria-busy={isChecking}>
+      <section className="space-y-3" aria-busy={isChecking}>
         {sessionsError ? (
-          <p className="text-sm text-red-600">{sessionsError}</p>
+          <div className="space-y-3">
+            <SectionHeading>Past workouts</SectionHeading>
+            <StatusNotice message={sessionsError} tone="error" />
+          </div>
         ) : (
           <div className="space-y-3">
             <SectionHeading>Past workouts</SectionHeading>
@@ -547,13 +588,12 @@ export default function Home() {
                 onDayClick={openActivityDay}
               />
             )}
-            <div className="flex w-full flex-col sm:items-end">{pastRangeControls}</div>
+            {pastRangeControls}
             <CollapsibleSection
-              key={isSmallPhone ? "sessions-compact" : "sessions-desktop"}
               title="Sessions"
               inset={false}
               titleTone="chrome"
-              defaultOpen={homeSessionTableStartsOpen(isSmallPhone)}
+              defaultOpen={homeSessionTableStartsOpen()}
             >
               {isChecking ? (
                 <ContentPlaceholder

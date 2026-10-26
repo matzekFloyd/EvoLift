@@ -124,7 +124,7 @@ export function SessionDetailsPanel({
                     id="session-performed-on-edit"
                     value={performedOnDraft}
                     onChange={(event) => onPerformedOnChange(event.target.value)}
-                    className="block w-full max-w-[11rem] rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm md:max-w-xs"
+                    className="block w-full max-w-[11rem] md:max-w-xs"
                   />
                   {dateError ? (
                     <StatusNotice message={dateError} tone="error" className="mt-1" />
