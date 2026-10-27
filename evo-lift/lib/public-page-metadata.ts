@@ -63,3 +63,9 @@ export const termsMetadata: Metadata = publicPageMetadata({
   description: "Terms for using EvoLift accounts, the app, and personal API tokens.",
   path: "/terms",
 });
+
+export const legalMetadata: Metadata = publicPageMetadata({
+  title: "Legal notice",
+  description: "Who runs EvoLift, and how to reach them.",
+  path: "/legal",
+});

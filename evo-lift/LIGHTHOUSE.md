@@ -10,6 +10,7 @@ Catches load and runtime cost regressions on the surfaces lifters use most, and 
 | `/login` | Logged out | Performance, SEO | First paint for new and returning lifters |
 | `/privacy` | Logged out | SEO | Privacy policy |
 | `/terms` | Logged out | SEO | Terms of use |
+| `/legal` | Logged out | SEO | Legal notice |
 | `/glossary` | Logged out | SEO | Glossary |
 | `/app` (Home) | Local demo user | Performance | Main shell after login |
 | `/app/insights` | Local demo user | Performance | Heavier charts and insight panels |
@@ -34,7 +35,7 @@ Desktop Lighthouse, one run in CI. Raise `LHCI_NUMBER_OF_RUNS` locally if you wa
 
 | Surface | Minimum score |
 | --- | --- |
-| `/`, `/login`, `/privacy`, `/terms`, `/glossary` | **0.90** |
+| `/`, `/login`, `/privacy`, `/terms`, `/legal`, `/glossary` | **0.90** |
 
 Scores below the minimum fail the command and the GitHub Actions job. Tighten these after a few green CI baselines if the app is consistently higher.
 

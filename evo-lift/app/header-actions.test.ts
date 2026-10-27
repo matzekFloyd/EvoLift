@@ -236,7 +236,7 @@ describe("header and navigation baseline", () => {
 
     const legal = dialog.querySelector("nav[aria-label='Legal']");
     assert.ok(legal instanceof HTMLElement);
-    assert.equal(labelsIn(legal).join("|"), "Glossary|Terms of use|Privacy policy");
+    assert.equal(labelsIn(legal).join("|"), "Glossary|Terms of use|Privacy policy|Legal notice");
     assert.equal(menuButton().getAttribute("aria-label"), "Close navigation menu");
     assert.equal(document.activeElement, tiles[0]);
 

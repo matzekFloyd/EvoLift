@@ -375,7 +375,7 @@ Next.js **`proxy.ts`** (Next 16; formerly middleware) runs `lib/supabase/update-
 3. Redirects anonymous browsers to `/login` for protected app routes.
 4. Redirects signed-in users away from `/login` to `/app`, except `/login?recovery=1` (password-recovery callback stays open so the lifter can set a new password) and a session that still needs an authenticator code (`/login?mfa=1`).
 
-**Public without a session cookie:** `/login`, `/privacy`, `/terms`, `/glossary`, and all `/api/*` paths.
+**Public without a session cookie:** `/login`, `/privacy`, `/terms`, `/legal`, `/glossary`, and all `/api/*` paths.
 
 `/api/*` is intentionally not redirected: API auth stays bearer JWT / personal token + RLS (or ownership helpers). The proxy is defense-in-depth for the HTML shell only.
 

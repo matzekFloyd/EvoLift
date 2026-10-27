@@ -52,6 +52,7 @@ describe("app paths", () => {
     assert.equal(bySource.has("/login"), false);
     assert.equal(bySource.has("/privacy"), false);
     assert.equal(bySource.has("/terms"), false);
+    assert.equal(bySource.has("/legal"), false);
     assert.equal(bySource.has("/glossary"), false);
     assert.equal(bySource.has("/api/:path*"), false);
 
