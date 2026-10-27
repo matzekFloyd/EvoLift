@@ -727,6 +727,15 @@ export default function LoginPage({
                 >
                   Privacy policy
                 </Link>
+                <Link
+                  href="/legal"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  prefetch={false}
+                  className={`shrink-0 ${quietLinkClassName}`}
+                >
+                  Legal notice
+                </Link>
               </div>
             </div>
             )}
