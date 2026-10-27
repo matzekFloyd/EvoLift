@@ -39,7 +39,7 @@ export const PUBLIC_HOME_EXAMPLE = {
 export const PUBLIC_HOME_AREAS = [
   {
     title: "Plan",
-    detail: "Set the week up once. Open it on training day and do the session you planned.",
+    detail: "Set the week up once. Open it on training day and work through the session you planned.",
   },
   {
     title: "Insights",
