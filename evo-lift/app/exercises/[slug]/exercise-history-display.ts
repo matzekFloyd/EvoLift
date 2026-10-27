@@ -111,20 +111,20 @@ export function historyRowTitle(
 }
 
 export function historyRowSurfaceClass(isTopRepsRow: boolean, isGoalRow: boolean): string {
-  if (isTopRepsRow) {
-    return "bg-emerald-100/70 text-emerald-950 hover:bg-emerald-100";
-  }
   if (isGoalRow) {
-    return "bg-sky-100/70 text-sky-950 hover:bg-sky-100";
+    return "!bg-emerald-100/70 text-emerald-950 hover:!bg-emerald-100";
   }
-  return "odd:bg-white even:bg-zinc-50/60 hover:bg-zinc-100/70";
+  if (isTopRepsRow) {
+    return "!bg-sky-100/70 text-sky-950 hover:!bg-sky-100";
+  }
+  return "odd:bg-white even:bg-zinc-100 hover:bg-sky-50";
 }
 
 export function historyValueClass(isTopRepsRow: boolean, isGoalRow: boolean): string {
-  if (isTopRepsRow) {
+  if (isGoalRow) {
     return "font-medium text-emerald-900";
   }
-  if (isGoalRow) {
+  if (isTopRepsRow) {
     return "font-medium text-sky-900";
   }
   return "";

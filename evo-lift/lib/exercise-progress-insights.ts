@@ -448,15 +448,16 @@ function buildPublicComparison(
   const hasBodyweight = gradedLifts.some(
     (row) => bodyweightForEstimate(profile, row.bestPerformedOn) != null,
   );
-  const canGrade = profile.sex != null && hasBodyweight && profile.ageYears != null && profile.ageYears >= 18;
+  if (profile.ageYears != null && profile.ageYears < 18 && profile.sex != null && hasBodyweight) {
+    return {
+      publicNotes: [],
+      comparisonHint: "Public standards here start at age 18, so no general-public level is shown.",
+    };
+  }
+
+  const canGrade = profile.sex != null && hasBodyweight;
 
   if (!canGrade) {
-    if (profile.ageYears != null && profile.ageYears < 18 && profile.sex != null && hasBodyweight) {
-      return {
-        publicNotes: [],
-        comparisonHint: "Public standards here start at age 18, so no general-public level is shown.",
-      };
-    }
     if (gradedLifts.length === 0) {
       return { publicNotes: [], comparisonHint: null };
     }
@@ -493,6 +494,9 @@ function buildPublicComparison(
   }
 
   const hints: string[] = [];
+  if (profile.ageYears == null) {
+    hints.push("Add a date of birth on Account. These levels use the ExRx table for ages 18–39.");
+  }
   if (profile.ageYears != null && profile.ageYears >= 40) {
     hints.push(
       "These levels use the ExRx table for ages 18–39. ExRx publishes lower standards from age 40, so a level can look harder than an age-matched table.",

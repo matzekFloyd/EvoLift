@@ -17,7 +17,7 @@ describe("kpi badge tone", () => {
     assert.equal(kpiBadgeTone("strength"), "sky");
   });
 
-  it("uses the same roles on Insights and the exercise summary", () => {
+  it("keeps Insights counts neutral and quiets load tiles on exercise detail", () => {
     const insights = readRepo("evo-lift", "app", "(shell)", "app", "insights", "page.tsx");
     const summary = readRepo("evo-lift", "app", "exercises", "[slug]", "exercise-summary-section.tsx");
     const badge = readRepo("evo-lift", "app", "components", "kpi-badge.tsx");
@@ -29,7 +29,9 @@ describe("kpi badge tone", () => {
     assert.equal(insights.includes('tone="neutral"'), false);
 
     assert.match(summary, /tone=\{kpiBadgeTone\("count"\)\}/);
-    assert.match(summary, /tone=\{kpiBadgeTone\("strength"\)\}/);
+    assert.equal(summary.includes('kpiBadgeTone("strength")'), false);
+    assert.match(summary, /tone="neutral"/);
+    assert.match(summary, /valueClassName="text-sm font-medium"/);
     assert.equal(summary.includes('tone="success"'), false);
     assert.equal(summary.includes("text-sky-700"), false);
     assert.equal(summary.includes("text-emerald-700"), false);

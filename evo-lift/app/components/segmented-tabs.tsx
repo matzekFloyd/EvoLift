@@ -45,7 +45,7 @@ export function SegmentedTabs<T extends string>({
 
   return (
     <div
-      className={`rounded-lg border border-zinc-300 bg-zinc-50 p-1 ${className ?? ""}`.trim()}
+      className={`rounded-md border border-zinc-300 bg-zinc-50 p-1 ${className ?? ""}`.trim()}
       role="tablist"
       aria-label={tabListAriaLabel}
     >
