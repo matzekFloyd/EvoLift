@@ -15,7 +15,7 @@ describe("search index", () => {
     assert.equal(PUBLIC_APP_ORIGIN, "https://evolift.at");
     assert.deepEqual(robots.rules, {
       userAgent: "*",
-      allow: ["/", "/login", "/privacy", "/terms", "/glossary"],
+      allow: ["/", "/login", "/privacy", "/terms", "/legal", "/glossary"],
       disallow: ["/app", "/api/"],
     });
     assert.deepEqual([...PUBLIC_PAGE_PATHS], robots.rules.allow);
@@ -28,6 +28,7 @@ describe("search index", () => {
       { url: "https://evolift.at/login" },
       { url: "https://evolift.at/privacy" },
       { url: "https://evolift.at/terms" },
+      { url: "https://evolift.at/legal" },
       { url: "https://evolift.at/glossary" },
     ]);
     const urls = publicSitemap().map((entry) => entry.url);
@@ -52,6 +53,7 @@ describe("search index", () => {
       ["(shell)", "glossary", "page.tsx"],
       ["(shell)", "privacy", "page.tsx"],
       ["(shell)", "terms", "page.tsx"],
+      ["(shell)", "legal", "page.tsx"],
       ["login", "layout.tsx"],
     ] as const) {
       assert.doesNotMatch(read(...parts), /signedInRobots|noindex/);

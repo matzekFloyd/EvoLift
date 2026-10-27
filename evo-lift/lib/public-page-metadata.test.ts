@@ -8,6 +8,7 @@ import { PUBLIC_APP_ORIGIN } from "./public-app-origin";
 import {
   glossaryMetadata,
   loginMetadata,
+  legalMetadata,
   privacyMetadata,
   publicCanonicalUrl,
   termsMetadata,
@@ -22,6 +23,7 @@ describe("public page metadata", () => {
     assert.equal(publicCanonicalUrl("/glossary"), "https://evolift.at/glossary");
     assert.equal(publicCanonicalUrl("/privacy"), "https://evolift.at/privacy");
     assert.equal(publicCanonicalUrl("/terms"), "https://evolift.at/terms");
+    assert.equal(publicCanonicalUrl("/legal"), "https://evolift.at/legal");
     assert.equal(PUBLIC_APP_ORIGIN, "https://evolift.at");
   });
 
@@ -77,6 +79,18 @@ describe("public page metadata", () => {
         type: "website",
       },
     });
+    assert.deepEqual(legalMetadata, {
+      title: "Legal notice",
+      description: "Who runs EvoLift, and how to reach them.",
+      alternates: { canonical: "https://evolift.at/legal" },
+      openGraph: {
+        title: "EvoLift - Legal notice",
+        description: "Who runs EvoLift, and how to reach them.",
+        url: "https://evolift.at/legal",
+        siteName: APP_DOCUMENT_TITLE,
+        type: "website",
+      },
+    });
   });
 
   it("sets metadataBase on the root layout and uses these snippets on the public pages", () => {
@@ -87,5 +101,6 @@ describe("public page metadata", () => {
     assert.match(read("(shell)", "glossary", "page.tsx"), /glossaryMetadata/);
     assert.match(read("(shell)", "privacy", "page.tsx"), /privacyMetadata/);
     assert.match(read("(shell)", "terms", "page.tsx"), /termsMetadata/);
+    assert.match(read("(shell)", "legal", "page.tsx"), /legalMetadata/);
   });
 });

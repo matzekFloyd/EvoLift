@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Shield } from "lucide-react";
+import { LinkedText } from "@/app/components/linked-text";
 import { PageShell } from "@/app/components/page-shell";
 import { privacyPolicySections } from "@/app/privacy/privacy-policy";
 import { privacyMetadata } from "@/lib/public-page-metadata";
@@ -19,7 +20,7 @@ export default function PrivacyPolicyPage() {
             <h2 className="text-sm font-medium text-zinc-900">{section.heading}</h2>
             {section.paragraphs.map((paragraph) => (
               <p key={paragraph} className="mt-1 text-sm leading-snug text-zinc-600">
-                {paragraph}
+                <LinkedText text={paragraph} />
               </p>
             ))}
           </section>

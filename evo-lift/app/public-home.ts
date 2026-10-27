@@ -19,6 +19,7 @@ export const PUBLIC_HOME_CTA_HREF = AUTH_REGISTER_PATH;
 
 export const PUBLIC_HOME_TERMS_LABEL = "Terms of use";
 export const PUBLIC_HOME_PRIVACY_LABEL = "Privacy policy";
+export const PUBLIC_HOME_LEGAL_LABEL = "Legal notice";
 
 export const PUBLIC_HOME_EXAMPLE = {
   caption: "Example",
