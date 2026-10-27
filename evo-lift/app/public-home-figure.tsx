@@ -194,7 +194,7 @@ export function PublicHomeInsightsExample() {
               </li>
             ))}
           </ul>
-          <div className="shrink-0 sm:ml-auto">
+          <div className="shrink-0 self-center sm:ml-auto sm:self-auto">
             <ExerciseProgressPaceChart buckets={buckets} />
           </div>
         </div>

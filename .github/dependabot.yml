@@ -25,9 +25,24 @@ updates:
       - dependencies
       - security
     groups:
-      next-eslint:
+      # First match wins. eslint-config-next must stay with next, not eslint.
+      next:
+        patterns:
+          - "next"
+          - "@next/*"
+          - "eslint-config-next"
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
+      tailwind:
+        patterns:
+          - "tailwindcss"
+          - "@tailwindcss/postcss"
+      eslint:
         patterns:
           - "eslint*"
+        exclude-patterns:
           - "eslint-config-next"
       types:
         patterns:
@@ -51,3 +66,17 @@ updates:
     open-pull-requests-limit: 5
     labels:
       - dependencies
+    groups:
+      # init and analyze are separate dependencies but must share one
+      # release. A split bump fails CodeQL with a version mismatch.
+      # applies-to defaults to version updates, so security updates
+      # need their own group or they still open one PR per step.
+      codeql-action:
+        patterns:
+          - "github/codeql-action"
+          - "github/codeql-action/*"
+      codeql-action-security:
+        applies-to: security-updates
+        patterns:
+          - "github/codeql-action"
+          - "github/codeql-action/*"
