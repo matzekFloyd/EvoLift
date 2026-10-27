@@ -501,21 +501,29 @@ function ExerciseDetailPageContent() {
     [assistance, filteredHistoryRows],
   );
 
+  const bodyweightEntries = lifterProfile.bodyweightEntries;
+  const assistedChartOptions = useMemo(
+    () => (assistance ? { assistance: true as const, bodyweightEntries } : undefined),
+    [assistance, bodyweightEntries],
+  );
+
   const sessionWeightChartPoints = useMemo(
-    () => buildExerciseSessionWeightChartPoints(filteredHistoryRows, { assistance }),
-    [assistance, filteredHistoryRows],
+    () =>
+      buildExerciseSessionWeightChartPoints(filteredHistoryRows, {
+        assistance,
+        bodyweightEntries: assistance ? bodyweightEntries : undefined,
+      }),
+    [assistance, bodyweightEntries, filteredHistoryRows],
   );
 
   const sessionE1rmChartPoints = useMemo(
-    () =>
-      assistance ? [] : buildExerciseSessionE1rmChartPoints(filteredHistoryRows),
-    [assistance, filteredHistoryRows],
+    () => buildExerciseSessionE1rmChartPoints(filteredHistoryRows, assistedChartOptions),
+    [assistedChartOptions, filteredHistoryRows],
   );
 
   const sessionVolumeChartPoints = useMemo(
-    () =>
-      assistance ? [] : buildExerciseSessionVolumeChartPoints(filteredHistoryRows),
-    [assistance, filteredHistoryRows],
+    () => buildExerciseSessionVolumeChartPoints(filteredHistoryRows, assistedChartOptions),
+    [assistedChartOptions, filteredHistoryRows],
   );
 
   /** Default date + session + set order (newest first, highest set first); same as Session date ↓ on wide layout. */
