@@ -86,9 +86,21 @@ export function exerciseWeightChartText(
   const total: ChartTextColumn = { key: "total", label: "Total (kg)" };
   const showTotal = !assistance && (mode === "total" || mode === "both");
   const showLoaded = assistance || mode === "loaded" || mode === "both";
-  const columns = [session, ...(showLoaded ? [loaded] : []), ...(showTotal ? [total] : [])];
+  const showMovedLoad = assistance && points.some((point) => point.movedLoadKg != null);
+  const movedLoad: ChartTextColumn = {
+    key: "movedLoad",
+    label: "Bodyweight minus assistance (kg)",
+  };
+  const columns = [
+    session,
+    ...(showLoaded ? [loaded] : []),
+    ...(showMovedLoad ? [movedLoad] : []),
+    ...(showTotal ? [total] : []),
+  ];
   const caption = assistance
-    ? "Assistance (kg) by session"
+    ? showMovedLoad
+      ? "Assistance (kg) and bodyweight minus assistance by session"
+      : "Assistance (kg) by session"
     : mode === "both"
       ? "Loaded (kg) and Total (kg) by session"
       : mode === "total"
@@ -104,6 +116,7 @@ export function exerciseWeightChartText(
         session: point.xTickLabel,
         loaded: kg(point.heaviestLoadedKg),
         total: kg(point.heaviestTotalKg),
+        movedLoad: point.movedLoadKg == null ? "Not plotted" : kg(point.movedLoadKg),
       },
     })),
   };

@@ -96,6 +96,62 @@ describe("buildExerciseSessionWeightChartPoints", () => {
     assert.equal(points[0]?.heaviestSetNumber, 4);
     assert.equal(points[0]?.heaviestLoadedKg, 0);
   });
+
+  it("plots bodyweight minus assistance for the least-assistance set", () => {
+    const entries = [
+      { loggedOn: "2026-10-01", bodyweightKg: 80 },
+      { loggedOn: "2026-10-20", bodyweightKg: 90 },
+    ];
+    const points = buildExerciseSessionWeightChartPoints(
+      [
+        row({ performedOn: "2026-10-14", setNumber: 1, weightKg: 20, totalKg: 20 }),
+        row({ performedOn: "2026-10-14", setNumber: 2, weightKg: 10, totalKg: 10 }),
+        row({ performedOn: "2026-10-14", setNumber: 3, weightKg: 10, totalKg: 10 }),
+        row({ performedOn: "2026-10-14", setNumber: 4, weightKg: 5, totalKg: 5, isWarmup: true }),
+      ],
+      { assistance: true, bodyweightEntries: entries },
+    );
+    assert.equal(points[0]?.heaviestSetNumber, 3);
+    assert.equal(points[0]?.heaviestLoadedKg, 10);
+    assert.equal(points[0]?.movedLoadKg, 70);
+  });
+
+  it("keeps assistance only when no earlier bodyweight applies", () => {
+    const points = buildExerciseSessionWeightChartPoints(
+      [
+        row({
+          sessionId: "before",
+          performedOn: "2026-10-01",
+          sessionCreatedAt: "2026-10-01T10:00:00Z",
+          weightKg: 15,
+          totalKg: 15,
+        }),
+        row({
+          sessionId: "after",
+          performedOn: "2026-10-14",
+          sessionCreatedAt: "2026-10-14T10:00:00Z",
+          weightKg: 0,
+          totalKg: 0,
+        }),
+        row({
+          sessionId: "too-much-help",
+          performedOn: "2026-10-21",
+          sessionCreatedAt: "2026-10-21T10:00:00Z",
+          weightKg: 85,
+          totalKg: 85,
+        }),
+      ],
+      {
+        assistance: true,
+        bodyweightEntries: [{ loggedOn: "2026-10-14", bodyweightKg: 80 }],
+      },
+    );
+    const bySession = new Map(points.map((point) => [point.sessionId, point.movedLoadKg]));
+    assert.equal(bySession.get("before"), null);
+    assert.equal(bySession.get("after"), 80);
+    assert.equal(bySession.get("too-much-help"), null);
+    assert.equal(points.find((point) => point.sessionId === "too-much-help")?.heaviestLoadedKg, 85);
+  });
 });
 
 describe("weight chart copy and axis", () => {
@@ -127,6 +183,16 @@ describe("weight chart copy and axis", () => {
     assert.equal(
       buildWeightChangeSentence([lessHelp, moreHelp], "loaded", { assistance: true }),
       "Last session: 20.0 kg assistance, 10.0 kg more assistance than the session before.",
+    );
+    const withMoved = point({ heaviestLoadedKg: 10, movedLoadKg: 70 });
+    assert.equal(
+      buildWeightChangeSentence([withMoved], "loaded", { assistance: true }),
+      "Last session: 10.0 kg assistance and 70.0 kg bodyweight minus assistance. Log another session to see the change.",
+    );
+    const previousMoved = point({ heaviestLoadedKg: 20, movedLoadKg: 60 });
+    assert.equal(
+      buildWeightChangeSentence([previousMoved, withMoved], "loaded", { assistance: true }),
+      "Last session: 10.0 kg assistance, 10.0 kg less assistance than the session before, and 70.0 kg bodyweight minus assistance, 10.0 kg more than the session before.",
     );
   });
 

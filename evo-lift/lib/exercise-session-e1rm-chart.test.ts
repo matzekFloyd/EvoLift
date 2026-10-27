@@ -72,6 +72,63 @@ describe("buildExerciseSessionE1rmChartPoints", () => {
       [],
     );
   });
+
+  it("estimates 1RM from bodyweight minus assistance when a bodyweight is on or before the session", () => {
+    const entries = [
+      { loggedOn: "2026-09-01", bodyweightKg: 80 },
+      { loggedOn: "2026-10-20", bodyweightKg: 95 },
+    ];
+    const expected = estimateEpley1Rm(70, 5);
+    assert.ok(expected != null);
+    const points = buildExerciseSessionE1rmChartPoints(
+      [
+        row({ setNumber: 1, reps: 5, weightKg: 20, totalKg: 20 }),
+        row({ setNumber: 2, reps: 5, weightKg: 10, totalKg: 10 }),
+        row({ setNumber: 3, reps: 3, weightKg: 0, totalKg: 0, isWarmup: true }),
+        row({ setNumber: 4, reps: 13, weightKg: 0, totalKg: 0 }),
+      ],
+      { assistance: true, bodyweightEntries: entries },
+    );
+    assert.equal(points.length, 1);
+    assert.equal(points[0]?.sourceSetNumber, 2);
+    assert.equal(points[0]?.sourceTotalKg, 70);
+    assert.equal(points[0]?.sourceLoadedKg, 10);
+    assert.equal(points[0]?.e1rmKg, expected);
+  });
+
+  it("skips assisted sessions with no earlier bodyweight or with assistance above it", () => {
+    const points = buildExerciseSessionE1rmChartPoints(
+      [
+        row({
+          sessionId: "before",
+          performedOn: "2026-10-01",
+          sessionCreatedAt: "2026-10-01T10:00:00Z",
+          weightKg: 10,
+          totalKg: 10,
+        }),
+        row({
+          sessionId: "unassisted",
+          performedOn: "2026-10-14",
+          weightKg: 0,
+          totalKg: 0,
+        }),
+        row({
+          sessionId: "too-much-help",
+          performedOn: "2026-10-14",
+          sessionCreatedAt: "2026-10-14T12:00:00Z",
+          weightKg: 90,
+          totalKg: 90,
+        }),
+      ],
+      { assistance: true, bodyweightEntries: [{ loggedOn: "2026-10-14", bodyweightKg: 80 }] },
+    );
+    assert.deepEqual(
+      points.map((point) => point.sessionId),
+      ["unassisted"],
+    );
+    assert.equal(points[0]?.sourceTotalKg, 80);
+    assert.equal(points[0]?.e1rmKg, estimateEpley1Rm(80, 5));
+  });
 });
 
 describe("buildE1rmChangeSentence", () => {

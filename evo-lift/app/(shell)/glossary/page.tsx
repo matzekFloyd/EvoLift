@@ -17,12 +17,12 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "1RM",
     definition:
-      "A one-rep max: the heaviest weight for a single rep. EvoLift estimates it from working sets of 12 reps or fewer, using Total (kg), which includes base weight. The estimate uses the Epley formula. It is not a tested max.",
+      "A one-rep max: the heaviest weight for a single rep. EvoLift estimates it from working sets of 12 reps or fewer, using Total (kg), which includes base weight. On Assisted Dip and Assisted Pull-Up, the estimate uses bodyweight minus assistance when a bodyweight is logged on or before the session. The estimate uses the Epley formula. It is not a tested max.",
   },
   {
     term: "Assistance (kg)",
     definition:
-      "On Assisted Dip and Assisted Pull-Up, the counterweight help you used. Enter it as a positive number (for example 7). Blank or 0 means unassisted bodyweight. It is not Loaded (kg), and it is not used for estimated 1RM or training volume.",
+      "On Assisted Dip and Assisted Pull-Up, the counterweight help you used. Enter it as a positive number (for example 7). Blank or 0 means unassisted bodyweight. It is not Loaded (kg). When a bodyweight is logged on or before the session, estimated 1RM and session volume use bodyweight minus assistance. Without that bodyweight, or when assistance is greater than it, those charts are not plotted for the session.",
   },
   {
     term: "Authenticator app",
@@ -37,7 +37,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Bodyweight log",
     definition:
-      "Dated bodyweight entries. The latest entry is the current bodyweight. An open bodyweight goal and Lift comparison use the latest entry on or before the workout session date.",
+      "Dated bodyweight entries. The latest entry is the current bodyweight. An open bodyweight goal, Lift comparison, and Assisted Dip and Assisted Pull-Up charts use the latest entry on or before the workout session date.",
   },
   {
     term: "Compound",

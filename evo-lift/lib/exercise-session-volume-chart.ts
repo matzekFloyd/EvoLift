@@ -1,3 +1,5 @@
+import { assistedMovedLoadKg } from "@/lib/assisted-moved-load";
+import { bodyweightOnOrBefore, type BodyweightLogEntry } from "@/lib/bodyweight-log";
 import { buildChartAxisTickLabel } from "@/lib/date-format";
 
 /** Row shape for volume aggregation (matches exercise set history). */
@@ -34,10 +36,16 @@ function loggedLoadKg(row: ExerciseSessionVolumeSetRow): number | null {
 /**
  * Session volume: sum over **working** sets of `reps × Total (kg)` on the bar (same Total as set
  * history). Only sets with a **logged** load are counted; **warmups** are excluded.
+ * On Assisted Dip and Assisted Pull-Up, each set uses bodyweight minus assistance in place of
+ * Total (kg). A session with no bodyweight on or before its date, or with assistance greater
+ * than that bodyweight, has no point. A later bodyweight is not used.
  */
 export function buildExerciseSessionVolumeChartPoints(
   rows: ExerciseSessionVolumeSetRow[],
+  options?: { assistance?: boolean; bodyweightEntries?: readonly BodyweightLogEntry[] },
 ): ExerciseSessionVolumeChartPoint[] {
+  const assistance = options?.assistance === true;
+  const bodyweightEntries = options?.bodyweightEntries ?? [];
   const bySession = new Map<string, ExerciseSessionVolumeSetRow[]>();
   for (const row of rows) {
     const list = bySession.get(row.sessionId) ?? [];
@@ -56,7 +64,14 @@ export function buildExerciseSessionVolumeChartPoints(
       if (r.isWarmup) {
         continue;
       }
-      if (loggedLoadKg(r) === null) {
+      const logged = loggedLoadKg(r);
+      if (logged === null) {
+        continue;
+      }
+      const loadKg = assistance
+        ? assistedMovedLoadKg(bodyweightOnOrBefore(bodyweightEntries, r.performedOn), logged)
+        : r.totalKg;
+      if (loadKg == null) {
         continue;
       }
       const reps = Number(r.reps);
@@ -64,7 +79,7 @@ export function buildExerciseSessionVolumeChartPoints(
         continue;
       }
       meta = { performedOn: r.performedOn, sessionCreatedAt: r.sessionCreatedAt };
-      volumeKg += reps * r.totalKg;
+      volumeKg += reps * loadKg;
       workingSetsIncluded += 1;
     }
 
