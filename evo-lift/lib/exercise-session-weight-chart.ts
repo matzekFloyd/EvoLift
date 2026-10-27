@@ -1,3 +1,5 @@
+import { assistedMovedLoadKg } from "@/lib/assisted-moved-load";
+import { bodyweightOnOrBefore, type BodyweightLogEntry } from "@/lib/bodyweight-log";
 import { buildChartAxisTickLabel } from "@/lib/date-format";
 
 /** Minimal row shape for session weight chart aggregation (matches exercise history rows). */
@@ -24,6 +26,11 @@ export type ExerciseSessionWeightChartPoint = {
   /** Total (kg) minus Loaded (kg) for the chosen set — base on the bar for that session. */
   baseKg: number;
   heaviestSetNumber: number;
+  /**
+   * Bodyweight on or before the session minus assistance for the chosen set.
+   * Null when this session has no moved load to plot. Omitted on other exercises.
+   */
+  movedLoadKg?: number | null;
 };
 
 function loggedLoadKg(row: ExerciseSessionWeightSetRow): number | null {
@@ -38,13 +45,16 @@ function loggedLoadKg(row: ExerciseSessionWeightSetRow): number | null {
  * One chart point per workout session: the heaviest working set by Total (kg) among sets
  * with a logged load. Warmups are excluded. A tie on total goes to the later set number.
  * On Assisted Dip and Assisted Pull-Up, the point is the least assistance, including 0 kg,
- * and a tie goes to the later set.
+ * and a tie goes to the later set. When a bodyweight is logged on or before that session,
+ * the same set also carries bodyweight minus assistance. A later bodyweight is not used.
+ * Assistance greater than that bodyweight leaves the moved load unplotted.
  */
 export function buildExerciseSessionWeightChartPoints(
   rows: ExerciseSessionWeightSetRow[],
-  options?: { assistance?: boolean },
+  options?: { assistance?: boolean; bodyweightEntries?: readonly BodyweightLogEntry[] },
 ): ExerciseSessionWeightChartPoint[] {
   const assistance = options?.assistance === true;
+  const bodyweightEntries = options?.bodyweightEntries ?? [];
   const bySession = new Map<string, ExerciseSessionWeightSetRow[]>();
   for (const row of rows) {
     const list = bySession.get(row.sessionId) ?? [];
@@ -83,6 +93,9 @@ export function buildExerciseSessionWeightChartPoints(
     const heaviestLoadedKg = Number.isFinite(loaded) ? loaded : 0;
     const heaviestTotalKg = best.totalKg;
     const baseKg = heaviestTotalKg - heaviestLoadedKg;
+    const movedLoadKg = assistance
+      ? assistedMovedLoadKg(bodyweightOnOrBefore(bodyweightEntries, best.performedOn), heaviestLoadedKg)
+      : undefined;
 
     rawPoints.push({
       sessionId,
@@ -93,6 +106,7 @@ export function buildExerciseSessionWeightChartPoints(
       heaviestLoadedKg,
       baseKg,
       heaviestSetNumber: best.setNumber,
+      movedLoadKg,
     });
   }
 
@@ -129,6 +143,20 @@ function formatKg(value: number): string {
   return `${value.toFixed(1)} kg`;
 }
 
+function movedLoadPhrase(
+  last: ExerciseSessionWeightChartPoint,
+  previous: ExerciseSessionWeightChartPoint | null,
+): string | null {
+  if (last.movedLoadKg == null) {
+    return null;
+  }
+  const named = `${formatKg(last.movedLoadKg)} bodyweight minus assistance`;
+  if (previous == null || previous.movedLoadKg == null) {
+    return named;
+  }
+  return `${named}, ${comparedWithPrevious(last.movedLoadKg - previous.movedLoadKg)}`;
+}
+
 function comparedWithPrevious(delta: number, noun?: string): string {
   if (Math.abs(delta) < 0.05) {
     return "the same as the session before";
@@ -151,6 +179,24 @@ export function buildWeightChangeSentence(
   const assistance = options?.assistance === true;
   const loadUnit = assistance ? "assistance" : "loaded";
   const last = points[points.length - 1];
+  if (assistance) {
+    const assistanceText = formatKg(last.heaviestLoadedKg);
+    if (points.length === 1) {
+      const moved = movedLoadPhrase(last, null);
+      const load = moved
+        ? `${assistanceText} assistance and ${moved}`
+        : `${assistanceText} assistance`;
+      return `Last session: ${load}. Log another session to see the change.`;
+    }
+    const previous = points[points.length - 2];
+    const moved = movedLoadPhrase(last, previous);
+    const comparison = comparedWithPrevious(
+      last.heaviestLoadedKg - previous.heaviestLoadedKg,
+      "assistance",
+    );
+    const movedClause = moved ? `, and ${moved}` : "";
+    return `Last session: ${assistanceText} assistance, ${comparison}${movedClause}.`;
+  }
   if (points.length === 1) {
     if (mode === "total" && !assistance) {
       return `Last session: ${formatKg(last.heaviestTotalKg)} total. Log another session to see the change.`;

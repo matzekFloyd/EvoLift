@@ -95,6 +95,30 @@ describe("exercise chart text alternatives", () => {
       ["Session", "Assistance (kg)"],
     );
     assert.equal(assistance.rows[0]?.cells.loaded, "80.0");
+
+    const withMovedLoad = exerciseWeightChartText(
+      [
+        weightPoint({ heaviestLoadedKg: 10, movedLoadKg: 70 }),
+        weightPoint({
+          sessionId: "s2",
+          xTickLabel: "Oct 1",
+          heaviestLoadedKg: 15,
+          movedLoadKg: null,
+        }),
+      ],
+      "loaded",
+      true,
+    );
+    assert.equal(
+      withMovedLoad.caption,
+      "Assistance (kg) and bodyweight minus assistance by session",
+    );
+    assert.deepEqual(
+      withMovedLoad.columns.map((column) => column.label),
+      ["Session", "Assistance (kg)", "Bodyweight minus assistance (kg)"],
+    );
+    assert.equal(withMovedLoad.rows[0]?.cells.movedLoad, "70.0");
+    assert.equal(withMovedLoad.rows[1]?.cells.movedLoad, "Not plotted");
   });
 
   it("lists estimated 1RM and session volume with the axis label", () => {

@@ -34,6 +34,7 @@ type ExerciseWeightProgressChartProps = {
 const LINE_TOTAL = "Total (kg)";
 const LINE_LOADED = "Loaded (kg)";
 const LINE_ASSISTANCE = "Assistance (kg)";
+const LINE_MOVED_LOAD = "Bodyweight minus assistance (kg)";
 
 export function ExerciseWeightProgressChart({
   points,
@@ -52,6 +53,7 @@ export function ExerciseWeightProgressChart({
 
   const effectiveMode: ExerciseWeightProgressSeriesMode = assistance ? "loaded" : seriesMode;
   const loadLineName = assistance ? LINE_ASSISTANCE : LINE_LOADED;
+  const showMovedLoad = assistance && points.some((point) => point.movedLoadKg != null);
 
   const chartData = useMemo(
     () =>
@@ -59,6 +61,7 @@ export function ExerciseWeightProgressChart({
         ...p,
         totalValue: p.heaviestTotalKg,
         loadedValue: p.heaviestLoadedKg,
+        movedLoadValue: p.movedLoadKg ?? null,
       })),
     [points],
   );
@@ -75,10 +78,13 @@ export function ExerciseWeightProgressChart({
       if (showLoaded) {
         seriesValues.push(point.loadedValue);
       }
+      if (showMovedLoad && point.movedLoadValue != null) {
+        seriesValues.push(point.movedLoadValue);
+      }
       return seriesValues;
     });
     return zoomedWeightAxisDomain(values);
-  }, [chartData, showLoaded, showTotal]);
+  }, [chartData, showLoaded, showMovedLoad, showTotal]);
 
   const renderTooltip = ({
     active,
@@ -99,6 +105,13 @@ export function ExerciseWeightProgressChart({
           <p className="text-zinc-700">
             {LINE_ASSISTANCE}: {source.heaviestLoadedKg.toFixed(1)} kg
           </p>
+          {showMovedLoad ? (
+            <p className="text-zinc-700">
+              {source.movedLoadKg == null
+                ? `${LINE_MOVED_LOAD}: not plotted for this session`
+                : `${LINE_MOVED_LOAD}: ${source.movedLoadKg.toFixed(1)} kg`}
+            </p>
+          ) : null}
           <p className="text-zinc-500">Working set: #{source.heaviestSetNumber}</p>
         </div>
       );
@@ -159,6 +172,14 @@ export function ExerciseWeightProgressChart({
           ]}
         />
       ) : null}
+      {showMovedLoad ? (
+        <ChartSeriesLegend
+          items={[
+            { key: "assistance", label: LINE_ASSISTANCE, swatchClassName: "h-0.5 w-4 bg-teal-700" },
+            { key: "moved", label: LINE_MOVED_LOAD, swatchClassName: "h-0.5 w-4 bg-sky-600" },
+          ]}
+        />
+      ) : null}
 
       <div
         className="exercise-weight-progress-chart relative h-52 w-full sm:h-64"
@@ -205,6 +226,19 @@ export function ExerciseWeightProgressChart({
                 name={loadLineName}
                 stroke="#0f766e"
                 strokeWidth={2}
+                dot={{ r: points.length <= 8 ? 3 : 2 }}
+                activeDot={{ r: 4 }}
+                isAnimationActive={false}
+              />
+            ) : null}
+            {showMovedLoad ? (
+              <Line
+                type="monotone"
+                dataKey="movedLoadValue"
+                name={LINE_MOVED_LOAD}
+                stroke="#0284c7"
+                strokeWidth={2}
+                connectNulls={false}
                 dot={{ r: points.length <= 8 ? 3 : 2 }}
                 activeDot={{ r: 4 }}
                 isAnimationActive={false}
