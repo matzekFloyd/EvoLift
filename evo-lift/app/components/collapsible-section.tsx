@@ -20,8 +20,8 @@ type CollapsibleSectionProps = {
   /** When true, content stays visible and the header is not a toggle. */
   alwaysOpen?: boolean;
   /**
-   * When true, the section starts expanded. Uses the native `open` attribute;
-   * omit (or false) to match Goals and start collapsed.
+   * When true, the section starts expanded. Uses the native `open` attribute.
+   * Omit (or false) to start collapsed.
    */
   defaultOpen?: boolean;
   /**
