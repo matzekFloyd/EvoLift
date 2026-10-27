@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import { BookMarked } from "lucide-react";
+import { proseLinkClassName } from "@/app/components/inline-link-class";
+import { LinkedText } from "@/app/components/linked-text";
 import { PageShell } from "@/app/components/page-shell";
 import { glossaryMetadata } from "@/lib/public-page-metadata";
 
@@ -58,9 +60,9 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
         Published strength standards from{" "}
         <a
           href="https://exrx.net"
-          className="underline underline-offset-2 hover:text-sky-800"
+          className={proseLinkClassName}
           target="_blank"
-          rel="noreferrer"
+          rel="noopener noreferrer"
         >
           ExRx.net
         </a>
@@ -209,7 +211,9 @@ export default function GlossaryPage() {
         {terms.map((entry) => (
           <div key={entry.term} className="px-4 py-3 sm:px-5">
             <dt className="text-sm font-medium text-zinc-900">{entry.term}</dt>
-            <dd className="mt-1 text-sm leading-snug text-zinc-600">{entry.definition}</dd>
+            <dd className="mt-1 text-sm leading-snug text-zinc-600">
+              {typeof entry.definition === "string" ? <LinkedText text={entry.definition} /> : entry.definition}
+            </dd>
           </div>
         ))}
       </dl>

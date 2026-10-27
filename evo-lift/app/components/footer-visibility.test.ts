@@ -15,6 +15,7 @@ describe("footer visibility", () => {
     assert.equal(shouldHideFooter("/glossary"), false);
     assert.equal(shouldHideFooter("/privacy"), false);
     assert.equal(shouldHideFooter("/terms"), false);
+    assert.equal(shouldHideFooter("/legal"), false);
     assert.equal(shouldHideFooter("/app/exercises/back-squat"), false);
     assert.equal(shouldHideFooter("/app/plans"), false);
     assert.equal(shouldHideFooter("/app/sessions/28a7049e/edit"), false);
