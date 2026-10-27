@@ -167,7 +167,7 @@ describe("public home", () => {
     );
     assert.equal(
       PUBLIC_HOME_AREAS[0].detail,
-      "Set the week up once. Open it on training day and do the session you planned.",
+      "Set the week up once. Open it on training day and work through the session you planned.",
     );
     assert.equal(
       PUBLIC_HOME_AREAS[1].detail,
@@ -202,7 +202,7 @@ describe("public home", () => {
     assert.match(figure, /justify-center/);
     assert.match(figure, /<SampleWeek[^>]*stacked/);
     assert.match(figure, /flex flex-col items-start gap-4 sm:flex-row sm:items-center/);
-    assert.match(figure, /shrink-0 sm:ml-auto/);
+    assert.match(figure, /shrink-0 self-center sm:ml-auto sm:self-auto/);
     assert.doesNotMatch(figure, /lg:flex-row/);
     assert.match(figure, /MuscleAreaCoverageBodies/);
     assert.match(figure, /ExerciseProgressPaceChart/);
