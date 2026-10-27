@@ -44,7 +44,7 @@
     "@types/swagger-ui-dist": "^3.30.6",
     "@types/ws": "^8.18.2",
     "eslint": "^10",
-    "eslint-config-next": "16.4.2",
+    "eslint-config-next": "16.4.3",
     "happy-dom": "^21.0.4",
     "puppeteer": "^25.14.0",
     "tailwindcss": "^4",
