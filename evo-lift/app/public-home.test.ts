@@ -200,7 +200,7 @@ describe("public home", () => {
     assert.ok(muscleAreaCoverage(slugs).includedCount > 4);
     assert.deepEqual(
       pace.map((bucket) => bucket.label),
-      ["Room to gain", "On track", "Ahead", "More sessions"],
+      ["Room to gain", "On track", "Ahead", "No pace yet"],
     );
     assert.match(figure, /exampleChartInsetClassName/);
     assert.match(figure, /justify-center/);

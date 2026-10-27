@@ -54,15 +54,17 @@ describe("progress insight rows", () => {
     assert.match(progressBadgeDescription("on-track"), /keeping up with a steady coaching pace/);
     assert.match(progressBadgeDescription("room"), /behind a steady coaching pace/);
     assert.match(progressBadgeDescription("down"), /at least 2\.5 kg below/);
-    assert.match(progressBadgeDescription("early"), /not judged yet/);
+    assert.match(progressBadgeDescription("early"), /no pace yet/);
   });
 
   it("links the exercise and shows the latest estimate, unless the row is not linked or still early", () => {
     const linked = progressInsightRow(progressRow("ahead"));
     assert.equal(linked.badge, "Ahead");
     assert.equal(linked.title, "Barbell Back Squat");
+    assert.equal(linked.slug, "back-squat");
     assert.equal(linked.href, "/app/exercises/back-squat");
     assert.equal(progressInsightRow(progressRow("ahead"), { omitTitle: true }).title, null);
+    assert.equal(progressInsightRow(progressRow("ahead"), { omitTitle: true }).slug, null);
     assert.deepEqual(estimateChangeMark("Latest est. 1RM 93.3 kg · -35.0 kg"), {
       lead: "Latest est. 1RM 93.3 kg",
       direction: "down",
@@ -76,21 +78,21 @@ describe("progress insight rows", () => {
     assert.equal(estimateChangeMark("Best est. 1RM 100.0 kg · 1.3× bodyweight"), null);
     assert.equal(
       exerciseLeadDetail(
-        "−35.0 kg since the first session in this range. Latest estimated 1RM is 93.3 kg. Best in this range was 164.7 kg.",
+        "Over 8 sessions since the first session in this range. Best in this range was 164.7 kg.",
         true,
       ),
       "",
     );
     assert.equal(
       exerciseLeadDetail(
-        "−35.0 kg since the first session in this range. Latest estimated 1RM is 93.3 kg. Best in this range was 164.7 kg.",
+        "Over 8 sessions since the first session in this range. Best in this range was 164.7 kg.",
         false,
       ),
       "Best in this range was 164.7 kg.",
     );
     assert.equal(
-      exerciseLeadDetail("+2.5 kg over 4 sessions. A steady rate for this lift is about 1.0 kg per month.", false),
-      "+2.5 kg over 4 sessions. A steady rate for this lift is about 1.0 kg per month.",
+      exerciseLeadDetail("Over 4 sessions. A steady rate for this lift is about 1.0 kg per month.", false),
+      "Over 4 sessions. A steady rate for this lift is about 1.0 kg per month.",
     );
     assert.equal(
       bestInRangeMeta("Best est. 1RM 164.7 kg · 1.9× bodyweight"),
@@ -128,6 +130,7 @@ describe("comparison insight rows", () => {
     assert.equal(detailRank.badgeTone, "neutral");
     assert.equal(detailRank.quiet, true);
     assert.equal(detailRank.title, null);
+    assert.equal(detailRank.slug, null);
     assert.equal(detailRank.meta, "Best in this range, 164.7 kg at 1.9× bodyweight");
     assert.match(
       comparisonBadgeDescription(note({ kind: "public", badge: "Elite" })),
@@ -144,9 +147,11 @@ describe("comparison insight rows", () => {
       note({ kind: "public", badge: "Novice", tableHref: "https://exrx.net/Testing", meta: "80 kg" }),
     );
     assert.equal(row.href, "/app/exercises/back-squat");
+    assert.equal(row.slug, "back-squat");
     assert.equal(row.badge, "Novice");
     assert.equal(row.tableHref, "https://exrx.net/Testing");
     assert.equal(row.meta, "80 kg");
     assert.equal(comparisonInsightRow(note({ kind: "public", badge: "Novice", titleSlug: null })).href, null);
+    assert.equal(comparisonInsightRow(note({ kind: "public", badge: "Novice", titleSlug: null })).slug, null);
   });
 });

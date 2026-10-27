@@ -211,9 +211,9 @@ export function InsightsWeeklyVolumeChart({ data, metric }: InsightsWeeklyVolume
           { key: "average", label: movingAverageName, swatchClassName: "h-0.5 w-4 bg-teal-700" },
         ]}
       />
+      <div ref={chartRef} className="min-w-0 space-y-2">
       <div
-        ref={chartRef}
-        className="insights-weekly-chart relative h-56 w-full sm:h-72"
+        className="insights-weekly-chart relative h-56 w-full min-w-0 sm:h-72"
         style={{ WebkitTapHighlightColor: "transparent" }}
         aria-hidden
       >
@@ -283,8 +283,9 @@ export function InsightsWeeklyVolumeChart({ data, metric }: InsightsWeeklyVolume
           />
         </ComposedChart>
       </ChartResponsiveContainer>
+      </div>
       {isCompactView && selectedWeek ? (
-        <div className="pointer-events-none absolute right-2 top-2 z-10 rounded-md border border-zinc-200 bg-white/95 px-2 py-1.5 text-sm shadow-sm">
+        <div className="rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-sm">
           <p className="font-medium text-zinc-800">{`Week of ${formatWeekLabel(selectedWeek.weekStart)}`}</p>
           <p className="text-zinc-700">
             {barName}: {config.formatBar(selectedBarValue)}

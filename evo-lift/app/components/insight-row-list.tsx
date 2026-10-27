@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowDown, ArrowUp } from "lucide-react";
 import type { ReactNode } from "react";
+import { ExerciseName } from "@/app/components/exercise-badge-chip";
 import { StatusBadge } from "@/app/components/status-badge";
 import { estimateChangeMark, type InsightRow } from "@/app/components/insight-rows";
 
@@ -58,15 +59,19 @@ function EstimateLead({ meta }: { meta: string }) {
 function insightRowCopy(row: InsightRow): { first: ReactNode; rest: ReactNode } {
   if (row.title) {
     return {
-      first: row.href ? (
-        <Link
-          href={row.href}
-          className="text-sm font-medium text-zinc-900 underline-offset-2 hover:text-sky-800 hover:underline"
-        >
-          {row.title}
-        </Link>
-      ) : (
-        <p className="text-sm font-medium text-zinc-900">{row.title}</p>
+      first: (
+        <ExerciseName slug={row.slug}>
+          {row.href ? (
+            <Link
+              href={row.href}
+              className="text-sm font-medium text-zinc-900 underline-offset-2 hover:text-sky-800 hover:underline"
+            >
+              {row.title}
+            </Link>
+          ) : (
+            <span className="text-sm font-medium text-zinc-900">{row.title}</span>
+          )}
+        </ExerciseName>
       ),
       rest: (
         <>
@@ -103,23 +108,18 @@ export function InsightRowList({ rows }: { rows: InsightRow[] }) {
     return null;
   }
   return (
-    <ul className="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-2 divide-y divide-zinc-200 rounded-md border border-zinc-200 bg-white sm:grid-cols-[minmax(0,1fr)_auto] sm:gap-x-3">
+    <ul className="mt-3 divide-y divide-zinc-200 rounded-md border border-zinc-200 bg-white">
       {rows.map((row) => {
         const { first, rest } = insightRowCopy(row);
         return (
-          <li
-            key={row.id}
-            className="col-span-2 grid grid-cols-subgrid items-center gap-y-1 px-3 py-2.5"
-          >
-            <div className="col-start-2 row-start-1 min-w-0 sm:col-start-1">{first}</div>
-            {rest ? <div className="col-start-2 min-w-0 sm:col-start-1">{rest}</div> : null}
-            <StatusBadge
-              tone={row.badgeTone}
-              description={row.badgeDescription}
-              className="col-start-1 row-start-1 w-full justify-center sm:col-start-2"
-            >
-              {row.badge}
-            </StatusBadge>
+          <li key={row.id} className="px-3 py-2.5">
+            <div className="flex items-start justify-between gap-x-3">
+              <div className="min-w-0 flex-1">{first}</div>
+              <StatusBadge tone={row.badgeTone} description={row.badgeDescription}>
+                {row.badge}
+              </StatusBadge>
+            </div>
+            {rest ? <div className="mt-1">{rest}</div> : null}
           </li>
         );
       })}
