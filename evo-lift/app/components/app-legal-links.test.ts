@@ -7,19 +7,22 @@ import {
   legalLinkClassName,
   legalLinkClassNameFor,
 } from "./app-legal-links";
+import { LEGAL_NOTICE_HREF } from "@/app/legal/legal-notice";
 import { PRIVACY_POLICY_HREF } from "@/app/privacy/privacy-policy";
 import { TERMS_OF_USE_HREF } from "@/app/terms/terms-of-use";
 
 describe("APP_LEGAL_LINKS", () => {
-  it("lists Glossary, Terms of use, and Privacy policy with footer labels", () => {
+  it("lists Glossary, Terms of use, Privacy policy, and Legal notice with footer labels", () => {
     assert.deepEqual(APP_LEGAL_LINKS, [
       { href: GLOSSARY_HREF, label: "Glossary" },
       { href: TERMS_OF_USE_HREF, label: "Terms of use" },
       { href: PRIVACY_POLICY_HREF, label: "Privacy policy" },
+      { href: LEGAL_NOTICE_HREF, label: "Legal notice" },
     ]);
     assert.equal(GLOSSARY_HREF, "/glossary");
     assert.equal(TERMS_OF_USE_HREF, "/terms");
     assert.equal(PRIVACY_POLICY_HREF, "/privacy");
+    assert.equal(LEGAL_NOTICE_HREF, "/legal");
   });
 
   it("marks only the matching legal page as current and underlines it", () => {

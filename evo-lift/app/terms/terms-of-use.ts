@@ -1,3 +1,4 @@
+import { OPERATOR_NAME } from "@/app/legal/legal-notice";
 import { PUBLIC_APP_ORIGIN } from "@/lib/public-app-origin";
 
 export const TERMS_OF_USE_HREF = "/terms";
@@ -16,6 +17,7 @@ export const termsOfUseSections: TermsOfUseSection[] = [
     heading: "The service",
     paragraphs: [
       `EvoLift at ${PUBLIC_APP_ORIGIN} is a workout logging app. You can use the website and, when available, the Android app from Google Play.`,
+      `${OPERATOR_NAME} runs EvoLift.`,
       "By creating an account or using the service, you agree to these terms.",
     ],
   },

@@ -24,9 +24,14 @@ import { zoomedWeightAxisDomain } from "@/lib/exercise-session-weight-chart";
 
 type ExerciseSessionE1rmChartProps = {
   points: ExerciseSessionE1rmChartPoint[];
+  /** Assisted Dip and Assisted Pull-Up use bodyweight minus assistance in place of Total (kg). */
+  assistance?: boolean;
 };
 
-export function ExerciseSessionE1rmChart({ points }: ExerciseSessionE1rmChartProps) {
+export function ExerciseSessionE1rmChart({
+  points,
+  assistance = false,
+}: ExerciseSessionE1rmChartProps) {
   const [isCompactView, setIsCompactView] = useState(false);
 
   useEffect(() => {
@@ -69,10 +74,12 @@ export function ExerciseSessionE1rmChart({ points }: ExerciseSessionE1rmChartPro
         <p className="text-zinc-700">Estimated 1RM: {source.e1rmKg.toFixed(1)} kg</p>
         <p className="text-zinc-600">
           From set #{source.sourceSetNumber}: {source.sourceReps} reps ×{" "}
-          {source.sourceTotalKg.toFixed(1)} kg Total
+          {source.sourceTotalKg.toFixed(1)} kg{" "}
+          {assistance ? "bodyweight minus assistance" : "Total"}
         </p>
         <p className="text-zinc-500">
-          Loaded {source.sourceLoadedKg.toFixed(1)} kg · Epley · not a tested max
+          {assistance ? "Assistance" : "Loaded"} {source.sourceLoadedKg.toFixed(1)} kg · Epley · not a
+          tested max
         </p>
       </div>
     );
@@ -81,8 +88,9 @@ export function ExerciseSessionE1rmChart({ points }: ExerciseSessionE1rmChartPro
   if (points.length === 0) {
     return (
       <p className="text-sm text-zinc-600">
-        No working sets of 12 reps or fewer with a logged load yet, so estimated 1RM cannot be
-        plotted.
+        {assistance
+          ? "Log a bodyweight on or before the session to plot estimated 1RM from bodyweight minus assistance. Working sets of 12 reps or fewer count. Assistance above that bodyweight is left off."
+          : "No working sets of 12 reps or fewer with a logged load yet, so estimated 1RM cannot be plotted."}
       </p>
     );
   }

@@ -1,3 +1,5 @@
+import { assistedMovedLoadKg } from "@/lib/assisted-moved-load";
+import { bodyweightOnOrBefore, type BodyweightLogEntry } from "@/lib/bodyweight-log";
 import { buildChartAxisTickLabel } from "@/lib/date-format";
 import { estimateEpley1Rm } from "@/lib/exercise-progress-insights";
 
@@ -39,10 +41,16 @@ function loggedLoadKg(row: ExerciseSessionE1rmSetRow): number | null {
  * One point per session: highest estimated 1RM from working sets with a logged load and
  * 1–12 reps (Epley on Total kg). Warmups and sets above 12 reps are excluded.
  * Tie on estimate: higher Total (kg), then higher set number.
+ * On Assisted Dip and Assisted Pull-Up, Epley uses bodyweight minus assistance in place of
+ * Total (kg). A session with no bodyweight on or before its date, or with assistance greater
+ * than that bodyweight, has no point. A later bodyweight is not used.
  */
 export function buildExerciseSessionE1rmChartPoints(
   rows: ExerciseSessionE1rmSetRow[],
+  options?: { assistance?: boolean; bodyweightEntries?: readonly BodyweightLogEntry[] },
 ): ExerciseSessionE1rmChartPoint[] {
+  const assistance = options?.assistance === true;
+  const bodyweightEntries = options?.bodyweightEntries ?? [];
   const bySession = new Map<string, ExerciseSessionE1rmSetRow[]>();
   for (const row of rows) {
     const list = bySession.get(row.sessionId) ?? [];
@@ -71,22 +79,28 @@ export function buildExerciseSessionE1rmChartPoints(
       if (loaded === null) {
         continue;
       }
+      const loadKg = assistance
+        ? assistedMovedLoadKg(bodyweightOnOrBefore(bodyweightEntries, r.performedOn), loaded)
+        : r.totalKg;
+      if (loadKg == null) {
+        continue;
+      }
       const reps = Number(r.reps);
-      const estimate = estimateEpley1Rm(r.totalKg, reps);
+      const estimate = estimateEpley1Rm(loadKg, reps);
       if (estimate == null) {
         continue;
       }
       if (
         !best ||
         estimate > best.e1rmKg ||
-        (estimate === best.e1rmKg && r.totalKg > best.totalKg) ||
-        (estimate === best.e1rmKg && r.totalKg === best.totalKg && r.setNumber > best.setNumber)
+        (estimate === best.e1rmKg && loadKg > best.totalKg) ||
+        (estimate === best.e1rmKg && loadKg === best.totalKg && r.setNumber > best.setNumber)
       ) {
         best = {
           e1rmKg: estimate,
           setNumber: r.setNumber,
           reps,
-          totalKg: r.totalKg,
+          totalKg: loadKg,
           loadedKg: loaded,
           performedOn: r.performedOn,
           sessionCreatedAt: r.sessionCreatedAt,

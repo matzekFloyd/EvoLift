@@ -3,7 +3,7 @@
  *
  * `npm run lighthouse` runs this file twice:
  * - performance on `/login` (default)
- * - SEO on `/`, `/login`, `/privacy`, `/terms`, and `/glossary`
+ * - SEO on `/`, `/login`, `/privacy`, `/terms`, `/legal`, and `/glossary`
  *   (`LHCI_PUBLIC_SUITE=seo`)
  *
  * Authenticated Home and Insights stay in `lighthouserc.app.cjs` and stay
@@ -13,7 +13,7 @@ const baseUrl = process.env.LHCI_BASE_URL || "http://127.0.0.1:3000";
 const seoSuite = process.env.LHCI_PUBLIC_SUITE === "seo";
 
 /** Indexable pages. Same list as `PUBLIC_PAGE_PATHS`. */
-const PUBLIC_SEO_PATHS = ["/", "/login", "/privacy", "/terms", "/glossary"];
+const PUBLIC_SEO_PATHS = ["/", "/login", "/privacy", "/terms", "/legal", "/glossary"];
 const PUBLIC_PERFORMANCE_PATHS = ["/login"];
 
 const paths = seoSuite ? PUBLIC_SEO_PATHS : PUBLIC_PERFORMANCE_PATHS;

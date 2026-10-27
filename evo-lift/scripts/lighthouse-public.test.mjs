@@ -27,7 +27,7 @@ test("public SEO suite scores the indexable pages at 0.9", () => {
   const config = loadPublicConfig("seo");
 
   assert.deepEqual(config.ci.collect.settings.onlyCategories, ["seo"]);
-  assert.deepEqual(pathsOf(config), ["/", "/login", "/privacy", "/terms", "/glossary"]);
+  assert.deepEqual(pathsOf(config), ["/", "/login", "/privacy", "/terms", "/legal", "/glossary"]);
   assert.deepEqual(config.ci.assert.assertions["categories:seo"], ["error", { minScore: 0.9 }]);
   assert.equal(config.ci.assert.assertions["categories:performance"], undefined);
   assert.equal(config.ci.upload.outputDir, ".lighthouseci/public-seo");

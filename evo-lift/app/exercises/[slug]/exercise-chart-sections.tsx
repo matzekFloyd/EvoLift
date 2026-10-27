@@ -32,7 +32,11 @@ export function ExerciseWeightChartSection({
               <p>
                 Each point is the working set with the least assistance in that session. A later
                 set wins a tie. The chart shows Assistance (kg). 0 kg is unassisted bodyweight.
-                Less assistance is closer to unassisted. Warmups are omitted.
+                Less assistance is closer to unassisted. When a bodyweight is logged on or before
+                that session, the chart also shows bodyweight minus assistance for the same set.
+                A bodyweight logged later is not used. If assistance is greater than that
+                bodyweight, bodyweight minus assistance is left off that session. Warmups are
+                omitted.
               </p>
             ) : (
               <>
@@ -78,8 +82,12 @@ export function ExerciseE1rmChartSection({
           <div className="space-y-2">
             {assistance ? (
               <p>
-                Assistance is counterweight help, not load moved. Estimated 1RM is not
-                calculated for Assisted Dip or Assisted Pull-Up.
+                When a bodyweight is logged on or before the session, each point is the highest
+                estimated 1RM from a working set of 12 reps or fewer. The estimate uses bodyweight
+                minus assistance in place of Total (kg) and the Epley formula. It is not a tested
+                max. Warmups and sets above 12 reps are excluded. A bodyweight logged later is not
+                used. A set with no earlier bodyweight, or with assistance greater than that
+                bodyweight, is left off. A session with no remaining set is not plotted.
               </p>
             ) : (
               <>
@@ -99,13 +107,7 @@ export function ExerciseE1rmChartSection({
         </InfoPopover>
       </div>
       <div className="mt-3">
-        {assistance ? (
-          <p className="text-sm text-zinc-600">
-            Assistance is not used for estimated 1RM, so there is nothing to plot.
-          </p>
-        ) : (
-          <ExerciseSessionE1rmChart points={points} />
-        )}
+        <ExerciseSessionE1rmChart points={points} assistance={assistance} />
       </div>
     </section>
   );
@@ -131,8 +133,11 @@ export function ExerciseVolumeChartSection({
           <div className="space-y-2">
             {assistance ? (
               <p>
-                Assistance is counterweight help, not load moved. Session volume is not
-                calculated for Assisted Dip or Assisted Pull-Up.
+                When a bodyweight is logged on or before the session, volume is the sum of reps
+                × bodyweight minus assistance for every working set with logged assistance.
+                Warmups are excluded. A bodyweight logged later is not used. A set with no earlier
+                bodyweight, or with assistance greater than that bodyweight, is left off. A session
+                with no remaining set is not plotted.
               </p>
             ) : (
               <>
@@ -152,13 +157,7 @@ export function ExerciseVolumeChartSection({
         </InfoPopover>
       </div>
       <div className="mt-3">
-        {assistance ? (
-          <p className="text-sm text-zinc-600">
-            Assistance is not counted as training volume, so there is nothing to plot.
-          </p>
-        ) : (
-          <ExerciseSessionVolumeChart points={points} />
-        )}
+        <ExerciseSessionVolumeChart points={points} assistance={assistance} />
       </div>
     </section>
   );

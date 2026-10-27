@@ -23,9 +23,14 @@ import {
 
 type ExerciseSessionVolumeChartProps = {
   points: ExerciseSessionVolumeChartPoint[];
+  /** Assisted Dip and Assisted Pull-Up use bodyweight minus assistance in place of Total (kg). */
+  assistance?: boolean;
 };
 
-export function ExerciseSessionVolumeChart({ points }: ExerciseSessionVolumeChartProps) {
+export function ExerciseSessionVolumeChart({
+  points,
+  assistance = false,
+}: ExerciseSessionVolumeChartProps) {
   const [isCompactView, setIsCompactView] = useState(false);
 
   useEffect(() => {
@@ -62,7 +67,8 @@ export function ExerciseSessionVolumeChart({ points }: ExerciseSessionVolumeChar
         <p className="font-medium text-zinc-800">Session · {sessionDate}</p>
         <p className="text-zinc-700">Session volume: {source.volumeKg.toFixed(1)} kg</p>
         <p className="text-zinc-500">
-          Sum of reps × Total (kg) on {source.workingSetsIncluded} working set
+          Sum of reps × {assistance ? "bodyweight minus assistance" : "Total (kg)"} on{" "}
+          {source.workingSetsIncluded} working set
           {source.workingSetsIncluded === 1 ? "" : "s"} (warmups excluded).
         </p>
       </div>
@@ -72,7 +78,9 @@ export function ExerciseSessionVolumeChart({ points }: ExerciseSessionVolumeChar
   if (points.length === 0) {
     return (
       <p className="text-sm text-zinc-600">
-        No working sets with logged weight yet, so session volume cannot be calculated.
+        {assistance
+          ? "Log a bodyweight on or before the session to plot session volume from bodyweight minus assistance. Assistance above that bodyweight is left off."
+          : "No working sets with logged weight yet, so session volume cannot be calculated."}
       </p>
     );
   }
