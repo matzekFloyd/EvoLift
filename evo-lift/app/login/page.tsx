@@ -1,6 +1,5 @@
 "use client";
 
-import { CircleCheck } from "lucide-react";
 import { FormEvent, use, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -509,7 +508,7 @@ export default function LoginPage({
           : handleReset;
 
   return (
-    <div className="flex min-h-full flex-1 flex-col bg-gradient-to-b from-sky-50 to-white">
+    <div className="flex min-h-full flex-1 flex-col">
       <div className="bg-gradient-to-l from-sky-200 via-sky-100 to-sky-50 pt-[env(safe-area-inset-top,0px)]">
         <div className="mx-auto flex w-full max-w-md justify-center px-4 py-6 sm:px-6">
           <EvoLiftBrand
@@ -608,20 +607,19 @@ export default function LoginPage({
                     autoComplete={mode === "login" ? "current-password" : "new-password"}
                     placeholder={mode === "login" ? "Your password" : undefined}
                     hint={mode === "register" ? PASSWORD_STRENGTH_HINT : undefined}
+                    labelAside={
+                      mode === "login" ? (
+                        <button
+                          type="button"
+                          onClick={() => switchMode("forgot")}
+                          className={quietLinkClassName}
+                        >
+                          Forgot password?
+                        </button>
+                      ) : null
+                    }
                     required
                   />
-                ) : null}
-
-                {mode === "login" ? (
-                  <div className="-mt-2">
-                    <button
-                      type="button"
-                      onClick={() => switchMode("forgot")}
-                      className={actionLinkClassName}
-                    >
-                      Forgot password?
-                    </button>
-                  </div>
                 ) : null}
 
                 {mode === "register" ? (
@@ -677,7 +675,18 @@ export default function LoginPage({
                     {loginControlLabel(mode === "login" ? "login" : "register", pending)}
                   </ActionButton>
                 ) : (
-                  <div className="flex w-full items-center gap-3">
+                  <>
+                    <ActionButton
+                      type="submit"
+                      variant="primary"
+                      fullWidth
+                      disabled={
+                        isLoading || (mode === "reset" && (!recoveryReady || Boolean(recoveryLinkError)))
+                      }
+                      className="!h-11"
+                    >
+                      {loginControlLabel(mode === "forgot" ? "forgot" : "reset", pending)}
+                    </ActionButton>
                     <button
                       type="button"
                       onClick={() => {
@@ -686,61 +695,46 @@ export default function LoginPage({
                         }
                         switchMode("login");
                       }}
-                      className={`mr-auto shrink-0 ${actionLinkClassName}`}
+                      className={actionLinkClassName}
                     >
                       Back to log in
                     </button>
-                    <ActionButton
-                      type="submit"
-                      variant="primary"
-                      disabled={
-                        isLoading || (mode === "reset" && (!recoveryReady || Boolean(recoveryLinkError)))
-                      }
-                      className="ml-auto shrink-0"
-                    >
-                      {loginControlLabel(mode === "forgot" ? "forgot" : "reset", pending)}
-                    </ActionButton>
-                  </div>
+                  </>
                 )}
               </form>
               {showAuthTabs ? (
-                <>
-                  <SocialSignInButtons
-                    disabled={isLoading}
-                    onSelect={(provider) => void handleSocial(provider)}
-                  />
-                  <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <Link
-                      href="/terms"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      prefetch={false}
-                      className={`shrink-0 ${quietLinkClassName}`}
-                    >
-                      Terms of use
-                    </Link>
-                    <Link
-                      href="/privacy"
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      prefetch={false}
-                      className={`shrink-0 ${quietLinkClassName}`}
-                    >
-                      Privacy policy
-                    </Link>
-                  </div>
-                </>
+                <SocialSignInButtons
+                  disabled={isLoading}
+                  onSelect={(provider) => void handleSocial(provider)}
+                />
               ) : null}
+              <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1">
+                <Link
+                  href="/terms"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  prefetch={false}
+                  className={`shrink-0 ${quietLinkClassName}`}
+                >
+                  Terms of use
+                </Link>
+                <Link
+                  href="/privacy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  prefetch={false}
+                  className={`shrink-0 ${quietLinkClassName}`}
+                >
+                  Privacy policy
+                </Link>
+              </div>
             </div>
             )}
           </section>
 
           {successEmail && successKind ? (
             <section className="panel p-4 text-sm" role="status" aria-live="polite">
-              <SectionHeading className="inline-flex items-center gap-1">
-                <CircleCheck className="h-4 w-4 text-sky-700" aria-hidden />
-                Check your inbox
-              </SectionHeading>
+              <SectionHeading>Check your inbox</SectionHeading>
               <p className="mt-1 text-zinc-700">
                 {successKind === "confirm" ? (
                   <>
