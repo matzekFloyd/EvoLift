@@ -1,28 +1,37 @@
 "use client";
 
-import Link from "next/link";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { History, LayoutGrid, Weight } from "lucide-react";
 import { ContentPlaceholder } from "@/app/components/content-placeholder";
-import { EXERCISE_LIST_PLACEHOLDER_CLASS } from "@/app/components/content-placeholder-layout";
+import { NAMED_LIST_PLACEHOLDER_ROWS } from "@/app/components/content-placeholder-layout";
 import { ExerciseBadgeChip } from "@/app/components/exercise-badge-chip";
-import { ExerciseFilteredList } from "@/app/components/exercise-filtered-list";
+import { NamedListTable, NamedListTableRow } from "@/app/components/named-list-table";
 import { PageShell } from "@/app/components/page-shell";
-import { panelInsetClass } from "@/app/components/panel-inset";
+import { SelectField } from "@/app/components/select-field";
 import { StatusNotice } from "@/app/components/status-notice";
+import { TextField } from "@/app/components/text-field";
 import { exercisesForList } from "@/lib/hidden-exercise-lists";
 import {
   getExerciseMetadataCacheStatus,
   loadExerciseMetadata,
 } from "@/lib/exercise-metadata-cache";
 import { createPageLoadPerfTracker } from "@/lib/page-load-perf";
-import { appPath } from "@/lib/app-paths";
 import { pastSessionCountsBySlug } from "@/lib/home-session-cache";
+import { toggleNamedListSortDirection } from "@/lib/named-list-sort";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { getTodayYyyyMmDd } from "@/lib/session-date";
 import { useDebouncedValue } from "@/lib/use-debounced-value";
+import {
+  EXERCISE_LIST_EMPTY_ALL,
+  EXERCISE_LIST_EMPTY_SEARCH,
+  EXERCISE_LIST_EMPTY_USED,
+  EXERCISE_LIST_INTRO,
+  exerciseDetailHref,
+  exerciseSessionCountLabel,
+  visibleExerciseListRows,
+  type ExerciseListSort,
+} from "./exercise-list";
 
 type ExerciseListItem = {
   id: string;
@@ -31,53 +40,66 @@ type ExerciseListItem = {
   sessionCount: number;
 };
 
-const exerciseScopePillBase =
-  "rounded-md border px-3 py-2.5 text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/40";
-const exerciseScopePillActive = "border-sky-600 bg-sky-100 text-sky-950";
-const exerciseScopePillInactive =
-  "border-zinc-300 bg-zinc-50 text-zinc-700 hover:border-zinc-400 hover:bg-zinc-100";
-
-function ExerciseScopePills({
+function ExerciseListFilters({
+  searchText,
+  onSearchTextChange,
   scopeAll,
   onScope,
   disabled = false,
 }: {
+  searchText: string;
+  onSearchTextChange: (value: string) => void;
   scopeAll: boolean;
-  onScope?: (next: "used" | "all") => void;
+  onScope: (next: "used" | "all") => void;
   disabled?: boolean;
 }) {
   return (
-    <div className="mb-3 grid grid-cols-2 gap-2">
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => onScope?.("used")}
-        className={`flex w-full flex-col items-center justify-center gap-1.5 text-center leading-tight ${exerciseScopePillBase} ${!scopeAll ? exerciseScopePillActive : exerciseScopePillInactive}`}
-      >
-        <History className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
-        <span>With session history</span>
-      </button>
-      <button
-        type="button"
-        disabled={disabled}
-        onClick={() => onScope?.("all")}
-        className={`flex w-full flex-col items-center justify-center gap-1.5 text-center leading-tight ${exerciseScopePillBase} ${scopeAll ? exerciseScopePillActive : exerciseScopePillInactive}`}
-      >
-        <LayoutGrid className="h-4 w-4 shrink-0 opacity-90" aria-hidden />
-        <span>All exercises</span>
-      </button>
+    <div className="mt-4 grid gap-3 sm:grid-cols-[minmax(0,1fr)_16rem] sm:items-end">
+      <label className="block min-w-0 text-sm font-medium text-zinc-800">
+        Search exercises
+        <TextField
+          type="search"
+          value={searchText}
+          onChange={(event) => onSearchTextChange(event.target.value)}
+          disabled={disabled}
+          className="mt-1 w-full"
+          placeholder="Search by name or badge"
+          autoComplete="off"
+          spellCheck={false}
+        />
+      </label>
+      <label className="block min-w-0 text-sm font-medium text-zinc-800">
+        Show
+        <SelectField
+          value={scopeAll ? "all" : "used"}
+          disabled={disabled}
+          onChange={(event) => onScope(event.target.value === "all" ? "all" : "used")}
+          className="mt-1 w-full"
+        >
+          <option value="used">With session history</option>
+          <option value="all">All exercises</option>
+        </SelectField>
+      </label>
     </div>
   );
 }
 
 function ExercisesLoadingPanel() {
   return (
-    <section className="panel p-4 sm:p-5">
-      <p className="mb-3 text-sm text-zinc-600">
-        Open an exercise to review your full set history.
-      </p>
-      <ExerciseScopePills scopeAll={false} disabled />
-      <ContentPlaceholder label="Loading exercises..." rowClassName={EXERCISE_LIST_PLACEHOLDER_CLASS} />
+    <section className="panel p-5">
+      <p className="text-sm text-zinc-600">{EXERCISE_LIST_INTRO}</p>
+      <ExerciseListFilters
+        searchText=""
+        onSearchTextChange={() => {}}
+        scopeAll={false}
+        onScope={() => {}}
+        disabled
+      />
+      <ContentPlaceholder
+        label="Loading exercises..."
+        rows={NAMED_LIST_PLACEHOLDER_ROWS}
+        className="mt-4"
+      />
     </section>
   );
 }
@@ -91,6 +113,7 @@ function ExercisesMain() {
   const [exercises, setExercises] = useState<ExerciseListItem[]>([]);
   const [hiddenExerciseIds, setHiddenExerciseIds] = useState<Set<string>>(() => new Set());
   const [searchText, setSearchText] = useState("");
+  const [sort, setSort] = useState<ExerciseListSort>({ key: "name", direction: "asc" });
   const prefetchedExerciseHrefs = useRef(new Set<string>());
 
   function prefetchExercisePage(href: string) {
@@ -102,6 +125,14 @@ function ExercisesMain() {
     router.prefetch(href, {
       kind: "full",
     } as NonNullable<Parameters<typeof router.prefetch>[1]>);
+  }
+
+  function toggleSort(key: ExerciseListSort["key"]) {
+    setSort((current) =>
+      current.key === key
+        ? { key, direction: toggleNamedListSortDirection(current.direction) }
+        : { key, direction: "asc" },
+    );
   }
 
   const scopeAll = searchParams.get("scope") === "all";
@@ -237,6 +268,10 @@ function ExercisesMain() {
     () => exercisesForList(exercises, hiddenExerciseIds, scopeAll ? "all" : "used"),
     [exercises, hiddenExerciseIds, scopeAll],
   );
+  const visibleItems = useMemo(
+    () => visibleExerciseListRows(displayItems, debouncedSearch, sort),
+    [debouncedSearch, displayItems, sort],
+  );
 
   function setScope(next: "used" | "all") {
     const params = new URLSearchParams(searchParams.toString());
@@ -250,60 +285,76 @@ function ExercisesMain() {
   }
 
   return (
-    <section className="panel p-4 sm:p-5">
-      <p className="mb-3 text-sm text-zinc-600">
-        Open an exercise to review your full set history.
-      </p>
+    <section className="panel p-5">
+      <p className="text-sm text-zinc-600">{EXERCISE_LIST_INTRO}</p>
       {errorMessage ? (
-        <StatusNotice message={errorMessage} tone="error" />
+        <StatusNotice className="mt-4" message={errorMessage} tone="error" />
       ) : isLoading ? (
         <>
-          <ExerciseScopePills scopeAll={scopeAll} onScope={setScope} />
-          <ContentPlaceholder label="Loading exercises..." rowClassName={EXERCISE_LIST_PLACEHOLDER_CLASS} />
+          <ExerciseListFilters
+            searchText={searchText}
+            onSearchTextChange={setSearchText}
+            scopeAll={scopeAll}
+            onScope={setScope}
+            disabled
+          />
+          <ContentPlaceholder
+            label="Loading exercises..."
+            rows={NAMED_LIST_PLACEHOLDER_ROWS}
+            className="mt-4"
+          />
         </>
       ) : (
         <>
-          <ExerciseScopePills scopeAll={scopeAll} onScope={setScope} />
+          <ExerciseListFilters
+            searchText={searchText}
+            onSearchTextChange={setSearchText}
+            scopeAll={scopeAll}
+            onScope={setScope}
+          />
           {displayItems.length === 0 ? (
-            <p className="text-sm text-zinc-600">
-              {scopeAll
-                ? "No exercises loaded."
-                : 'No exercise history yet. Choose "All exercises" above, or log a workout session first.'}
+            <p className="mt-4 text-sm text-zinc-600">
+              {scopeAll ? EXERCISE_LIST_EMPTY_ALL : EXERCISE_LIST_EMPTY_USED}
             </p>
+          ) : visibleItems.length === 0 ? (
+            <p className="mt-4 text-sm text-zinc-600">{EXERCISE_LIST_EMPTY_SEARCH}</p>
           ) : (
-            <ExerciseFilteredList
-              items={displayItems}
-              searchText={searchText}
-              onSearchTextChange={setSearchText}
-              filterLabel="Search exercises"
-              searchPlaceholder="Search by name or badge"
-              emptyFilterMessage="No exercises match that search."
-              listClassName={panelInsetClass(
-                "mt-3 max-h-[min(24rem,55vh)] space-y-2 overflow-y-auto overscroll-y-contain p-3 sm:grid sm:grid-cols-2 sm:gap-2 sm:space-y-0",
-              )}
-              renderItem={(exercise) => {
-                const href = appPath(`/exercises/${exercise.slug}`);
+            <NamedListTable
+              className="mt-4"
+              sortDirection={sort.direction}
+              nameSortActive={sort.key === "name"}
+              onToggleSort={() => toggleSort("name")}
+              countSort={{
+                label: "Sessions",
+                active: sort.key === "sessions",
+                direction: sort.direction,
+                onToggle: () => toggleSort("sessions"),
+                tracks: "count",
+              }}
+              embedActions
+              actions={false}
+              contained
+            >
+              {visibleItems.map((exercise) => {
+                const href = exerciseDetailHref(exercise.slug);
                 return (
-                  <Link
+                  <NamedListTableRow
+                    key={exercise.id}
+                    name={exercise.label}
                     href={href}
                     prefetch={false}
-                    onMouseEnter={() => prefetchExercisePage(href)}
-                    onFocus={() => prefetchExercisePage(href)}
-                    onPointerDown={() => prefetchExercisePage(href)}
-                    className="flex w-full items-center justify-between gap-2 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm text-zinc-800 hover:border-sky-300 hover:bg-sky-50"
-                  >
-                    <span className="inline-flex min-w-0 items-center gap-2">
-                      <ExerciseBadgeChip slug={exercise.slug} />
-                      <span className="truncate">{exercise.label}</span>
-                    </span>
-                    <span className="shrink-0 text-xs text-zinc-500">
-                      {exercise.sessionCount}{" "}
-                      {exercise.sessionCount === 1 ? "session" : "sessions"}
-                    </span>
-                  </Link>
+                    onOpenIntent={() => prefetchExercisePage(href)}
+                    leading={<ExerciseBadgeChip slug={exercise.slug} />}
+                    detailInline
+                    detail={
+                      <p className="justify-self-end text-sm whitespace-nowrap text-zinc-600 md:justify-self-start">
+                        {exerciseSessionCountLabel(exercise.sessionCount)}
+                      </p>
+                    }
+                  />
                 );
-              }}
-            />
+              })}
+            </NamedListTable>
           )}
         </>
       )}
@@ -314,16 +365,8 @@ function ExercisesMain() {
 export default function ExercisesPage() {
   return (
     <PageShell>
-      <div className="flex items-center justify-between gap-3">
-        <h1 className="inline-flex items-center gap-2 text-2xl font-semibold tracking-tight">
-          <Weight className="h-6 w-6 text-sky-700" />
-          Exercises
-        </h1>
-      </div>
-
-      <Suspense
-        fallback={<ExercisesLoadingPanel />}
-      >
+      <h1 className="text-2xl font-semibold tracking-tight">Exercises</h1>
+      <Suspense fallback={<ExercisesLoadingPanel />}>
         <ExercisesMain />
       </Suspense>
     </PageShell>

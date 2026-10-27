@@ -13,7 +13,7 @@ export const CONTENT_PLACEHOLDER_ROW_CLASS = "h-10";
 /** First screen of a named list such as plans or templates. */
 export const NAMED_LIST_PLACEHOLDER_ROWS = 6;
 
-/** Exercise list scrolls inside `max-h-[min(24rem,55vh)]`. */
+/** Single tall block. The exercises page uses `NAMED_LIST_PLACEHOLDER_ROWS`. */
 export const EXERCISE_LIST_PLACEHOLDER_CLASS = "h-96";
 
 /** A short token table. */
