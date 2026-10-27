@@ -1,4 +1,3 @@
-import { EyeOff } from "lucide-react";
 import type { HiddenExercisesState } from "@/app/account/use-hidden-exercises";
 import { Checkbox } from "@/app/components/checkbox";
 import { ExerciseBadgeChip } from "@/app/components/exercise-badge-chip";
@@ -20,7 +19,6 @@ export function AccountHiddenExercisesSection({
       <SettingsSectionHeader
         title="Hidden exercises"
         description="Hidden exercises stay out of pickers for new workout entries, Insights lists, and Exercises. Past sessions stay the same, and you can still set defaults for all exercises below."
-        icon={<EyeOff className="h-4 w-4 text-zinc-500" />}
       />
       <SettingsSectionBody>
         {notice.message ? (

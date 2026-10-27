@@ -1,5 +1,6 @@
-import { Eraser, Save, SlidersHorizontal } from "lucide-react";
+import { Eraser, Save } from "lucide-react";
 import type { ExerciseDefaultsState } from "@/app/account/use-exercise-defaults";
+import { ActionButton } from "@/app/components/action-button";
 import { ExerciseSearchSelect } from "@/app/components/exercise-search-select";
 import { SelectField } from "@/app/components/select-field";
 import { TextField } from "@/app/components/text-field";
@@ -44,7 +45,6 @@ export function AccountExerciseDefaultsSection({
       <SettingsSectionHeader
         title="Exercise defaults"
         description="Saved per exercise. Values here prefill when you add that exercise to a session."
-        icon={<SlidersHorizontal className="h-4 w-4 text-zinc-500" />}
       />
       <SettingsSectionBody>
         <form onSubmit={handleSave} className="space-y-3">
@@ -75,8 +75,7 @@ export function AccountExerciseDefaultsSection({
           <div className="space-y-2 border-t border-zinc-200 pt-3">
             <h3 className="text-sm font-medium text-zinc-800">Targets</h3>
             <p className="text-sm leading-snug text-zinc-600">
-              Targets are your usual sets, weight, and reps for this exercise. Those values are
-              prefilled when you add the exercise to a session.
+              Target sets and target reps are working sets. Warmups are extra.
             </p>
             <div className="grid gap-3 sm:grid-cols-3">
               <label className="block text-sm font-medium">
@@ -118,9 +117,7 @@ export function AccountExerciseDefaultsSection({
           <div className="space-y-2 border-t border-zinc-200 pt-3">
             <h3 className="text-sm font-medium text-zinc-800">Suggestions</h3>
             <p className="text-sm leading-snug text-zinc-600">
-              For this exercise only. Suggest warmups shows the warmup ladder toward the target
-              weight. Leave maximum warmup sets empty to keep every step, or enter a number to keep
-              that many of the heaviest steps.
+              Leave maximum warmup sets empty to keep the full ladder.
             </p>
             <div className="grid gap-3 sm:grid-cols-3">
               <label className="block text-sm font-medium">
@@ -159,40 +156,38 @@ export function AccountExerciseDefaultsSection({
               </label>
             </div>
           </div>
-          <div className="grid gap-3 sm:grid-cols-3 sm:items-start">
-            <div
-              className={
-                notice.message
-                  ? "min-w-0 sm:col-span-2"
-                  : "hidden min-h-0 sm:col-span-2 sm:block"
-              }
-            >
-              {notice.message ? (
-                <StatusNotice message={notice.message} tone={notice.tone} onDismiss={notice.clear} />
-              ) : null}
-            </div>
-            <div className="grid min-w-0 grid-cols-2 gap-2">
-              <button
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            {notice.message ? (
+              <StatusNotice
+                message={notice.message}
+                tone={notice.tone}
+                onDismiss={notice.clear}
+                className="sm:flex-1"
+              />
+            ) : (
+              <div className="hidden sm:block sm:flex-1" />
+            )}
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <ActionButton
                 type="button"
+                variant="secondary"
+                iconColor="amber"
                 onClick={handleClear}
                 disabled={isClearing || !canClear}
-                className="inline-flex h-10 min-w-0 items-center justify-center gap-1 rounded-md border border-zinc-300 bg-zinc-50 px-1.5 py-0 text-xs font-medium text-zinc-800 hover:border-sky-300 hover:bg-zinc-100 disabled:opacity-60 sm:px-2 sm:text-sm"
+                className="w-full sm:w-auto"
               >
-                <Eraser className="h-3.5 w-3.5 shrink-0 text-amber-600" />
-                <span className="min-w-0 text-center leading-tight">
-                  {isClearing ? "Clearing..." : "Clear defaults"}
-                </span>
-              </button>
-              <button
+                <Eraser className="h-3.5 w-3.5" aria-hidden />
+                {isClearing ? "Clearing..." : "Clear defaults"}
+              </ActionButton>
+              <ActionButton
                 type="submit"
+                variant="primary"
                 disabled={isSaving || !canSave}
-                className="inline-flex h-10 min-w-0 items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-1.5 py-0 text-xs font-medium text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60 sm:px-2 sm:text-sm"
+                className="w-full sm:w-auto"
               >
-                <Save className="h-3.5 w-3.5 shrink-0 text-white" />
-                <span className="min-w-0 text-center leading-tight">
-                  {isSaving ? "Saving..." : "Save defaults"}
-                </span>
-              </button>
+                <Save className="h-3.5 w-3.5" aria-hidden />
+                {isSaving ? "Saving..." : "Save defaults"}
+              </ActionButton>
             </div>
           </div>
         </form>
