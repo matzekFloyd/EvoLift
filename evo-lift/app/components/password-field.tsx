@@ -2,6 +2,7 @@
 
 import { Eye, EyeOff } from "lucide-react";
 import { useId, useState, type ReactNode } from "react";
+import { textFieldClassName } from "@/app/components/text-field-classes";
 
 type PasswordAutocomplete = "current-password" | "new-password";
 
@@ -15,12 +16,9 @@ type PasswordFieldProps = {
   hint?: string;
   required?: boolean;
   disabled?: boolean;
-  /** Extra content after the label text. */
+  /** A control on the label row, such as Forgot password. Stays out of the field name. */
   labelAside?: ReactNode;
 };
-
-const inputClassName =
-  "w-full rounded-md border px-3 py-2 pr-10 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60 disabled:opacity-60";
 
 const toggleClassName =
   "absolute inset-y-0 right-0 inline-flex w-10 items-center justify-center text-zinc-500 hover:text-zinc-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-sky-500/60";
@@ -42,10 +40,10 @@ export function PasswordField({
 
   return (
     <div className="block text-sm font-medium">
-      <label htmlFor={inputId} className="inline-flex items-center gap-1">
-        {label}
-        {labelAside}
-      </label>
+      <div className="flex items-baseline justify-between gap-3">
+        <label htmlFor={inputId}>{label}</label>
+        {labelAside ? <div className="shrink-0 font-normal">{labelAside}</div> : null}
+      </div>
       <div className="relative mt-1">
         <input
           id={inputId}
@@ -55,7 +53,7 @@ export function PasswordField({
           value={value}
           onChange={(event) => onChange(event.target.value)}
           autoComplete={autoComplete}
-          className={inputClassName}
+          className={textFieldClassName({ size: "default", className: "w-full pr-10" })}
           placeholder={placeholder}
           aria-describedby={hint ? hintId : undefined}
         />
