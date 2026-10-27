@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
+import { appTableRowClassName } from "@/app/components/app-table";
 import {
   buildExerciseDetailFilterQueryString,
   formatKgValue,
@@ -77,9 +78,13 @@ describe("exercise history display", () => {
       historyRowTitle({ goalLabel: null, isWarmup: true }, false),
       "Set details for this exercise entry. Open session. Warmup: yes.",
     );
-    assert.match(historyRowSurfaceClass(true, false), /emerald/);
-    assert.match(historyRowSurfaceClass(false, true), /sky/);
+    assert.match(historyRowSurfaceClass(true, false), /sky/);
+    assert.match(historyRowSurfaceClass(false, true), /emerald/);
+    assert.match(historyRowSurfaceClass(true, true), /emerald/);
+    assert.equal(historyRowSurfaceClass(false, false), appTableRowClassName);
     assert.equal(historyValueClass(false, false), "");
-    assert.match(historyValueClass(false, true), /sky/);
+    assert.match(historyValueClass(true, false), /sky/);
+    assert.match(historyValueClass(false, true), /emerald/);
+    assert.match(historyValueClass(true, true), /emerald/);
   });
 });

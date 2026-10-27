@@ -16,7 +16,7 @@ describe("legal notice", () => {
   it("is a public page and names the operator, a postal address, and an email", () => {
     assert.equal(LEGAL_NOTICE_HREF, "/legal");
     assert.equal(OPERATOR_NAME, "Mathias Mayrhofer");
-    assert.equal(OPERATOR_EMAIL, "contact@evolift.at");
+    assert.equal(OPERATOR_EMAIL, "evolift@mathiasmayrhofer.at");
     assert.equal(OPERATOR_POSTAL_ADDRESS, "-");
     for (const phrase of [OPERATOR_NAME, OPERATOR_EMAIL, OPERATOR_POSTAL_ADDRESS, "runs EvoLift"]) {
       assert.ok(text.includes(phrase), phrase);

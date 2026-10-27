@@ -31,7 +31,6 @@ export function AccountMfaSection({ mfa }: { mfa: AccountMfaState }) {
       <SettingsSectionHeader
         title="Authenticator app"
         description="Optional. When this is on, login asks for a code from your authenticator app after your password. You can turn it off later."
-        icon={<ShieldCheck className="h-4 w-4 text-zinc-500" aria-hidden />}
       />
       <SettingsSectionBody>
         {phase === "loading" ? (
@@ -54,7 +53,8 @@ export function AccountMfaSection({ mfa }: { mfa: AccountMfaState }) {
             )}
             <ActionButton
               type="button"
-              variant="primary"
+              variant="secondary"
+              iconColor="sky"
               disabled={isBusy}
               onClick={() => void startEnroll()}
               className="w-full sm:w-auto"
@@ -81,13 +81,15 @@ export function AccountMfaSection({ mfa }: { mfa: AccountMfaState }) {
               <div>
                 <p className="text-sm font-medium">Setup key</p>
                 <p className="mt-1 font-mono text-sm break-all text-zinc-800">{secret}</p>
-                <button
+                <ActionButton
                   type="button"
+                  variant="secondary"
+                  size="sm"
+                  className="mt-2"
                   onClick={() => void copySecret()}
-                  className="mt-2 text-sm font-medium text-sky-800 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60"
                 >
                   Copy setup key
-                </button>
+                </ActionButton>
               </div>
             ) : null}
             <label className="block text-sm font-medium">

@@ -7,6 +7,7 @@ import {
   compactHistoryAssistanceGridClassName,
   compactHistoryCellPaddingClassName,
   compactHistoryFrameClassName,
+  compactHistoryGridClass,
   compactHistoryGridClassName,
   historyTableClassName,
 } from "./exercise-set-history-layout";
@@ -91,11 +92,22 @@ describe("compact set history layout", () => {
   });
 
   it("is what the set history section renders", () => {
-    assert.match(sectionSource, /compactHistoryGridClassName/);
+    assert.match(sectionSource, /compactHistoryGridClass/);
     assert.match(sectionSource, /compactHistoryFrameClassName/);
     assert.match(sectionSource, /compactHistoryCellPaddingClassName/);
     assert.equal(historyTableClassName, "table-fixed");
     assert.match(sectionSource, /historyTableClassName/);
+    assert.match(sectionSource, /appTableHeadRowClassName/);
+    assert.match(sectionSource, /AppTable/);
     assert.doesNotMatch(sectionSource, /min-w-\[760px\]/);
+  });
+
+  it("drops the type column when warmups are hidden", () => {
+    assert.equal(compactHistoryGridClass(false, true).includes("4.75rem"), true);
+    assert.equal(compactHistoryGridClass(false, false).includes("4.75rem"), false);
+    assert.equal(compactHistoryGridClass(true, false).includes("4.75rem"), false);
+    assert.match(sectionSource, /compactHistoryGridClass\(assistance, showSetType\)/);
+    assert.match(sectionSource, /const showSetType = !hideWarmups/);
+    assert.match(sectionSource, /hideWarmups \? null/);
   });
 });

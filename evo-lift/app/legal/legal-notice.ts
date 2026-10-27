@@ -4,7 +4,7 @@ export const LEGAL_NOTICE_HREF = "/legal";
 export const OPERATOR_NAME = "Mathias Mayrhofer";
 
 /** Questions about the service and about account data. */
-export const OPERATOR_EMAIL = "contact@evolift.at";
+export const OPERATOR_EMAIL = "evolift@mathiasmayrhofer.at";
 
 /** Placeholder until a real address is set. */
 export const OPERATOR_POSTAL_ADDRESS = "-";

@@ -1,10 +1,12 @@
 "use client";
 
+import { Save } from "lucide-react";
 import { ActionButton } from "@/app/components/action-button";
 import { TextField } from "@/app/components/text-field";
 import { AppDialog } from "@/app/components/app-dialog";
 import { DateInput } from "@/app/components/date-input";
 import { ExerciseSearchSelect } from "@/app/components/exercise-search-select";
+import { NotesTextareaField } from "@/app/components/notes-textarea-field";
 import { SectionHeading } from "@/app/components/section-heading";
 import { SegmentedTabs } from "@/app/components/segmented-tabs";
 import { StatusNotice } from "@/app/components/status-notice";
@@ -24,8 +26,6 @@ type GoalEditorDialogProps = {
   onClose: () => void;
   onSave: () => void;
 };
-
-const fieldClassName = "mt-1 w-full rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm";
 
 export function GoalEditorDialog({
   draft,
@@ -123,22 +123,23 @@ export function GoalEditorDialog({
         />
       </label>
 
-      <label className="mt-4 block text-sm font-medium text-zinc-800">
-        Note (optional)
-        <textarea
+      <div className="mt-4">
+        <NotesTextareaField
+          label="Note (optional)"
           value={draft.note}
-          onChange={(event) => onChange({ ...draft, note: event.target.value })}
+          onChange={(note) => onChange({ ...draft, note })}
           maxLength={500}
-          className={`${fieldClassName} h-20`}
+          heightClassName="h-20"
           placeholder="Optional note"
         />
-      </label>
+      </div>
 
       <div className="mt-4 flex flex-wrap justify-end gap-2">
         <ActionButton type="button" variant="secondary" onClick={onClose} disabled={isSaving}>
           Cancel
         </ActionButton>
         <ActionButton type="button" variant="primary" onClick={onSave} disabled={isSaving}>
+          <Save className="h-4 w-4" aria-hidden />
           {isSaving ? "Saving…" : "Save"}
         </ActionButton>
       </div>

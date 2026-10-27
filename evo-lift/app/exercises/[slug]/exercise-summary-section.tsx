@@ -47,6 +47,7 @@ export function ExerciseSummarySection({
               value={String(loggedSetCount)}
               icon={<Hash className="h-4 w-4" />}
               tone={kpiBadgeTone("count")}
+              valueClassName="text-sm font-medium"
               className={exerciseSummarySetCardClassName}
               description="Sets in the current date range. Warmups are included unless “Hide warmups” is on."
             />
@@ -55,6 +56,7 @@ export function ExerciseSummarySection({
               value={avgSetsText}
               icon={<Hash className="h-4 w-4" />}
               tone={kpiBadgeTone("count")}
+              valueClassName="text-sm font-medium"
               className={exerciseSummarySetCardClassName}
               description="Average sets per session within the current filters (respects date range and “Hide warmups”)."
             />
@@ -63,6 +65,7 @@ export function ExerciseSummarySection({
               value={maxSetsText}
               icon={<Hash className="h-4 w-4" />}
               tone={kpiBadgeTone("count")}
+              valueClassName="text-sm font-medium"
               className={exerciseSummarySetCardClassName}
               description="Most sets in one session within the current filters (respects date range and “Hide warmups”)."
             />
@@ -70,7 +73,8 @@ export function ExerciseSummarySection({
               label={assistance ? "Avg assistance (kg)" : "Avg loaded (kg)"}
               value={averageLoadedText}
               icon={<Weight className="h-4 w-4" />}
-              tone={kpiBadgeTone("strength")}
+              tone="neutral"
+              valueClassName="text-sm font-medium"
               className={exerciseSummaryLoadCardClassName(assistance)}
               description={
                 assistance
@@ -82,7 +86,8 @@ export function ExerciseSummarySection({
               label={assistance ? "Least assistance (kg)" : "Max loaded (kg)"}
               value={maxLoadedText}
               icon={<Weight className="h-4 w-4" />}
-              tone={kpiBadgeTone("strength")}
+              tone="neutral"
+              valueClassName="text-sm font-medium"
               className={exerciseSummaryLoadCardClassName(assistance)}
               description={
                 assistance
@@ -96,7 +101,8 @@ export function ExerciseSummarySection({
                   label="Avg total (kg)"
                   value={averageTotalText}
                   icon={<TrendingUp className="h-4 w-4" />}
-                  tone={kpiBadgeTone("strength")}
+                  tone="neutral"
+                  valueClassName="text-sm font-medium"
                   className={exerciseSummaryLoadCardClassName(assistance)}
                   description="Mean of each working set’s Total (kg)—loaded plus base for that session—same column as in set history. No warmups; only sets with logged load."
                 />
@@ -104,7 +110,8 @@ export function ExerciseSummarySection({
                   label="Max total (kg)"
                   value={maxTotalText}
                   icon={<TrendingUp className="h-4 w-4" />}
-                  tone={kpiBadgeTone("strength")}
+                  tone="neutral"
+                  valueClassName="text-sm font-medium"
                   className={exerciseSummaryLoadCardClassName(assistance)}
                   description="Heaviest single working set by Total (kg) in set history (loaded plus base). No warmups; only sets with logged load."
                 />

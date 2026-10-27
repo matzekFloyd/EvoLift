@@ -1,4 +1,9 @@
 import type { ReactNode } from "react";
+import {
+  segmentedTabButtonHeightClassName,
+  segmentedTabButtonWidthClassName,
+  segmentedTabRowClassName,
+} from "@/app/components/segmented-tab-layout";
 
 export type SegmentedTabOption<T extends string> = {
   value: T;
@@ -19,6 +24,11 @@ type SegmentedTabsProps<T extends string> = {
    * narrow screens). `default`: stacked full-width buttons on small screens, inline from `sm`.
    */
   buttonLayout?: SegmentedTabsButtonLayout;
+  /**
+   * With `equal-row`, two columns below `sm` so a longer label stays inside the control.
+   * From `sm`, one shared row.
+   */
+  equalRowWrap?: boolean;
   /** Overrides the default `aria-label` on the tab list. */
   tabListAriaLabel?: string;
   /**
@@ -35,17 +45,17 @@ export function SegmentedTabs<T extends string>({
   className,
   buttonMinWidthClassName = "sm:min-w-36",
   buttonLayout = "default",
+  equalRowWrap = false,
   tabListAriaLabel = "Sections",
   a11yIdPrefix,
 }: SegmentedTabsProps<T>) {
-  const isEqualRow = buttonLayout === "equal-row";
-  const rowClassName = isEqualRow
-    ? "flex w-full min-w-0 gap-1"
-    : "grid w-full gap-1 sm:inline-flex sm:w-auto";
+  const rowClassName = segmentedTabRowClassName(buttonLayout, equalRowWrap);
+  const buttonWidthClassName = segmentedTabButtonWidthClassName(buttonLayout, equalRowWrap);
+  const buttonHeightClassName = segmentedTabButtonHeightClassName(buttonLayout, equalRowWrap);
 
   return (
     <div
-      className={`rounded-lg border border-zinc-300 bg-zinc-50 p-1 ${className ?? ""}`.trim()}
+      className={`rounded-md border border-zinc-300 bg-zinc-50 p-1 ${className ?? ""}`.trim()}
       role="tablist"
       aria-label={tabListAriaLabel}
     >
@@ -54,9 +64,6 @@ export function SegmentedTabs<T extends string>({
           const isActive = option.value === value;
           const tabId = a11yIdPrefix ? `${a11yIdPrefix}-tab-${option.value}` : undefined;
           const panelId = a11yIdPrefix ? `${a11yIdPrefix}-panel-${option.value}` : undefined;
-          const widthClass = isEqualRow
-            ? "flex-1 basis-0 min-w-0 px-2 sm:px-3"
-            : "w-full px-3 sm:w-auto";
           return (
             <button
               key={option.value}
@@ -66,7 +73,7 @@ export function SegmentedTabs<T extends string>({
               aria-controls={panelId}
               aria-selected={isActive}
               onClick={() => onChange(option.value)}
-              className={`inline-flex h-9 items-center justify-center gap-1.5 rounded-md text-sm font-medium transition-colors focus-visible:z-10 ${widthClass} ${buttonMinWidthClassName} ${
+              className={`inline-flex ${buttonHeightClassName} items-center justify-center gap-1.5 rounded-md text-center text-sm font-medium transition-colors focus-visible:z-10 ${buttonWidthClassName} ${buttonMinWidthClassName} ${
                 isActive
                   ? "bg-sky-100 text-sky-900"
                   : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"

@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import type { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
 import { ChartResponsiveContainer } from "@/app/components/chart-responsive-container";
+import { ExerciseName } from "@/app/components/exercise-badge-chip";
 import { ChartTextAlternative } from "@/app/components/chart-text-alternative";
 import { compoundE1rmChartText } from "@/app/components/chart-text-data";
 import { formatKgTick } from "@/app/components/exercise-weight-progress-format";
@@ -88,8 +89,12 @@ function CompoundE1rmMiniChart({ item }: { item: InsightsCompoundE1rmSeries }) {
 
   return (
     <div className="min-w-0">
-      <div className="flex items-baseline justify-between gap-2">
-        <p className="text-sm font-medium text-zinc-800">{item.shortLabel}</p>
+      <div className="flex items-center justify-between gap-2">
+        <p className="min-w-0 text-sm font-medium text-zinc-800">
+          <ExerciseName slug={item.slug}>
+            <span className="truncate">{item.shortLabel}</span>
+          </ExerciseName>
+        </p>
         <p className="truncate text-xs text-zinc-500" title={item.label}>
           {latestText}
           {latestText ? " · " : ""}

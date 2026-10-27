@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Dumbbell, FilterX, Hash, Weight } from "lucide-react";
+import { FilterX } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
 import { ContentPlaceholder } from "@/app/components/content-placeholder";
@@ -20,9 +20,10 @@ import {
 } from "@/app/components/chart-dynamic";
 import { LiftComparisonPanel } from "@/app/components/lift-comparison-panel";
 import { PersonalBestsPanel } from "@/app/components/personal-bests-panel";
+import { applyDateRangePreset } from "@/app/components/date-range-presets";
 import { DateRangeFields } from "@/app/components/date-range-fields";
 import { PageShell } from "@/app/components/page-shell";
-import { SectionHeading } from "@/app/components/section-heading";
+import { PanelInset } from "@/app/components/panel-inset";
 import { StatusNotice } from "@/app/components/status-notice";
 import { PRODUCT_TOUR_TARGET_IDS } from "@/lib/product-tour";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
@@ -34,21 +35,24 @@ import { buildInsightsCompoundE1rmSeries } from "@/lib/insights-compound-e1rm";
 import { resolveLifterAge } from "@/lib/body-metrics";
 import { loadExerciseMetadata } from "@/lib/exercise-metadata-cache";
 import {
-  applyInsightsRange,
   loadCachedInsightsHistory,
   loadUserStrengthProfile,
   peekInsightsHistory,
   type ExerciseWorkingSetSample,
-  type InsightsRange,
   type WeeklyVolumePoint,
   type WorkoutActivityPoint,
 } from "@/lib/insights-data";
 import { buildPersonalBestRows } from "@/lib/personal-bests";
 import { withWeeklyMovingAverage } from "@/app/insights/insights-weekly-chart-data";
+import {
+  insightsClearFiltersDisabled,
+  insightsComparisonPeriodName,
+  insightsMarkedRange,
+} from "@/app/insights/insights-range";
 import { getInsightsPresetRange } from "@/app/insights/insights-presets";
 import { getTodayYyyyMmDd } from "@/lib/session-date";
 
-const defaultInsightsRange: InsightsRange = "12w";
+const defaultInsightsRange = "12w" as const;
 
 const emptyLifterProfile: LifterProfile = {
   sex: null,
@@ -61,11 +65,13 @@ const emptyLifterProfile: LifterProfile = {
 export default function InsightsPage() {
   const router = useRouter();
   const todayYyyyMmDd = getTodayYyyyMmDd();
+  const presetToday = useMemo(() => new Date(), []);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [selectedRange, setSelectedRange] = useState<InsightsRange>(defaultInsightsRange);
-  const [dateFrom, setDateFrom] = useState(() => getInsightsPresetRange(defaultInsightsRange, new Date()).from);
-  const [dateTo, setDateTo] = useState(() => getInsightsPresetRange(defaultInsightsRange, new Date()).to);
+  const [dateFrom, setDateFrom] = useState(
+    () => getInsightsPresetRange(defaultInsightsRange, presetToday).from,
+  );
+  const [dateTo, setDateTo] = useState(() => getInsightsPresetRange(defaultInsightsRange, presetToday).to);
   const [basePoints, setBasePoints] = useState<WorkoutActivityPoint[]>([]);
   const [weeklyVolumeBase, setWeeklyVolumeBase] = useState<WeeklyVolumePoint[]>([]);
   const [exerciseSets, setExerciseSets] = useState<ExerciseWorkingSetSample[]>([]);
@@ -177,14 +183,9 @@ export default function InsightsPage() {
     };
   }, [loadInsights]);
 
-  const rangedPoints = useMemo(
-    () => applyInsightsRange(basePoints, selectedRange),
-    [basePoints, selectedRange],
-  );
-
   const filteredPoints = useMemo(
     () =>
-      rangedPoints.filter((point) => {
+      basePoints.filter((point) => {
         if (dateFrom && point.date < dateFrom) {
           return false;
         }
@@ -193,7 +194,7 @@ export default function InsightsPage() {
         }
         return true;
       }),
-    [dateFrom, dateTo, rangedPoints],
+    [basePoints, dateFrom, dateTo],
   );
 
   const summary = useMemo(() => {
@@ -203,21 +204,9 @@ export default function InsightsPage() {
     return { workouts, sets, loadedKg };
   }, [filteredPoints]);
 
-  const weeklyVolumeRanged = useMemo(() => {
-    const asDailyPoints = weeklyVolumeBase.map((item) => ({
-      date: item.weekStart,
-      workouts: item.sessionCount,
-      sets: item.workingSets,
-      loadedKg: item.volumeKg,
-    }));
-    const ranged = applyInsightsRange(asDailyPoints, selectedRange);
-    const rangedDates = new Set(ranged.map((item) => item.date));
-    return weeklyVolumeBase.filter((item) => rangedDates.has(item.weekStart));
-  }, [selectedRange, weeklyVolumeBase]);
-
   const weeklyVolumeFiltered = useMemo(
     () =>
-      weeklyVolumeRanged.filter((point) => {
+      weeklyVolumeBase.filter((point) => {
         if (dateFrom && point.weekStart < dateFrom) {
           return false;
         }
@@ -226,7 +215,7 @@ export default function InsightsPage() {
         }
         return true;
       }),
-    [dateFrom, dateTo, weeklyVolumeRanged],
+    [dateFrom, dateTo, weeklyVolumeBase],
   );
 
   const sessionsChartData = useMemo(
@@ -244,25 +233,10 @@ export default function InsightsPage() {
     [weeklyVolumeFiltered],
   );
 
-  const comparisonPeriodName = useMemo(() => {
-    if (!dateFrom || !dateTo) {
-      return null;
-    }
-    const preset = getInsightsPresetRange(selectedRange, new Date());
-    if (dateFrom !== preset.from || dateTo !== preset.to) {
-      return null;
-    }
-    if (selectedRange === "4w") {
-      return "4 weeks";
-    }
-    if (selectedRange === "12w") {
-      return "12 weeks";
-    }
-    if (selectedRange === "6m") {
-      return "6 months";
-    }
-    return null;
-  }, [dateFrom, dateTo, selectedRange]);
+  const comparisonPeriodName = useMemo(
+    () => insightsComparisonPeriodName(dateFrom, dateTo, presetToday),
+    [dateFrom, dateTo, presetToday],
+  );
 
   const sessionsComparisonSentence = useMemo(
     () =>
@@ -343,49 +317,44 @@ export default function InsightsPage() {
         </p>
       </section>
 
-      <section className="panel space-y-3 p-5">
-        <CollapsibleSection title="Date filter" alwaysOpen>
-          <div className="flex flex-col gap-2">
-            <DateRangeFields
-              from={dateFrom}
-              to={dateTo}
-              max={todayYyyyMmDd}
-              marked={selectedRange}
-              onFromChange={setDateFrom}
-              onToChange={setDateTo}
-              onSelectRange={(range) => {
-                setSelectedRange(range);
-                const preset = getInsightsPresetRange(range, new Date());
-                setDateFrom(preset.from);
-                setDateTo(preset.to);
-              }}
-            />
-            <ActionButton
-              type="button"
-              onClick={() => {
-                setSelectedRange("all");
-                setDateFrom("");
-                setDateTo("");
-              }}
-              disabled={selectedRange === "all" && dateFrom === "" && dateTo === ""}
-              variant="secondary"
-              size="sm"
-              className="mt-1 w-full text-sm font-normal text-amber-800 hover:text-amber-900 sm:mt-0 sm:w-auto sm:self-end"
-              iconColor="amber"
-            >
-              <FilterX className="h-3.5 w-3.5" />
-              Clear filters
-            </ActionButton>
-          </div>
-        </CollapsibleSection>
-      </section>
-
-      <section className="panel p-5">
-        <SectionHeading>Workouts, sets & volume</SectionHeading>
+      <section className="panel flex min-w-0 flex-col gap-4 p-5">
+        <PanelInset className="p-3 sm:p-4">
+          <DateRangeFields
+            from={dateFrom}
+            to={dateTo}
+            max={todayYyyyMmDd}
+            marked={insightsMarkedRange(dateFrom, dateTo, presetToday)}
+            onFromChange={setDateFrom}
+            onToChange={setDateTo}
+            onSelectRange={(range) => {
+              const next = applyDateRangePreset(range, presetToday, getInsightsPresetRange("all", presetToday));
+              setDateFrom(next.from);
+              setDateTo(next.to);
+            }}
+            trailing={
+              <ActionButton
+                type="button"
+                onClick={() => {
+                  const next = getInsightsPresetRange("all", presetToday);
+                  setDateFrom(next.from);
+                  setDateTo(next.to);
+                }}
+                disabled={insightsClearFiltersDisabled(dateFrom, dateTo, presetToday)}
+                variant="secondary"
+                size="sm"
+                className="text-sm font-normal text-amber-800 hover:text-amber-900"
+                iconColor="amber"
+              >
+                <FilterX className="h-3.5 w-3.5" aria-hidden />
+                Clear filters
+              </ActionButton>
+            }
+          />
+        </PanelInset>
         {errorMessage ? (
-          <StatusNotice message={errorMessage} tone="error" className="mt-3" />
+          <StatusNotice message={errorMessage} tone="error" />
         ) : isLoading ? (
-          <div className="mt-3 space-y-3">
+          <div className="space-y-3">
             <ContentPlaceholder
               label="Loading insights..."
               rows={INSIGHTS_KPI_PLACEHOLDER_COUNT}
@@ -395,35 +364,32 @@ export default function InsightsPage() {
             <ContentPlaceholder rowClassName={INSIGHTS_WEEKLY_CHART_HEIGHT_CLASS} />
           </div>
         ) : filteredPoints.length === 0 ? (
-          <p className="mt-3 text-sm text-zinc-600">
+          <p className="text-sm text-zinc-600">
             No workout data in this range yet. Log sessions to unlock insights.
           </p>
         ) : (
-          <div className="mt-3 space-y-3">
+          <div className="space-y-3">
             <div className="grid gap-2 sm:grid-cols-3">
               <KpiBadge
                 label="Workouts"
                 value={String(summary.workouts)}
-                icon={<Dumbbell className="h-4 w-4" />}
                 description="Total workout sessions in the selected filter window."
                 tone={kpiBadgeTone("count")}
               />
               <KpiBadge
                 label="Sets"
                 value={String(summary.sets)}
-                icon={<Hash className="h-4 w-4" />}
                 description="Total logged sets in the selected filter window."
                 tone={kpiBadgeTone("count")}
               />
               <KpiBadge
                 label="Volume (kg)"
                 value={summary.loadedKg.toFixed(1)}
-                icon={<Weight className="h-4 w-4" />}
                 description="Total weekly training volume (loaded kg × reps) in the selected filter window."
                 tone={kpiBadgeTone("count")}
               />
             </div>
-            <ExerciseProgressPanel report={exerciseProgress} />
+            <ExerciseProgressPanel report={exerciseProgress} defaultOpen />
             <CollapsibleSection title="Estimated one-rep max (1RM)" defaultOpen={false}>
               <p className="text-sm text-zinc-800">
                 Best estimated 1RM per session for Barbell Back Squat, Bench Press, Deadlift, and

@@ -1,5 +1,6 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { usePanelInsetSurface } from "@/app/components/panel-inset";
 import { toExerciseBadge } from "@/lib/exercise-badge";
 
@@ -46,6 +47,19 @@ export function ExerciseBadgeChip({
         .join(" ")}
     >
       {toExerciseBadge(slug)}
+    </span>
+  );
+}
+
+/** Exercise badge beside a name. No badge when the row is not one lift. */
+export function ExerciseName({ slug, children }: { slug: string | null; children: ReactNode }) {
+  if (!slug) {
+    return <>{children}</>;
+  }
+  return (
+    <span className="inline-flex max-w-full min-w-0 items-center gap-1.5">
+      <ExerciseBadgeChip slug={slug} />
+      <span className="min-w-0">{children}</span>
     </span>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { Target } from "lucide-react";
+import { Trash2 } from "lucide-react";
 import { CollapsibleSection } from "@/app/components/collapsible-section";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -306,10 +306,7 @@ export default function GoalsPage() {
   return (
     <PageShell>
       <div className="flex items-center justify-between gap-3">
-        <h1 className="inline-flex items-center gap-2 text-2xl font-semibold tracking-tight">
-          <Target className="h-6 w-6 text-sky-700" aria-hidden />
-          Goals
-        </h1>
+        <h1 className="text-2xl font-semibold tracking-tight">Goals</h1>
         <PageAddAction
           label="Create goal"
           onClick={() => {
@@ -337,14 +334,16 @@ export default function GoalsPage() {
         {message ? (
           <StatusNotice message={message} tone="error" onDismiss={() => setMessage(null)} className="mt-4" />
         ) : null}
-        {loadError ? <p className="mt-4 text-sm text-red-600">{loadError}</p> : null}
+        {loadError ? <StatusNotice message={loadError} tone="error" className="mt-4" /> : null}
 
         <GoalSummaryChart bars={summaryBars} />
 
         <CollapsibleSection
+          key={activeItems.length > 0 ? "active" : "none"}
           title="Active"
           count={activeItems.length}
           inset={false}
+          defaultOpen={activeItems.length > 0}
           className="mt-5"
         >
           {activeItems.length === 0 ? (
@@ -426,6 +425,7 @@ export default function GoalsPage() {
               Cancel
             </ActionButton>
             <ActionButton type="button" variant="danger" onClick={() => void confirmDelete()} disabled={isDeleting}>
+              <Trash2 className="h-4 w-4" aria-hidden />
               {isDeleting ? "Deleting…" : "Delete"}
             </ActionButton>
           </div>
@@ -457,7 +457,7 @@ export default function GoalsPage() {
           ? formatBestSet(measured.bestTotalKg, measured.bestReps)
           : null,
       gapLabel: goalGapLabel(progress),
-      percent: measured?.percent ?? null,
+      achieved: progress.kind === "achieved",
       achievedLabel:
         measured?.kind === "achieved" && measured.achievedAt
           ? `Achieved ${formatAchievedOn(measured.achievedAt)}`

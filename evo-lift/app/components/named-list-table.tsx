@@ -15,7 +15,16 @@ import type { NamedListSortDirection } from "@/lib/named-list-sort";
 
 type NamedListLayout = "columns" | "embed" | "plan" | "count";
 
-const NamedListLayoutContext = createContext<NamedListLayout>("columns");
+type NamedListFrame = {
+  layout: NamedListLayout;
+  /** False when the row is only a name and a count, such as the exercise list. */
+  actions: boolean;
+};
+
+const NamedListLayoutContext = createContext<NamedListFrame>({
+  layout: "columns",
+  actions: true,
+});
 
 const nameLinkClassName = "group font-medium text-sky-800";
 const nameLinkTextClassName = "underline-offset-2 group-hover:underline";
@@ -30,6 +39,10 @@ const planListRowGridClassName =
  */
 const countListRowGridClassName =
   "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 md:min-h-10 md:grid-cols-[minmax(0,1fr)_7rem_auto] md:gap-x-6";
+
+/** Name and count only. The count stays on the same row on a narrow screen. */
+const browseCountListRowGridClassName =
+  "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 md:min-h-10 md:grid-cols-[minmax(0,1fr)_7rem] md:gap-x-6";
 
 /**
  * Same width as the Active plan checkbox and the paired row actions.
@@ -67,6 +80,16 @@ type NamedListTableProps = {
    * Actions sit beside the detail from `sm`, and under it on a narrow screen.
    */
   embedActions?: boolean;
+  /**
+   * Row actions beside the count. Defaults to true.
+   * False keeps the name and count, and drops the actions column.
+   */
+  actions?: boolean;
+  /**
+   * Scroll the rows inside the table. The header stays put.
+   * For a long catalog, such as every exercise. A short plan list does not use this.
+   */
+  contained?: boolean;
   children: ReactNode;
   className?: string;
 };
@@ -100,6 +123,8 @@ export function NamedListTable({
   countHeading,
   countSort,
   embedActions = false,
+  actions = true,
+  contained = false,
   children,
   className,
 }: NamedListTableProps) {
@@ -111,12 +136,23 @@ export function NamedListTable({
         ? "plan"
         : "embed";
   const showCountColumn = layout === "columns" && countHeading != null;
-  const rowGridClassName = layout === "count" ? countListRowGridClassName : planListRowGridClassName;
+  const rowGridClassName =
+    layout === "count"
+      ? actions
+        ? countListRowGridClassName
+        : browseCountListRowGridClassName
+      : planListRowGridClassName;
   return (
-    <NamedListLayoutContext.Provider value={layout}>
-      <AppTable className={className} rowTone="group">
-        <thead>
-          <tr className={appTableHeadRowClassName}>
+    <NamedListLayoutContext.Provider value={{ layout, actions }}>
+      <AppTable
+        className={[contained ? "max-h-[min(42rem,75vh)] overflow-y-auto overscroll-y-contain" : "", className]
+          .filter(Boolean)
+          .join(" ")}
+        tableClassName={contained ? "border-separate border-spacing-0" : undefined}
+        rowTone="group"
+      >
+        <thead className={contained ? "sticky top-0 z-10" : undefined}>
+          <tr className={contained ? `${appTableHeadRowClassName} !bg-zinc-100` : appTableHeadRowClassName}>
             <th className={appTableThClassName}>
               {countSort ? (
                 <div className={rowGridClassName}>
@@ -139,7 +175,9 @@ export function NamedListTable({
                       Active plan
                     </span>
                   ) : null}
-                  <span aria-hidden className={`${planListHeaderReserveClassName} w-[17.5rem]`} />
+                  {actions ? (
+                    <span aria-hidden className={`${planListHeaderReserveClassName} w-[17.5rem]`} />
+                  ) : null}
                 </div>
               ) : (
                 <button type="button" onClick={onToggleSort} className="inline-flex items-center gap-1">
@@ -150,7 +188,7 @@ export function NamedListTable({
             {showCountColumn ? (
               <th className={`${appTableThClassName} w-16 whitespace-nowrap sm:w-24`}>{countHeading}</th>
             ) : null}
-            {layout === "columns" ? <AppTableActionsHeader /> : null}
+            {layout === "columns" && actions ? <AppTableActionsHeader /> : null}
           </tr>
         </thead>
         {children}
@@ -172,8 +210,25 @@ type NamedListTableRowProps = {
   detail?: ReactNode;
   /** Name, day count, and other facts share one line and wrap together. */
   detailInline?: boolean;
-  children: ReactNode;
+  /** Sits in the name link, before the name. A badge chip on the exercise list. */
+  leading?: ReactNode;
+  /** Hover, focus, or press on the name link. The exercise list prefetches the detail page. */
+  onOpenIntent?: () => void;
+  /** Next.js prefetch. The exercise list turns the default off and prefetches on intent. */
+  prefetch?: boolean;
+  children?: ReactNode;
 };
+
+function openIntentProps(onOpenIntent?: () => void) {
+  if (!onOpenIntent) {
+    return {};
+  }
+  return {
+    onMouseEnter: onOpenIntent,
+    onFocus: onOpenIntent,
+    onPointerDown: onOpenIntent,
+  };
+}
 
 export function NamedListTableRow({
   name,
@@ -183,13 +238,18 @@ export function NamedListTableRow({
   belowName,
   detail,
   detailInline = false,
+  leading,
+  onOpenIntent,
+  prefetch,
   children,
 }: NamedListTableRowProps) {
-  const layout = useContext(NamedListLayoutContext);
+  const { layout, actions } = useContext(NamedListLayoutContext);
   const embedActions = layout !== "columns";
   const showCount = !embedActions && count != null;
+  const intent = openIntentProps(onOpenIntent);
   const nameLink = (
-    <Link href={href} className={nameLinkClassName}>
+    <Link href={href} prefetch={prefetch} className={`${nameLinkClassName} inline-flex min-w-0 items-center gap-2`} {...intent}>
+      {leading}
       <span className={nameLinkTextClassName}>{name}</span>
     </Link>
   );
@@ -210,22 +270,39 @@ export function NamedListTableRow({
   );
 
   if ((layout === "plan" || layout === "count") && detailInline) {
-    const rowGridClassName = layout === "count" ? countListRowGridClassName : planListRowGridClassName;
+    const rowGridClassName =
+      layout === "count"
+        ? actions
+          ? countListRowGridClassName
+          : browseCountListRowGridClassName
+        : planListRowGridClassName;
+    const nameLinkClassNameForRow = actions
+      ? `${nameLinkClassName} relative flex min-w-0 items-center gap-2 self-stretch break-words before:absolute before:-top-3 before:right-0 before:-left-4 before:bottom-0 before:content-[''] md:before:-bottom-3`
+      : `${nameLinkClassName} flex min-w-0 items-center gap-2 self-stretch break-words before:absolute before:inset-0 before:content-['']`;
     return (
       <tbody>
         <tr className={appTableRowClassName}>
           <td className={`${appTableTdClassName} break-words whitespace-normal`}>
-            <div className={rowGridClassName}>
+            <div className={actions ? rowGridClassName : `${rowGridClassName} relative`}>
               <Link
                 href={href}
-                className={`${nameLinkClassName} relative flex min-w-0 items-center self-stretch break-words before:absolute before:-top-3 before:right-0 before:-left-4 before:bottom-0 before:content-[''] md:before:-bottom-3`}
+                prefetch={prefetch}
+                {...intent}
+                className={nameLinkClassNameForRow}
               >
-                <span className={nameLinkTextClassName}>{name}</span>
+                {leading}
+                <span className={`${nameLinkTextClassName} min-w-0 break-words`}>{name}</span>
               </Link>
-              {detail}
-              <TableRowActions pairBelow="md" className="col-span-2 md:col-span-1">
-                {children}
-              </TableRowActions>
+              {actions ? (
+                detail
+              ) : (
+                <div className="pointer-events-none contents">{detail}</div>
+              )}
+              {actions ? (
+                <TableRowActions pairBelow="md" className="col-span-2 md:col-span-1">
+                  {children}
+                </TableRowActions>
+              ) : null}
             </div>
           </td>
         </tr>
@@ -240,9 +317,11 @@ export function NamedListTableRow({
           <td className={`${appTableTdClassName} break-words whitespace-normal`}>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
               <div className="min-w-0 flex-1">{nameCell}</div>
-              <TableRowActions stackUntil="md" className="shrink-0">
-                {children}
-              </TableRowActions>
+              {actions ? (
+                <TableRowActions stackUntil="md" className="shrink-0">
+                  {children}
+                </TableRowActions>
+              ) : null}
             </div>
           </td>
         </tr>
@@ -250,15 +329,18 @@ export function NamedListTableRow({
     );
   }
 
-  const columnCount = 2 + (showCount ? 1 : 0);
+  const columnCount = (actions ? 2 : 1) + (showCount ? 1 : 0);
   return (
     <tbody>
       <tr className={`${appTableRowClassName}${detail ? " align-top" : ""}`}>
         <td className="h-px break-words whitespace-normal p-0">
           <Link
             href={href}
-            className={`${nameLinkClassName} flex h-full items-center px-4 py-3 break-words`}
+            prefetch={prefetch}
+            {...intent}
+            className={`${nameLinkClassName} flex h-full items-center gap-2 px-4 py-3 break-words`}
           >
+            {leading}
             <span className="inline-flex flex-wrap items-center gap-2">
               <span className={nameLinkTextClassName}>{name}</span>
               {statusLabel ? <span className={statusChipClassName}>{statusLabel}</span> : null}
@@ -267,9 +349,11 @@ export function NamedListTableRow({
           {detail ? <div className="px-4 pb-3">{detail}</div> : null}
         </td>
         {showCount ? <td className={`${appTableTdClassName} text-zinc-600`}>{count}</td> : null}
-        <td className={appTableTdClassName}>
-          <TableRowActions stackUntil="md">{children}</TableRowActions>
-        </td>
+        {actions ? (
+          <td className={appTableTdClassName}>
+            <TableRowActions stackUntil="md">{children}</TableRowActions>
+          </td>
+        ) : null}
       </tr>
       {belowName ? (
         <tr className={appTableRowClassName}>

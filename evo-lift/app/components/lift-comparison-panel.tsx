@@ -1,5 +1,6 @@
 import { type ExerciseProgressReport } from "@/lib/exercise-progress-insights";
 import { isPublicStandardLift, exrxTableUrl } from "@/lib/strength-standards";
+import { exerciseDetailRankRow, exerciseLeadDetail } from "@/app/components/insight-rows";
 import {
   comparisonInsightRow,
   InsightRowList,
@@ -68,7 +69,7 @@ export function LiftComparisonPanel({
           </p>
         </div>
       </details>
-      <InsightRowList rows={notes.map(comparisonInsightRow)} />
+      <InsightRowList rows={notes.map((note) => comparisonInsightRow(note))} />
       {report.comparisonHint ? (
         <p className="mt-3 text-xs text-zinc-600">
           {report.comparisonHint.replace(
@@ -90,9 +91,22 @@ export function ExerciseInsightPanel({ report, slug }: ExerciseInsightPanelProps
   const row = report.rows.find((item) => item.slug === slug) ?? null;
   const notes = [...report.publicNotes, ...report.balanceNotes].filter((note) => note.slugs.includes(slug));
   const hint = isPublicStandardLift(slug) ? report.comparisonHint : null;
+  const publicNote = notes.find((note) => note.kind === "public") ?? null;
   const rows = [
-    ...(row ? [progressInsightRow(row, { link: false })] : []),
-    ...notes.map(comparisonInsightRow),
+    ...(row
+      ? [
+          {
+            ...progressInsightRow(row, { link: false, omitTitle: true }),
+            detail: exerciseLeadDetail(row.detail, publicNote != null),
+          },
+        ]
+      : []),
+    ...notes.map((note) => {
+      if (note.kind !== "public") {
+        return comparisonInsightRow(note);
+      }
+      return exerciseDetailRankRow(note);
+    }),
   ];
   return (
     <section
@@ -100,9 +114,6 @@ export function ExerciseInsightPanel({ report, slug }: ExerciseInsightPanelProps
       aria-labelledby="exercise-insight-heading"
     >
       <SectionHeading id="exercise-insight-heading">Insight</SectionHeading>
-      <p className="mt-1 text-xs text-zinc-500">
-        Uses the date range on this page, and the same pace, balance, and published standards as Insights.
-      </p>
       {rows.length > 0 ? (
         <InsightRowList rows={rows} />
       ) : (

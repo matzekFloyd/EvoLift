@@ -100,17 +100,6 @@ function formatKg(value: number): string {
   return `${value.toFixed(1)} kg`;
 }
 
-function signedKg(value: number): string {
-  const amount = formatKg(Math.abs(value));
-  if (value > 0.05) {
-    return `+${amount}`;
-  }
-  if (value < -0.05) {
-    return `−${amount}`;
-  }
-  return formatKg(0);
-}
-
 function daysBetween(from: string, to: string): number {
   const start = new Date(`${from}T00:00:00`);
   const end = new Date(`${to}T00:00:00`);
@@ -184,7 +173,7 @@ export function progressReadLabel(read: ProgressRead): string {
     case "down":
       return "Down";
     case "early":
-      return "More sessions";
+      return "No pace yet";
   }
 }
 
@@ -448,15 +437,16 @@ function buildPublicComparison(
   const hasBodyweight = gradedLifts.some(
     (row) => bodyweightForEstimate(profile, row.bestPerformedOn) != null,
   );
-  const canGrade = profile.sex != null && hasBodyweight && profile.ageYears != null && profile.ageYears >= 18;
+  if (profile.ageYears != null && profile.ageYears < 18 && profile.sex != null && hasBodyweight) {
+    return {
+      publicNotes: [],
+      comparisonHint: "Public standards here start at age 18, so no general-public level is shown.",
+    };
+  }
+
+  const canGrade = profile.sex != null && hasBodyweight;
 
   if (!canGrade) {
-    if (profile.ageYears != null && profile.ageYears < 18 && profile.sex != null && hasBodyweight) {
-      return {
-        publicNotes: [],
-        comparisonHint: "Public standards here start at age 18, so no general-public level is shown.",
-      };
-    }
     if (gradedLifts.length === 0) {
       return { publicNotes: [], comparisonHint: null };
     }
@@ -493,6 +483,9 @@ function buildPublicComparison(
   }
 
   const hints: string[] = [];
+  if (profile.ageYears == null) {
+    hints.push("Add a date of birth on Account. These levels use the ExRx table for ages 18–39.");
+  }
   if (profile.ageYears != null && profile.ageYears >= 40) {
     hints.push(
       "These levels use the ExRx table for ages 18–39. ExRx publishes lower standards from age 40, so a level can look harder than an age-matched table.",
@@ -521,7 +514,7 @@ function groupSentence(
 function buildSummary(rows: ExerciseProgressRow[]): string {
   const judged = rows.filter((row) => row.read !== "early");
   if (judged.length === 0) {
-    return "Log the same exercise on at least 3 sessions, spread over 2 weeks, to judge progress.";
+    return "Log the same exercise on at least 3 sessions, spread over 2 weeks, before a pace shows.";
   }
   const ahead = judged.filter((row) => row.read === "ahead").map((row) => row.label);
   const onTrack = judged.filter((row) => row.read === "on-track").map((row) => row.label);
@@ -624,18 +617,17 @@ export function buildExerciseProgressReport(
       best.e1rmKg > latest.e1rmKg + 1
         ? ` Best in this range was ${formatKg(best.e1rmKg)}.`
         : "";
-    const changeText = Math.abs(changeKg) < 0.05 ? "Unchanged" : signedKg(changeKg);
     let detail: string;
     if (read === "early") {
-      detail = `${sessionCount} session${sessionCount === 1 ? "" : "s"} with an estimated 1RM. At least 3 sessions over 2 weeks are needed to judge progress.`;
+      detail = `${sessionCount} session${sessionCount === 1 ? "" : "s"} with an estimated 1RM.`;
     } else if (read === "down") {
-      detail = `${changeText} since the first session in this range. Latest estimated 1RM is ${formatKg(latest.e1rmKg)}.${bestClause}`;
+      detail = `Over ${sessionCount} sessions since the first session in this range.${bestClause}`;
     } else if (read === "ahead") {
-      detail = `${changeText} over ${sessionCount} sessions. A steady rate for this lift is about ${formatKg(monthly)} per month.`;
+      detail = `Over ${sessionCount} sessions. A steady rate for this lift is about ${formatKg(monthly)} per month.`;
     } else if (read === "on-track") {
-      detail = `${changeText} over ${sessionCount} sessions, in line with about ${formatKg(monthly)} per month.`;
+      detail = `Over ${sessionCount} sessions, in line with about ${formatKg(monthly)} per month.`;
     } else {
-      detail = `${changeText} over ${sessionCount} sessions. A steady rate is about ${formatKg(monthly)} per month, so more progress would be expected.`;
+      detail = `Over ${sessionCount} sessions. A steady rate is about ${formatKg(monthly)} per month, so more progress would be expected.`;
     }
 
     rows.push({
