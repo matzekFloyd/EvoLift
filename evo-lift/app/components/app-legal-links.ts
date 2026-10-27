@@ -1,3 +1,4 @@
+import { LEGAL_NOTICE_HREF } from "@/app/legal/legal-notice";
 import { PRIVACY_POLICY_HREF } from "@/app/privacy/privacy-policy";
 import { TERMS_OF_USE_HREF } from "@/app/terms/terms-of-use";
 
@@ -8,11 +9,12 @@ export type AppLegalLink = {
   label: string;
 };
 
-/** Glossary, Terms of use, and Privacy policy — same labels as the desktop footer. */
+/** Glossary, Terms of use, Privacy policy, and Legal notice — same labels as the desktop footer. */
 export const APP_LEGAL_LINKS: readonly AppLegalLink[] = [
   { href: GLOSSARY_HREF, label: "Glossary" },
   { href: TERMS_OF_USE_HREF, label: "Terms of use" },
   { href: PRIVACY_POLICY_HREF, label: "Privacy policy" },
+  { href: LEGAL_NOTICE_HREF, label: "Legal notice" },
 ];
 
 /** Shared by the compact menu and the desktop footer. Focus ring matches other quiet legal links. */

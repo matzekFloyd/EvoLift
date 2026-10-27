@@ -1,7 +1,14 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
-import { BookMarked } from "lucide-react";
-import { PageShell } from "@/app/components/page-shell";
+import { proseLinkClassName } from "@/app/components/inline-link-class";
+import { LinkedText } from "@/app/components/linked-text";
+import { uniqueReadingAnchorIds } from "@/app/components/reading-anchor";
+import {
+  ReadingAnchorHeading,
+  ReadingPage,
+  readingBodyClassName,
+  readingHeadingClassName,
+} from "@/app/components/reading-page";
 import { glossaryMetadata } from "@/lib/public-page-metadata";
 
 export const metadata: Metadata = glossaryMetadata;
@@ -10,12 +17,12 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "1RM",
     definition:
-      "A one-rep max: the heaviest weight for a single rep. EvoLift estimates it from working sets of 12 reps or fewer, using Total (kg), which includes base weight. The estimate uses the Epley formula. It is not a tested max.",
+      "A one-rep max: the heaviest weight for a single rep. EvoLift estimates it from working sets of 12 reps or fewer, using Total (kg), which includes base weight. On Assisted Dip and Assisted Pull-Up, the estimate uses bodyweight minus assistance when a bodyweight is logged on or before the session. The estimate uses the Epley formula. It is not a tested max.",
   },
   {
     term: "Assistance (kg)",
     definition:
-      "On Assisted Dip and Assisted Pull-Up, the counterweight help you used. Enter it as a positive number (for example 7). Blank or 0 means unassisted bodyweight. It is not Loaded (kg), and it is not used for estimated 1RM or training volume.",
+      "On Assisted Dip and Assisted Pull-Up, the counterweight help you used. Enter it as a positive number (for example 7). Blank or 0 means unassisted bodyweight. It is not Loaded (kg). When a bodyweight is logged on or before the session, estimated 1RM and session volume use bodyweight minus assistance. Without that bodyweight, or when assistance is greater than it, those charts are not plotted for the session.",
   },
   {
     term: "Authenticator app",
@@ -30,7 +37,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Bodyweight log",
     definition:
-      "Dated bodyweight entries. The latest entry is the current bodyweight. An open bodyweight goal and Lift comparison use the latest entry on or before the workout session date.",
+      "Dated bodyweight entries. The latest entry is the current bodyweight. An open bodyweight goal, Lift comparison, and Assisted Dip and Assisted Pull-Up charts use the latest entry on or before the workout session date.",
   },
   {
     term: "Compound",
@@ -58,9 +65,9 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
         Published strength standards from{" "}
         <a
           href="https://exrx.net"
-          className="underline underline-offset-2 hover:text-sky-800"
+          className={proseLinkClassName}
           target="_blank"
-          rel="noreferrer"
+          rel="noopener noreferrer"
         >
           ExRx.net
         </a>
@@ -195,24 +202,26 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   },
 ];
 
+const termAnchorIds = uniqueReadingAnchorIds(terms.map((entry) => entry.term));
+
 export default function GlossaryPage() {
   return (
-    <PageShell>
-      <h1 className="inline-flex items-center gap-2 text-2xl font-semibold tracking-tight">
-        <BookMarked className="h-6 w-6 text-sky-700" aria-hidden />
-        Glossary
-      </h1>
-      <p className="max-w-prose text-sm text-zinc-600">
-        Short definitions for the words EvoLift uses.
-      </p>
-      <dl className="panel divide-y divide-zinc-200">
-        {terms.map((entry) => (
-          <div key={entry.term} className="px-4 py-3 sm:px-5">
-            <dt className="text-sm font-medium text-zinc-900">{entry.term}</dt>
-            <dd className="mt-1 text-sm leading-snug text-zinc-600">{entry.definition}</dd>
+    <ReadingPage title="Glossary" lede="Short definitions for the words EvoLift uses.">
+      <dl className="flex flex-col gap-8">
+        {terms.map((entry, index) => (
+          <div key={entry.term} className="flex flex-col gap-2">
+            <ReadingAnchorHeading
+              as="dt"
+              id={termAnchorIds[index]}
+              label={entry.term}
+              className={readingHeadingClassName}
+            />
+            <dd className={readingBodyClassName}>
+              {typeof entry.definition === "string" ? <LinkedText text={entry.definition} /> : entry.definition}
+            </dd>
           </div>
         ))}
       </dl>
-    </PageShell>
+    </ReadingPage>
   );
 }

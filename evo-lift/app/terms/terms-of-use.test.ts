@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 import { PUBLIC_APP_ORIGIN } from "@/lib/public-app-origin";
+import { OPERATOR_NAME } from "@/app/legal/legal-notice";
 import { TERMS_OF_USE_HREF, termsOfUseSections } from "./terms-of-use";
 
 const text = termsOfUseSections
@@ -12,6 +13,8 @@ describe("terms of use", () => {
     assert.equal(TERMS_OF_USE_HREF, "/terms");
     for (const phrase of [
       PUBLIC_APP_ORIGIN,
+      OPERATOR_NAME,
+      "runs EvoLift",
       "email and password",
       "Google or Apple",
       "delete the account",
