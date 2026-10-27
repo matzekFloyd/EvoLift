@@ -1,6 +1,6 @@
 "use client";
 
-import { Copy, KeyRound, Plus, Trash2 } from "lucide-react";
+import { Copy, Plus, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ActionButton } from "@/app/components/action-button";
@@ -17,6 +17,7 @@ import {
   appTableThClassName,
 } from "@/app/components/app-table";
 import { TableRowActions } from "@/app/components/table-row-actions";
+import { PanelInset } from "@/app/components/panel-inset";
 import { SettingsSection, SettingsSectionBody } from "@/app/components/settings-section";
 import { SettingsSectionHeader } from "@/app/components/settings-section-header";
 import { StatusNotice } from "@/app/components/status-notice";
@@ -137,7 +138,6 @@ export function AccountApiTokensSection({ accessToken }: AccountApiTokensSection
       <SettingsSectionHeader
         title="API tokens"
         description="Long-lived tokens for apps and tools that call the API. They do not expire. Revoke a token if it leaks. The full value is shown only once."
-        icon={<KeyRound className="h-4 w-4 text-zinc-500" />}
       />
       <p className="mt-1.5 text-sm text-zinc-600">
         <Link className="font-medium text-sky-800 hover:text-sky-950" href={appPath("/docs")}>
@@ -171,7 +171,8 @@ export function AccountApiTokensSection({ accessToken }: AccountApiTokensSection
             )}
             <ActionButton
               type="submit"
-              variant="primary"
+              variant="secondary"
+              iconColor="sky"
               disabled={isCreating || name.trim() === ""}
               className="w-full sm:w-40"
             >
@@ -182,9 +183,9 @@ export function AccountApiTokensSection({ accessToken }: AccountApiTokensSection
         </form>
 
         {plaintextToken ? (
-          <div className="mt-4 space-y-2 rounded-md border border-amber-200 bg-amber-50 p-3">
+          <PanelInset className="mt-4 space-y-2 p-3">
             <p className="text-sm font-medium text-zinc-800">New token</p>
-            <code className="block break-all rounded-md border border-zinc-200 bg-white px-3 py-2 text-xs text-zinc-800">
+            <code className="block break-all rounded-md border border-zinc-200 bg-white px-3 py-2 font-mono text-xs text-zinc-800">
               {plaintextToken}
             </code>
             <ActionButton
@@ -194,10 +195,10 @@ export function AccountApiTokensSection({ accessToken }: AccountApiTokensSection
               iconColor="sky"
               onClick={() => void handleCopy()}
             >
-              <Copy className="h-3 w-3" />
+              <Copy className="h-3 w-3" aria-hidden />
               Copy token
             </ActionButton>
-          </div>
+          </PanelInset>
         ) : null}
 
         <div className="mt-4">

@@ -1,5 +1,6 @@
-import { Check, Mail } from "lucide-react";
+import { Check } from "lucide-react";
 import type { AccountEmailState } from "@/app/account/use-account-email";
+import { ActionButton } from "@/app/components/action-button";
 import { SettingsSection, SettingsSectionBody } from "@/app/components/settings-section";
 import { TextField } from "@/app/components/text-field";
 import { SettingsSectionHeader } from "@/app/components/settings-section-header";
@@ -18,7 +19,6 @@ export function AccountEmailSection({
       <SettingsSectionHeader
         title="Email"
         description="Update the email address used to sign in. Confirm it from the message sent to the new address."
-        icon={<Mail className="h-4 w-4 text-zinc-500" />}
       />
       <SettingsSectionBody>
         <label className="block text-sm font-medium">
@@ -53,14 +53,15 @@ export function AccountEmailSection({
             ) : (
               <div className="hidden sm:block sm:flex-1" />
             )}
-            <button
+            <ActionButton
               type="submit"
+              variant="primary"
               disabled={isSaving || !canSave}
-              className="inline-flex h-10 w-full items-center justify-center gap-1 rounded-md border border-sky-700 bg-sky-700 px-3 py-2 text-sm font-medium text-white hover:border-sky-600 hover:bg-sky-600 disabled:opacity-60 sm:w-40"
+              className="w-full sm:w-40"
             >
-              <Check className="h-3.5 w-3.5 text-white" />
+              <Check className="h-3.5 w-3.5" aria-hidden />
               Change email
-            </button>
+            </ActionButton>
           </div>
         </form>
       </SettingsSectionBody>

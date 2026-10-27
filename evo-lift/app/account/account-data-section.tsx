@@ -113,7 +113,6 @@ export function AccountDataSection({ accessToken, onImported }: AccountDataSecti
       <SettingsSectionHeader
         title="Your data"
         description="Download this account as JSON or as CSV files. Import adds to this account. Replace removes the workout data already here. Passwords and API tokens are not included."
-        icon={<Download className="h-4 w-4 text-sky-700" aria-hidden />}
       />
       <SettingsSectionBody>
         <div className="flex flex-col gap-3">
@@ -121,10 +120,9 @@ export function AccountDataSection({ accessToken, onImported }: AccountDataSecti
             <ActionButton
               type="button"
               variant="secondary"
-              iconColor="sky"
               disabled={isWorking}
               onClick={() => void download("json")}
-              className="sm:flex-1"
+              className="w-full sm:w-auto sm:flex-1"
             >
               <Download className="h-3.5 w-3.5" aria-hidden />
               Download JSON
@@ -132,10 +130,9 @@ export function AccountDataSection({ accessToken, onImported }: AccountDataSecti
             <ActionButton
               type="button"
               variant="secondary"
-              iconColor="sky"
               disabled={isWorking}
               onClick={() => void download("csv")}
-              className="sm:flex-1"
+              className="w-full sm:w-auto sm:flex-1"
             >
               <Download className="h-3.5 w-3.5" aria-hidden />
               Download CSV
@@ -146,7 +143,7 @@ export function AccountDataSection({ accessToken, onImported }: AccountDataSecti
               iconColor="sky"
               disabled={isWorking}
               onClick={() => fileInputRef.current?.click()}
-              className="sm:flex-1"
+              className="w-full sm:w-auto sm:flex-1"
             >
               <Upload className="h-3.5 w-3.5" aria-hidden />
               Import

@@ -8,6 +8,7 @@ import {
   CURRENT_PASSWORD_INCORRECT,
 } from "@/app/account/account-form";
 import { ActionButton } from "@/app/components/action-button";
+import { PasswordField } from "@/app/components/password-field";
 import { SettingsSection, SettingsSectionBody } from "@/app/components/settings-section";
 import { SettingsSectionHeader } from "@/app/components/settings-section-header";
 import { StatusNotice } from "@/app/components/status-notice";
@@ -96,21 +97,17 @@ export function AccountDeleteSection({ accessToken, userEmail, hasPassword }: Ac
           }}
         >
           {hasPassword ? (
-            <label className="block text-sm font-medium">
-              Current password
-              <input
-                type="password"
-                required
-                autoComplete="current-password"
-                value={currentPassword}
-                onChange={(event) => {
-                  setCurrentPassword(event.target.value);
-                  setIsConfirmOpen(false);
-                }}
-                className="mt-1 w-full rounded-md border px-3 py-2 text-sm"
-                placeholder="Enter your current password"
-              />
-            </label>
+            <PasswordField
+              label="Current password"
+              required
+              autoComplete="current-password"
+              value={currentPassword}
+              onChange={(value) => {
+                setCurrentPassword(value);
+                setIsConfirmOpen(false);
+              }}
+              placeholder="Enter your current password"
+            />
           ) : null}
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
             {message ? (
@@ -121,7 +118,7 @@ export function AccountDeleteSection({ accessToken, userEmail, hasPassword }: Ac
                 className="sm:flex-1"
               />
             ) : isConfirmOpen ? (
-              <p className="text-sm text-red-800 sm:flex-1">Delete this account and its workout data?</p>
+              <p className="text-sm text-zinc-800 sm:flex-1">Delete this account and its workout data?</p>
             ) : (
               <div className="hidden sm:block sm:flex-1" />
             )}
@@ -143,7 +140,7 @@ export function AccountDeleteSection({ accessToken, userEmail, hasPassword }: Ac
                   onClick={() => void deleteAccount()}
                   className="flex-1 sm:w-40"
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
+                  <Trash2 className="h-3.5 w-3.5" aria-hidden />
                   {isDeleting ? "Deleting..." : "Delete account"}
                 </ActionButton>
               </div>
@@ -151,10 +148,10 @@ export function AccountDeleteSection({ accessToken, userEmail, hasPassword }: Ac
               <ActionButton
                 type="submit"
                 variant="danger"
-                disabled={currentPassword.length === 0}
+                disabled={hasPassword && currentPassword.length === 0}
                 className="w-full sm:w-40"
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash2 className="h-3.5 w-3.5" aria-hidden />
                 Delete account
               </ActionButton>
             )}

@@ -183,15 +183,13 @@ function AccountPageContent() {
 
   const accountChrome = (
     <>
-      <h1 className="inline-flex items-center gap-2 text-2xl font-semibold tracking-tight">
-        <UserRound aria-hidden className="h-6 w-6 text-sky-700" />
-        User information
-      </h1>
+      <h1 className="text-2xl font-semibold tracking-tight">Account</h1>
       <SegmentedTabs
         value={activeSection}
         onChange={setActiveSection}
         className="w-full"
         buttonLayout="equal-row"
+        equalRowWrap
         buttonMinWidthClassName="min-w-0"
         tabListAriaLabel="Account sections"
         options={ACCOUNT_SECTIONS.map((section) => ({
@@ -268,10 +266,7 @@ function AccountPageContent() {
 function AccountPageFallback() {
   return (
     <PageShell>
-      <h1 className="inline-flex items-center gap-2 text-2xl font-semibold tracking-tight">
-        <UserRound aria-hidden className="h-6 w-6 text-sky-700" />
-        User information
-      </h1>
+      <h1 className="text-2xl font-semibold tracking-tight">Account</h1>
       <ContentPlaceholder
         label="Checking session..."
         rows={ACCOUNT_PLACEHOLDER_ROWS}
