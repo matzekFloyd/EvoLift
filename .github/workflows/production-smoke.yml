@@ -68,7 +68,7 @@ jobs:
           [[ "$code" == "200" ]] || { echo "Legal notice returned HTTP ${code}"; exit 1; }
           grep -q "Legal notice" /tmp/legal.html
           grep -q "Mathias Mayrhofer" /tmp/legal.html
-          grep -q "contact@evolift.at" /tmp/legal.html
+          grep -q "evolift@mathiasmayrhofer.at" /tmp/legal.html
 
       - name: Glossary page
         run: |
