@@ -12,14 +12,14 @@ describe("linked text", () => {
         { type: "text", value: " stores the data needed to run your account." },
       ],
     );
-    assert.deepEqual(linkedTextParts("Email contact@evolift.at."), [
+    assert.deepEqual(linkedTextParts("Email evolift@mathiasmayrhofer.at."), [
       { type: "text", value: "Email " },
-      { type: "link", value: "contact@evolift.at", href: "mailto:contact@evolift.at" },
+      { type: "link", value: "evolift@mathiasmayrhofer.at", href: "mailto:evolift@mathiasmayrhofer.at" },
       { type: "text", value: "." },
     ]);
-    assert.deepEqual(linkedTextParts("Email contact@evolift.at with questions about the service."), [
+    assert.deepEqual(linkedTextParts("Email evolift@mathiasmayrhofer.at with questions about the service."), [
       { type: "text", value: "Email " },
-      { type: "link", value: "contact@evolift.at", href: "mailto:contact@evolift.at" },
+      { type: "link", value: "evolift@mathiasmayrhofer.at", href: "mailto:evolift@mathiasmayrhofer.at" },
       { type: "text", value: " with questions about the service." },
     ]);
     assert.deepEqual(linkedTextParts("named on the legal notice. How that data is stored is described in the privacy policy."), [
@@ -39,7 +39,7 @@ describe("linked text", () => {
 
   it("opens only an outside website in a new tab", () => {
     assert.equal(linkedTextOpensInNewTab("https://evolift.at"), false);
-    assert.equal(linkedTextOpensInNewTab("mailto:contact@evolift.at"), false);
+    assert.equal(linkedTextOpensInNewTab("mailto:evolift@mathiasmayrhofer.at"), false);
     assert.equal(linkedTextOpensInNewTab("/legal"), false);
     assert.equal(linkedTextOpensInNewTab("https://exrx.net"), true);
   });
