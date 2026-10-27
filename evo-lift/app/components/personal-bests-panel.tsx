@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { ExerciseName } from "@/app/components/exercise-badge-chip";
 import { CollapsibleSection } from "@/app/components/collapsible-section";
 import {
   formatPersonalBestDate,
@@ -86,12 +87,14 @@ export function PersonalBestsPanel({
             <li key={row.exerciseId} className="px-3 py-2.5">
               {/* Mobile: same stacked copy as Exercise progress. */}
               <div className="min-w-0 md:hidden">
-                <Link
-                  href={row.href}
-                  className="text-sm font-medium text-zinc-900 underline-offset-2 hover:text-sky-800 hover:underline"
-                >
-                  {row.label}
-                </Link>
+                <ExerciseName slug={row.slug}>
+                  <Link
+                    href={row.href}
+                    className="text-sm font-medium text-zinc-900 underline-offset-2 hover:text-sky-800 hover:underline"
+                  >
+                    {row.label}
+                  </Link>
+                </ExerciseName>
                 <p className="mt-1 text-xs text-zinc-700">{rowDetail(row)}</p>
                 <p className="mt-0.5 text-xs text-zinc-500">{rowMeta(row)}</p>
               </div>
@@ -99,12 +102,14 @@ export function PersonalBestsPanel({
               {/* md+: exercise + two mark columns. */}
               <div className="hidden md:grid md:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,1fr)] md:items-start md:gap-4">
                 <div className="min-w-0">
-                  <Link
-                    href={row.href}
-                    className="text-sm font-medium text-zinc-900 underline-offset-2 hover:text-sky-800 hover:underline"
-                  >
-                    {row.label}
-                  </Link>
+                  <ExerciseName slug={row.slug}>
+                    <Link
+                      href={row.href}
+                      className="text-sm font-medium text-zinc-900 underline-offset-2 hover:text-sky-800 hover:underline"
+                    >
+                      {row.label}
+                    </Link>
+                  </ExerciseName>
                   {row.isAssistance ? (
                     <p className="mt-0.5 text-xs text-zinc-500">Assistance logged, not strength load</p>
                   ) : null}

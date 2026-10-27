@@ -29,34 +29,38 @@ export function DateRangeFields({
   trailing,
 }: DateRangeFieldsProps) {
   return (
-    <div className="grid grid-cols-2 items-end gap-2 sm:grid-cols-[minmax(0,11rem)_minmax(0,11rem)_auto]">
-      <label className="block min-w-0 text-xs font-medium text-zinc-600">
-        From
-        <DateInput
-          value={from}
-          onChange={(event) => onFromChange(event.target.value)}
-          max={max}
-          size="compact"
-          className="mt-1 w-full min-w-0"
-        />
-      </label>
-      <label className="block min-w-0 text-xs font-medium text-zinc-600">
-        To
-        <DateInput
-          value={to}
-          onChange={(event) => onToChange(event.target.value)}
-          max={max}
-          size="compact"
-          className="mt-1 w-full min-w-0"
-        />
-      </label>
-      <div className="col-span-2 sm:col-span-1">
-        <div className={trailing ? "flex items-end gap-2" : undefined}>
-          <div className={trailing ? "min-w-0 flex-1 sm:flex-none" : undefined}>
-            <DateRangePresetButtons marked={marked} onSelect={onSelectRange} />
-          </div>
-          {trailing ? <div className="shrink-0">{trailing}</div> : null}
+    <div className="flex min-w-0 flex-col gap-2 lg:flex-row lg:flex-wrap lg:items-end">
+      <div className="grid min-w-0 grid-cols-2 gap-2 sm:max-w-[22.5rem]">
+        <label className="block min-w-0 text-xs font-medium text-zinc-600">
+          From
+          <DateInput
+            value={from}
+            onChange={(event) => onFromChange(event.target.value)}
+            max={max}
+            size="compact"
+            className="mt-1 w-full min-w-0"
+          />
+        </label>
+        <label className="block min-w-0 text-xs font-medium text-zinc-600">
+          To
+          <DateInput
+            value={to}
+            onChange={(event) => onToChange(event.target.value)}
+            max={max}
+            size="compact"
+            className="mt-1 w-full min-w-0"
+          />
+        </label>
+      </div>
+      <div
+        className={
+          trailing ? "flex min-w-0 flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-end" : undefined
+        }
+      >
+        <div className="min-w-0 shrink-0">
+          <DateRangePresetButtons marked={marked} onSelect={onSelectRange} />
         </div>
+        {trailing ? <div className="shrink-0 self-end">{trailing}</div> : null}
       </div>
     </div>
   );

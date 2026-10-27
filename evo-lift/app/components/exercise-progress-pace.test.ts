@@ -33,7 +33,7 @@ describe("exercise progress pace buckets", () => {
         { read: "room", label: "Room to gain", count: 2, percent: 40 },
         { read: "on-track", label: "On track", count: 1, percent: 20 },
         { read: "ahead", label: "Ahead", count: 1, percent: 20 },
-        { read: "early", label: "More sessions", count: 1, percent: 20 },
+        { read: "early", label: "No pace yet", count: 1, percent: 20 },
       ],
     );
     assert.match(exerciseProgressPaceChartLabel(buckets), /2 Room to gain \(40%\)/);
@@ -42,7 +42,7 @@ describe("exercise progress pace buckets", () => {
       { read: "room", label: "Room to gain", countLabel: "2 (40%)" },
       { read: "on-track", label: "On track", countLabel: "1 (20%)" },
       { read: "ahead", label: "Ahead", countLabel: "1 (20%)" },
-      { read: "early", label: "More sessions", countLabel: "1 (20%)" },
+      { read: "early", label: "No pace yet", countLabel: "1 (20%)" },
     ]);
     assert.equal(exerciseProgressPaceTotalLabel(5), "5 lifts");
     assert.equal(exerciseProgressPaceTotalLabel(1), "1 lift");

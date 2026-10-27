@@ -50,10 +50,11 @@ describe("buildExerciseProgressReport", () => {
   it("asks for more history before judging one session", () => {
     const report = buildExerciseProgressReport([sample()], RANGE, NO_PROFILE);
     assert.equal(report.rows[0]?.read, "early");
-    assert.equal(progressReadLabel("early"), "More sessions");
+    assert.equal(progressReadLabel("early"), "No pace yet");
+    assert.equal(report.rows[0]?.detail, "1 session with an estimated 1RM.");
     assert.equal(
       report.summary,
-      "Log the same exercise on at least 3 sessions, spread over 2 weeks, to judge progress.",
+      "Log the same exercise on at least 3 sessions, spread over 2 weeks, before a pace shows.",
     );
   });
 
@@ -69,6 +70,8 @@ describe("buildExerciseProgressReport", () => {
     );
     assert.equal(report.rows[0]?.read, "down");
     assert.match(report.summary, /Barbell Back Squat is down/);
+    assert.match(report.rows[0]?.detail ?? "", /Best in this range was/);
+    assert.doesNotMatch(report.rows[0]?.detail ?? "", /Latest estimated 1RM/);
   });
 
   it("marks a large squat gain as ahead of a steady rate", () => {
@@ -82,7 +85,9 @@ describe("buildExerciseProgressReport", () => {
       NO_PROFILE,
     );
     assert.equal(report.rows[0]?.read, "ahead");
+    assert.match(report.rows[0]?.detail ?? "", /Over 3 sessions/);
     assert.match(report.rows[0]?.detail ?? "", /1\.5 kg per month/);
+    assert.doesNotMatch(report.rows[0]?.detail ?? "", /\+[\d.]+ kg over/);
   });
 
   it("does not use assisted-dip or assisted-pull-up assistance as a strength estimate", () => {
