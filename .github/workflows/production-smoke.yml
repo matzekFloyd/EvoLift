@@ -40,8 +40,10 @@ jobs:
           grep -q "Register" /tmp/login.html
           grep -q "Terms of use" /tmp/login.html
           grep -q "Privacy policy" /tmp/login.html
+          grep -q "Legal notice" /tmp/login.html
           grep -q 'href="/terms"' /tmp/login.html
           grep -q 'href="/privacy"' /tmp/login.html
+          grep -q 'href="/legal"' /tmp/login.html
 
       - name: Privacy policy page
         run: |
@@ -58,6 +60,15 @@ jobs:
           [[ "$code" == "200" ]] || { echo "Terms returned HTTP ${code}"; exit 1; }
           grep -q "Terms of use" /tmp/terms.html
           grep -q "Personal API tokens" /tmp/terms.html
+
+      - name: Legal notice page
+        run: |
+          set -euo pipefail
+          code=$(curl -sS -o /tmp/legal.html -w "%{http_code}" --max-time 30 "${SMOKE_BASE_URL}/legal")
+          [[ "$code" == "200" ]] || { echo "Legal notice returned HTTP ${code}"; exit 1; }
+          grep -q "Legal notice" /tmp/legal.html
+          grep -q "Mathias Mayrhofer" /tmp/legal.html
+          grep -q "contact@evolift.at" /tmp/legal.html
 
       - name: Glossary page
         run: |
