@@ -47,7 +47,11 @@ describe("login client graph", () => {
   it("exposes forgot-password recovery from login mode", () => {
     const login = readFileSync(join(appDir, "login", "page.tsx"), "utf8");
 
+    assert.match(login, /labelAside=/);
     assert.match(login, /Forgot password\?/);
+    assert.match(login, /className=\{quietLinkClassName\}/);
+    assert.doesNotMatch(login, /CircleCheck/);
+    assert.doesNotMatch(login, /from-sky-50 to-white/);
     assert.match(login, /resetPasswordForEmail/);
     assert.match(login, /AUTH_EMAIL_RECOVERY_PATH/);
     assert.match(login, /PASSWORD_RECOVERY/);
@@ -61,6 +65,11 @@ describe("login client graph", () => {
     const socialAt = login.indexOf("<SocialSignInButtons");
     const termsAt = login.indexOf("Terms of use");
     assert.ok(socialAt > 0 && termsAt > socialAt);
+    assert.match(login, /\{showAuthTabs \? \(\s*<SocialSignInButtons/);
+    assert.doesNotMatch(
+      login,
+      /\{showAuthTabs \? \(\s*<>\s*<SocialSignInButtons[\s\S]*Terms of use/,
+    );
     assert.match(login, /fullWidth/);
     assert.match(login, /SocialSignInButtons/);
     assert.match(login, /authOAuthRedirectUrl/);
@@ -134,6 +143,8 @@ describe("login client graph", () => {
     assert.match(passwordField, /Hide \$\{label\.toLowerCase\(\)\}/);
     assert.match(passwordField, /autoComplete/);
     assert.match(passwordField, /aria-describedby/);
+    assert.match(passwordField, /textFieldClassName\(\{ size: "default", className: "w-full pr-10" \}\)/);
+    assert.doesNotMatch(passwordField, /rounded-md border px-3 py-2 pr-10 text-sm focus-visible/);
     assert.doesNotMatch(passwordField, /\bLock\b/);
   });
 });
