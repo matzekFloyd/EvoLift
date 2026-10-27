@@ -1,9 +1,9 @@
-/** Text action beside a primary button. Same treatment as Forgot password on Log in. */
+/** Sky text action for a forward secondary path (e.g. Back to log in under a primary button). */
 export const actionLinkClassName =
   "text-sm font-medium text-sky-800 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60 rounded-sm";
 
 /**
- * Quiet legal link. Same treatment as Terms and Privacy on Log in.
+ * Quiet zinc link. Same treatment as Terms, Privacy, and Forgot password on Log in.
  * Focus ring is opaque sky-700 with an offset so it stays visible on the page background.
  */
 export const quietLinkClassName =
