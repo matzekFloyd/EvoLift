@@ -52,36 +52,36 @@ export function ExerciseFiltersSection({
             const next = applyDateRangePreset(range, presetToday, clearRange);
             onCommit({ from: next.from, to: next.to });
           }}
-        />
-        <div className="flex flex-row flex-wrap items-center justify-between gap-x-2 gap-y-1">
-          {hasWarmupSets ? (
-            <Checkbox
-              checked={hideWarmups}
-              onChange={(checked) => onCommit({ hideWarmups: checked })}
-              className="min-w-0"
+          trailing={
+            <ActionButton
+              type="button"
+              onClick={() =>
+                onCommit({
+                  from: clearRange.from,
+                  to: clearRange.to,
+                  hideWarmups: false,
+                })
+              }
+              disabled={isFullyCleared}
+              variant="secondary"
+              size="sm"
+              className="text-sm font-normal text-amber-800 hover:text-amber-900"
+              iconColor="amber"
             >
-              Hide warmups
-            </Checkbox>
-          ) : null}
-          <ActionButton
-            type="button"
-            onClick={() =>
-              onCommit({
-                from: clearRange.from,
-                to: clearRange.to,
-                hideWarmups: false,
-              })
-            }
-            disabled={isFullyCleared}
-            variant="secondary"
-            size="sm"
-            className="ml-auto shrink-0 text-sm font-normal text-amber-800 hover:text-amber-900"
-            iconColor="amber"
+              <FilterX className="h-3.5 w-3.5" />
+              Clear filters
+            </ActionButton>
+          }
+        />
+        {hasWarmupSets ? (
+          <Checkbox
+            checked={hideWarmups}
+            onChange={(checked) => onCommit({ hideWarmups: checked })}
+            className="min-w-0"
           >
-            <FilterX className="h-3.5 w-3.5" />
-            Clear filters
-          </ActionButton>
-        </div>
+            Hide warmups
+          </Checkbox>
+        ) : null}
       </div>
     </div>
   );

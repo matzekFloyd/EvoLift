@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Dumbbell, LayoutList, LineChart } from "lucide-react";
+import { LayoutList, LineChart } from "lucide-react";
 import { ContentPlaceholder } from "@/app/components/content-placeholder";
 import {
   EXERCISE_CHART_HEIGHT_CLASS,
@@ -46,6 +46,7 @@ import { exerciseDetailMuscleArea } from "@/app/exercises/[slug]/exercise-muscle
 import { ExerciseSummarySection } from "@/app/exercises/[slug]/exercise-summary-section";
 import { ExerciseInsightPanel } from "@/app/components/lift-comparison-panel";
 import { DocumentTitle } from "@/app/components/document-title";
+import { ExerciseBadgeChip } from "@/app/components/exercise-badge-chip";
 import { PageShell } from "@/app/components/page-shell";
 import { SegmentedTabs } from "@/app/components/segmented-tabs";
 import { StatusNotice } from "@/app/components/status-notice";
@@ -63,7 +64,6 @@ import { rememberedUserId } from "@/lib/signed-in-memory";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { fetchAllPages, fetchInChunks } from "@/lib/supabase/chunked-query";
-import { toExerciseBadge } from "@/lib/exercise-badge";
 import { buildExerciseSessionE1rmChartPoints } from "@/lib/exercise-session-e1rm-chart";
 import { buildExerciseSessionVolumeChartPoints } from "@/lib/exercise-session-volume-chart";
 import { buildExerciseSessionWeightChartPoints } from "@/lib/exercise-session-weight-chart";
@@ -108,6 +108,15 @@ type WorkoutSetRow = {
 const EXERCISE_DETAIL_A11Y_PREFIX = "exercise-detail";
 
 type ExerciseDetailPanelTab = "data" | "charts";
+
+function ExerciseDetailHeading({ slug, label }: { slug?: string; label: string }) {
+  return (
+    <h1 className="inline-flex min-w-0 max-w-full items-center gap-2 text-xl font-semibold tracking-tight">
+      {slug ? <ExerciseBadgeChip slug={slug} /> : null}
+      <span className="min-w-0 truncate">{label}</span>
+    </h1>
+  );
+}
 
 function ExerciseDetailPageContent() {
   const router = useRouter();
@@ -567,13 +576,7 @@ function ExerciseDetailPageContent() {
 
   const muscleArea = slug ? exerciseDetailMuscleArea(slug) : null;
   const exerciseTitle = (
-    <h1 className="inline-flex min-w-0 max-w-full items-center gap-2 text-xl font-semibold tracking-tight">
-      <Dumbbell className="h-5 w-5 shrink-0 text-sky-700" aria-hidden />
-      <span className="inline-flex h-6 min-w-8 shrink-0 items-center justify-center rounded border border-zinc-300 bg-zinc-50 px-1 text-[10px] font-semibold tracking-wide text-zinc-700">
-        {slug ? toExerciseBadge(slug) : "EX"}
-      </span>
-      <span className="min-w-0 truncate">{exerciseLabel || slug}</span>
-    </h1>
+    <ExerciseDetailHeading slug={slug} label={exerciseLabel || slug || "Exercise"} />
   );
 
   return (
@@ -615,7 +618,6 @@ function ExerciseDetailPageContent() {
           </p>
         ) : (
           <div className="flex flex-col gap-4">
-            {insightReady ? <ExerciseInsightPanel report={exerciseInsight} slug={slug ?? ""} /> : null}
             <ExerciseFiltersSection
               shownCount={filteredHistoryRows.length}
               totalCount={historyRows.length}
@@ -628,6 +630,7 @@ function ExerciseDetailPageContent() {
               presetToday={presetToday}
               onCommit={commitExerciseFilters}
             />
+            {insightReady ? <ExerciseInsightPanel report={exerciseInsight} slug={slug ?? ""} /> : null}
             <SegmentedTabs<ExerciseDetailPanelTab>
               value={detailPanelTab}
               onChange={setDetailPanelTab}
@@ -668,6 +671,7 @@ function ExerciseDetailPageContent() {
                 pagedTableRows={pagedTableRows}
                 topRepsRowKey={topRepsRowKey}
                 isCompactView={isCompactView}
+                hideWarmups={filterState.hideWarmups}
                 assistance={assistance}
                 loadColumnLabel={loadColumnLabel}
                 sortKey={sortKey}
@@ -713,10 +717,7 @@ function ExerciseDetailPageContent() {
 function ExerciseDetailFallback() {
   return (
     <PageShell>
-      <h1 className="inline-flex min-w-0 max-w-full items-center gap-2 text-xl font-semibold tracking-tight">
-        <Dumbbell className="h-5 w-5 shrink-0 text-sky-700" aria-hidden />
-        Exercise
-      </h1>
+      <ExerciseDetailHeading label="Exercise" />
       <section className="panel p-5">
         <div className="space-y-3">
           <ContentPlaceholder

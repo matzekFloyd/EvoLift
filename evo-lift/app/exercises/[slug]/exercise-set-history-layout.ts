@@ -5,11 +5,11 @@
  * At 22rem and wider, a type column is inserted.
  */
 export const compactHistoryGridClassName =
-  "grid w-full min-w-0 grid-cols-[minmax(0,1fr)_2rem_2.5rem_2.5rem_2.25rem] gap-x-1 [&>*]:min-w-0 @min-[22rem]:grid-cols-[minmax(0,1fr)_4.75rem_2rem_2.5rem_2.5rem_2.25rem]";
+  "grid w-full min-w-0 grid-cols-[minmax(0,1fr)_2rem_2.75rem_2.5rem_2.25rem] gap-x-1 [&>*]:min-w-0 @min-[22rem]:grid-cols-[minmax(0,1fr)_4.75rem_2rem_2.75rem_2.5rem_2.25rem]";
 
 /** Assistance exercises omit Total. */
 export const compactHistoryAssistanceGridClassName =
-  "grid w-full min-w-0 grid-cols-[minmax(0,1fr)_2rem_2.5rem_2.25rem] gap-x-1 [&>*]:min-w-0 @min-[22rem]:grid-cols-[minmax(0,1fr)_4.75rem_2rem_2.5rem_2.25rem]";
+  "grid w-full min-w-0 grid-cols-[minmax(0,1fr)_2rem_2.75rem_2.25rem] gap-x-1 [&>*]:min-w-0 @min-[22rem]:grid-cols-[minmax(0,1fr)_4.75rem_2rem_2.75rem_2.25rem]";
 
 /**
  * Cancels the history section's horizontal padding (`p-4`, `sm:p-5`) so the
@@ -17,6 +17,14 @@ export const compactHistoryAssistanceGridClassName =
  */
 export const compactHistoryFrameClassName =
   "@container -mx-4 w-[calc(100%+2rem)] overflow-x-auto rounded-md border border-zinc-200 bg-white sm:-mx-5 sm:w-[calc(100%+2.5rem)]";
+
+export function compactHistoryGridClass(assistance: boolean, showType: boolean): string {
+  const withType = assistance ? compactHistoryAssistanceGridClassName : compactHistoryGridClassName;
+  if (showType) {
+    return withType;
+  }
+  return withType.replace(/ @min-\[22rem\]:grid-cols-\[[^\]]+\]/, "");
+}
 
 /** Horizontal padding on the compact header and each row. Matches `px-1`. */
 export const compactHistoryCellPaddingClassName = "px-1";

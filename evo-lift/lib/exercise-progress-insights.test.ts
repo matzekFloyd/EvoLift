@@ -116,6 +116,18 @@ describe("buildExerciseProgressReport", () => {
     assert.match(report.publicNotes[0]?.tableHref ?? "", /exrx\.net/);
   });
 
+  it("still grades a published lift when date of birth is missing", () => {
+    const report = buildExerciseProgressReport([sample({ totalKg: 100, reps: 1 })], RANGE, {
+      sex: "male",
+      bodyweightKg: 80,
+      bodyweightEntries: [],
+      ageYears: null,
+      ageIsApproximate: false,
+    });
+    assert.equal(report.publicNotes[0]?.badge, "Novice");
+    assert.match(report.comparisonHint ?? "", /Add a date of birth/);
+  });
+
   it("explains when a public comparison is unavailable", () => {
     const samples = [sample()];
     const underage = buildExerciseProgressReport(samples, RANGE, {

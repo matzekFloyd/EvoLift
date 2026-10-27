@@ -1,9 +1,10 @@
 "use client";
 
-import { ArrowDown, ArrowUp, Hash, Minus, Trophy } from "lucide-react";
+import { ArrowDown, ArrowUp, Hash, Minus } from "lucide-react";
 import { useMemo, type ReactNode } from "react";
 import { useDisplayLocale } from "@/app/components/use-display-locale";
 import { ChartTextAlternative } from "@/app/components/chart-text-alternative";
+import { GoalReachedMark } from "@/app/components/goal-reached-mark";
 import { heatmapActivityChartText } from "@/app/components/chart-text-data";
 import {
   activityDateKey,
@@ -240,10 +241,10 @@ export function WorkoutActivityChart({
                     onMouseLeave={() => onHighlightDatesChange?.(null)}
                   >
                     {goalLabel ? (
-                      <Trophy
-                        className="pointer-events-none h-5 w-5 fill-yellow-400 text-amber-500"
-                        strokeWidth={1.75}
-                        aria-hidden
+                      <GoalReachedMark
+                        label={goalLabel}
+                        decorative
+                        className="pointer-events-none h-5 w-5"
                       />
                     ) : null}
                   </div>

@@ -35,7 +35,7 @@ export function HistoryPageSizeToggle({ value, onChange }: HistoryPageSizeToggle
               type="button"
               aria-pressed={isSelected}
               onClick={() => onChange(option.value)}
-              className={`rounded px-3 py-1 text-xs font-medium ${
+              className={`rounded-md px-3 py-1 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60 ${
                 isSelected
                   ? "bg-sky-100 text-sky-900"
                   : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"

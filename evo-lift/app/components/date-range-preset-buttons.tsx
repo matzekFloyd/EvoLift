@@ -30,7 +30,7 @@ export function DateRangePresetButtons({ marked, onSelect }: DateRangePresetButt
               type="button"
               aria-pressed={isMarked}
               onClick={() => onSelect(option.value)}
-              className={`rounded px-3 py-1 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60 ${
+              className={`rounded-md px-3 py-1 text-xs font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60 ${
                 isMarked
                   ? "bg-sky-100 text-sky-900"
                   : "text-zinc-600 hover:bg-zinc-100 hover:text-zinc-900"
