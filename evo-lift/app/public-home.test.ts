@@ -23,6 +23,7 @@ import {
   PUBLIC_HOME_INSIGHTS_LIFTS,
   PUBLIC_HOME_INSIGHTS_PACE,
   PUBLIC_HOME_PLAN_EXAMPLE,
+  PUBLIC_HOME_LEGAL_LABEL,
   PUBLIC_HOME_PRIVACY_LABEL,
   PUBLIC_HOME_SUBHEAD,
   PUBLIC_HOME_TERMS_LABEL,
@@ -60,6 +61,7 @@ describe("public home", () => {
     assert.equal(PUBLIC_HOME_CTA_HREF, "/login?register=1");
     assert.equal(PUBLIC_HOME_TERMS_LABEL, "Terms of use");
     assert.equal(PUBLIC_HOME_PRIVACY_LABEL, "Privacy policy");
+    assert.equal(PUBLIC_HOME_LEGAL_LABEL, "Legal notice");
   });
 
   it("renders one heading outside the signed-in shell", () => {
@@ -115,6 +117,7 @@ describe("public home", () => {
     assert.match(page, /PUBLIC_HOME_CTA_LABEL/);
     assert.match(page, /PUBLIC_HOME_TERMS_LABEL/);
     assert.match(page, /PUBLIC_HOME_PRIVACY_LABEL/);
+    assert.match(page, /PUBLIC_HOME_LEGAL_LABEL/);
     assert.match(page, /<ActionLink/);
     assert.match(page, /<Link/);
     assert.match(page, /quietLinkClassName/);
@@ -127,6 +130,7 @@ describe("public home", () => {
     assert.equal(PUBLIC_HOME_CTA_HREF, "/login?register=1");
     assert.equal(PUBLIC_HOME_TERMS_LABEL, "Terms of use");
     assert.equal(PUBLIC_HOME_PRIVACY_LABEL, "Privacy policy");
+    assert.equal(PUBLIC_HOME_LEGAL_LABEL, "Legal notice");
     assert.match(login, /label: "Register"/);
     assert.match(login, /label: "Log in"/);
 

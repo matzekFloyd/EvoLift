@@ -6,5 +6,9 @@ export const actionLinkClassName =
  * Quiet zinc link. Same treatment as Terms, Privacy, and Forgot password on Log in.
  * Focus ring is opaque sky-700 with an offset so it stays visible on the page background.
  */
+/** URL or email inside a sentence. Underline stays on so the link is not color alone. */
+export const proseLinkClassName =
+  "font-medium underline underline-offset-2 hover:text-sky-800 focus-visible:text-sky-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 focus-visible:ring-offset-2 rounded-sm";
+
 export const quietLinkClassName =
   "text-sm font-medium text-zinc-600 underline-offset-2 hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 focus-visible:ring-offset-2 focus-visible:text-sky-800 rounded-sm";
