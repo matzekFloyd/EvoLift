@@ -10,7 +10,7 @@ import {
 
 describe("auth-route-access", () => {
   it("treats the marketing page, login, and legal pages as public", () => {
-    assert.deepEqual([...PUBLIC_PAGE_PATHS], ["/", "/login", "/privacy", "/terms", "/glossary"]);
+    assert.deepEqual([...PUBLIC_PAGE_PATHS], ["/", "/login", "/privacy", "/terms", "/legal", "/glossary"]);
     for (const path of PUBLIC_PAGE_PATHS) {
       assert.equal(isPublicAppPath(path), true);
       assert.equal(requiresAppSession(path), false);
@@ -44,6 +44,7 @@ describe("auth-route-access", () => {
     assert.equal(sessionGateDecision({ pathname: "/login", hasUser: false }), "allow");
     assert.equal(sessionGateDecision({ pathname: "/login", hasUser: true }), "redirect_home");
     assert.equal(sessionGateDecision({ pathname: "/privacy", hasUser: false }), "allow");
+    assert.equal(sessionGateDecision({ pathname: "/legal", hasUser: false }), "allow");
     assert.equal(sessionGateDecision({ pathname: "/glossary", hasUser: true }), "allow");
     assert.equal(sessionGateRedirectPath("redirect_login"), "/login");
     assert.equal(sessionGateRedirectPath("redirect_home"), "/app");

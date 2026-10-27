@@ -1,3 +1,4 @@
+import { OPERATOR_EMAIL, OPERATOR_NAME } from "@/app/legal/legal-notice";
 import { PUBLIC_APP_ORIGIN } from "@/lib/public-app-origin";
 
 export const PRIVACY_POLICY_HREF = "/privacy";
@@ -22,6 +23,21 @@ export const privacyPolicySections: PrivacyPolicySection[] = [
     heading: "How this data is used",
     paragraphs: [
       "This data is used to run the account: to sign you in, to keep your workouts, and to let a token you created call the API.",
+    ],
+  },
+  {
+    heading: "Who is responsible",
+    paragraphs: [
+      `The controller is ${OPERATOR_NAME}, the person named on the legal notice. Email ${OPERATOR_EMAIL}.`,
+      "Supabase stores the account and the workout data. Vercel hosts the site. Resend sends confirm, reset, and email-change messages.",
+      "Google or Apple receives the sign-in only when you use that button.",
+    ],
+  },
+  {
+    heading: "How long this data is kept",
+    paragraphs: [
+      "The data is kept while the account exists, and removed when the account is deleted.",
+      "You can ask for a copy or a correction by emailing the contact on the legal notice. Deleting the account stays on Account, on the Login tab.",
     ],
   },
   {
