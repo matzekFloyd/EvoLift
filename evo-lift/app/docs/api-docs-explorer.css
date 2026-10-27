@@ -1,3 +1,8 @@
+.api-docs-explorer {
+  max-width: 100%;
+  min-width: 48rem;
+}
+
 .api-docs-explorer .swagger-ui {
   font-family: var(--font-ibm-plex-sans), ui-sans-serif, system-ui, sans-serif;
 }

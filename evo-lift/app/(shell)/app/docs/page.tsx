@@ -1,6 +1,5 @@
 "use client";
 
-import { BookOpen } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ApiDocsExplorer } from "@/app/docs/api-docs-explorer-loader";
@@ -55,19 +54,20 @@ export default function ApiDocsPage() {
 
   return (
     <PageShell>
-      <h1 className="inline-flex items-center gap-2 text-2xl font-semibold tracking-tight">
-        <BookOpen className="h-6 w-6 text-sky-700" />
-        API docs
-      </h1>
-      <p className="max-w-prose text-sm text-zinc-600">
-        Requests use your current session. To try a personal API token instead, use
-        Authorize and paste the token value.
-      </p>
-      {isChecking || !accessToken ? (
-        <ContentPlaceholder label="Checking session..." rowClassName={DOCS_PLACEHOLDER_CLASS} />
-      ) : (
-        <ApiDocsExplorer accessToken={accessToken} />
-      )}
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">API docs</h1>
+        <p className="mt-1 max-w-prose text-sm text-zinc-600">
+          Requests use your current session. To try a personal API token instead, use
+          Authorize and paste the token value.
+        </p>
+      </div>
+      <section className="panel w-full min-w-0 overflow-x-auto p-3 sm:p-5">
+        {isChecking || !accessToken ? (
+          <ContentPlaceholder label="Checking session..." rowClassName={DOCS_PLACEHOLDER_CLASS} />
+        ) : (
+          <ApiDocsExplorer accessToken={accessToken} />
+        )}
+      </section>
     </PageShell>
   );
 }
