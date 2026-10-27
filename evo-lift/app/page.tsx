@@ -4,6 +4,7 @@ import { ActionLink } from "@/app/components/action-button";
 import { EvoLiftBrand } from "@/app/components/evo-lift-logo";
 import { quietLinkClassName } from "@/app/components/inline-link-class";
 import { PublicHomeFigure, PublicHomeInsightsExample, PublicHomePlanExample } from "@/app/public-home-figure";
+import { LEGAL_NOTICE_HREF } from "@/app/legal/legal-notice";
 import { PRIVACY_POLICY_HREF } from "@/app/privacy/privacy-policy";
 import { TERMS_OF_USE_HREF } from "@/app/terms/terms-of-use";
 import {
@@ -13,6 +14,7 @@ import {
   PUBLIC_HOME_CTA_HREF,
   PUBLIC_HOME_CTA_LABEL,
   PUBLIC_HOME_HEADING,
+  PUBLIC_HOME_LEGAL_LABEL,
   PUBLIC_HOME_PRIVACY_LABEL,
   PUBLIC_HOME_SUBHEAD,
   PUBLIC_HOME_TERMS_LABEL,
@@ -129,6 +131,15 @@ export default function PublicHomePage() {
               className={quietLinkClassName}
             >
               {PUBLIC_HOME_PRIVACY_LABEL}
+            </Link>
+            <Link
+              href={LEGAL_NOTICE_HREF}
+              target="_blank"
+              rel="noopener noreferrer"
+              prefetch={false}
+              className={quietLinkClassName}
+            >
+              {PUBLIC_HOME_LEGAL_LABEL}
             </Link>
           </div>
           <p id="free" className="text-right text-sm text-zinc-600">

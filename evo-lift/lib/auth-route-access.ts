@@ -1,7 +1,7 @@
 /**
  * Session gate for the UI proxy.
  * Paths under `/app` require a verified user. `/api/*` stays open for bearer auth.
- * `/`, `/login`, `/privacy`, `/terms`, and `/glossary` stay public at the site root.
+ * `/`, `/login`, `/privacy`, `/terms`, `/legal`, and `/glossary` stay public at the site root.
  * A signed-in visitor on `/` goes to `/app`.
  */
 
@@ -9,7 +9,7 @@ import { isAuthEmailRecoverySearch } from "@/lib/auth-email-redirect";
 import { APP_HOME_PATH } from "@/lib/app-paths";
 
 /** Site-root pages that stay open without a session. Search indexing uses this list. */
-export const PUBLIC_PAGE_PATHS = ["/", "/login", "/privacy", "/terms", "/glossary"] as const;
+export const PUBLIC_PAGE_PATHS = ["/", "/login", "/privacy", "/terms", "/legal", "/glossary"] as const;
 
 const PUBLIC_EXACT = new Set<string>(PUBLIC_PAGE_PATHS);
 
