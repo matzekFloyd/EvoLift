@@ -1,7 +1,9 @@
 "use client";
 
 import { Check } from "lucide-react";
+import { useId } from "react";
 import { ActionButton } from "@/app/components/action-button";
+import { EnterNextForm } from "@/app/components/enter-next-form";
 import { TargetWeightSuggestion } from "@/app/components/target-weight-suggestion";
 import { targetWeightFieldLabel } from "@/lib/assistance-exercise";
 import { targetSuggestionsEnabled } from "@/lib/target-weight-suggestion";
@@ -42,6 +44,7 @@ export function SessionTargetsSheet({
   onCancel,
   onSave,
 }: SessionTargetsSheetProps) {
+  const formId = useId();
   return (
     <SessionBottomSheet
       title="Set targets"
@@ -52,9 +55,9 @@ export function SessionTargetsSheet({
             Cancel
           </ActionButton>
           <ActionButton
-            type="button"
+            type="submit"
+            form={formId}
             variant="primary"
-            onClick={() => void onSave()}
             disabled={isSavingTargets}
             className="!h-11 !w-auto min-w-0 flex-1"
           >
@@ -64,6 +67,14 @@ export function SessionTargetsSheet({
         </div>
       }
     >
+      <EnterNextForm
+        id={formId}
+        onSubmit={() => {
+          if (!isSavingTargets) {
+            void onSave();
+          }
+        }}
+      >
       <p className="mb-2 text-xs text-zinc-600">{exerciseLabel}</p>
       <p className="mb-3 text-xs text-zinc-600">
         Values apply to working sets only; warmups do not count.
@@ -93,6 +104,7 @@ export function SessionTargetsSheet({
           }}
         />
       ) : null}
+      </EnterNextForm>
     </SessionBottomSheet>
   );
 }

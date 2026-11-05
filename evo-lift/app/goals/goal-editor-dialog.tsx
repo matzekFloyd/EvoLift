@@ -2,6 +2,7 @@
 
 import { Save } from "lucide-react";
 import { ActionButton } from "@/app/components/action-button";
+import { EnterNextForm } from "@/app/components/enter-next-form";
 import { TextField } from "@/app/components/text-field";
 import { AppDialog } from "@/app/components/app-dialog";
 import { DateInput } from "@/app/components/date-input";
@@ -52,6 +53,13 @@ export function GoalEditorDialog({
 
       {error ? <StatusNotice message={error} tone="error" className="mt-3" /> : null}
 
+      <EnterNextForm
+        onSubmit={() => {
+          if (!isSaving) {
+            onSave();
+          }
+        }}
+      >
       <label className="mt-4 block text-sm font-medium text-zinc-800">
         Exercise
         <ExerciseSearchSelect
@@ -138,11 +146,12 @@ export function GoalEditorDialog({
         <ActionButton type="button" variant="secondary" onClick={onClose} disabled={isSaving}>
           Cancel
         </ActionButton>
-        <ActionButton type="button" variant="primary" onClick={onSave} disabled={isSaving}>
+        <ActionButton type="submit" variant="primary" disabled={isSaving}>
           <Save className="h-4 w-4" aria-hidden />
           {isSaving ? "Saving…" : "Save"}
         </ActionButton>
       </div>
+      </EnterNextForm>
     </AppDialog>
   );
 }
