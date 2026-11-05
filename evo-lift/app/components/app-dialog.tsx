@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, type MouseEvent, type ReactNode } from "react";
+import { dialogKeyboardPaddingBottom } from "@/lib/keyboard-overlap";
+import { useRevealTextField } from "./keyboard-inset";
 import {
   listDialogFocusable,
   nestedControlHandlesEscape,
@@ -34,9 +36,11 @@ export function AppDialog({
   panelClassName = "max-w-md",
   onClose,
 }: AppDialogProps) {
+  const overlayRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  useRevealTextField(overlayRef);
 
   useEffect(() => {
     const previouslyFocused =
@@ -88,6 +92,8 @@ export function AppDialog({
 
   return (
     <div
+      ref={overlayRef}
+      style={{ paddingBottom: dialogKeyboardPaddingBottom }}
       className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-black/40 p-3"
       role="dialog"
       aria-modal="true"
