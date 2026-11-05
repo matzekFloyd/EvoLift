@@ -2,7 +2,9 @@
 
 import { useEffect, useId, useRef, type ReactNode } from "react";
 import { nestedControlHandlesEscape } from "@/app/components/app-dialog-focus";
+import { useRevealTextField } from "@/app/components/keyboard-inset";
 import { SectionHeading } from "@/app/components/section-heading";
+import { keyboardAwareMaxHeight, keyboardOverlapBottom } from "@/lib/keyboard-overlap";
 import {
   cycleSessionSheetFocus,
   listSessionSheetFocusable,
@@ -13,6 +15,8 @@ type SessionBottomSheetProps = {
   onClose: () => void;
   /** Extra classes on the fixed wrapper, such as `md:hidden`. */
   className?: string;
+  /** Stays on screen under the scrolling fields, such as Cancel and Save. */
+  footer?: ReactNode;
   children: ReactNode;
 };
 
@@ -21,12 +25,15 @@ export function SessionBottomSheet({
   title,
   onClose,
   className,
+  footer,
   children,
 }: SessionBottomSheetProps) {
   const titleId = useId();
   const panelRef = useRef<HTMLDivElement>(null);
+  const bodyRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  useRevealTextField(bodyRef);
 
   useEffect(() => {
     const previouslyFocused =
@@ -72,10 +79,11 @@ export function SessionBottomSheet({
       <div
         ref={panelRef}
         tabIndex={-1}
-        className="absolute inset-x-0 bottom-0 max-h-[85vh] overflow-y-auto rounded-t-xl bg-white p-4 shadow-2xl outline-none"
+        style={{ bottom: keyboardOverlapBottom, maxHeight: keyboardAwareMaxHeight }}
+        className="absolute inset-x-0 flex flex-col overflow-hidden rounded-t-xl bg-white p-4 shadow-2xl outline-none"
       >
-        <div className="mx-auto w-full max-w-5xl">
-          <div className="mb-3 flex items-center justify-between">
+        <div className="mx-auto flex min-h-0 w-full max-w-5xl flex-1 flex-col">
+          <div className="mb-3 flex shrink-0 items-center justify-between">
             <SectionHeading id={titleId}>{title}</SectionHeading>
             <button
               type="button"
@@ -85,7 +93,10 @@ export function SessionBottomSheet({
               Close
             </button>
           </div>
-          {children}
+          <div ref={bodyRef} data-sheet-body className="min-h-0 overflow-y-auto overscroll-contain">
+            {children}
+          </div>
+          {footer ? <div className="mt-4 shrink-0">{footer}</div> : null}
         </div>
       </div>
     </div>
