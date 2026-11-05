@@ -51,9 +51,20 @@ export type TargetWeightHistorySet = {
   targetReps: number | null;
 };
 
+export type SuggestionDirection = "increase" | "decrease" | "unchanged";
+
 export type TargetWeightSuggestion =
   | { status: "message"; message: string }
-  | { status: "suggestion"; weightKg: number; rationale: string; reps?: number };
+  | {
+      status: "suggestion";
+      weightKg: number;
+      rationale: string;
+      reps?: number;
+      /** Loaded (kg) on the last session in the window. */
+      previousWeightKg: number;
+      /** That session's rep target, or its logged reps when it stored none. */
+      previousReps: number | null;
+    };
 
 type QualifyingSession = {
   sessionId: string;
@@ -61,18 +72,42 @@ type QualifyingSession = {
   sessionCreatedAt: string;
   loadedKg: number;
   reps: number;
-  targetWeightKg: number | null;
+  /** Rep target when the session stored one, otherwise the top set's logged reps. */
+  comparisonReps: number | null;
 };
 
 function message(text: string): TargetWeightSuggestion {
   return { status: "message", message: text };
 }
 
-function suggestion(weightKg: number, rationale: string, reps?: number): TargetWeightSuggestion {
+function suggestion(
+  weightKg: number,
+  rationale: string,
+  previous: { weightKg: number; reps: number | null },
+  reps?: number,
+): TargetWeightSuggestion {
+  const result: TargetWeightSuggestion = {
+    status: "suggestion",
+    weightKg: roundKg(weightKg),
+    rationale,
+    previousWeightKg: roundKg(previous.weightKg),
+    previousReps: previous.reps,
+  };
   if (reps == null) {
-    return { status: "suggestion", weightKg: roundKg(weightKg), rationale };
+    return result;
   }
-  return { status: "suggestion", weightKg: roundKg(weightKg), rationale, reps };
+  return { ...result, reps };
+}
+
+/** Rep target for the arrow, falling back to the reps that were logged. */
+function comparisonReps(row: TargetWeightHistorySet): number | null {
+  if (row.targetReps != null && Number.isFinite(row.targetReps) && row.targetReps > 0) {
+    return row.targetReps;
+  }
+  if (Number.isFinite(row.reps) && row.reps > 0) {
+    return row.reps;
+  }
+  return null;
 }
 
 /**
@@ -139,14 +174,8 @@ function pickTopSet(rows: TargetWeightHistorySet[]): TargetWeightHistorySet {
   return best;
 }
 
-function isHit(session: QualifyingSession, plannedReps: number): boolean {
-  if (session.reps + 1e-9 < plannedReps) {
-    return false;
-  }
-  if (session.targetWeightKg == null || !Number.isFinite(session.targetWeightKg)) {
-    return true;
-  }
-  return loadsWithin(session.loadedKg, session.targetWeightKg);
+function repsReached(session: QualifyingSession, plannedReps: number): boolean {
+  return session.reps + 1e-9 >= plannedReps;
 }
 
 function missedByAtLeast(session: QualifyingSession, plannedReps: number): boolean {
@@ -314,11 +343,13 @@ function suggestDoubleProgression(input: {
 
   const achieved = latest.sets.reduce((min, set) => Math.min(min, set.reps), latest.sets[0].reps);
   const bottom = doubleProgressionBottom(sessions, load, plannedReps);
+  const comparedTo = { weightKg: load, reps: plannedReps };
   if (achieved + 1e-9 < plannedReps) {
     if (achieved > plannedReps - REP_GAP + 1e-9) {
       return suggestion(
         load,
         `Hold ${formatRepCount(plannedReps)} at ${formatKgAmount(load)} until every working set hits it.`,
+        comparedTo,
         plannedReps,
       );
     }
@@ -326,12 +357,14 @@ function suggestDoubleProgression(input: {
       return suggestion(
         load,
         `Last session reached ${formatRepCount(bottom)} at ${formatKgAmount(load)}.`,
+        comparedTo,
         bottom,
       );
     }
     return suggestion(
       stepBy(load, -1),
       `Last session was under ${formatRepCount(bottom)} at ${formatKgAmount(load)}.`,
+      comparedTo,
       bottom,
     );
   }
@@ -346,10 +379,10 @@ function suggestDoubleProgression(input: {
       }
     }
     const nextWeight = Math.min(stepBy(load, 1), stepBy(heaviest, 1));
-    return suggestion(nextWeight, hitText, bottom);
+    return suggestion(nextWeight, hitText, comparedTo, bottom);
   }
 
-  return suggestion(load, hitText, top);
+  return suggestion(load, hitText, comparedTo, top);
 }
 
 /**
@@ -404,10 +437,7 @@ export function suggestTargetWeight(input: {
       sessionCreatedAt: top.sessionCreatedAt,
       loadedKg,
       reps: top.reps,
-      targetWeightKg:
-        top.targetWeightKg == null || !Number.isFinite(Number(top.targetWeightKg))
-          ? null
-          : roundKg(Number(top.targetWeightKg)),
+      comparisonReps: comparisonReps(top),
     });
   }
 
@@ -437,20 +467,21 @@ export function suggestTargetWeight(input: {
   const previous = recent[1];
   const heaviestLoad = recent.reduce((max, session) => Math.max(max, session.loadedKg), 0);
   const ceiling = stepBy(heaviestLoad, 1);
+  const comparedTo = { weightKg: reference.loadedKg, reps: reference.comparisonReps };
 
   // A gap of more than 2 reps is a different rep target, so hold instead of converting or dropping.
   if (Math.abs(plannedReps - reference.reps) > REP_GAP + 1e-9) {
-    return suggestion(Math.min(reference.loadedKg, ceiling), REP_TARGET_MISMATCH_RATIONALE);
+    return suggestion(Math.min(reference.loadedKg, ceiling), REP_TARGET_MISMATCH_RATIONALE, comparedTo);
   }
 
-  const lastTwoHit =
-    isHit(reference, plannedReps) &&
-    isHit(previous, plannedReps) &&
-    loadsWithin(reference.loadedKg, previous.loadedKg);
-  if (lastTwoHit) {
+  // The same Loaded (kg) twice is a hit even when it is not the stored target weight.
+  // A bar in the target, or a target that was edited, used to hold the load and call it mixed.
+  const sameLoad = loadsWithin(reference.loadedKg, previous.loadedKg);
+  if (repsReached(reference, plannedReps) && repsReached(previous, plannedReps) && sameLoad) {
     return suggestion(
       Math.min(stepBy(reference.loadedKg, 1), ceiling),
       `Last 2 sessions hit ${formatRepCount(plannedReps)} at ${formatKgAmount(reference.loadedKg)}.`,
+      comparedTo,
     );
   }
 
@@ -460,6 +491,7 @@ export function suggestTargetWeight(input: {
     return suggestion(
       Math.min(stepBy(reference.loadedKg, -1), ceiling),
       `Last session missed ${formatRepCount(plannedReps)} at ${formatKgAmount(reference.loadedKg)}.`,
+      comparedTo,
     );
   }
 
@@ -467,12 +499,22 @@ export function suggestTargetWeight(input: {
     return suggestion(
       Math.min(recentWorkingWeight, ceiling),
       `Last session was lighter than ${formatKgAmount(recentWorkingWeight)}.`,
+      comparedTo,
+    );
+  }
+
+  if (sameLoad && reference.reps + 1e-9 < plannedReps) {
+    return suggestion(
+      Math.min(reference.loadedKg, ceiling),
+      `Last session was short of ${formatRepCount(plannedReps)} at ${formatKgAmount(reference.loadedKg)}.`,
+      comparedTo,
     );
   }
 
   return suggestion(
     Math.min(reference.loadedKg, ceiling),
     `Recent sessions were mixed at ${formatKgAmount(reference.loadedKg)}.`,
+    comparedTo,
   );
 }
 
@@ -512,4 +554,51 @@ export function suggestionMatchesTarget(input: {
   }
   const parsed = Number(trimmed);
   return Number.isFinite(parsed) && parsed === input.suggestedReps;
+}
+
+/** Up, down, or unchanged versus the last session. A missing number stays unchanged. */
+export function suggestionDirection(
+  suggested: number | null | undefined,
+  previous: number | null | undefined,
+): SuggestionDirection {
+  if (suggested == null || previous == null || !Number.isFinite(suggested) || !Number.isFinite(previous)) {
+    return "unchanged";
+  }
+  if (suggested > previous + 1e-9) {
+    return "increase";
+  }
+  if (suggested < previous - 1e-9) {
+    return "decrease";
+  }
+  return "unchanged";
+}
+
+/** Weight-only suggestions do not change reps, so that mark stays unchanged. */
+export function suggestedRepsDirection(input: {
+  reps?: number | null;
+  previousReps: number | null;
+}): SuggestionDirection {
+  if (input.reps == null) {
+    return "unchanged";
+  }
+  return suggestionDirection(input.reps, input.previousReps);
+}
+
+/** Absolute Loaded (kg) change. Null when the suggestion matches the last session. */
+export function formatSuggestionKgDelta(suggested: number, previous: number): string | null {
+  if (suggestionDirection(suggested, previous) === "unchanged") {
+    return null;
+  }
+  return formatKgAmount(Math.abs(suggested - previous));
+}
+
+/** Absolute rep change. Null when reps were not suggested or did not change. */
+export function formatSuggestionRepDelta(
+  suggested: number | null | undefined,
+  previous: number | null | undefined,
+): string | null {
+  if (suggested == null || previous == null || suggestionDirection(suggested, previous) === "unchanged") {
+    return null;
+  }
+  return formatRepCount(Math.abs(suggested - previous));
 }

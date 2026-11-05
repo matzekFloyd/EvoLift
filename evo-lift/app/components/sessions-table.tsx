@@ -20,6 +20,8 @@ export type SessionsTableBadge = {
   slug: string;
   hasLoggedSet: boolean;
   skipped: boolean;
+  setsShort: boolean;
+  label: string;
 };
 
 export type SessionsTableRow = {
@@ -181,8 +183,8 @@ export function SessionsTable({
                             key={`${row.id}-${item.slug}-${index}`}
                             slug={item.slug}
                             variant={homeExerciseBadgeTone(item)}
-                            title={item.skipped ? `${item.slug}, skipped` : item.slug}
-                            aria-label={item.skipped ? `${item.slug}, skipped` : item.slug}
+                            title={item.label}
+                            aria-label={item.label}
                           />
                         ))}
                         {row.badges.length === 0 ? <span className="text-zinc-500">-</span> : null}

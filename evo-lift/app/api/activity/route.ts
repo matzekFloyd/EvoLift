@@ -41,7 +41,9 @@ export async function GET(request: NextRequest) {
         notes: row.notes,
         created_at: row.created_at,
         set_count: homeSetCount(row.set_count),
-        exercises: homeExerciseBadges(row.exercise_badges),
+        exercises: homeExerciseBadges(row.exercise_badges, {
+          completed: row.completed_at != null,
+        }),
       })),
       goal_reached_on: goalReachedOn,
     });
