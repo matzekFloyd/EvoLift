@@ -15,6 +15,8 @@ updates:
         patterns:
           - "@capacitor/*"
 
+  # packageManager in evo-lift/package.json pins npm. Dependabot must use
+  # that pin so a lockfile rewrite keeps Puppeteer's optional peer entries.
   - package-ecosystem: npm
     directory: /evo-lift
     schedule:
