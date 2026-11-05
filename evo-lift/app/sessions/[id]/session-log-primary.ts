@@ -1,3 +1,29 @@
+/**
+ * Compact log after one set is saved.
+ * The set that reaches the target hides the add-set composer so Next exercise or Finish can fill.
+ * Earlier sets, and extra sets after the target, keep the new-set form ready.
+ */
+export function compactComposerAfterSavedSet(input: {
+  savedSetIsWarmup: boolean;
+  /** Working sets on this exercise after the save. Warmups are excluded. */
+  workingSetCount: number;
+  targetSets: number | null;
+}): { showExtraSetComposer: boolean; focusNewSet: boolean } {
+  const goal = input.targetSets;
+  const hasGoal = goal != null && goal > 0;
+  const workingBefore = input.savedSetIsWarmup
+    ? input.workingSetCount
+    : input.workingSetCount - 1;
+  const metByThisSet = hasGoal && workingBefore < goal && input.workingSetCount >= goal;
+  if (metByThisSet) {
+    return { showExtraSetComposer: false, focusNewSet: false };
+  }
+  if (!hasGoal || input.workingSetCount < goal) {
+    return { showExtraSetComposer: false, focusNewSet: true };
+  }
+  return { showExtraSetComposer: true, focusNewSet: true };
+}
+
 /** The one filled action on a logging screen. Every other control stays zinc. */
 export type SessionLogPrimary =
   | "save-targets"

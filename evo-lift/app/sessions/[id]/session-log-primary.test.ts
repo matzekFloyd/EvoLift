@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   addSetComposerVisible,
+  compactComposerAfterSavedSet,
   exerciseLoggingPrimary,
   compactFinishChrome,
   finishSessionIsPrimary,
@@ -60,6 +61,71 @@ describe("addSetComposerVisible", () => {
         addRowExpanded: true,
       }).desktop,
     ).toBe(true);
+  });
+});
+
+describe("compactComposerAfterSavedSet", () => {
+  it("hides the composer when the last target set is saved so Finish fills", () => {
+    const afterSave = compactComposerAfterSavedSet({
+      savedSetIsWarmup: false,
+      workingSetCount: 3,
+      targetSets: 3,
+    });
+
+    expect(afterSave).toEqual({ showExtraSetComposer: false, focusNewSet: false });
+    expect(
+      exerciseLoggingPrimary({
+        ...logging,
+        targetsMet: true,
+        hasNextExercise: false,
+        showExtraSetComposer: afterSave.showExtraSetComposer,
+      }),
+    ).toBe("finish");
+  });
+
+  it("hides the composer when an earlier exercise meets its target so Next exercise fills", () => {
+    const afterSave = compactComposerAfterSavedSet({
+      savedSetIsWarmup: false,
+      workingSetCount: 3,
+      targetSets: 3,
+    });
+
+    expect(
+      exerciseLoggingPrimary({
+        ...logging,
+        targetsMet: true,
+        hasNextExercise: true,
+        showExtraSetComposer: afterSave.showExtraSetComposer,
+      }),
+    ).toBe("next-exercise");
+  });
+
+  it("keeps the composer open after an extra set past the target", () => {
+    const afterSave = compactComposerAfterSavedSet({
+      savedSetIsWarmup: false,
+      workingSetCount: 4,
+      targetSets: 3,
+    });
+
+    expect(afterSave).toEqual({ showExtraSetComposer: true, focusNewSet: true });
+    expect(
+      exerciseLoggingPrimary({
+        ...logging,
+        targetsMet: true,
+        hasNextExercise: false,
+        showExtraSetComposer: afterSave.showExtraSetComposer,
+      }),
+    ).toBe("add-set");
+  });
+
+  it("keeps the new-set form ready while target working sets are still short", () => {
+    expect(
+      compactComposerAfterSavedSet({
+        savedSetIsWarmup: false,
+        workingSetCount: 2,
+        targetSets: 3,
+      }),
+    ).toEqual({ showExtraSetComposer: false, focusNewSet: true });
   });
 });
 
