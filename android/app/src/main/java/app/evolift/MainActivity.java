@@ -4,10 +4,14 @@ import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.net.Uri;
 import android.os.Bundle;
+import android.view.ViewGroup;
 import android.view.WindowManager;
 import android.webkit.WebView;
 import androidx.activity.OnBackPressedCallback;
+import androidx.core.graphics.Insets;
+import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.BridgeWebViewClient;
@@ -62,6 +66,43 @@ public class MainActivity extends BridgeActivity {
                 getOnBackPressedDispatcher().onBackPressed();
             }
         });
+        keepWebViewAboveKeyboard();
+    }
+
+    /**
+     * Capacitor's edge-to-edge listener insets the system bars and the cutout, then
+     * consumes the window insets, so the keyboard draws on top of the WebView.
+     * Replace that listener and include the IME inset in the bottom margin.
+     */
+    private void keepWebViewAboveKeyboard() {
+        WebView webView = getBridge() == null ? null : getBridge().getWebView();
+        if (webView == null) {
+            return;
+        }
+        ViewCompat.setOnApplyWindowInsetsListener(webView, (view, windowInsets) -> {
+            Insets bars = windowInsets.getInsets(
+                    WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+            Insets ime = windowInsets.getInsets(WindowInsetsCompat.Type.ime());
+            int bottom = webViewBottomMargin(bars.bottom, ime.bottom);
+            ViewGroup.MarginLayoutParams layoutParams = (ViewGroup.MarginLayoutParams) view.getLayoutParams();
+            if (layoutParams.leftMargin != bars.left
+                    || layoutParams.topMargin != bars.top
+                    || layoutParams.rightMargin != bars.right
+                    || layoutParams.bottomMargin != bottom) {
+                layoutParams.leftMargin = bars.left;
+                layoutParams.topMargin = bars.top;
+                layoutParams.rightMargin = bars.right;
+                layoutParams.bottomMargin = bottom;
+                view.setLayoutParams(layoutParams);
+            }
+            return WindowInsetsCompat.CONSUMED;
+        });
+        ViewCompat.requestApplyInsets(webView);
+    }
+
+    /** Nav-bar inset while the keyboard is closed. Keyboard inset when it is taller. */
+    static int webViewBottomMargin(int systemAndCutoutBottom, int imeBottom) {
+        return Math.max(0, Math.max(systemAndCutoutBottom, imeBottom));
     }
 
     @Override

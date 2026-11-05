@@ -75,6 +75,8 @@ function createCapacitorConfig({ env = {}, debugServer = null } = {}) {
     android: {
       // Android 15 draws the WebView under the status bar and gesture area.
       // Force Capacitor to inset the WebView by those system bars and the cutout.
+      // That listener omits the keyboard and consumes the insets. MainActivity
+      // adds the IME inset so the WebView lifts above the keyboard.
       adjustMarginsForEdgeToEdge: "force",
     },
     server,

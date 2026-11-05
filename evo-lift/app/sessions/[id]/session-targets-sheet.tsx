@@ -1,7 +1,9 @@
 "use client";
 
 import { Check } from "lucide-react";
+import { useId } from "react";
 import { ActionButton } from "@/app/components/action-button";
+import { EnterNextForm } from "@/app/components/enter-next-form";
 import { TargetWeightSuggestion } from "@/app/components/target-weight-suggestion";
 import { targetWeightFieldLabel } from "@/lib/assistance-exercise";
 import { targetSuggestionsEnabled } from "@/lib/target-weight-suggestion";
@@ -42,8 +44,37 @@ export function SessionTargetsSheet({
   onCancel,
   onSave,
 }: SessionTargetsSheetProps) {
+  const formId = useId();
   return (
-    <SessionBottomSheet title="Set targets" onClose={onCancel}>
+    <SessionBottomSheet
+      title="Set targets"
+      onClose={onCancel}
+      footer={
+        <div className="flex gap-2">
+          <ActionButton type="button" variant="secondary" onClick={onCancel} className="!h-11 !w-auto min-w-0 flex-1">
+            Cancel
+          </ActionButton>
+          <ActionButton
+            type="submit"
+            form={formId}
+            variant="primary"
+            disabled={isSavingTargets}
+            className="!h-11 !w-auto min-w-0 flex-1"
+          >
+            <Check className="h-4 w-4" aria-hidden />
+            {isSavingTargets ? "Saving..." : "Save targets"}
+          </ActionButton>
+        </div>
+      }
+    >
+      <EnterNextForm
+        id={formId}
+        onSubmit={() => {
+          if (!isSavingTargets) {
+            void onSave();
+          }
+        }}
+      >
       <p className="mb-2 text-xs text-zinc-600">{exerciseLabel}</p>
       <p className="mb-3 text-xs text-zinc-600">
         Values apply to working sets only; warmups do not count.
@@ -73,21 +104,7 @@ export function SessionTargetsSheet({
           }}
         />
       ) : null}
-      <div className="mt-4 flex gap-2">
-        <ActionButton type="button" variant="secondary" onClick={onCancel} className="!h-11 !w-auto min-w-0 flex-1">
-          Cancel
-        </ActionButton>
-        <ActionButton
-          type="button"
-          variant="primary"
-          onClick={() => void onSave()}
-          disabled={isSavingTargets}
-          className="!h-11 !w-auto min-w-0 flex-1"
-        >
-          <Check className="h-4 w-4" aria-hidden />
-          {isSavingTargets ? "Saving..." : "Save targets"}
-        </ActionButton>
-      </div>
+      </EnterNextForm>
     </SessionBottomSheet>
   );
 }
