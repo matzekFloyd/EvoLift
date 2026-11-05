@@ -139,7 +139,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Skipped",
     definition:
-      "A mark on an exercise in a session when you did not do it, such as when you ran out of time. Finish session sets Skipped on every exercise that has no sets. Targets, sets, and history stay on screen under a cover until you clear the mark.",
+      "A mark on an exercise in a session when you did not do it, such as when you ran out of time. Finish session sets Skipped on every exercise that has no sets. Targets, sets, and history stay on screen under a cover until you clear the mark. On Past workouts, the same colour also means a finished session logged fewer working sets than Target sets. That badge reads the count, such as 2 of 3 sets.",
   },
   {
     term: "Suggested target",

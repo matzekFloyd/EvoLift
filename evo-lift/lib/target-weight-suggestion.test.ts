@@ -11,7 +11,11 @@ import {
   REP_TARGET_MISMATCH_RATIONALE,
   THIN_HISTORY_MESSAGE,
   doubleProgressionEnabled,
+  formatSuggestionKgDelta,
+  formatSuggestionRepDelta,
   suggestTargetWeight,
+  suggestedRepsDirection,
+  suggestionDirection,
   suggestionMatchesTarget,
   targetSuggestionsEnabled,
   type TargetWeightHistorySet,
@@ -40,7 +44,7 @@ function historySet(overrides: Partial<TargetWeightHistorySet> = {}): TargetWeig
   };
 }
 
-function suggest(
+function rawSuggest(
   sets: TargetWeightHistorySet[],
   plannedReps: number | null = 8,
   excludeSessionId: string | null = null,
@@ -53,6 +57,22 @@ function suggest(
     today: TODAY,
     doubleProgression,
   });
+}
+
+function suggest(
+  sets: TargetWeightHistorySet[],
+  plannedReps: number | null = 8,
+  excludeSessionId: string | null = null,
+  doubleProgression = false,
+) {
+  const result = rawSuggest(sets, plannedReps, excludeSessionId, doubleProgression);
+  if (result.status !== "suggestion") {
+    return result;
+  }
+  const { previousWeightKg, previousReps, ...rest } = result;
+  void previousWeightKg;
+  void previousReps;
+  return rest;
 }
 
 describe("targetSuggestionsEnabled", () => {
@@ -109,7 +129,7 @@ describe("suggestTargetWeight", () => {
     });
   });
 
-  it("holds when recent sessions are mixed", () => {
+  it("holds and says so when the last session is one rep short", () => {
     const result = suggest([
       historySet({
         sessionId: "older",
@@ -128,7 +148,7 @@ describe("suggestTargetWeight", () => {
     assert.deepEqual(result, {
       status: "suggestion",
       weightKg: 60,
-      rationale: "Recent sessions were mixed at 60 kg.",
+      rationale: "Last session was short of 8 reps at 60 kg.",
     });
   });
 
@@ -467,8 +487,8 @@ describe("suggestTargetWeight", () => {
     }
   });
 
-  it("does not treat a load far from the stored target as a hit", () => {
-    const result = suggest([
+  it("steps up when two sessions hit the reps at the same load even if the stored target differs", () => {
+    const result = rawSuggest([
       historySet({
         sessionId: "older",
         performedOn: daysBefore(14),
@@ -482,6 +502,38 @@ describe("suggestTargetWeight", () => {
         sessionCreatedAt: `${daysBefore(3)}T10:00:00Z`,
         loadedKg: 70,
         targetWeightKg: 60,
+      }),
+    ]);
+
+    assert.equal(result.status, "suggestion");
+    if (result.status !== "suggestion") {
+      return;
+    }
+    assert.equal(result.weightKg, 73.5);
+    assert.equal(result.reps, undefined);
+    assert.equal(result.previousWeightKg, 70);
+    assert.equal(result.previousReps, 8);
+    assert.equal(result.rationale, "Last 2 sessions hit 8 reps at 70 kg.");
+    assert.equal(suggestionDirection(result.weightKg, result.previousWeightKg), "increase");
+    assert.equal(suggestedRepsDirection(result), "unchanged");
+    assert.equal(formatSuggestionKgDelta(result.weightKg, result.previousWeightKg), "3.5 kg");
+    assert.equal(formatSuggestionRepDelta(result.reps, result.previousReps), null);
+  });
+
+  it("holds when the last two loads differ", () => {
+    const result = suggest([
+      historySet({
+        sessionId: "older",
+        performedOn: daysBefore(14),
+        sessionCreatedAt: `${daysBefore(14)}T10:00:00Z`,
+        loadedKg: 60,
+      }),
+      historySet({
+        sessionId: "newer",
+        performedOn: daysBefore(3),
+        sessionCreatedAt: `${daysBefore(3)}T10:00:00Z`,
+        loadedKg: 70,
+        targetWeightKg: 70,
       }),
     ]);
 
@@ -643,6 +695,46 @@ describe("double progression", () => {
       reps: 12,
       rationale: "Last session hit 10 reps at 60 kg.",
     });
+  });
+
+  it("does not repeat the same weight and reps after two sessions hit them", () => {
+    const result = rawSuggest(
+      [...workingSets("older", 14, [8, 8, 8], 8), ...workingSets("newer", 3, [8, 8, 8], 8)],
+      8,
+      null,
+      true,
+    );
+
+    assert.equal(result.status, "suggestion");
+    if (result.status !== "suggestion") {
+      return;
+    }
+    assert.equal(result.weightKg, 60);
+    assert.equal(result.reps, 10);
+    assert.equal(result.previousWeightKg, 60);
+    assert.equal(result.previousReps, 8);
+    assert.equal(suggestionDirection(result.weightKg, result.previousWeightKg), "unchanged");
+    assert.equal(suggestedRepsDirection(result), "increase");
+    assert.equal(formatSuggestionRepDelta(result.reps, result.previousReps), "2 reps");
+    assert.equal(formatSuggestionKgDelta(result.weightKg, result.previousWeightKg), null);
+  });
+
+  it("marks a weight increase and a rep reset when the higher target is hit", () => {
+    const result = rawSuggest(
+      [...workingSets("older", 14, [10, 10], 10), ...workingSets("newer", 3, [12, 12], 12)],
+      12,
+      null,
+      true,
+    );
+
+    assert.equal(result.status, "suggestion");
+    if (result.status !== "suggestion") {
+      return;
+    }
+    assert.equal(suggestionDirection(result.weightKg, result.previousWeightKg), "increase");
+    assert.equal(suggestedRepsDirection(result), "decrease");
+    assert.equal(formatSuggestionKgDelta(result.weightKg, result.previousWeightKg), "3 kg");
+    assert.equal(formatSuggestionRepDelta(result.reps, result.previousReps), "2 reps");
   });
 
   it("adds weight and resets reps after the higher rep target is hit", () => {

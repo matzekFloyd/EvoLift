@@ -37,7 +37,12 @@ import {
 import { confirmSignedInUser } from "@/lib/confirm-signed-in-user";
 import { rememberedUserId } from "@/lib/signed-in-memory";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
-import { homeExerciseBadgeTone, homeExerciseBadges, homeSetCount } from "@/app/home-sessions";
+import {
+  homeExerciseBadgeTone,
+  homeExerciseBadges,
+  homeSetCount,
+  type HomeExerciseBadge,
+} from "@/app/home-sessions";
 import {
   homeDraftIsFocal,
   homeForwardActionClassName,
@@ -63,11 +68,7 @@ type WorkoutSessionRow = {
   completed_at: string | null;
 };
 
-type SessionExerciseBadge = {
-  slug: string;
-  hasLoggedSet: boolean;
-  skipped: boolean;
-};
+type SessionExerciseBadge = HomeExerciseBadge;
 
 function homeView(loadedSessions: HomeSessionSummaryRow[]) {
   const sessions = loadedSessions.map((row) => ({
@@ -82,7 +83,10 @@ function homeView(loadedSessions: HomeSessionSummaryRow[]) {
   const exerciseBadgesBySessionId = new Map<string, SessionExerciseBadge[]>();
   for (const row of loadedSessions) {
     setCountBySessionId.set(row.id, homeSetCount(row.set_count));
-    exerciseBadgesBySessionId.set(row.id, homeExerciseBadges(row.exercise_badges));
+    exerciseBadgesBySessionId.set(
+      row.id,
+      homeExerciseBadges(row.exercise_badges, { completed: row.completed_at != null }),
+    );
   }
   return { sessions, setCountBySessionId, exerciseBadgesBySessionId };
 }
@@ -531,6 +535,8 @@ export default function Home() {
                   key={`${focalSession.id}-${badge.slug}`}
                   slug={badge.slug}
                   variant={homeExerciseBadgeTone(badge)}
+                  title={badge.label}
+                  aria-label={badge.label}
                 />
               ))}
             </div>

@@ -15,6 +15,8 @@ export type HomeSessionSummaryRow = {
     slug: string;
     has_logged_set: boolean;
     not_done?: boolean;
+    working_set_count?: number;
+    target_sets?: number | null;
   }> | null;
 };
 

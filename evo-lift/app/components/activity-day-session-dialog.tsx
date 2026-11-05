@@ -9,7 +9,13 @@ import { SectionHeading } from "@/app/components/section-heading";
 type ActivityDaySessionChoice = {
   id: string;
   notes: string;
-  badges: Array<{ slug: string; hasLoggedSet: boolean; skipped?: boolean }>;
+  badges: Array<{
+    slug: string;
+    hasLoggedSet: boolean;
+    skipped?: boolean;
+    setsShort?: boolean;
+    label?: string;
+  }>;
 };
 
 type ActivityDaySessionDialogProps = {
@@ -52,7 +58,10 @@ export function ActivityDaySessionDialog({
                       variant={homeExerciseBadgeTone({
                         hasLoggedSet: badge.hasLoggedSet,
                         skipped: badge.skipped === true,
+                        setsShort: badge.setsShort === true,
                       })}
+                      title={badge.label ?? badge.slug}
+                      aria-label={badge.label ?? badge.slug}
                     />
                   ))
                 )}
