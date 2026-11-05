@@ -29,6 +29,12 @@ jobs:
       - name: Install root dependencies
         run: npm ci
 
+      - name: Activate pinned npm
+        working-directory: evo-lift
+        env:
+          COREPACK_ENABLE_DOWNLOAD_PROMPT: "0"
+        run: corepack enable && corepack install
+
       - name: Install evo-lift dependencies
         working-directory: evo-lift
         run: npm ci
