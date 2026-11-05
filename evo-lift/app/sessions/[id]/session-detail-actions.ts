@@ -34,6 +34,7 @@ import {
   setsForSessionExercise,
   type AddExerciseDraft,
 } from "./session-detail-model";
+import { compactComposerAfterSavedSet } from "./session-log-primary";
 import {
   parseYyyyMmDdDateOnly,
   SESSION_DATE_HAS_SETS,
@@ -306,12 +307,6 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
       (a, b) => a.set_number - b.set_number,
     );
     const nextWorkingSetCount = mergedForExercise.filter((set) => !set.is_warmup).length;
-    const nextTargetSetsGoal = sessionExercise?.target_sets ?? null;
-    const nextTargetSetsMet =
-      nextTargetSetsGoal != null && nextTargetSetsGoal > 0 && nextWorkingSetCount >= nextTargetSetsGoal;
-    if (isCompactView && nextTargetSetsMet) {
-      setCompactShowExtraSetComposer(true);
-    }
     const nextSuggested = resolvedAddDraft(
       sessionExercise ? [sessionExercise] : [],
       mergedForExercise,
@@ -324,8 +319,15 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
     }));
     clearMessage();
     if (isCompactView) {
-      setCompactShowExtraSetComposer(true);
-      setPendingCompactSetFocusSessionExerciseId(sessionExerciseId);
+      const afterSave = compactComposerAfterSavedSet({
+        savedSetIsWarmup: Boolean(data.is_warmup),
+        workingSetCount: nextWorkingSetCount,
+        targetSets: sessionExercise?.target_sets ?? null,
+      });
+      setCompactShowExtraSetComposer(afterSave.showExtraSetComposer);
+      if (afterSave.focusNewSet) {
+        setPendingCompactSetFocusSessionExerciseId(sessionExerciseId);
+      }
     }
     setIsSavingSet(false);
   }
