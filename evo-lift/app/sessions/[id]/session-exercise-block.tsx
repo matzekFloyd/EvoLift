@@ -4,6 +4,7 @@ import { Check, ChevronDown, ChevronUp, History } from "lucide-react";
 import { type Dispatch, type SetStateAction, useState } from "react";
 import Link from "next/link";
 import { ActionButton } from "@/app/components/action-button";
+import { EnterNextForm } from "@/app/components/enter-next-form";
 import { panelInsetClass } from "@/app/components/panel-inset";
 import { TargetWeightSuggestion } from "@/app/components/target-weight-suggestion";
 import { WarmupSuggestion } from "@/app/components/warmup-suggestion";
@@ -275,6 +276,13 @@ export function SessionExerciseBlock({
       </div>
       {!shouldUseSingleExerciseFlow && targetsOpenInline ? (
         <div className="mt-3 rounded-md border border-zinc-200 bg-white p-3">
+          <EnterNextForm
+            onSubmit={() => {
+              if (!isSavingTargets) {
+                onSaveTargets();
+              }
+            }}
+          >
           <p className="mb-3 text-xs text-zinc-600">
             Values apply to working sets only; warmups do not count.
           </p>
@@ -306,16 +314,16 @@ export function SessionExerciseBlock({
               Cancel
             </ActionButton>
             <ActionButton
-              type="button"
+              type="submit"
               variant={logPrimary === "save-targets" ? "primary" : "secondary"}
               size="sm"
               disabled={isSavingTargets}
-              onClick={onSaveTargets}
             >
               <Check className="h-3.5 w-3.5" aria-hidden />
               {isSavingTargets ? "Saving..." : "Save"}
             </ActionButton>
           </div>
+          </EnterNextForm>
         </div>
       ) : null}
 

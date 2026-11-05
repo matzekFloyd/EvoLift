@@ -28,9 +28,11 @@ describe("session logging keyboard and screen-reader graph", () => {
     assert.match(focus, /listSessionSheetFocusable/);
     assert.match(focus, /cycleSessionSheetFocus/);
 
-    assert.match(targets, /SessionBottomSheet title="Set targets"/);
+    assert.match(targets, /title="Set targets"/);
+    assert.match(targets, /footer=/);
     assert.doesNotMatch(targets, /backdropLabel/);
-    assert.match(addExercise, /SessionBottomSheet title="Add exercise"/);
+    assert.match(addExercise, /title="Add exercise"/);
+    assert.match(addExercise, /footer=/);
     assert.doesNotMatch(addExercise, /backdropLabel/);
   });
 

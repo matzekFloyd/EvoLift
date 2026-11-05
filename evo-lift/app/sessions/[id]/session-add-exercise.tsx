@@ -238,7 +238,28 @@ export function SessionAddExerciseSheet(props: SessionAddExerciseSheetProps) {
   const { slug, usesAssistance, selectExercise, setField } = addExerciseFormModel(props);
 
   return (
-    <SessionBottomSheet title="Add exercise" onClose={onClose} className="md:hidden">
+    <SessionBottomSheet
+      title="Add exercise"
+      onClose={onClose}
+      className="md:hidden"
+      footer={
+        <div className="flex gap-2">
+          <ActionButton type="button" variant="secondary" onClick={onClose} className="!h-11 !w-auto min-w-0 flex-1">
+            Cancel
+          </ActionButton>
+          <ActionButton
+            type="button"
+            variant="primary"
+            onClick={onSubmit}
+            disabled={isAdding}
+            className="!h-11 !w-auto min-w-0 flex-1"
+          >
+            <Plus className="h-4 w-4" aria-hidden />
+            {isAdding ? "Adding..." : "Add"}
+          </ActionButton>
+        </div>
+      }
+    >
       <div className="grid gap-3">
         <label className="block text-sm font-medium">
           Exercise
@@ -304,21 +325,6 @@ export function SessionAddExerciseSheet(props: SessionAddExerciseSheetProps) {
           placeholder="Optional exercise notes"
           maxLength={maxExerciseNotesLength}
         />
-        <div className="mt-1 flex gap-2">
-          <ActionButton type="button" variant="secondary" onClick={onClose} className="!h-11 !w-auto min-w-0 flex-1">
-            Cancel
-          </ActionButton>
-          <ActionButton
-            type="button"
-            variant="primary"
-            onClick={onSubmit}
-            disabled={isAdding}
-            className="!h-11 !w-auto min-w-0 flex-1"
-          >
-            <Plus className="h-4 w-4" aria-hidden />
-            {isAdding ? "Adding..." : "Add"}
-          </ActionButton>
-        </div>
       </div>
     </SessionBottomSheet>
   );

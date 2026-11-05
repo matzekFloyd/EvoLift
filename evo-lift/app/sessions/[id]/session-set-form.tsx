@@ -3,6 +3,7 @@
 import { Plus } from "lucide-react";
 import { type Dispatch, type SetStateAction, useLayoutEffect, useRef, useState } from "react";
 import { ActionButton } from "@/app/components/action-button";
+import { EnterNextForm, enterNextHandlers } from "@/app/components/enter-next-form";
 import { Checkbox } from "@/app/components/checkbox";
 import { TextField } from "@/app/components/text-field";
 import { CompactRowActions } from "@/app/components/compact-row-actions";
@@ -251,6 +252,13 @@ export function SessionExerciseSets({
               data-compact-last-set={setIndex === visibleSets.length - 1 ? "" : undefined}
               className="p-3"
             >
+              <EnterNextForm
+                onSubmit={() => {
+                  if (!isSavingSet) {
+                    onSaveEdit(set.id);
+                  }
+                }}
+              >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="shrink-0 text-sm font-medium text-zinc-900">Set {set.set_number}</p>
@@ -305,6 +313,7 @@ export function SessionExerciseSets({
                   onCancel={onCancelEdit}
                 />
               </div>
+              </EnterNextForm>
             </PanelInset>
           ) : (
             <PanelInset
@@ -413,6 +422,13 @@ export function SessionExerciseSets({
               data-compact-next-action=""
               className="p-3"
             >
+              <EnterNextForm
+                onSubmit={() => {
+                  if (!isSavingSet && !isPlannedSession) {
+                    onAddSet();
+                  }
+                }}
+              >
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-sky-950">New set</p>
@@ -523,6 +539,7 @@ export function SessionExerciseSets({
                 <Plus className="h-4 w-4 shrink-0" aria-hidden />
                 Add set
               </ActionButton>
+              </EnterNextForm>
             </PanelInset>
           )
         ) : null}
@@ -544,7 +561,15 @@ export function SessionExerciseSets({
             <tbody>
               {visibleSets.map((set) =>
                 editingSetId === set.id ? (
-                  <tr key={set.id} className="border-b bg-white">
+                  <tr
+                    key={set.id}
+                    className="border-b bg-white"
+                    {...enterNextHandlers(() => {
+                      if (!isSavingSet) {
+                        onSaveEdit(set.id);
+                      }
+                    })}
+                  >
                     <td className="px-2 py-2">
                       {canEditSetAsWarmup(visibleSets, set.id) ? (
                         <Checkbox
@@ -667,7 +692,13 @@ export function SessionExerciseSets({
                 </tr>
               ) : null}
               {canManageSets && !hideFullViewAddSetRow ? (
-                <tr>
+                <tr
+                  {...enterNextHandlers(() => {
+                    if (!isSavingSet && !isPlannedSession) {
+                      onAddSet();
+                    }
+                  })}
+                >
                   <td className="px-2 py-2">
                     {showWarmupToggle ? (
                       <Checkbox
