@@ -16,7 +16,7 @@ export function AccountDoubleProgressionSection({
     <SettingsSection>
       <SettingsSectionHeader
         title="Double progression"
-        description="Adds 2 reps at the same weight, then adds weight and returns to the lower reps. It applies to the next session, and only when Suggest a target weight is on."
+        description="Adds 2 reps at the same weight, then adds weight and returns to the lower reps. This is the default for every exercise. Exercise defaults can turn it on or off for one exercise. It applies to the next session, and only when Suggest a target weight is on."
       />
       <SettingsSectionBody>
         <form onSubmit={handleSave} className="space-y-3">

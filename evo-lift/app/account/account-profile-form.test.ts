@@ -2,6 +2,8 @@ import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 import {
   accountAgeDisplay,
+  doubleProgressionChoice,
+  doubleProgressionOverride,
   exerciseDefaultsFormValues,
   localIsoDate,
 } from "./account-profile-form";
@@ -52,6 +54,7 @@ describe("exerciseDefaultsFormValues", () => {
     default_target_weight_kg: 62.5,
     suggest_warmups: false,
     suggest_target: false,
+    double_progression: true,
     max_suggested_warmup_sets: 2,
     created_at: "",
     updated_at: "",
@@ -65,6 +68,7 @@ describe("exerciseDefaultsFormValues", () => {
       targetWeightKg: "62.5",
       suggestWarmups: false,
       suggestTarget: false,
+      doubleProgression: "yes",
       maxWarmupSets: "2",
     });
   });
@@ -79,6 +83,7 @@ describe("exerciseDefaultsFormValues", () => {
         targetWeightKg: "",
         suggestWarmups: true,
         suggestTarget: true,
+        doubleProgression: "account",
         maxWarmupSets: "",
       },
     );
@@ -90,6 +95,16 @@ describe("exerciseDefaultsFormValues", () => {
         .suggestWarmups,
       false,
     );
+  });
+
+  it("maps a per-exercise double progression choice onto the saved override", () => {
+    assert.equal(doubleProgressionChoice(null), "account");
+    assert.equal(doubleProgressionChoice(undefined), "account");
+    assert.equal(doubleProgressionChoice(true), "yes");
+    assert.equal(doubleProgressionChoice(false), "no");
+    assert.equal(doubleProgressionOverride("account"), null);
+    assert.equal(doubleProgressionOverride("yes"), true);
+    assert.equal(doubleProgressionOverride("no"), false);
   });
 
   it("defaults suggest warmups to yes when no exercise is selected", () => {

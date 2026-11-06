@@ -5,6 +5,8 @@ import { warmupSuggestionsEnabled } from "@/lib/warmup-suggestion";
 
 type ExerciseDefaultsRow = Database["public"]["Tables"]["user_exercise_defaults"]["Row"];
 
+export type DoubleProgressionChoice = "account" | "yes" | "no";
+
 export type ExerciseDefaultsFormValues = {
   baseWeightKg: string;
   targetSets: string;
@@ -12,8 +14,33 @@ export type ExerciseDefaultsFormValues = {
   targetWeightKg: string;
   suggestWarmups: boolean;
   suggestTarget: boolean;
+  doubleProgression: DoubleProgressionChoice;
   maxWarmupSets: string;
 };
+
+/** Saved null follows the account switch. */
+export function doubleProgressionChoice(
+  value: boolean | null | undefined,
+): DoubleProgressionChoice {
+  if (value === true) {
+    return "yes";
+  }
+  if (value === false) {
+    return "no";
+  }
+  return "account";
+}
+
+/** Form choice written to user_exercise_defaults.double_progression. */
+export function doubleProgressionOverride(choice: DoubleProgressionChoice): boolean | null {
+  if (choice === "yes") {
+    return true;
+  }
+  if (choice === "no") {
+    return false;
+  }
+  return null;
+}
 
 /** Local calendar date as YYYY-MM-DD. */
 export function localIsoDate(date: Date): string {
@@ -52,6 +79,7 @@ export function exerciseDefaultsFormValues(input: {
       ? warmupSuggestionsEnabled(saved?.suggest_warmups, isCompoundExercise(input.slug))
       : true,
     suggestTarget: saved?.suggest_target !== false,
+    doubleProgression: doubleProgressionChoice(saved?.double_progression),
     maxWarmupSets:
       saved?.max_suggested_warmup_sets == null ? "" : String(saved.max_suggested_warmup_sets),
   };

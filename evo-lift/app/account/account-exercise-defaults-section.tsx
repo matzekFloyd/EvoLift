@@ -32,6 +32,8 @@ export function AccountExerciseDefaultsSection({
     setSuggestWarmups,
     suggestTarget,
     setSuggestTarget,
+    doubleProgression,
+    setDoubleProgression,
     isSaving,
     isClearing,
     canSave,
@@ -117,7 +119,8 @@ export function AccountExerciseDefaultsSection({
           <div className="space-y-2 border-t border-zinc-200 pt-3">
             <h3 className="text-sm font-medium text-zinc-800">Suggestions</h3>
             <p className="text-sm leading-snug text-zinc-600">
-              Leave maximum warmup sets empty to keep the full ladder.
+              Leave maximum warmup sets empty to keep the full ladder. Double progression follows
+              the account setting unless you choose Yes or No for this exercise.
             </p>
             <div className="grid gap-3 sm:grid-cols-3">
               <label className="block text-sm font-medium">
@@ -127,6 +130,23 @@ export function AccountExerciseDefaultsSection({
                   onChange={(event) => setSuggestTarget(event.target.value === "yes")}
                   className="mt-1 w-full"
                 >
+                  <option value="yes">Yes</option>
+                  <option value="no">No</option>
+                </SelectField>
+              </label>
+              <label className="block text-sm font-medium">
+                Double progression
+                <SelectField
+                  value={doubleProgression}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    if (value === "account" || value === "yes" || value === "no") {
+                      setDoubleProgression(value);
+                    }
+                  }}
+                  className="mt-1 w-full"
+                >
+                  <option value="account">Same as account</option>
                   <option value="yes">Yes</option>
                   <option value="no">No</option>
                 </SelectField>

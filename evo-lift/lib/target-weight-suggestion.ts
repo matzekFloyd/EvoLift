@@ -35,6 +35,19 @@ export function doubleProgressionEnabled(value: boolean | null | undefined): boo
 }
 
 /**
+ * Per-exercise yes or no wins. Null and a missing row follow the account switch.
+ */
+export function exerciseDoubleProgressionEnabled(input: {
+  accountEnabled: boolean | null | undefined;
+  exerciseOverride: boolean | null | undefined;
+}): boolean {
+  if (input.exerciseOverride === true || input.exerciseOverride === false) {
+    return input.exerciseOverride;
+  }
+  return doubleProgressionEnabled(input.accountEnabled);
+}
+
+/**
  * One logged set used to suggest Target weight (kg).
  * Loaded (kg) only — base weight is not part of the suggestion.
  */
