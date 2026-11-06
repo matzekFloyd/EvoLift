@@ -122,6 +122,12 @@ describe("previousSessionWorkingSets", () => {
           loadedKg: 70,
           reps: 5,
         }),
+        setRow({
+          sessionId: "later",
+          performedOn: "2026-10-28",
+          loadedKg: 100,
+          reps: 5,
+        }),
       ],
       "current",
       current,
@@ -164,6 +170,81 @@ describe("previousSessionWorkingSets", () => {
       current,
     );
     assert.deepEqual(sameDay, [{ loadedKg: 90, reps: 3 }]);
+  });
+
+  it("uses the latest session before the open session, not a later one", () => {
+    const current = "2026-10-14";
+    const previous = previousSessionWorkingSets(
+      [
+        setRow({
+          sessionId: "earlier",
+          performedOn: "2026-10-07",
+          loadedKg: 70,
+          reps: 8,
+        }),
+        setRow({
+          sessionId: "later",
+          performedOn: "2026-10-21",
+          loadedKg: 100,
+          reps: 5,
+        }),
+      ],
+      "current",
+      current,
+    );
+
+    assert.deepEqual(previous, [{ loadedKg: 70, reps: 8 }]);
+  });
+
+  it("leaves Previous session empty when every other session is later", () => {
+    const previous = previousSessionWorkingSets(
+      [
+        setRow({
+          sessionId: "later",
+          performedOn: "2026-10-21",
+          loadedKg: 100,
+          reps: 5,
+        }),
+      ],
+      "current",
+      "2026-10-14",
+    );
+
+    assert.deepEqual(previous, []);
+  });
+
+  it("ignores a later session on the same day and keeps an earlier one", () => {
+    const current = "2026-10-14";
+    const createdAt = "2026-10-14T12:00:00Z";
+    const previous = previousSessionWorkingSets(
+      [
+        setRow({
+          sessionId: "morning",
+          performedOn: current,
+          sessionCreatedAt: "2026-10-14T08:00:00Z",
+          loadedKg: 60,
+          reps: 8,
+        }),
+        setRow({
+          sessionId: "evening",
+          performedOn: current,
+          sessionCreatedAt: "2026-10-14T18:00:00Z",
+          loadedKg: 90,
+          reps: 3,
+        }),
+        setRow({
+          sessionId: "day-before",
+          performedOn: "2026-10-13",
+          loadedKg: 50,
+          reps: 5,
+        }),
+      ],
+      "current",
+      current,
+      createdAt,
+    );
+
+    assert.deepEqual(previous, [{ loadedKg: 60, reps: 8 }]);
   });
 });
 

@@ -11,13 +11,16 @@ import {
 
 /**
  * Working sets from the previous session of this exercise.
- * Empty while loading, on failure, when that session has no working sets,
- * or when its performed date is more than 30 days before this session.
+ * The previous session is the latest one of this exercise on or before the
+ * session on screen. Empty while loading, on failure, when that session has
+ * no working sets, when every other session is later, or when its performed
+ * date is more than 30 days before this session.
  */
 export function usePreviousSessionWorkingSets(
   exerciseId: string | undefined,
   excludeSessionId: string | null,
   sessionPerformedOn: string,
+  sessionCreatedAt?: string | null,
 ): LastSessionWorkingSet[] {
   const [loaded, setLoaded] = useState<{
     exerciseId: string;
@@ -48,5 +51,10 @@ export function usePreviousSessionWorkingSets(
   if (!exerciseId || loaded?.exerciseId !== exerciseId) {
     return [];
   }
-  return previousSessionWorkingSets(loaded.sets, excludeSessionId, sessionPerformedOn);
+  return previousSessionWorkingSets(
+    loaded.sets,
+    excludeSessionId,
+    sessionPerformedOn,
+    sessionCreatedAt,
+  );
 }
