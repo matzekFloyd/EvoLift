@@ -1,14 +1,18 @@
 "use client";
 
 import { ArrowDown, ArrowUp, Hash, Minus } from "lucide-react";
-import { useMemo, type ReactNode } from "react";
+import { useLayoutEffect, useMemo, useRef, type ReactNode } from "react";
 import { useDisplayLocale } from "@/app/components/use-display-locale";
 import { ChartTextAlternative } from "@/app/components/chart-text-alternative";
 import { GoalReachedMark } from "@/app/components/goal-reached-mark";
 import { heatmapActivityChartText } from "@/app/components/chart-text-data";
 import {
+  ACTIVITY_HEATMAP_CELL_PX,
+  ACTIVITY_HEATMAP_GAP_PX,
   activityDateKey,
   activityDateToLocalDate,
+  activityHeatmapScrollLeft,
+  activityHeatmapScrollToReveal,
   buildActivityHeatmapWeeks,
   currentWeekStartKey,
 } from "@/app/components/workout-activity-weeks";
@@ -41,8 +45,21 @@ type WorkoutActivityHeatmapProps = {
 };
 
 const INTENSITY_LEGEND: ActivityIntensity[] = ["rest", "no-sets", "workout"];
-/** Day rows stay short so the grid does not outweigh the next session. */
-const HEATMAP_ROW_PX = 20;
+
+function revealHeatmapDay(scroller: HTMLDivElement | null, day: HTMLElement) {
+  if (!scroller) {
+    return;
+  }
+  const scrollerRect = scroller.getBoundingClientRect();
+  const dayRect = day.getBoundingClientRect();
+  scroller.scrollLeft = activityHeatmapScrollToReveal(
+    scroller.scrollLeft,
+    scrollerRect.left,
+    scroller.clientWidth,
+    dayRect.left,
+    dayRect.width,
+  );
+}
 
 function ActivityRangeLine({ sentence }: { sentence: string }) {
   return (
@@ -92,6 +109,31 @@ export function WorkoutActivityChart({
   const totalSets = sortedData.reduce((sum, item) => sum + item.sets, 0);
   const locale = useDisplayLocale();
   const highlightedDateSet = useMemo(() => new Set(highlightedDates ?? []), [highlightedDates]);
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const pinnedToEndRef = useRef(true);
+  const rangeKey =
+    sortedData.length === 0
+      ? ""
+      : `${sortedData[0]?.date ?? ""}:${sortedData[sortedData.length - 1]?.date ?? ""}`;
+
+  useLayoutEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) {
+      return;
+    }
+    pinnedToEndRef.current = true;
+    const pinToLatest = () => {
+      const node = scrollerRef.current;
+      if (!node || !pinnedToEndRef.current) {
+        return;
+      }
+      node.scrollLeft = activityHeatmapScrollLeft(node.scrollWidth, node.clientWidth);
+    };
+    pinToLatest();
+    const observer = new ResizeObserver(pinToLatest);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [rangeKey]);
 
   if (sortedData.length === 0) {
     return (
@@ -107,11 +149,13 @@ export function WorkoutActivityChart({
   const currentWeekStart = currentWeekStartKey(today);
   const comparison = buildActivityComparison(sortedData, todayKey);
   const visibleWeeks = buildActivityHeatmapWeeks(sortedData);
-  const heatmapTrackStyle = {
-    gridTemplateColumns: `repeat(${visibleWeeks.length}, minmax(0, 1fr))`,
+  const weekColumnsStyle = {
+    gridTemplateColumns: `repeat(${visibleWeeks.length}, minmax(${ACTIVITY_HEATMAP_CELL_PX}px, 1fr))`,
+    columnGap: `${ACTIVITY_HEATMAP_GAP_PX}px`,
   };
-  const heatmapRowStyle = {
-    gridTemplateRows: `repeat(7, ${HEATMAP_ROW_PX}px)`,
+  const dayRowsStyle = {
+    gridTemplateRows: `repeat(7, ${ACTIVITY_HEATMAP_CELL_PX}px)`,
+    rowGap: `${ACTIVITY_HEATMAP_GAP_PX}px`,
   };
   const weekdayLabels = ["Mon", "", "Wed", "", "Fri", "", "Sun"];
   const monthFormat = new Intl.DateTimeFormat(locale, { month: "short" });
@@ -152,41 +196,60 @@ export function WorkoutActivityChart({
           ))}
         </div>
       </div>
-      <div className="grid grid-cols-[32px_minmax(0,1fr)] gap-2">
-        <div />
-        <div
-          className="grid gap-1.5 px-[1px] text-[10px] text-zinc-500"
-          style={heatmapTrackStyle}
-        >
-          {visibleWeeks.map((week, index) => {
-            const isCurrentWeek = week[0].date === currentWeekStart;
-            return (
-              <div
-                key={`month-${index}`}
-                className={isCurrentWeek ? "font-medium text-sky-800" : "truncate text-zinc-500"}
-              >
-                {isCurrentWeek ? "Now" : monthLabels[index]}
+      <div className="flex items-start gap-2">
+        <div className="flex w-8 shrink-0 flex-col gap-2 pt-1">
+          <div className="h-4" />
+          <div className="grid text-[10px] leading-3 text-zinc-500" style={dayRowsStyle}>
+            {weekdayLabels.map((label, index) => (
+              <div key={`weekday-${index}`} className="flex items-center">
+                {label}
               </div>
-            );
-          })}
+            ))}
+          </div>
         </div>
-        <div className="grid gap-1.5 text-[10px] leading-3 text-zinc-500" style={heatmapRowStyle}>
-          {weekdayLabels.map((label, index) => (
-            <div key={`weekday-${index}`} className="flex items-center">
-              {label}
+        <div
+          ref={scrollerRef}
+          className="min-w-0 flex-1 overflow-x-auto overscroll-x-contain"
+          onScroll={() => {
+            const node = scrollerRef.current;
+            if (!node) {
+              return;
+            }
+            const maxScroll = activityHeatmapScrollLeft(node.scrollWidth, node.clientWidth);
+            pinnedToEndRef.current = maxScroll - node.scrollLeft <= 1;
+          }}
+        >
+          <div className="flex w-max min-w-full flex-col gap-2 py-1 pr-2 pl-1">
+            <div
+              className="grid h-4 items-end text-[10px] leading-none text-zinc-500"
+              style={weekColumnsStyle}
+            >
+              {visibleWeeks.map((week, index) => {
+                const isCurrentWeek = week[0].date === currentWeekStart;
+                const label = isCurrentWeek ? "Now" : monthLabels[index];
+                return (
+                  <div key={`month-${index}`} className="relative min-w-0">
+                    <span
+                      className={`absolute bottom-0 left-0 whitespace-nowrap ${
+                        isCurrentWeek ? "font-medium text-sky-800" : ""
+                      }`}
+                    >
+                      {label}
+                    </span>
+                  </div>
+                );
+              })}
             </div>
-          ))}
-        </div>
-        <div className="grid gap-1.5" style={heatmapTrackStyle}>
+            <div className="grid" style={weekColumnsStyle}>
           {visibleWeeks.map((week, weekIndex) => {
             const isCurrentWeek = week[0].date === currentWeekStart;
             return (
             <div
               key={`week-${weekIndex}`}
-              className={`grid gap-1.5 ${
+              className={`grid ${
                 isCurrentWeek ? "rounded-sm outline outline-2 outline-sky-600 outline-offset-1" : ""
               }`}
-              style={heatmapRowStyle}
+              style={dayRowsStyle}
             >
               {week.map((day) => {
                 const parsedDate = activityDateToLocalDate(day.date);
@@ -225,6 +288,12 @@ export function WorkoutActivityChart({
                       }
                       onDayClick?.(day.date);
                     }}
+                    onFocus={(event) => {
+                      if (!canOpen) {
+                        return;
+                      }
+                      revealHeatmapDay(scrollerRef.current, event.currentTarget);
+                    }}
                     onKeyDown={(event) => {
                       if (!canOpen || (event.key !== "Enter" && event.key !== " ")) {
                         return;
@@ -244,7 +313,7 @@ export function WorkoutActivityChart({
                       <GoalReachedMark
                         label={goalLabel}
                         decorative
-                        className="pointer-events-none h-5 w-5"
+                        className="pointer-events-none h-4 w-4"
                       />
                     ) : null}
                   </div>
@@ -253,6 +322,8 @@ export function WorkoutActivityChart({
             </div>
             );
           })}
+            </div>
+          </div>
         </div>
       </div>
       <div className="mt-3">

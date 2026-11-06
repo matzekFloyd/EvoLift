@@ -39,6 +39,50 @@ export type HeatmapDay = {
   isInRange: boolean;
 };
 
+/** Square day. Short rows keep the grid from outweighing the next session. */
+export const ACTIVITY_HEATMAP_CELL_PX = 20;
+/** Gap between day cells. Shared by the grid and the scroll-width math. */
+export const ACTIVITY_HEATMAP_GAP_PX = 6;
+/** Room so a focus ring stays inside the scrollport. */
+export const ACTIVITY_HEATMAP_REVEAL_PADDING_PX = 4;
+
+/** Minimum width of the weeks. A wider track grows the days to fill it; a narrower one scrolls. */
+export function activityHeatmapTrackWidth(weekCount: number): number {
+  if (weekCount <= 0) {
+    return 0;
+  }
+  return weekCount * ACTIVITY_HEATMAP_CELL_PX + (weekCount - 1) * ACTIVITY_HEATMAP_GAP_PX;
+}
+
+/** Scroll offset that puts the latest week against the right edge. Zero when the track already fits. */
+export function activityHeatmapScrollLeft(contentWidth: number, viewportWidth: number): number {
+  return Math.max(0, contentWidth - viewportWidth);
+}
+
+/**
+ * Scroll offset that brings a day into the visible track.
+ * A day already inside the padded viewport keeps the current offset.
+ */
+export function activityHeatmapScrollToReveal(
+  scrollLeft: number,
+  viewportLeft: number,
+  viewportWidth: number,
+  childLeft: number,
+  childWidth: number,
+  padding = ACTIVITY_HEATMAP_REVEAL_PADDING_PX,
+): number {
+  const insetStart = viewportLeft + padding;
+  const insetEnd = viewportLeft + viewportWidth - padding;
+  const childRight = childLeft + childWidth;
+  if (childLeft < insetStart) {
+    return scrollLeft - (insetStart - childLeft);
+  }
+  if (childRight > insetEnd) {
+    return scrollLeft + (childRight - insetEnd);
+  }
+  return scrollLeft;
+}
+
 export function buildActivityHeatmapWeeks(data: ActivityDayPoint[]): HeatmapDay[][] {
   if (data.length === 0) {
     return [];
@@ -71,9 +115,5 @@ export function buildActivityHeatmapWeeks(data: ActivityDayPoint[]): HeatmapDay[
     cursor.setDate(cursor.getDate() + 7);
   }
 
-  const fixedVisibleWeeks = 26;
-  if (weeks.length > fixedVisibleWeeks) {
-    return weeks.slice(weeks.length - fixedVisibleWeeks);
-  }
   return weeks;
 }

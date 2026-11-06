@@ -285,6 +285,10 @@ describe("chart text alternative wiring", () => {
     assert.match(activity, /ChartTextAlternative/);
     assert.match(activity, /tabIndex=\{canOpen \? 0 : undefined\}/);
     assert.match(activity, /focus-visible:ring-sky-700/);
+    assert.match(activity, /overflow-x-auto/);
+    assert.match(activity, /min-w-full/);
+    assert.match(activity, /minmax\(\$\{ACTIVITY_HEATMAP_CELL_PX\}px, 1fr\)/);
+    assert.doesNotMatch(activity, /minmax\(0, 1fr\)/);
     assert.doesNotMatch(activity, /BarChart/);
     assert.doesNotMatch(activity, /isCompactView/);
 
