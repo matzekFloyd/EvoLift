@@ -28,10 +28,24 @@ export function compactComposerAfterSavedSet(input: {
 export type SessionLogPrimary =
   | "save-targets"
   | "save-set"
+  | "set-targets"
   | "add-set"
   | "next-exercise"
   | "finish"
   | "none";
+
+/** True when the exercise already has a working-set plan. Any one field counts. */
+export function exerciseHasTargets(exercise: {
+  target_sets?: number | null;
+  target_reps?: number | null;
+  target_weight_kg?: number | null;
+}): boolean {
+  const sets = exercise.target_sets != null && exercise.target_sets > 0;
+  const reps = exercise.target_reps != null && exercise.target_reps > 0;
+  const weight =
+    exercise.target_weight_kg != null && Number.isFinite(exercise.target_weight_kg);
+  return sets || reps || weight;
+}
 
 export function addSetComposerVisible(input: {
   canManageSets: boolean;
@@ -51,13 +65,20 @@ export function addSetComposerVisible(input: {
 
 /**
  * Which control is filled sky for one exercise.
- * An open edit wins, then the targets form, then Add set.
+ * An open edit wins, then the targets form.
+ * With no targets yet, Set targets fills. Otherwise Add set fills.
  * Next exercise and Finish fill only after the add-set composer is hidden.
  */
 export function exerciseLoggingPrimary(input: {
   targetsOpen: boolean;
+  /** Compact sheet is open, so its Save stays the filled action. */
+  targetsSheetOpen?: boolean;
   editingSet: boolean;
   canManageSets: boolean;
+  /** False until sets, reps, or a target weight is saved. Set targets then fills. */
+  hasTargets: boolean;
+  /** Skipped exercises keep Set targets disabled, so it does not fill. */
+  notDone?: boolean;
   targetsMet: boolean;
   singleExerciseFlow: boolean;
   showExtraSetComposer: boolean;
@@ -76,8 +97,11 @@ export function exerciseLoggingPrimary(input: {
   if (input.editingSet) {
     return "save-set";
   }
-  if (input.targetsOpen) {
+  if (input.targetsOpen || input.targetsSheetOpen) {
     return "save-targets";
+  }
+  if (!input.hasTargets && !input.notDone && input.addSetForward !== false) {
+    return "set-targets";
   }
   if (addSetVisible && input.addSetForward !== false) {
     return "add-set";
@@ -139,6 +163,7 @@ export function finishSessionIsPrimary(
       primary === "add-set" ||
       primary === "save-set" ||
       primary === "save-targets" ||
+      primary === "set-targets" ||
       primary === "next-exercise",
   );
 }

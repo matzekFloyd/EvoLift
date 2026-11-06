@@ -38,7 +38,7 @@ type SessionExerciseBlockProps = {
   exerciseBadge: string | undefined;
   exerciseSlug: string | undefined;
   sessionId: string | null;
-  /** Performed date of the session on screen. Last session older than 30 days stays hidden. */
+  /** Performed date of the session on screen. A previous session older than 30 days stays hidden. */
   sessionPerformedOn: string;
   isReadOnly: boolean;
   shouldUseSingleExerciseFlow: boolean;
@@ -257,7 +257,7 @@ export function SessionExerciseBlock({
           {!isReadOnly && !shouldUseSingleExerciseFlow ? (
             <ActionButton
               type="button"
-              variant="secondary"
+              variant={logPrimary === "set-targets" ? "primary" : "secondary"}
               size="sm"
               raised={buttonsRaised}
               onClick={onToggleTargets}

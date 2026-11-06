@@ -1,4 +1,4 @@
-import { formatRepCount } from "@/lib/milestone-progress";
+import { formatKgAmount, formatRepCount, roundKg } from "@/lib/milestone-progress";
 
 /** One set from exercise history, before the previous session is chosen. */
 export type PreviousSessionSetSource = {
@@ -17,7 +17,7 @@ export type LastSessionWorkingSet = {
   reps: number;
 };
 
-/** Hide Last session when the previous performed date is older than this. */
+/** Hide the previous session when its performed date is older than this. */
 const LAST_SESSION_MAX_AGE_DAYS = 30;
 
 /**
@@ -133,7 +133,7 @@ function loadKgText(loadedKg: number | null): string {
 
 /**
  * Last-session load and reps for one working set.
- * `labeled` adds the "Last session:" prefix used outside a column header.
+ * `labeled` adds the "Previous session:" prefix used outside a column header.
  * Assisted moves use assistance, and blank or 0 stays unassisted.
  */
 export function formatLastSessionSetComparison(
@@ -149,7 +149,105 @@ export function formatLastSessionSetComparison(
   if (options.labeled === false) {
     return value;
   }
-  return `Last session: ${value}`;
+  return `Previous session: ${value}`;
+}
+
+export type SetChangeDirection = "up" | "down";
+
+/** Arrow and amount for one logged value compared with the previous session. */
+export type SetChangeMark = {
+  direction: SetChangeDirection;
+  /** Short amount beside the arrow, such as "5 kg" or "2 reps". */
+  amount: string;
+  /** Sentence for screen readers. The visible amount repeats it, so hide one of them. */
+  label: string;
+};
+
+export type LoggedSetChange = {
+  load: SetChangeMark | null;
+  reps: SetChangeMark | null;
+};
+
+const NO_SET_CHANGE: LoggedSetChange = { load: null, reps: null };
+
+function repChange(current: number, previous: number): SetChangeMark | null {
+  const count = Math.abs(Math.round(current - previous));
+  if (count < 1) {
+    return null;
+  }
+  const more = current > previous;
+  const noun = count === 1 ? "rep" : "reps";
+  return {
+    direction: more ? "up" : "down",
+    amount: formatRepCount(count),
+    label: more
+      ? `${count} more ${noun} than the previous session`
+      : `${count} fewer ${noun} than the previous session`,
+  };
+}
+
+function loadChange(
+  current: number,
+  previous: number,
+  assistance: boolean,
+): SetChangeMark | null {
+  const delta = roundKg(current - previous);
+  if (Math.abs(delta) < 0.001) {
+    return null;
+  }
+  const amountKg = formatKgAmount(Math.abs(delta));
+  if (assistance) {
+    const lessAssistance = delta < 0;
+    return {
+      direction: lessAssistance ? "up" : "down",
+      amount: lessAssistance ? `${amountKg} less` : `${amountKg} more`,
+      label: lessAssistance
+        ? `${amountKg} less assistance than the previous session`
+        : `${amountKg} more assistance than the previous session`,
+    };
+  }
+  const moreLoad = delta > 0;
+  return {
+    direction: moreLoad ? "up" : "down",
+    amount: amountKg,
+    label: moreLoad
+      ? `Loaded is ${amountKg} more than the previous session`
+      : `Loaded is ${amountKg} less than the previous session`,
+  };
+}
+
+/**
+ * Up means a harder set than the matching working set last time.
+ * More loaded weight or reps is up. Less assistance is up.
+ * An unchanged value stays unmarked.
+ */
+export function loggedSetChangeFromPrevious(input: {
+  loadedKg: number | null;
+  reps: number;
+  previous: LastSessionWorkingSet | null;
+  assistance: boolean;
+}): LoggedSetChange {
+  const previous = input.previous;
+  if (!previous || !Number.isFinite(input.reps) || !Number.isFinite(previous.reps)) {
+    return NO_SET_CHANGE;
+  }
+
+  const reps = repChange(input.reps, previous.reps);
+  const currentLoad = input.loadedKg;
+  const previousLoad = previous.loadedKg;
+  if (
+    currentLoad == null ||
+    previousLoad == null ||
+    !Number.isFinite(currentLoad) ||
+    !Number.isFinite(previousLoad)
+  ) {
+    return { load: null, reps };
+  }
+
+  return {
+    load: loadChange(currentLoad, previousLoad, input.assistance),
+    reps,
+  };
 }
 
 /**

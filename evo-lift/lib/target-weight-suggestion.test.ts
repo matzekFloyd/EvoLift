@@ -148,7 +148,7 @@ describe("suggestTargetWeight", () => {
     assert.deepEqual(result, {
       status: "suggestion",
       weightKg: 60,
-      rationale: "Last session was short of 8 reps at 60 kg.",
+      rationale: "Previous session was short of 8 reps at 60 kg.",
     });
   });
 
@@ -166,7 +166,7 @@ describe("suggestTargetWeight", () => {
     assert.deepEqual(result, {
       status: "suggestion",
       weightKg: 57,
-      rationale: "Last session missed 8 reps at 60 kg.",
+      rationale: "Previous session missed 8 reps at 60 kg.",
     });
   });
 
@@ -298,7 +298,7 @@ describe("suggestTargetWeight", () => {
     assert.deepEqual(result, {
       status: "suggestion",
       weightKg: 60,
-      rationale: "Last session was lighter than 60 kg.",
+      rationale: "Previous session was lighter than 60 kg.",
     });
   });
 
@@ -345,7 +345,7 @@ describe("suggestTargetWeight", () => {
     assert.deepEqual(result, {
       status: "suggestion",
       weightKg: 0,
-      rationale: "Last session missed 8 reps at 0 kg.",
+      rationale: "Previous session missed 8 reps at 0 kg.",
     });
   });
 
@@ -658,7 +658,7 @@ describe("suggestTargetWeight", () => {
       assert.deepEqual(miss, {
         status: "suggestion",
         weightKg: down,
-        rationale: `Last session missed 8 reps at ${load} kg.`,
+        rationale: `Previous session missed 8 reps at ${load} kg.`,
       });
     }
   });
@@ -693,7 +693,7 @@ describe("double progression", () => {
       status: "suggestion",
       weightKg: 60,
       reps: 12,
-      rationale: "Last session hit 10 reps at 60 kg.",
+      rationale: "Previous session hit 10 reps at 60 kg.",
     });
   });
 
@@ -752,7 +752,7 @@ describe("double progression", () => {
       status: "suggestion",
       weightKg: 63,
       reps: 10,
-      rationale: "Last session hit 12 reps at 60 kg.",
+      rationale: "Previous session hit 12 reps at 60 kg.",
     });
   });
 
@@ -772,7 +772,7 @@ describe("double progression", () => {
       status: "suggestion",
       weightKg: 63,
       reps: 12,
-      rationale: "Last session hit 10 reps at 63 kg.",
+      rationale: "Previous session hit 10 reps at 63 kg.",
     });
   });
 
@@ -815,7 +815,7 @@ describe("double progression", () => {
       status: "suggestion",
       weightKg: 60,
       reps: 8,
-      rationale: "Last session reached 8 reps at 60 kg.",
+      rationale: "Previous session reached 8 reps at 60 kg.",
     });
   });
 
@@ -831,7 +831,7 @@ describe("double progression", () => {
       status: "suggestion",
       weightKg: 57,
       reps: 8,
-      rationale: "Last session was under 8 reps at 60 kg.",
+      rationale: "Previous session was under 8 reps at 60 kg.",
     });
   });
 
@@ -843,13 +843,13 @@ describe("double progression", () => {
       status: "suggestion",
       weightKg: 57,
       reps: 10,
-      rationale: "Last session was under 10 reps at 60 kg.",
+      rationale: "Previous session was under 10 reps at 60 kg.",
     });
     assert.deepEqual(atBottom, {
       status: "suggestion",
       weightKg: 57,
       reps: 8,
-      rationale: "Last session was under 8 reps at 60 kg.",
+      rationale: "Previous session was under 8 reps at 60 kg.",
     });
   });
 
@@ -871,13 +871,13 @@ describe("double progression", () => {
       status: "suggestion",
       weightKg: 125,
       reps: 8,
-      rationale: "Last session hit 10 reps at 120 kg.",
+      rationale: "Previous session hit 10 reps at 120 kg.",
     });
     assert.deepEqual(down, {
       status: "suggestion",
       weightKg: 7.5,
       reps: 8,
-      rationale: "Last session was under 8 reps at 8 kg.",
+      rationale: "Previous session was under 8 reps at 8 kg.",
     });
   });
 
