@@ -39,17 +39,56 @@ function calendarDaysBefore(earlier: string, later: string): number | null {
 }
 
 /**
+ * True when `candidate` was performed before the session on screen.
+ * A later calendar day is after. The same day uses created time, then id.
+ * Without a created time, another session on that day still counts.
+ */
+function sessionIsBeforeOpenSession(
+  candidate: { performedOn: string; sessionCreatedAt: string; sessionId: string },
+  sessionPerformedOn: string,
+  sessionCreatedAt: string | null | undefined,
+  openSessionId: string | null | undefined,
+): boolean {
+  const openDay = sessionPerformedOn.slice(0, 10);
+  const dateCompare = candidate.performedOn.localeCompare(openDay);
+  if (dateCompare < 0) {
+    return true;
+  }
+  if (dateCompare > 0) {
+    return false;
+  }
+  if (!sessionCreatedAt) {
+    return true;
+  }
+  const createdCompare = candidate.sessionCreatedAt.localeCompare(sessionCreatedAt);
+  if (createdCompare < 0) {
+    return true;
+  }
+  if (createdCompare > 0) {
+    return false;
+  }
+  if (!openSessionId) {
+    return false;
+  }
+  return candidate.sessionId.localeCompare(openSessionId) < 0;
+}
+
+/**
  * Working sets from the latest earlier session, in log order.
  * Warmups are left out, so the first entry is the first working set even when
  * earlier sets in that session were warmups. The session on screen is left out.
  * A previous session with only warmups stays empty instead of falling back.
- * When `sessionPerformedOn` is set, a previous session more than 30 days before
- * that performed date is left out too. The cutoff uses performed dates.
+ * When `sessionPerformedOn` is set, only a session on or before that performed
+ * date can be previous. A later session of the same exercise is ignored.
+ * Pass `sessionCreatedAt` so a later session on that same day is ignored too.
+ * A previous session more than 30 days before that performed date is left out.
+ * The cutoff uses performed dates.
  */
 export function previousSessionWorkingSets(
   sets: readonly PreviousSessionSetSource[],
   excludeSessionId?: string | null,
   sessionPerformedOn?: string | null,
+  sessionCreatedAt?: string | null,
 ): LastSessionWorkingSet[] {
   const bySession = new Map<
     string,
@@ -78,17 +117,25 @@ export function previousSessionWorkingSets(
     });
   }
 
-  const latest = [...bySession.values()].sort((left, right) => {
-    const dateCompare = right.performedOn.localeCompare(left.performedOn);
-    if (dateCompare !== 0) {
-      return dateCompare;
-    }
-    const createdCompare = right.sessionCreatedAt.localeCompare(left.sessionCreatedAt);
-    if (createdCompare !== 0) {
-      return createdCompare;
-    }
-    return right.sessionId.localeCompare(left.sessionId);
-  })[0];
+  const openDay = sessionPerformedOn?.slice(0, 10);
+  const latest = [...bySession.values()]
+    .filter((session) => {
+      if (!openDay || !/^\d{4}-\d{2}-\d{2}$/.test(openDay)) {
+        return true;
+      }
+      return sessionIsBeforeOpenSession(session, openDay, sessionCreatedAt, excludeSessionId);
+    })
+    .sort((left, right) => {
+      const dateCompare = right.performedOn.localeCompare(left.performedOn);
+      if (dateCompare !== 0) {
+        return dateCompare;
+      }
+      const createdCompare = right.sessionCreatedAt.localeCompare(left.sessionCreatedAt);
+      if (createdCompare !== 0) {
+        return createdCompare;
+      }
+      return right.sessionId.localeCompare(left.sessionId);
+    })[0];
 
   if (!latest) {
     return [];

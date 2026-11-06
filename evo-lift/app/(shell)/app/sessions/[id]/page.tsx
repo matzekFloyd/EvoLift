@@ -598,6 +598,7 @@ function SessionDetailPageContent() {
                 exerciseSlug={exerciseSlugById.get(sessionExercise.exercise_id)}
                 sessionId={sessionId ?? null}
                 sessionPerformedOn={session.performed_on}
+                sessionCreatedAt={session.created_at}
                 isReadOnly={isReadOnly}
                 shouldUseSingleExerciseFlow={shouldUseSingleExerciseFlow}
                 isCompactView={isCompactView}

@@ -40,6 +40,8 @@ type SessionExerciseBlockProps = {
   sessionId: string | null;
   /** Performed date of the session on screen. A previous session older than 30 days stays hidden. */
   sessionPerformedOn: string;
+  /** Created time of the session on screen. A later session on the same day stays hidden. */
+  sessionCreatedAt?: string | null;
   isReadOnly: boolean;
   shouldUseSingleExerciseFlow: boolean;
   isCompactView: boolean;
@@ -95,6 +97,7 @@ export function SessionExerciseBlock({
   exerciseSlug,
   sessionId,
   sessionPerformedOn,
+  sessionCreatedAt,
   isReadOnly,
   shouldUseSingleExerciseFlow,
   isCompactView,
@@ -139,6 +142,7 @@ export function SessionExerciseBlock({
     sessionExercise.exercise_id,
     sessionId,
     sessionPerformedOn,
+    sessionCreatedAt,
   );
   const sets = setsForSessionExercise(workoutSets, sessionExercise.id);
   const addDraft = resolvedAddDraft([sessionExercise], workoutSets, addDrafts, sessionExercise.id);
