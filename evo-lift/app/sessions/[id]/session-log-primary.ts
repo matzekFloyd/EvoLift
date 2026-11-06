@@ -28,10 +28,21 @@ export function compactComposerAfterSavedSet(input: {
 export type SessionLogPrimary =
   | "save-targets"
   | "save-set"
+  | "set-targets"
   | "add-set"
   | "next-exercise"
   | "finish"
   | "none";
+
+/**
+ * True when a target weight is saved.
+ * Sets and reps alone do not count. 0 kg counts, including an unassisted target.
+ */
+export function exerciseHasTargetWeight(exercise: {
+  target_weight_kg?: number | null;
+}): boolean {
+  return exercise.target_weight_kg != null && Number.isFinite(exercise.target_weight_kg);
+}
 
 export function addSetComposerVisible(input: {
   canManageSets: boolean;
@@ -51,13 +62,20 @@ export function addSetComposerVisible(input: {
 
 /**
  * Which control is filled sky for one exercise.
- * An open edit wins, then the targets form, then Add set.
+ * An open edit wins, then the targets form.
+ * With no target weight yet, Set targets fills. Otherwise Add set fills.
  * Next exercise and Finish fill only after the add-set composer is hidden.
  */
 export function exerciseLoggingPrimary(input: {
   targetsOpen: boolean;
+  /** Compact sheet is open, so its Save stays the filled action. */
+  targetsSheetOpen?: boolean;
   editingSet: boolean;
   canManageSets: boolean;
+  /** False until a target weight is saved. Sets and reps alone still fill Set targets. */
+  hasTargets: boolean;
+  /** Skipped exercises keep Set targets disabled, so it does not fill. */
+  notDone?: boolean;
   targetsMet: boolean;
   singleExerciseFlow: boolean;
   showExtraSetComposer: boolean;
@@ -76,8 +94,11 @@ export function exerciseLoggingPrimary(input: {
   if (input.editingSet) {
     return "save-set";
   }
-  if (input.targetsOpen) {
+  if (input.targetsOpen || input.targetsSheetOpen) {
     return "save-targets";
+  }
+  if (!input.hasTargets && !input.notDone && input.addSetForward !== false) {
+    return "set-targets";
   }
   if (addSetVisible && input.addSetForward !== false) {
     return "add-set";
@@ -139,6 +160,7 @@ export function finishSessionIsPrimary(
       primary === "add-set" ||
       primary === "save-set" ||
       primary === "save-targets" ||
+      primary === "set-targets" ||
       primary === "next-exercise",
   );
 }
