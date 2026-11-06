@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   addSetComposerVisible,
   compactComposerAfterSavedSet,
-  exerciseHasTargets,
+  exerciseHasTargetWeight,
   exerciseLoggingPrimary,
   compactFinishChrome,
   finishSessionIsPrimary,
@@ -267,15 +267,13 @@ describe("compactFinishChrome", () => {
   });
 });
 
-describe("exerciseHasTargets", () => {
-  it("is set when any target field is saved, including a 0 kg target", () => {
-    expect(exerciseHasTargets({})).toBe(false);
-    expect(exerciseHasTargets({ target_sets: 0, target_reps: null, target_weight_kg: null })).toBe(
-      false,
-    );
-    expect(exerciseHasTargets({ target_sets: 3 })).toBe(true);
-    expect(exerciseHasTargets({ target_reps: 8 })).toBe(true);
-    expect(exerciseHasTargets({ target_weight_kg: 0 })).toBe(true);
+describe("exerciseHasTargetWeight", () => {
+  it("stays unset until a target weight is saved, including 0 kg", () => {
+    expect(exerciseHasTargetWeight({})).toBe(false);
+    expect(exerciseHasTargetWeight({ target_weight_kg: null })).toBe(false);
+    expect(exerciseHasTargetWeight({ target_weight_kg: Number.NaN })).toBe(false);
+    expect(exerciseHasTargetWeight({ target_weight_kg: 0 })).toBe(true);
+    expect(exerciseHasTargetWeight({ target_weight_kg: 60 })).toBe(true);
   });
 });
 

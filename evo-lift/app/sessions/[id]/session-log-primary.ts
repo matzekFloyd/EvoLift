@@ -34,17 +34,14 @@ export type SessionLogPrimary =
   | "finish"
   | "none";
 
-/** True when the exercise already has a working-set plan. Any one field counts. */
-export function exerciseHasTargets(exercise: {
-  target_sets?: number | null;
-  target_reps?: number | null;
+/**
+ * True when a target weight is saved.
+ * Sets and reps alone do not count. 0 kg counts, including an unassisted target.
+ */
+export function exerciseHasTargetWeight(exercise: {
   target_weight_kg?: number | null;
 }): boolean {
-  const sets = exercise.target_sets != null && exercise.target_sets > 0;
-  const reps = exercise.target_reps != null && exercise.target_reps > 0;
-  const weight =
-    exercise.target_weight_kg != null && Number.isFinite(exercise.target_weight_kg);
-  return sets || reps || weight;
+  return exercise.target_weight_kg != null && Number.isFinite(exercise.target_weight_kg);
 }
 
 export function addSetComposerVisible(input: {
@@ -66,7 +63,7 @@ export function addSetComposerVisible(input: {
 /**
  * Which control is filled sky for one exercise.
  * An open edit wins, then the targets form.
- * With no targets yet, Set targets fills. Otherwise Add set fills.
+ * With no target weight yet, Set targets fills. Otherwise Add set fills.
  * Next exercise and Finish fill only after the add-set composer is hidden.
  */
 export function exerciseLoggingPrimary(input: {
@@ -75,7 +72,7 @@ export function exerciseLoggingPrimary(input: {
   targetsSheetOpen?: boolean;
   editingSet: boolean;
   canManageSets: boolean;
-  /** False until sets, reps, or a target weight is saved. Set targets then fills. */
+  /** False until a target weight is saved. Sets and reps alone still fill Set targets. */
   hasTargets: boolean;
   /** Skipped exercises keep Set targets disabled, so it does not fill. */
   notDone?: boolean;

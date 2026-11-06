@@ -52,7 +52,7 @@ import {
 import { SessionCompactBar } from "@/app/sessions/[id]/session-compact-bar";
 import {
   addSetComposerVisible,
-  exerciseHasTargets,
+  exerciseHasTargetWeight,
   exerciseLoggingPrimary,
   finishSessionIsPrimary,
   shownLogPrimary,
@@ -454,7 +454,7 @@ function SessionDetailPageContent() {
         (set) => set.session_exercise_id === sessionExercise.id && set.id === editingSetId,
       ),
       canManageSets,
-      hasTargets: exerciseHasTargets(sessionExercise),
+      hasTargets: exerciseHasTargetWeight(sessionExercise),
       notDone: sessionExercise.not_done,
       targetsMet,
       singleExerciseFlow: shouldUseSingleExerciseFlow,
