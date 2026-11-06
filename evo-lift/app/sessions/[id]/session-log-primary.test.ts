@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   addSetComposerVisible,
   compactComposerAfterSavedSet,
+  exerciseHasTargetWeight,
   exerciseLoggingPrimary,
   compactFinishChrome,
   finishSessionIsPrimary,
@@ -12,6 +13,7 @@ const logging = {
   targetsOpen: false,
   editingSet: false,
   canManageSets: true,
+  hasTargets: true,
   targetsMet: false,
   singleExerciseFlow: true,
   showExtraSetComposer: false,
@@ -134,6 +136,24 @@ describe("exerciseLoggingPrimary", () => {
     expect(exerciseLoggingPrimary(logging)).toBe("add-set");
   });
 
+  it("fills Set targets until the exercise has a plan", () => {
+    expect(exerciseLoggingPrimary({ ...logging, hasTargets: false })).toBe("set-targets");
+    expect(
+      exerciseLoggingPrimary({ ...logging, hasTargets: false, targetsSheetOpen: true }),
+    ).toBe("save-targets");
+    expect(exerciseLoggingPrimary({ ...logging, hasTargets: false, notDone: true })).toBe(
+      "add-set",
+    );
+    expect(
+      exerciseLoggingPrimary({
+        ...logging,
+        hasTargets: false,
+        singleExerciseFlow: false,
+        addSetForward: false,
+      }),
+    ).toBe("finish");
+  });
+
   it("fills Save on the set being edited, ahead of Add set and the targets form", () => {
     expect(exerciseLoggingPrimary({ ...logging, editingSet: true, targetsOpen: true })).toBe(
       "save-set",
@@ -247,8 +267,18 @@ describe("compactFinishChrome", () => {
   });
 });
 
+describe("exerciseHasTargetWeight", () => {
+  it("stays unset until a target weight is saved, including 0 kg", () => {
+    expect(exerciseHasTargetWeight({})).toBe(false);
+    expect(exerciseHasTargetWeight({ target_weight_kg: null })).toBe(false);
+    expect(exerciseHasTargetWeight({ target_weight_kg: Number.NaN })).toBe(false);
+    expect(exerciseHasTargetWeight({ target_weight_kg: 0 })).toBe(true);
+    expect(exerciseHasTargetWeight({ target_weight_kg: 60 })).toBe(true);
+  });
+});
+
 describe("finishSessionIsPrimary", () => {
-  it("stays zinc while an exercise still owns Add set, Save, or Next exercise", () => {
+  it("stays zinc while an exercise still owns Add set, Save, Set targets, or Next exercise", () => {
     expect(
       finishSessionIsPrimary(["add-set", "finish"], { canFinish: true, detailsEditing: false }),
     ).toBe(false);
@@ -257,6 +287,9 @@ describe("finishSessionIsPrimary", () => {
     ).toBe(false);
     expect(
       finishSessionIsPrimary(["save-set"], { canFinish: true, detailsEditing: false }),
+    ).toBe(false);
+    expect(
+      finishSessionIsPrimary(["set-targets"], { canFinish: true, detailsEditing: false }),
     ).toBe(false);
   });
 

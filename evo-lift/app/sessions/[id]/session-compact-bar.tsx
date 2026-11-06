@@ -14,6 +14,7 @@ type SessionCompactBarProps = {
   exerciseCount: number;
   nextLabel: string;
   nextPrimary: boolean;
+  setTargetsPrimary: boolean;
   showFinish: boolean;
   finishPrimary: boolean;
   isMarkingCompleted: boolean;
@@ -31,6 +32,7 @@ export function SessionCompactBar({
   exerciseCount,
   nextLabel,
   nextPrimary,
+  setTargetsPrimary,
   showFinish,
   finishPrimary,
   isMarkingCompleted,
@@ -68,7 +70,7 @@ export function SessionCompactBar({
           />
           <ActionButton
             type="button"
-            variant="secondary"
+            variant={setTargetsPrimary ? "primary" : "secondary"}
             onClick={onSetTargets}
             disabled={activeSessionExercise.not_done}
             title={

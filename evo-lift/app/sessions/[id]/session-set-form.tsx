@@ -1,6 +1,6 @@
 "use client";
 
-import { Plus } from "lucide-react";
+import { ArrowDown, ArrowUp, Plus } from "lucide-react";
 import { type Dispatch, type SetStateAction, useLayoutEffect, useRef, useState } from "react";
 import { ActionButton } from "@/app/components/action-button";
 import { EnterNextForm, enterNextHandlers } from "@/app/components/enter-next-form";
@@ -20,9 +20,12 @@ import { SetKindIndicator } from "@/app/components/set-kind-indicator";
 import { shouldShowSetSummarySeparator } from "./compact-set-summary";
 import {
   lastSessionComparisonLine,
+  loggedSetChangeFromPrevious,
   nextWorkingSetOrdinal,
   workingSetOrdinal,
   type LastSessionWorkingSet,
+  type LoggedSetChange,
+  type SetChangeMark,
 } from "./last-session-set-comparison";
 import { canEditSetAsWarmup, showWarmupSetToggle, type SessionSetDraft } from "./session-set-draft";
 import type { WorkoutSetRow } from "./session-detail-actions";
@@ -55,6 +58,23 @@ function LastSessionSetNote({ line }: { line: string | null }) {
   return <p className="mt-1 text-xs tabular-nums text-zinc-600">{line}</p>;
 }
 
+function SetChangeMarkView({ mark }: { mark: SetChangeMark | null }) {
+  if (!mark) {
+    return null;
+  }
+  const Icon = mark.direction === "up" ? ArrowUp : ArrowDown;
+  const tone = mark.direction === "up" ? "text-emerald-700" : "text-amber-800";
+  return (
+    <span className={`inline-flex items-center gap-0.5 ${tone}`}>
+      <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
+      <span className="sr-only">{mark.label}</span>
+      <span aria-hidden className="text-xs font-medium tabular-nums">
+        {mark.amount}
+      </span>
+    </span>
+  );
+}
+
 function loggedSetComparisonLine(
   sets: WorkoutSetRow[],
   setId: string,
@@ -82,11 +102,15 @@ function CompactLoggedSetSummary({
   setNumber,
   weightKg,
   reps,
+  loadMark = null,
+  repsMark = null,
 }: {
   isWarmup: boolean;
   setNumber: number;
   weightKg: number | null;
   reps: number;
+  loadMark?: SetChangeMark | null;
+  repsMark?: SetChangeMark | null;
 }) {
   const containerRef = useRef<HTMLSpanElement>(null);
   const lineRef = useRef<HTMLSpanElement>(null);
@@ -122,7 +146,16 @@ function CompactLoggedSetSummary({
     const observer = new ResizeObserver(measure);
     observer.observe(container);
     return () => observer.disconnect();
-  }, [isWarmup, reps, setNumber, weightKg]);
+  }, [
+    isWarmup,
+    loadMark?.amount,
+    loadMark?.direction,
+    reps,
+    repsMark?.amount,
+    repsMark?.direction,
+    setNumber,
+    weightKg,
+  ]);
 
   return (
     <span ref={containerRef} className="relative block min-w-0">
@@ -135,8 +168,19 @@ function CompactLoggedSetSummary({
           <span className="font-medium text-zinc-900">Set {setNumber}</span>
         </span>
         {showSeparator ? <span className="text-zinc-500">·</span> : null}
-        <span ref={loadRef} className="tabular-nums">
-          {weightKg ?? "-"} kg, {reps} reps
+        <span ref={loadRef} className="inline-flex flex-wrap items-center tabular-nums">
+          <span>{weightKg ?? "-"} kg</span>
+          {loadMark ? (
+            <span className="ml-1">
+              <SetChangeMarkView mark={loadMark} />
+            </span>
+          ) : null}
+          <span>, {reps} reps</span>
+          {repsMark ? (
+            <span className="ml-1">
+              <SetChangeMarkView mark={repsMark} />
+            </span>
+          ) : null}
         </span>
       </span>
     </span>
@@ -240,6 +284,25 @@ export function SessionExerciseSets({
       assistance,
       labeled,
     );
+  const changeFor = (set: WorkoutSetRow): LoggedSetChange => {
+    if (set.is_warmup) {
+      return { load: null, reps: null };
+    }
+    const ordinal = workingSetOrdinal(
+      sets.map((row) => ({
+        setNumber: row.set_number,
+        isWarmup: row.id === set.id ? set.is_warmup : row.is_warmup,
+      })),
+      set.set_number,
+    );
+    const previous = ordinal == null ? null : (previousWorkingSets[ordinal - 1] ?? null);
+    return loggedSetChangeFromPrevious({
+      loadedKg: set.weight_kg,
+      reps: set.reps,
+      previous,
+      assistance,
+    });
+  };
 
   return (
     <>
@@ -330,6 +393,8 @@ export function SessionExerciseSets({
                       setNumber={set.set_number}
                       weightKg={set.weight_kg}
                       reps={set.reps}
+                      loadMark={changeFor(set).load}
+                      repsMark={changeFor(set).reps}
                     />
                     <LastSessionSetNote line={comparisonFor(set, set.is_warmup, true)} />
                   </div>
@@ -356,11 +421,15 @@ export function SessionExerciseSets({
                       <span>Set {set.set_number}</span>
                     </p>
                   </div>
-                  <p className="mt-1 text-sm tabular-nums">
-                    <span className="font-medium">{loadValuePrefix}:</span> {set.weight_kg ?? "-"} kg
+                  <p className="mt-1 flex flex-wrap items-center gap-1 text-sm tabular-nums">
+                    <span className="font-medium">{loadValuePrefix}:</span>
+                    <span>{set.weight_kg ?? "-"} kg</span>
+                    <SetChangeMarkView mark={changeFor(set).load} />
                   </p>
-                  <p className="text-sm tabular-nums">
-                    <span className="font-medium">Reps:</span> {set.reps}
+                  <p className="flex flex-wrap items-center gap-1 text-sm tabular-nums">
+                    <span className="font-medium">Reps:</span>
+                    <span>{set.reps}</span>
+                    <SetChangeMarkView mark={changeFor(set).reps} />
                   </p>
                   <LastSessionSetNote line={comparisonFor(set, set.is_warmup, true)} />
                   {assistance ? (
@@ -554,7 +623,7 @@ export function SessionExerciseSets({
                 <th className="px-2 py-2">Set</th>
                 <th className="px-2 py-2">{loadFieldLabel}</th>
                 <th className="px-2 py-2">Reps</th>
-                <th className="px-2 py-2">Last session</th>
+                <th className="px-2 py-2">Previous session</th>
                 {canManageSets ? <th className="px-2 py-2 text-right">Actions</th> : null}
               </tr>
             </thead>
@@ -637,7 +706,10 @@ export function SessionExerciseSets({
                     </td>
                     <td className="px-2 py-2 tabular-nums">{set.set_number}</td>
                     <td className="px-2 py-2 tabular-nums">
-                      <div>{set.weight_kg ?? "-"}</div>
+                      <div className="inline-flex flex-wrap items-center gap-1">
+                        <span>{set.weight_kg ?? "-"}</span>
+                        <SetChangeMarkView mark={changeFor(set).load} />
+                      </div>
                       {assistance ? (
                         <div className="text-xs text-zinc-500">
                           {set.weight_kg == null || Number(set.weight_kg) === 0
@@ -650,7 +722,12 @@ export function SessionExerciseSets({
                         </div>
                       )}
                     </td>
-                    <td className="px-2 py-2 tabular-nums">{set.reps}</td>
+                    <td className="px-2 py-2 tabular-nums">
+                      <span className="inline-flex flex-wrap items-center gap-1">
+                        <span>{set.reps}</span>
+                        <SetChangeMarkView mark={changeFor(set).reps} />
+                      </span>
+                    </td>
                     <td className="px-2 py-2 text-xs tabular-nums text-zinc-600">
                       {comparisonFor(set, set.is_warmup, false)}
                     </td>

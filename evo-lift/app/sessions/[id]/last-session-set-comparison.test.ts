@@ -3,6 +3,7 @@ import { describe, it } from "vitest";
 import {
   formatLastSessionSetComparison,
   lastSessionComparisonLine,
+  loggedSetChangeFromPrevious,
   nextWorkingSetOrdinal,
   previousSessionWorkingSets,
   workingSetOrdinal,
@@ -60,7 +61,7 @@ describe("previousSessionWorkingSets", () => {
     ]);
     assert.equal(
       lastSessionComparisonLine(previous, 2, { assistance: false }),
-      "Last session: 80 kg, 8 reps",
+      "Previous session: 80 kg, 8 reps",
     );
   });
 
@@ -72,7 +73,7 @@ describe("previousSessionWorkingSets", () => {
 
     assert.equal(
       lastSessionComparisonLine(previous, 2, { assistance: false }),
-      "Last session: 100 kg, 4 reps",
+      "Previous session: 100 kg, 4 reps",
     );
   });
 
@@ -130,7 +131,7 @@ describe("previousSessionWorkingSets", () => {
     assert.equal(lastSessionComparisonLine(stale, 1, { assistance: false }), null);
   });
 
-  it("keeps Last session when the previous performed date is 30 days earlier or the same day", () => {
+  it("keeps Previous session when the previous performed date is 30 days earlier or the same day", () => {
     const current = "2026-10-22";
     const onBoundary = previousSessionWorkingSets(
       [
@@ -154,7 +155,7 @@ describe("previousSessionWorkingSets", () => {
     assert.deepEqual(onBoundary, [{ loadedKg: 80, reps: 8 }]);
     assert.equal(
       lastSessionComparisonLine(onBoundary, 1, { assistance: false }),
-      "Last session: 80 kg, 8 reps",
+      "Previous session: 80 kg, 8 reps",
     );
 
     const sameDay = previousSessionWorkingSets(
@@ -192,7 +193,7 @@ describe("last session comparison copy", () => {
     const previous = [{ loadedKg: null, reps: 8 }];
     assert.equal(
       formatLastSessionSetComparison(previous[0], { assistance: false }),
-      "Last session: - kg, 8 reps",
+      "Previous session: - kg, 8 reps",
     );
     assert.equal(
       formatLastSessionSetComparison(previous[0], { assistance: false, labeled: false }),
@@ -206,15 +207,107 @@ describe("last session comparison copy", () => {
   it("uses assistance for assisted exercises, including unassisted bodyweight", () => {
     assert.equal(
       formatLastSessionSetComparison({ loadedKg: 20, reps: 8 }, { assistance: true }),
-      "Last session: 20 kg assistance, 8 reps",
+      "Previous session: 20 kg assistance, 8 reps",
     );
     assert.equal(
       formatLastSessionSetComparison({ loadedKg: 0, reps: 1 }, { assistance: true }),
-      "Last session: unassisted, 1 rep",
+      "Previous session: unassisted, 1 rep",
     );
     assert.equal(
       formatLastSessionSetComparison({ loadedKg: null, reps: 5 }, { assistance: true, labeled: false }),
       "unassisted, 5 reps",
+    );
+  });
+});
+
+describe("loggedSetChangeFromPrevious", () => {
+  const previous = { loadedKg: 55, reps: 8 };
+
+  it("marks a heavier load up and fewer reps down", () => {
+    assert.deepEqual(
+      loggedSetChangeFromPrevious({
+        loadedKg: 60,
+        reps: 6,
+        previous,
+        assistance: false,
+      }),
+      {
+        load: {
+          direction: "up",
+          amount: "5 kg",
+          label: "Loaded is 5 kg more than the previous session",
+        },
+        reps: {
+          direction: "down",
+          amount: "2 reps",
+          label: "2 fewer reps than the previous session",
+        },
+      },
+    );
+  });
+
+  it("leaves an unchanged set unmarked", () => {
+    assert.deepEqual(
+      loggedSetChangeFromPrevious({
+        loadedKg: 55,
+        reps: 8,
+        previous,
+        assistance: false,
+      }),
+      { load: null, reps: null },
+    );
+  });
+
+  it("treats less assistance as up and one extra rep as a single rep", () => {
+    assert.deepEqual(
+      loggedSetChangeFromPrevious({
+        loadedKg: 10,
+        reps: 9,
+        previous: { loadedKg: 20, reps: 8 },
+        assistance: true,
+      }),
+      {
+        load: {
+          direction: "up",
+          amount: "10 kg less",
+          label: "10 kg less assistance than the previous session",
+        },
+        reps: {
+          direction: "up",
+          amount: "1 rep",
+          label: "1 more rep than the previous session",
+        },
+      },
+    );
+  });
+
+  it("treats more assistance as down and skips a missing load", () => {
+    assert.deepEqual(
+      loggedSetChangeFromPrevious({
+        loadedKg: null,
+        reps: 8,
+        previous: { loadedKg: 20, reps: 8 },
+        assistance: true,
+      }),
+      { load: null, reps: null },
+    );
+    assert.equal(
+      loggedSetChangeFromPrevious({
+        loadedKg: 25,
+        reps: 8,
+        previous: { loadedKg: 20, reps: 8 },
+        assistance: true,
+      }).load?.direction,
+      "down",
+    );
+    assert.equal(
+      loggedSetChangeFromPrevious({
+        loadedKg: 60,
+        reps: 6,
+        previous: null,
+        assistance: false,
+      }).load,
+      null,
     );
   });
 });

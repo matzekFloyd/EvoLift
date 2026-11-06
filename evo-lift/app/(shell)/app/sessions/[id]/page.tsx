@@ -52,6 +52,7 @@ import {
 import { SessionCompactBar } from "@/app/sessions/[id]/session-compact-bar";
 import {
   addSetComposerVisible,
+  exerciseHasTargetWeight,
   exerciseLoggingPrimary,
   finishSessionIsPrimary,
   shownLogPrimary,
@@ -448,10 +449,14 @@ function SessionDetailPageContent() {
       workingSetCount >= sessionExercise.target_sets;
     return exerciseLoggingPrimary({
       targetsOpen: targetsSessionExerciseId === sessionExercise.id && !isTargetsSheetOpen,
+      targetsSheetOpen:
+        isTargetsSheetOpen && targetsSessionExerciseId === sessionExercise.id,
       editingSet: workoutSets.some(
         (set) => set.session_exercise_id === sessionExercise.id && set.id === editingSetId,
       ),
       canManageSets,
+      hasTargets: exerciseHasTargetWeight(sessionExercise),
+      notDone: sessionExercise.not_done,
       targetsMet,
       singleExerciseFlow: shouldUseSingleExerciseFlow,
       showExtraSetComposer: compactShowExtraSetComposer,
@@ -681,6 +686,7 @@ function SessionDetailPageContent() {
           exerciseCount={sessionExercises.length}
           nextLabel={nextLabel}
           nextPrimary={activeLogPrimary === "next-exercise"}
+          setTargetsPrimary={activeLogPrimary === "set-targets"}
           showFinish={showMarkCompleted}
           finishPrimary={activeLogPrimary === "finish"}
           isMarkingCompleted={isMarkingCompleted}

@@ -21,8 +21,8 @@ export const LOG_WORKING_SET_MESSAGE = "Log a working set to get suggestions.";
 export const THIN_HISTORY_MESSAGE = "Not enough recent working sets to suggest a target.";
 export const NEED_TARGET_REPS_MESSAGE = "Enter target reps to get a suggestion.";
 export const REP_TARGET_MISMATCH_RATIONALE = "History is for a different rep target.";
-export const MIXED_LOAD_MESSAGE = "Last session used more than one Loaded (kg).";
-export const MIXED_REPS_MESSAGE = "Last session's working sets did not share a rep target.";
+export const MIXED_LOAD_MESSAGE = "Previous session used more than one Loaded (kg).";
+export const MIXED_REPS_MESSAGE = "Previous session's working sets did not share a rep target.";
 
 /** Missing account rows stay on, same as an explicit true. */
 export function targetSuggestionsEnabled(suggestTarget: boolean | null | undefined): boolean {
@@ -369,21 +369,21 @@ function suggestDoubleProgression(input: {
     if (achieved + 1e-9 >= bottom) {
       return suggestion(
         load,
-        `Last session reached ${formatRepCount(bottom)} at ${formatKgAmount(load)}.`,
+        `Previous session reached ${formatRepCount(bottom)} at ${formatKgAmount(load)}.`,
         comparedTo,
         bottom,
       );
     }
     return suggestion(
       stepBy(load, -1),
-      `Last session was under ${formatRepCount(bottom)} at ${formatKgAmount(load)}.`,
+      `Previous session was under ${formatRepCount(bottom)} at ${formatKgAmount(load)}.`,
       comparedTo,
       bottom,
     );
   }
 
   const top = bottom + DOUBLE_PROGRESSION_REP_STEP;
-  const hitText = `Last session hit ${formatRepCount(achieved)} at ${formatKgAmount(load)}.`;
+  const hitText = `Previous session hit ${formatRepCount(achieved)} at ${formatKgAmount(load)}.`;
   if (achieved + 1e-9 >= top) {
     let heaviest = load;
     for (const session of sessions) {
@@ -503,7 +503,7 @@ export function suggestTargetWeight(input: {
   if (missedByAtLeast(reference, plannedReps) && !isDeload) {
     return suggestion(
       Math.min(stepBy(reference.loadedKg, -1), ceiling),
-      `Last session missed ${formatRepCount(plannedReps)} at ${formatKgAmount(reference.loadedKg)}.`,
+      `Previous session missed ${formatRepCount(plannedReps)} at ${formatKgAmount(reference.loadedKg)}.`,
       comparedTo,
     );
   }
@@ -511,7 +511,7 @@ export function suggestTargetWeight(input: {
   if (isDeload) {
     return suggestion(
       Math.min(recentWorkingWeight, ceiling),
-      `Last session was lighter than ${formatKgAmount(recentWorkingWeight)}.`,
+      `Previous session was lighter than ${formatKgAmount(recentWorkingWeight)}.`,
       comparedTo,
     );
   }
@@ -519,7 +519,7 @@ export function suggestTargetWeight(input: {
   if (sameLoad && reference.reps + 1e-9 < plannedReps) {
     return suggestion(
       Math.min(reference.loadedKg, ceiling),
-      `Last session was short of ${formatRepCount(plannedReps)} at ${formatKgAmount(reference.loadedKg)}.`,
+      `Previous session was short of ${formatRepCount(plannedReps)} at ${formatKgAmount(reference.loadedKg)}.`,
       comparedTo,
     );
   }
