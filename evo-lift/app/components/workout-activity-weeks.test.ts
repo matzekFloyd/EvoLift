@@ -1,13 +1,19 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
-import { buildActivityHeatmapWeeks, type ActivityDayPoint } from "./workout-activity-weeks";
+import {
+  activityHeatmapScrollLeft,
+  activityHeatmapScrollToReveal,
+  activityHeatmapTrackWidth,
+  buildActivityHeatmapWeeks,
+  type ActivityDayPoint,
+} from "./workout-activity-weeks";
 
 function point(date: string, sets: number): ActivityDayPoint {
   return { date, workouts: 1, sets };
 }
 
 describe("workout activity weeks", () => {
-  it("shows the weeks in range and keeps only the latest 26 when the range is longer", () => {
+  it("shows every week in range, including a range longer than half a year", () => {
     const short = buildActivityHeatmapWeeks([
       point("2026-10-12", 3),
       point("2026-10-14", 5),
@@ -43,8 +49,26 @@ describe("workout activity weeks", () => {
         return point(key, 1);
       }),
     );
-    assert.equal(long.length, 26);
-    assert.equal(long[0]?.[0]?.date, "2026-02-02");
+    assert.equal(long.length, 30);
+    assert.equal(long[0]?.[0]?.date, "2026-01-05");
     assert.equal(long.at(-1)?.[0]?.date, "2026-07-27");
+  });
+
+  it("lets a short range fill a wide track and scrolls once the square minimum no longer fits", () => {
+    assert.equal(activityHeatmapTrackWidth(0), 0);
+    const four = activityHeatmapTrackWidth(4);
+    const twelve = activityHeatmapTrackWidth(12);
+    const halfYear = activityHeatmapTrackWidth(26);
+    assert.equal(four, 4 * 20 + 3 * 6);
+    assert.equal(twelve, 12 * 20 + 11 * 6);
+    assert.equal(activityHeatmapScrollLeft(four, 800), 0);
+    assert.equal(activityHeatmapScrollLeft(twelve, 900), 0);
+    assert.equal(activityHeatmapScrollLeft(halfYear, 280), halfYear - 280);
+  });
+
+  it("scrolls a day into view and leaves a day that is already visible where it is", () => {
+    assert.equal(activityHeatmapScrollToReveal(200, 100, 300, 80, 20), 176);
+    assert.equal(activityHeatmapScrollToReveal(200, 100, 300, 390, 20), 214);
+    assert.equal(activityHeatmapScrollToReveal(200, 100, 300, 150, 20), 200);
   });
 });
