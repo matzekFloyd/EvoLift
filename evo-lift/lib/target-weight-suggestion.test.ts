@@ -11,6 +11,7 @@ import {
   REP_TARGET_MISMATCH_RATIONALE,
   THIN_HISTORY_MESSAGE,
   doubleProgressionEnabled,
+  exerciseDoubleProgressionEnabled,
   formatSuggestionKgDelta,
   formatSuggestionRepDelta,
   suggestTargetWeight,
@@ -89,6 +90,30 @@ describe("doubleProgressionEnabled", () => {
     assert.equal(doubleProgressionEnabled(null), false);
     assert.equal(doubleProgressionEnabled(false), false);
     assert.equal(doubleProgressionEnabled(true), true);
+  });
+});
+
+describe("exerciseDoubleProgressionEnabled", () => {
+  it("follows the account switch when the exercise does not choose", () => {
+    assert.equal(
+      exerciseDoubleProgressionEnabled({ accountEnabled: false, exerciseOverride: null }),
+      false,
+    );
+    assert.equal(
+      exerciseDoubleProgressionEnabled({ accountEnabled: true, exerciseOverride: undefined }),
+      true,
+    );
+  });
+
+  it("lets one exercise turn double progression on or off", () => {
+    assert.equal(
+      exerciseDoubleProgressionEnabled({ accountEnabled: false, exerciseOverride: true }),
+      true,
+    );
+    assert.equal(
+      exerciseDoubleProgressionEnabled({ accountEnabled: true, exerciseOverride: false }),
+      false,
+    );
   });
 });
 

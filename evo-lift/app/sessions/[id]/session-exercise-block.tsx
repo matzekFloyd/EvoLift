@@ -68,6 +68,8 @@ type SessionExerciseBlockProps = {
   onAddWarmups: (sessionExerciseId: string) => void;
   /** Account preference for this exercise. Missing stays on. */
   suggestTarget?: boolean;
+  /** Null and missing follow the account double-progression switch. */
+  exerciseDoubleProgression?: boolean | null;
   /** Account preference for this exercise. Missing stays on. */
   suggestWarmups?: boolean;
   /** Account cap. Null keeps the full ladder. */
@@ -120,6 +122,7 @@ export function SessionExerciseBlock({
   onToggleNotDone,
   onAddWarmups,
   suggestTarget = true,
+  exerciseDoubleProgression = null,
   suggestWarmups = true,
   maxWarmupSets = null,
   onAddSet,
@@ -302,6 +305,7 @@ export function SessionExerciseBlock({
             currentWeightKg={targetsWeightKg}
             excludeSessionId={sessionId}
             enabled={targetSuggestionsEnabled(suggestTarget)}
+            exerciseDoubleProgression={exerciseDoubleProgression}
             onApply={({ weightKg, reps }) => {
               onTargetsWeightChange(weightKg);
               if (reps != null) {

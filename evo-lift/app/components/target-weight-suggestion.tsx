@@ -16,6 +16,7 @@ import {
   suggestionDirection,
   suggestionMatchesTarget,
   suggestedRepsDirection,
+  exerciseDoubleProgressionEnabled,
   suggestTargetWeight,
   targetSuggestionsEnabled,
   type SuggestionDirection,
@@ -89,6 +90,8 @@ type TargetWeightSuggestionProps = {
   excludeSessionId?: string | null;
   /** Per-exercise suggest-target preference. Missing stays on. */
   enabled?: boolean;
+  /** Null and missing follow the account double-progression switch. */
+  exerciseDoubleProgression?: boolean | null;
   onApply: (next: { weightKg: string; reps: string | null }) => void;
 };
 
@@ -99,12 +102,13 @@ export function TargetWeightSuggestion({
   currentReps = "",
   excludeSessionId = null,
   enabled = true,
+  exerciseDoubleProgression = null,
   onApply,
 }: TargetWeightSuggestionProps) {
   const [history, setHistory] = useState<{
     exerciseId: string;
     sets: TargetWeightHistorySet[];
-    doubleProgression: boolean;
+    accountDoubleProgression: boolean;
   } | null>(null);
   const [error, setError] = useState<{ exerciseId: string; message: string } | null>(null);
 
@@ -119,9 +123,9 @@ export function TargetWeightSuggestion({
       loadTargetWeightHistory(supabaseBrowserClient, exerciseId),
       loadDoubleProgressionPreference(supabaseBrowserClient),
     ])
-      .then(([sets, doubleProgression]) => {
+      .then(([sets, accountDoubleProgression]) => {
         if (!cancelled) {
-          setHistory({ exerciseId, sets, doubleProgression });
+          setHistory({ exerciseId, sets, accountDoubleProgression });
           setError(null);
         }
       })
@@ -145,9 +149,12 @@ export function TargetWeightSuggestion({
       plannedReps: parsePlannedReps(plannedReps),
       excludeSessionId,
       today: getTodayYyyyMmDd(),
-      doubleProgression: history.doubleProgression,
+      doubleProgression: exerciseDoubleProgressionEnabled({
+        accountEnabled: history.accountDoubleProgression,
+        exerciseOverride: exerciseDoubleProgression,
+      }),
     });
-  }, [excludeSessionId, exerciseId, history, plannedReps]);
+  }, [excludeSessionId, exerciseDoubleProgression, exerciseId, history, plannedReps]);
 
   if (!showSuggestion) {
     return null;

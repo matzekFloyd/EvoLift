@@ -19,6 +19,9 @@ export function useExerciseSuggestionSettings(
   const [maxWarmupSetsByExerciseId, setMaxWarmupSetsByExerciseId] = useState<Map<string, number | null>>(
     () => new Map(),
   );
+  const [doubleProgressionByExerciseId, setDoubleProgressionByExerciseId] = useState<
+    Map<string, boolean | null>
+  >(() => new Map());
 
   const warmupSuggestionsDisabledExerciseIds = useMemo(() => {
     const disabled = new Set<string>();
@@ -43,7 +46,9 @@ export function useExerciseSuggestionSettings(
     async function loadSuggestionSettings() {
       const { data: defaults } = await supabaseBrowserClient
         .from("user_exercise_defaults")
-        .select("exercise_id, suggest_warmups, suggest_target, max_suggested_warmup_sets")
+        .select(
+          "exercise_id, suggest_warmups, suggest_target, max_suggested_warmup_sets, double_progression",
+        )
         .eq("user_id", scopedUserId);
       if (cancelled) {
         return;
@@ -51,15 +56,18 @@ export function useExerciseSuggestionSettings(
       const warmupByExercise = new Map<string, boolean>();
       const maxWarmupByExercise = new Map<string, number | null>();
       const targetDisabled = new Set<string>();
+      const doubleProgressionByExercise = new Map<string, boolean | null>();
       for (const row of defaults ?? []) {
         warmupByExercise.set(row.exercise_id, row.suggest_warmups);
         maxWarmupByExercise.set(row.exercise_id, row.max_suggested_warmup_sets);
+        doubleProgressionByExercise.set(row.exercise_id, row.double_progression);
         if (row.suggest_target === false) {
           targetDisabled.add(row.exercise_id);
         }
       }
       setSuggestWarmupsByExerciseId(warmupByExercise);
       setMaxWarmupSetsByExerciseId(maxWarmupByExercise);
+      setDoubleProgressionByExerciseId(doubleProgressionByExercise);
       setTargetSuggestionsDisabledExerciseIds(targetDisabled);
     }
     void loadSuggestionSettings();
@@ -72,5 +80,6 @@ export function useExerciseSuggestionSettings(
     warmupSuggestionsDisabledExerciseIds,
     targetSuggestionsDisabledExerciseIds,
     maxWarmupSetsByExerciseId,
+    doubleProgressionByExerciseId,
   };
 }

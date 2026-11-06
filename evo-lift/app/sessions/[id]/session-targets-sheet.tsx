@@ -19,6 +19,7 @@ type SessionTargetsSheetProps = {
   targetsReps: string;
   targetsWeightKg: string;
   targetSuggestionsDisabledExerciseIds: ReadonlySet<string>;
+  exerciseDoubleProgression?: boolean | null;
   isSavingTargets: boolean;
   onTargetsSetsChange: (value: string) => void;
   onTargetsRepsChange: (value: string) => void;
@@ -37,6 +38,7 @@ export function SessionTargetsSheet({
   targetsReps,
   targetsWeightKg,
   targetSuggestionsDisabledExerciseIds,
+  exerciseDoubleProgression = null,
   isSavingTargets,
   onTargetsSetsChange,
   onTargetsRepsChange,
@@ -96,6 +98,7 @@ export function SessionTargetsSheet({
           currentWeightKg={targetsWeightKg}
           excludeSessionId={sessionId ?? null}
           enabled={targetSuggestionsEnabled(!targetSuggestionsDisabledExerciseIds.has(exerciseId))}
+          exerciseDoubleProgression={exerciseDoubleProgression}
           onApply={({ weightKg, reps }) => {
             onTargetsWeightChange(weightKg);
             if (reps != null) {

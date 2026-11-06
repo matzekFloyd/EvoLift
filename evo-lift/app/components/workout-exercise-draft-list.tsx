@@ -248,6 +248,9 @@ export function WorkoutExerciseDraftList({
         plannedReps={row.targetReps}
         currentReps={row.targetReps}
         currentWeightKg={row.targetWeightKg}
+        exerciseDoubleProgression={
+          exerciseDefaultsById.get(row.exerciseId)?.double_progression
+        }
         onApply={({ weightKg, reps }) => {
           updateExerciseRow(index, "targetWeightKg", weightKg);
           if (reps != null) {

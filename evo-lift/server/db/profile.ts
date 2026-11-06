@@ -306,6 +306,7 @@ export async function getExerciseDefaults(client: Client, userId: string) {
       default_target_weight_kg: row.default_target_weight_kg,
       suggest_warmups: row.suggest_warmups,
       suggest_target: row.suggest_target,
+      double_progression: row.double_progression,
       max_suggested_warmup_sets: row.max_suggested_warmup_sets,
     })),
   };
@@ -374,6 +375,7 @@ export async function clearExerciseDefaults(client: Client, userId: string, exer
       default_target_weight_kg: null,
       suggest_warmups: isCompoundExercise(exercise.slug),
       suggest_target: true,
+      double_progression: null,
       max_suggested_warmup_sets: null,
     },
     { onConflict: "user_id,exercise_id" },

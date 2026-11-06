@@ -182,6 +182,7 @@ function SessionDetailPageContent() {
     warmupSuggestionsDisabledExerciseIds,
     targetSuggestionsDisabledExerciseIds,
     maxWarmupSetsByExerciseId,
+    doubleProgressionByExerciseId,
   } = useExerciseSuggestionSettings(session?.user_id, exerciseOptions);
 
   const addExercisePickerOptions = useMemo(
@@ -488,6 +489,7 @@ function SessionDetailPageContent() {
     exerciseSlugById,
     sessionId,
     targetSuggestionsDisabledExerciseIds,
+    doubleProgressionByExerciseId,
     isAdding: isAddingExercise,
     onSubmit: addExerciseToSession,
   };
@@ -636,6 +638,9 @@ function SessionDetailPageContent() {
                 suggestTarget={
                   !targetSuggestionsDisabledExerciseIds.has(sessionExercise.exercise_id)
                 }
+                exerciseDoubleProgression={
+                  doubleProgressionByExerciseId.get(sessionExercise.exercise_id)
+                }
                 suggestWarmups={!warmupSuggestionsDisabledExerciseIds.has(sessionExercise.exercise_id)}
                 maxWarmupSets={maxWarmupSetsByExerciseId.get(sessionExercise.exercise_id) ?? null}
                 onAddSet={(sessionExerciseId) => {
@@ -698,6 +703,9 @@ function SessionDetailPageContent() {
           targetsReps={targetsReps}
           targetsWeightKg={targetsWeightKg}
           targetSuggestionsDisabledExerciseIds={targetSuggestionsDisabledExerciseIds}
+          exerciseDoubleProgression={
+            doubleProgressionByExerciseId.get(targetsExercise.exerciseId)
+          }
           isSavingTargets={isSavingTargets}
           onTargetsSetsChange={setTargetsSets}
           onTargetsRepsChange={setTargetsReps}

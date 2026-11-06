@@ -10,7 +10,9 @@ import {
   parseMaxWarmupSets,
 } from "@/app/account/account-form";
 import {
+  doubleProgressionOverride,
   exerciseDefaultsFormValues,
+  type DoubleProgressionChoice,
   type ExerciseDefaultsFormValues,
 } from "@/app/account/account-profile-form";
 import { accountFieldsChanged } from "@/app/account/account-section-dirty";
@@ -43,6 +45,7 @@ export function useExerciseDefaults({
   const [maxWarmupSets, setMaxWarmupSets] = useState("");
   const [suggestWarmups, setSuggestWarmups] = useState(true);
   const [suggestTarget, setSuggestTarget] = useState(true);
+  const [doubleProgression, setDoubleProgression] = useState<DoubleProgressionChoice>("account");
   const [isSaving, setIsSaving] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
   const notice = useAccountNotice("error");
@@ -68,6 +71,7 @@ export function useExerciseDefaults({
     setDefaultTargetWeightKg(values.targetWeightKg);
     setSuggestWarmups(values.suggestWarmups);
     setSuggestTarget(values.suggestTarget);
+    setDoubleProgression(values.doubleProgression);
     setMaxWarmupSets(values.maxWarmupSets);
     setLoadedExerciseId(selectedExerciseId);
   }, [defaultsByExerciseId, exerciseOptions, selectedExerciseId]);
@@ -114,6 +118,7 @@ export function useExerciseDefaults({
       default_target_weight_kg: parsedTargetWeight,
       suggest_warmups: suggestWarmups,
       suggest_target: suggestTarget,
+      double_progression: doubleProgressionOverride(doubleProgression),
       max_suggested_warmup_sets: parsedMaxWarmupSets,
     };
 
@@ -163,6 +168,7 @@ export function useExerciseDefaults({
       default_target_weight_kg: null,
       suggest_warmups: suggestWarmupsDefault,
       suggest_target: true,
+      double_progression: null,
       max_suggested_warmup_sets: null,
     };
 
@@ -189,6 +195,7 @@ export function useExerciseDefaults({
     setDefaultTargetWeightKg("");
     setSuggestWarmups(suggestWarmupsDefault);
     setSuggestTarget(true);
+    setDoubleProgression("account");
     setMaxWarmupSets("");
     notice.clear();
     refillAccountCache(userId);
@@ -213,6 +220,7 @@ export function useExerciseDefaults({
     targetWeightKg: defaultTargetWeightKg,
     suggestWarmups,
     suggestTarget,
+    doubleProgression,
     maxWarmupSets,
   };
   const formsReady = selectedExerciseId !== "" && loadedExerciseId === selectedExerciseId;
@@ -237,6 +245,8 @@ export function useExerciseDefaults({
     setSuggestWarmups,
     suggestTarget,
     setSuggestTarget,
+    doubleProgression,
+    setDoubleProgression,
     isSaving,
     isClearing,
     canSave: formsReady && accountFieldsChanged(savedForm, currentForm),
