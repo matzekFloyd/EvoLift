@@ -1,4 +1,5 @@
 import { assistedMovedLoadKg } from "@/lib/assisted-moved-load";
+import { bodyweightPlusAddedLoadKg, dipAddedLoadKg } from "@/lib/bodyweight-plus-load";
 import { bodyweightOnOrBefore, type BodyweightLogEntry } from "@/lib/bodyweight-log";
 import { buildChartAxisTickLabel } from "@/lib/date-format";
 
@@ -39,12 +40,19 @@ function loggedLoadKg(row: ExerciseSessionVolumeSetRow): number | null {
  * On Assisted Dip and Assisted Pull-Up, each set uses bodyweight minus assistance in place of
  * Total (kg). A session with no bodyweight on or before its date, or with assistance greater
  * than that bodyweight, has no point. A later bodyweight is not used.
+ * On Dip, each set uses bodyweight plus added load. A blank load is 0 kg added. A session
+ * with no bodyweight on or before its date has no point.
  */
 export function buildExerciseSessionVolumeChartPoints(
   rows: ExerciseSessionVolumeSetRow[],
-  options?: { assistance?: boolean; bodyweightEntries?: readonly BodyweightLogEntry[] },
+  options?: {
+    assistance?: boolean;
+    bodyweightPlusLoad?: boolean;
+    bodyweightEntries?: readonly BodyweightLogEntry[];
+  },
 ): ExerciseSessionVolumeChartPoint[] {
   const assistance = options?.assistance === true;
+  const bodyweightPlusLoad = options?.bodyweightPlusLoad === true && !assistance;
   const bodyweightEntries = options?.bodyweightEntries ?? [];
   const bySession = new Map<string, ExerciseSessionVolumeSetRow[]>();
   for (const row of rows) {
@@ -64,13 +72,16 @@ export function buildExerciseSessionVolumeChartPoints(
       if (r.isWarmup) {
         continue;
       }
-      const logged = loggedLoadKg(r);
+      const logged = bodyweightPlusLoad ? dipAddedLoadKg(r.weightKg) : loggedLoadKg(r);
       if (logged === null) {
         continue;
       }
+      const bodyweightKg = bodyweightOnOrBefore(bodyweightEntries, r.performedOn);
       const loadKg = assistance
-        ? assistedMovedLoadKg(bodyweightOnOrBefore(bodyweightEntries, r.performedOn), logged)
-        : r.totalKg;
+        ? assistedMovedLoadKg(bodyweightKg, logged)
+        : bodyweightPlusLoad
+          ? bodyweightPlusAddedLoadKg(bodyweightKg, logged)
+          : r.totalKg;
       if (loadKg == null) {
         continue;
       }

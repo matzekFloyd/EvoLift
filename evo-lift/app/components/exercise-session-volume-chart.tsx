@@ -25,11 +25,17 @@ type ExerciseSessionVolumeChartProps = {
   points: ExerciseSessionVolumeChartPoint[];
   /** Assisted Dip and Assisted Pull-Up use bodyweight minus assistance in place of Total (kg). */
   assistance?: boolean;
+  /** Dip uses bodyweight plus added load in place of Total (kg). */
+  bodyweightPlusLoad?: boolean;
+  /** Working sets in view use a base, so volume uses Total (kg). */
+  usesBaseWeight?: boolean;
 };
 
 export function ExerciseSessionVolumeChart({
   points,
   assistance = false,
+  bodyweightPlusLoad = false,
+  usesBaseWeight = false,
 }: ExerciseSessionVolumeChartProps) {
   const [isCompactView, setIsCompactView] = useState(false);
 
@@ -67,7 +73,15 @@ export function ExerciseSessionVolumeChart({
         <p className="font-medium text-zinc-800">Session · {sessionDate}</p>
         <p className="text-zinc-700">Session volume: {source.volumeKg.toFixed(1)} kg</p>
         <p className="text-zinc-500">
-          Sum of reps × {assistance ? "bodyweight minus assistance" : "Total (kg)"} on{" "}
+          Sum of reps ×{" "}
+          {assistance
+            ? "bodyweight minus assistance"
+            : bodyweightPlusLoad
+              ? "bodyweight plus added load"
+              : usesBaseWeight
+                ? "Total (kg)"
+                : "Loaded (kg)"}{" "}
+          on{" "}
           {source.workingSetsIncluded} working set
           {source.workingSetsIncluded === 1 ? "" : "s"} (warmups excluded).
         </p>
@@ -80,7 +94,9 @@ export function ExerciseSessionVolumeChart({
       <p className="text-sm text-zinc-600">
         {assistance
           ? "Log a bodyweight on or before the session to plot session volume from bodyweight minus assistance. Assistance above that bodyweight is left off."
-          : "No working sets with logged weight yet, so session volume cannot be calculated."}
+          : bodyweightPlusLoad
+            ? "Log a bodyweight on or before the session to plot session volume from bodyweight plus added load. A blank load counts as no added weight."
+            : "No working sets with logged weight yet, so session volume cannot be calculated."}
       </p>
     );
   }

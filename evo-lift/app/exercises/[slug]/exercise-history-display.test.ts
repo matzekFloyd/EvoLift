@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 import { appTableRowClassName } from "@/app/components/app-table";
 import {
+  baseWeightChangesLoad,
   buildExerciseDetailFilterQueryString,
   formatKgValue,
   historyRowSurfaceClass,
@@ -9,6 +10,7 @@ import {
   historyValueClass,
   loggedLoadKg,
   normalizeLoadedForComparison,
+  setsUseBaseWeight,
   setTotalKgForStats,
   summarizeExerciseHistory,
 } from "./exercise-history-display";
@@ -29,6 +31,27 @@ describe("exercise history display", () => {
     assert.equal(loggedLoadKg({ weightKg: null }), null);
     assert.equal(loggedLoadKg({ weightKg: Number.NaN }), null);
     assert.equal(loggedLoadKg({ weightKg: 60 }), 60);
+  });
+
+  it("treats a base as relevant only when it changes the logged load", () => {
+    assert.equal(baseWeightChangesLoad(null), false);
+    assert.equal(baseWeightChangesLoad(0), false);
+    assert.equal(baseWeightChangesLoad(Number.NaN), false);
+    assert.equal(baseWeightChangesLoad(20), true);
+    assert.equal(
+      setsUseBaseWeight([
+        { weightKg: 40, totalKg: 40 },
+        { weightKg: null, totalKg: 20 },
+      ]),
+      false,
+    );
+    assert.equal(
+      setsUseBaseWeight([
+        { weightKg: 40, totalKg: 40 },
+        { weightKg: 60, totalKg: 80 },
+      ]),
+      true,
+    );
   });
 
   it("counts a set total only when the load was logged", () => {

@@ -1,4 +1,5 @@
 import { assistedMovedLoadKg } from "@/lib/assisted-moved-load";
+import { bodyweightPlusAddedLoadKg, dipAddedLoadKg } from "@/lib/bodyweight-plus-load";
 import { bodyweightOnOrBefore, type BodyweightLogEntry } from "@/lib/bodyweight-log";
 import { buildChartAxisTickLabel } from "@/lib/date-format";
 
@@ -27,8 +28,8 @@ export type ExerciseSessionWeightChartPoint = {
   baseKg: number;
   heaviestSetNumber: number;
   /**
-   * Bodyweight on or before the session minus assistance for the chosen set.
-   * Null when this session has no moved load to plot. Omitted on other exercises.
+   * Bodyweight combined with the chosen set: minus assistance, or plus added load on Dip.
+   * Null when this session has no bodyweight to plot. Omitted on other exercises.
    */
   movedLoadKg?: number | null;
 };
@@ -41,6 +42,10 @@ function loggedLoadKg(row: ExerciseSessionWeightSetRow): number | null {
   return Number.isFinite(w) ? w : null;
 }
 
+function dipRowAddedLoadKg(row: ExerciseSessionWeightSetRow): number | null {
+  return dipAddedLoadKg(row.weightKg);
+}
+
 /**
  * One chart point per workout session: the heaviest working set by Total (kg) among sets
  * with a logged load. Warmups are excluded. A tie on total goes to the later set number.
@@ -48,12 +53,19 @@ function loggedLoadKg(row: ExerciseSessionWeightSetRow): number | null {
  * and a tie goes to the later set. When a bodyweight is logged on or before that session,
  * the same set also carries bodyweight minus assistance. A later bodyweight is not used.
  * Assistance greater than that bodyweight leaves the moved load unplotted.
+ * On Dip, a blank load is 0 kg added. When a bodyweight is logged on or before
+ * the session, the same set also carries bodyweight plus that added load.
  */
 export function buildExerciseSessionWeightChartPoints(
   rows: ExerciseSessionWeightSetRow[],
-  options?: { assistance?: boolean; bodyweightEntries?: readonly BodyweightLogEntry[] },
+  options?: {
+    assistance?: boolean;
+    bodyweightPlusLoad?: boolean;
+    bodyweightEntries?: readonly BodyweightLogEntry[];
+  },
 ): ExerciseSessionWeightChartPoint[] {
   const assistance = options?.assistance === true;
+  const bodyweightPlusLoad = options?.bodyweightPlusLoad === true && !assistance;
   const bodyweightEntries = options?.bodyweightEntries ?? [];
   const bySession = new Map<string, ExerciseSessionWeightSetRow[]>();
   for (const row of rows) {
@@ -65,7 +77,12 @@ export function buildExerciseSessionWeightChartPoints(
   const rawPoints: Omit<ExerciseSessionWeightChartPoint, "xTickLabel">[] = [];
 
   for (const [sessionId, sessionRows] of bySession) {
-    const eligible = sessionRows.filter((r) => !r.isWarmup && loggedLoadKg(r) !== null);
+    const eligible = sessionRows.filter((r) => {
+      if (r.isWarmup) {
+        return false;
+      }
+      return bodyweightPlusLoad ? dipRowAddedLoadKg(r) !== null : loggedLoadKg(r) !== null;
+    });
     if (eligible.length === 0) {
       continue;
     }
@@ -89,13 +106,16 @@ export function buildExerciseSessionWeightChartPoints(
       }
     }
 
-    const loaded = Number(best.weightKg);
-    const heaviestLoadedKg = Number.isFinite(loaded) ? loaded : 0;
+    const logged = bodyweightPlusLoad ? dipRowAddedLoadKg(best) : Number(best.weightKg);
+    const heaviestLoadedKg = logged != null && Number.isFinite(logged) ? logged : 0;
     const heaviestTotalKg = best.totalKg;
     const baseKg = heaviestTotalKg - heaviestLoadedKg;
+    const bodyweightKg = bodyweightOnOrBefore(bodyweightEntries, best.performedOn);
     const movedLoadKg = assistance
-      ? assistedMovedLoadKg(bodyweightOnOrBefore(bodyweightEntries, best.performedOn), heaviestLoadedKg)
-      : undefined;
+      ? assistedMovedLoadKg(bodyweightKg, heaviestLoadedKg)
+      : bodyweightPlusLoad
+        ? bodyweightPlusAddedLoadKg(bodyweightKg, heaviestLoadedKg)
+        : undefined;
 
     rawPoints.push({
       sessionId,
@@ -146,11 +166,12 @@ function formatKg(value: number): string {
 function movedLoadPhrase(
   last: ExerciseSessionWeightChartPoint,
   previous: ExerciseSessionWeightChartPoint | null,
+  label: string,
 ): string | null {
   if (last.movedLoadKg == null) {
     return null;
   }
-  const named = `${formatKg(last.movedLoadKg)} bodyweight minus assistance`;
+  const named = `${formatKg(last.movedLoadKg)} ${label}`;
   if (previous == null || previous.movedLoadKg == null) {
     return named;
   }
@@ -171,31 +192,32 @@ function comparedWithPrevious(delta: number, noun?: string): string {
 export function buildWeightChangeSentence(
   points: ExerciseSessionWeightChartPoint[],
   mode: "total" | "loaded" | "both",
-  options?: { assistance?: boolean },
+  options?: { assistance?: boolean; bodyweightPlusLoad?: boolean },
 ): string {
   if (points.length === 0) {
     return "";
   }
   const assistance = options?.assistance === true;
-  const loadUnit = assistance ? "assistance" : "loaded";
+  const bodyweightPlusLoad = options?.bodyweightPlusLoad === true && !assistance;
+  const loadUnit = assistance ? "assistance" : bodyweightPlusLoad ? "added load" : "loaded";
   const last = points[points.length - 1];
-  if (assistance) {
-    const assistanceText = formatKg(last.heaviestLoadedKg);
+  if (assistance || bodyweightPlusLoad) {
+    const movedLabel = assistance ? "bodyweight minus assistance" : "bodyweight plus added load";
+    const loadNoun = assistance ? "assistance" : "added load";
+    const loadText = formatKg(last.heaviestLoadedKg);
     if (points.length === 1) {
-      const moved = movedLoadPhrase(last, null);
-      const load = moved
-        ? `${assistanceText} assistance and ${moved}`
-        : `${assistanceText} assistance`;
+      const moved = movedLoadPhrase(last, null, movedLabel);
+      const load = moved ? `${loadText} ${loadNoun} and ${moved}` : `${loadText} ${loadNoun}`;
       return `Last session: ${load}. Log another session to see the change.`;
     }
     const previous = points[points.length - 2];
-    const moved = movedLoadPhrase(last, previous);
+    const moved = movedLoadPhrase(last, previous, movedLabel);
     const comparison = comparedWithPrevious(
       last.heaviestLoadedKg - previous.heaviestLoadedKg,
-      "assistance",
+      loadNoun,
     );
     const movedClause = moved ? `, and ${moved}` : "";
-    return `Last session: ${assistanceText} assistance, ${comparison}${movedClause}.`;
+    return `Last session: ${loadText} ${loadNoun}, ${comparison}${movedClause}.`;
   }
   if (points.length === 1) {
     if (mode === "total" && !assistance) {

@@ -129,6 +129,49 @@ describe("buildExerciseSessionE1rmChartPoints", () => {
     assert.equal(points[0]?.sourceTotalKg, 80);
     assert.equal(points[0]?.e1rmKg, estimateEpley1Rm(80, 5));
   });
+
+  it("estimates 1RM from bodyweight plus added load and skips a session with no earlier bodyweight", () => {
+    const expected = estimateEpley1Rm(90, 5);
+    assert.ok(expected != null);
+    const points = buildExerciseSessionE1rmChartPoints(
+      [
+        row({
+          sessionId: "before",
+          performedOn: "2026-10-01",
+          sessionCreatedAt: "2026-10-01T10:00:00Z",
+          setNumber: 1,
+          reps: 5,
+          weightKg: null,
+          totalKg: 0,
+        }),
+        row({
+          sessionId: "belt",
+          performedOn: "2026-10-14",
+          setNumber: 1,
+          reps: 5,
+          weightKg: 10,
+          totalKg: 10,
+        }),
+        row({
+          sessionId: "belt",
+          performedOn: "2026-10-14",
+          setNumber: 2,
+          reps: 8,
+          weightKg: null,
+          totalKg: 0,
+        }),
+      ],
+      { bodyweightPlusLoad: true, bodyweightEntries: [{ loggedOn: "2026-10-14", bodyweightKg: 80 }] },
+    );
+    assert.deepEqual(
+      points.map((point) => point.sessionId),
+      ["belt"],
+    );
+    assert.equal(points[0]?.sourceSetNumber, 1);
+    assert.equal(points[0]?.sourceLoadedKg, 10);
+    assert.equal(points[0]?.sourceTotalKg, 90);
+    assert.equal(points[0]?.e1rmKg, expected);
+  });
 });
 
 describe("buildE1rmChangeSentence", () => {

@@ -17,7 +17,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "1RM",
     definition:
-      "A one-rep max: the heaviest weight for a single rep. EvoLift estimates it from working sets of 12 reps or fewer, using Total (kg), which includes base weight. On Assisted Dip and Assisted Pull-Up, the estimate uses bodyweight minus assistance when a bodyweight is logged on or before the session. The estimate uses the Epley formula. It is not a tested max.",
+      "A one-rep max: the heaviest weight for a single rep. EvoLift estimates it from working sets of 12 reps or fewer, using Total (kg), which includes base weight. On Assisted Dip and Assisted Pull-Up, the estimate uses bodyweight minus assistance when a bodyweight is logged on or before the session. On Dip, the estimate uses bodyweight plus added load when a bodyweight is logged on or before the session. A blank load counts as no added weight. Without that bodyweight, the session is not plotted. The estimate uses the Epley formula. It is not a tested max.",
   },
   {
     term: "Assistance (kg)",
@@ -37,12 +37,12 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Bodyweight log",
     definition:
-      "Dated bodyweight entries. The latest entry is the current bodyweight. An open bodyweight goal, Lift comparison, and Assisted Dip and Assisted Pull-Up charts use the latest entry on or before the workout session date.",
+      "Dated bodyweight entries. The latest entry is the current bodyweight. An open bodyweight goal, Lift comparison, Dip charts, and Assisted Dip and Assisted Pull-Up charts use the latest entry on or before the workout session date.",
   },
   {
     term: "Compound",
     definition:
-      "A barbell exercise that moves more than one joint. Lift comparison places your compounds next to each other, and next to published standards. The coaching ratios cover Barbell Back Squat, Barbell Deadlift, Barbell Bench Press, Barbell Overhead Press, Barbell Bent Over Row, Barbell Romanian Deadlift, Close-Grip Bench Press, and Barbell Hip Thrust. Machine, dumbbell, and leg-press loads stay out of those ratios.",
+      "A barbell exercise that moves more than one joint. Lift comparison places your compounds next to each other, and next to published standards. The coaching ratios cover Barbell Back Squat, Barbell Deadlift, Barbell Bench Press, Barbell Overhead Press, Barbell Bent Over Row, Barbell Romanian Deadlift, Barbell Close-Grip Bench Press, and Barbell Hip Thrust. Machine, dumbbell, and leg-press loads stay out of those ratios.",
   },
   {
     term: "Day",
@@ -105,7 +105,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Loaded (kg)",
     definition:
-      "The external weight on a set, such as plates or a dumbbell. Base weight stays separate. On Assisted Dip and Assisted Pull-Up, use Assistance (kg) instead.",
+      "The external weight on a set, such as plates or a dumbbell. Base weight stays separate. On Dip, blank or 0 is no added weight. Charts add a logged bodyweight to that number when one is on or before the session. On Assisted Dip and Assisted Pull-Up, use Assistance (kg) instead.",
   },
   {
     term: "Muscle area",

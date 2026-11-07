@@ -152,6 +152,56 @@ describe("buildExerciseSessionWeightChartPoints", () => {
     assert.equal(bySession.get("too-much-help"), null);
     assert.equal(points.find((point) => point.sessionId === "too-much-help")?.heaviestLoadedKg, 85);
   });
+
+  it("plots bodyweight plus added load for the heaviest dip set, including a blank load", () => {
+    const points = buildExerciseSessionWeightChartPoints(
+      [
+        row({
+          sessionId: "blank",
+          performedOn: "2026-10-01",
+          sessionCreatedAt: "2026-10-01T10:00:00Z",
+          setNumber: 1,
+          weightKg: null,
+          totalKg: 0,
+        }),
+        row({
+          sessionId: "belt",
+          performedOn: "2026-10-14",
+          sessionCreatedAt: "2026-10-14T10:00:00Z",
+          setNumber: 1,
+          weightKg: 10,
+          totalKg: 10,
+        }),
+        row({
+          sessionId: "belt",
+          performedOn: "2026-10-14",
+          sessionCreatedAt: "2026-10-14T10:00:00Z",
+          setNumber: 2,
+          weightKg: null,
+          totalKg: 0,
+        }),
+        row({
+          sessionId: "later-bodyweight",
+          performedOn: "2026-10-01",
+          sessionCreatedAt: "2026-10-01T12:00:00Z",
+          setNumber: 1,
+          weightKg: 5,
+          totalKg: 5,
+        }),
+      ],
+      {
+        bodyweightPlusLoad: true,
+        bodyweightEntries: [{ loggedOn: "2026-10-14", bodyweightKg: 80 }],
+      },
+    );
+    const bySession = new Map(points.map((point) => [point.sessionId, point]));
+    assert.equal(bySession.get("blank")?.heaviestLoadedKg, 0);
+    assert.equal(bySession.get("blank")?.movedLoadKg, null);
+    assert.equal(bySession.get("belt")?.heaviestSetNumber, 1);
+    assert.equal(bySession.get("belt")?.heaviestLoadedKg, 10);
+    assert.equal(bySession.get("belt")?.movedLoadKg, 90);
+    assert.equal(bySession.get("later-bodyweight")?.movedLoadKg, null);
+  });
 });
 
 describe("weight chart copy and axis", () => {
@@ -193,6 +243,11 @@ describe("weight chart copy and axis", () => {
     assert.equal(
       buildWeightChangeSentence([previousMoved, withMoved], "loaded", { assistance: true }),
       "Last session: 10.0 kg assistance, 10.0 kg less assistance than the session before, and 70.0 kg bodyweight minus assistance, 10.0 kg more than the session before.",
+    );
+    const dip = point({ heaviestLoadedKg: 10, movedLoadKg: 90 });
+    assert.equal(
+      buildWeightChangeSentence([dip], "loaded", { bodyweightPlusLoad: true }),
+      "Last session: 10.0 kg added load and 90.0 kg bodyweight plus added load. Log another session to see the change.",
     );
   });
 

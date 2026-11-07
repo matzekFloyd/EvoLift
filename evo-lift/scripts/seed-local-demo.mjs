@@ -83,6 +83,78 @@ const DEMO_TEMPLATES = [
  * become the mark. Notes keep the top-up idempotent.
  */
 const ASSISTED_DIP_SLUG = "assisted-dip";
+
+/**
+ * Dumbbell sessions with a logged load and no base weight. Loaded and Total
+ * are the same number. Notes keep the top-up idempotent.
+ */
+const NO_BASE_SESSIONS = [
+  {
+    slug: "dumbbell-supinated-curl",
+    note: "Dumbbell curl: 10 kg",
+    daysAgo: 20,
+    targetKg: 10,
+    targetReps: 10,
+    sets: [
+      { reps: 8, weightKg: 6, isWarmup: true },
+      { reps: 10, weightKg: 10, isWarmup: false },
+      { reps: 10, weightKg: 10, isWarmup: false },
+      { reps: 8, weightKg: 10, isWarmup: false },
+    ],
+  },
+  {
+    slug: "dumbbell-supinated-curl",
+    note: "Dumbbell curl: 12 kg",
+    daysAgo: 12,
+    targetKg: 12,
+    targetReps: 10,
+    sets: [
+      { reps: 8, weightKg: 8, isWarmup: true },
+      { reps: 10, weightKg: 12, isWarmup: false },
+      { reps: 10, weightKg: 12, isWarmup: false },
+      { reps: 9, weightKg: 12, isWarmup: false },
+    ],
+  },
+  {
+    slug: "dumbbell-supinated-curl",
+    note: "Dumbbell curl: 14 kg",
+    daysAgo: 4,
+    targetKg: 14,
+    targetReps: 8,
+    sets: [
+      { reps: 6, weightKg: 10, isWarmup: true },
+      { reps: 8, weightKg: 14, isWarmup: false },
+      { reps: 8, weightKg: 14, isWarmup: false },
+      { reps: 6, weightKg: 14, isWarmup: false },
+    ],
+  },
+  {
+    slug: "dumbbell-bench-press",
+    note: "Dumbbell bench: 22 kg",
+    daysAgo: 16,
+    targetKg: 22,
+    targetReps: 8,
+    sets: [
+      { reps: 8, weightKg: 14, isWarmup: true },
+      { reps: 8, weightKg: 22, isWarmup: false },
+      { reps: 8, weightKg: 22, isWarmup: false },
+      { reps: 6, weightKg: 22, isWarmup: false },
+    ],
+  },
+  {
+    slug: "dumbbell-bench-press",
+    note: "Dumbbell bench: 24 kg",
+    daysAgo: 6,
+    targetKg: 24,
+    targetReps: 8,
+    sets: [
+      { reps: 6, weightKg: 16, isWarmup: true },
+      { reps: 8, weightKg: 24, isWarmup: false },
+      { reps: 8, weightKg: 24, isWarmup: false },
+      { reps: 7, weightKg: 24, isWarmup: false },
+    ],
+  },
+];
 const ASSISTED_DIP_SESSIONS = [
   {
     note: "Assisted Dip: 20 kg",
@@ -618,6 +690,86 @@ function buildAssistedDipSession(exerciseId, spec, performed) {
   };
 }
 
+function buildNoBaseSession(exerciseId, spec, performed) {
+  const sessionId = randomUUID();
+  const sessionExerciseId = randomUUID();
+  const workingCount = spec.sets.filter((set) => !set.isWarmup).length;
+  return {
+    sessions: [
+      {
+        id: sessionId,
+        performed_on: toYyyyMmDd(performed),
+        notes: spec.note,
+        plan_id: null,
+        plan_day_id: null,
+        source_template_id: null,
+        ...finishedTimestamps(performed),
+      },
+    ],
+    sessionExercises: [
+      {
+        id: sessionExerciseId,
+        session_id: sessionId,
+        exercise_id: exerciseId,
+        position: 1,
+        target_sets: workingCount,
+        target_reps: spec.targetReps,
+        target_weight_kg: spec.targetKg,
+        base_weight_kg: null,
+        notes: null,
+      },
+    ],
+    sets: spec.sets.map((set, setIndex) => ({
+      session_exercise_id: sessionExerciseId,
+      set_number: setIndex + 1,
+      reps: set.reps,
+      weight_kg: set.weightKg,
+      is_warmup: set.isWarmup,
+      performed_at: new Date(
+        performed.getFullYear(),
+        performed.getMonth(),
+        performed.getDate(),
+        19,
+        setIndex,
+      ).toISOString(),
+    })),
+  };
+}
+
+async function seedMissingNoBaseSessions(supabase, userId, exerciseIdBySlug) {
+  const notes = NO_BASE_SESSIONS.map((spec) => spec.note);
+  const { data: existing, error } = await supabase
+    .from("workout_sessions")
+    .select("notes")
+    .eq("user_id", userId)
+    .in("notes", notes);
+  if (error) {
+    throw new Error(`Could not read no-base sessions: ${error.message}`);
+  }
+  const have = new Set((existing ?? []).map((row) => row.notes));
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  let added = 0;
+  for (const spec of NO_BASE_SESSIONS) {
+    if (have.has(spec.note)) {
+      continue;
+    }
+    const exerciseId = exerciseIdBySlug.get(spec.slug);
+    const performed = addDays(today, -spec.daysAgo);
+    const built = buildNoBaseSession(exerciseId, spec, performed);
+    await insertChunks(
+      supabase,
+      "workout_sessions",
+      built.sessions.map((session) => ({ ...session, user_id: userId })),
+    );
+    await insertChunks(supabase, "workout_session_exercises", built.sessionExercises);
+    await insertChunks(supabase, "workout_sets", built.sets);
+    added += 1;
+  }
+  return added;
+}
+
 async function seedMissingAssistedDipSessions(supabase, userId, exerciseId) {
   const notes = ASSISTED_DIP_SESSIONS.map((spec) => spec.note);
   const { data: existing, error } = await supabase
@@ -804,7 +956,11 @@ async function seed() {
     }
   }
 
-  const slugs = [...Object.values(LIFTS).map((lift) => lift.slug), ASSISTED_DIP_SLUG];
+  const slugs = [
+    ...Object.values(LIFTS).map((lift) => lift.slug),
+    ASSISTED_DIP_SLUG,
+    ...new Set(NO_BASE_SESSIONS.map((spec) => spec.slug)),
+  ];
   const { data: exercises, error: exerciseError } = await supabase
     .from("exercises")
     .select("id, slug")
@@ -863,6 +1019,9 @@ async function seed() {
   );
   sessionCount += seededAssistedDipSessions;
 
+  const seededNoBaseSessions = await seedMissingNoBaseSessions(supabase, userId, exerciseIdBySlug);
+  sessionCount += seededNoBaseSessions;
+
   const createdLabel = created ? "Created" : "Using";
   const templateNames = templates.map((template) => template.name).join(", ");
   const templateCreated = templates.filter((template) => template.created).length;
@@ -871,6 +1030,7 @@ async function seed() {
     seededTemplateSessions ? `+${seededTemplateSessions} template` : null,
     seededPlannedSessions ? `+${seededPlannedSessions} planned` : null,
     seededAssistedDipSessions ? `+${seededAssistedDipSessions} assisted dip` : null,
+    seededNoBaseSessions ? `+${seededNoBaseSessions} no base` : null,
     removedPlans ? `-${removedPlans} old plans` : null,
   ].filter(Boolean);
   console.log(

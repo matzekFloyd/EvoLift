@@ -119,6 +119,19 @@ describe("exercise chart text alternatives", () => {
     );
     assert.equal(withMovedLoad.rows[0]?.cells.movedLoad, "70.0");
     assert.equal(withMovedLoad.rows[1]?.cells.movedLoad, "Not plotted");
+
+    const dip = exerciseWeightChartText(
+      [weightPoint({ heaviestLoadedKg: 10, movedLoadKg: 90 })],
+      "loaded",
+      false,
+      true,
+    );
+    assert.equal(dip.caption, "Loaded (kg) and bodyweight plus added load by session");
+    assert.deepEqual(
+      dip.columns.map((column) => column.label),
+      ["Session", "Loaded (kg)", "Bodyweight plus added load (kg)"],
+    );
+    assert.equal(dip.rows[0]?.cells.movedLoad, "90.0");
   });
 
   it("lists estimated 1RM and session volume with the axis label", () => {

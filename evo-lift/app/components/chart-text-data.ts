@@ -77,6 +77,7 @@ export function exerciseWeightChartText(
   points: readonly ExerciseSessionWeightChartPoint[],
   mode: WeightChartSeriesMode,
   assistance: boolean,
+  bodyweightPlusLoad = false,
 ): ChartTextAlternativeModel {
   const session: ChartTextColumn = { key: "session", label: "Session" };
   const loaded: ChartTextColumn = {
@@ -86,10 +87,13 @@ export function exerciseWeightChartText(
   const total: ChartTextColumn = { key: "total", label: "Total (kg)" };
   const showTotal = !assistance && (mode === "total" || mode === "both");
   const showLoaded = assistance || mode === "loaded" || mode === "both";
-  const showMovedLoad = assistance && points.some((point) => point.movedLoadKg != null);
+  const showMovedLoad =
+    (assistance || bodyweightPlusLoad) && points.some((point) => point.movedLoadKg != null);
   const movedLoad: ChartTextColumn = {
     key: "movedLoad",
-    label: "Bodyweight minus assistance (kg)",
+    label: bodyweightPlusLoad
+      ? "Bodyweight plus added load (kg)"
+      : "Bodyweight minus assistance (kg)",
   };
   const columns = [
     session,
@@ -101,6 +105,10 @@ export function exerciseWeightChartText(
     ? showMovedLoad
       ? "Assistance (kg) and bodyweight minus assistance by session"
       : "Assistance (kg) by session"
+    : bodyweightPlusLoad
+      ? showMovedLoad
+        ? "Loaded (kg) and bodyweight plus added load by session"
+        : "Loaded (kg) by session"
     : mode === "both"
       ? "Loaded (kg) and Total (kg) by session"
       : mode === "total"

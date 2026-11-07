@@ -21,7 +21,7 @@ type ExerciseMetadataCachePayload = {
   rows: ExerciseMetadataRow[];
 };
 
-const EXERCISE_METADATA_CACHE_KEY = "evolift:exercise-metadata:v1";
+const EXERCISE_METADATA_CACHE_KEY = "evolift:exercise-metadata:v4";
 const DEFAULT_TTL_MS = 5 * 60 * 1000;
 
 let inMemoryCache: ExerciseMetadataCachePayload | null = null;
