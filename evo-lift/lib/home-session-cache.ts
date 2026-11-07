@@ -115,7 +115,11 @@ export function prefetchHomeSessionSummaries(client: SupabaseClient<Database>, u
   });
 }
 
-/** Session counts by exercise slug, excluding planned sessions. Null when Home has not loaded. */
+/**
+ * Session counts by exercise slug for past sessions with at least one logged set.
+ * An exercise added to a session and left without a set does not count.
+ * Null when Home has not loaded.
+ */
 export function pastSessionCountsBySlug(userId: string): Map<string, number> | null {
   if (!cache || cache.userId !== userId) {
     return null;
@@ -126,7 +130,7 @@ export function pastSessionCountsBySlug(userId: string): Map<string, number> | n
       continue;
     }
     for (const badge of row.exercise_badges ?? []) {
-      if (typeof badge.slug !== "string" || badge.slug.length === 0) {
+      if (typeof badge.slug !== "string" || badge.slug.length === 0 || badge.has_logged_set !== true) {
         continue;
       }
       counts.set(badge.slug, (counts.get(badge.slug) ?? 0) + 1);

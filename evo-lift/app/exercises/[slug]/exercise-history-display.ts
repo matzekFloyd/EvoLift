@@ -30,6 +30,30 @@ export function loggedLoadKg(row: { weightKg: number | null }): number | null {
   return Number.isFinite(weight) ? weight : null;
 }
 
+const LOAD_TOTAL_EPSILON_KG = 0.001;
+
+/** A base above zero makes Total different from the logged load. */
+export function baseWeightChangesLoad(baseWeightKg: number | null | undefined): boolean {
+  if (baseWeightKg == null) {
+    return false;
+  }
+  const base = Number(baseWeightKg);
+  return Number.isFinite(base) && base > LOAD_TOTAL_EPSILON_KG;
+}
+
+/**
+ * True when a logged load and its total differ, so these rows use a base weight.
+ * Sets with no logged load do not count: Total is not a second number there.
+ */
+export function setsUseBaseWeight(
+  rows: readonly { weightKg: number | null; totalKg: number }[],
+): boolean {
+  return rows.some((row) => {
+    const loaded = loggedLoadKg(row);
+    return loaded !== null && Math.abs(row.totalKg - loaded) > LOAD_TOTAL_EPSILON_KG;
+  });
+}
+
 /**
  * Per-set total on the bar (kg) for KPIs: same value as the history Total (kg) column.
  * Only working sets with a logged load qualify.

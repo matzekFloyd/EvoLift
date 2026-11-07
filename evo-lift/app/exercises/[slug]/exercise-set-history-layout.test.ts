@@ -106,7 +106,7 @@ describe("compact set history layout", () => {
     assert.equal(compactHistoryGridClass(false, true).includes("4.75rem"), true);
     assert.equal(compactHistoryGridClass(false, false).includes("4.75rem"), false);
     assert.equal(compactHistoryGridClass(true, false).includes("4.75rem"), false);
-    assert.match(sectionSource, /compactHistoryGridClass\(assistance, showSetType\)/);
+    assert.match(sectionSource, /compactHistoryGridClass\(!showTotal, showSetType\)/);
     assert.match(sectionSource, /const showSetType = !hideWarmups/);
     assert.match(sectionSource, /hideWarmups \? null/);
   });

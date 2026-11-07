@@ -37,7 +37,7 @@ export function LiftComparisonPanel({
             about 80–90% of Barbell Deadlift. Barbell Bench Press is often about 65–85% of Barbell Back
             Squat. Barbell Overhead Press is often about 60–75% of Barbell Bench Press. Barbell Bent Over
             Row is often about 80–100% of Barbell Bench Press. Barbell Romanian Deadlift is often about
-            70–85% of Barbell Deadlift. Close-Grip Bench Press is often about 90–95% of Barbell Bench
+            70–85% of Barbell Deadlift. Barbell Close-Grip Bench Press is often about 90–95% of Barbell Bench
             Press. Barbell Hip Thrust is often about 130–170% of Barbell Back Squat. Limb length and
             technique move these numbers, so a note appears only when a ratio sits clearly outside the
             band. These are coaching rules of thumb, not a lab study.

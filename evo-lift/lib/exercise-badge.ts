@@ -21,6 +21,7 @@ export function toExerciseBadge(slug: string): string {
     return "OHP";
   }
   if (slug.includes("pull-up") || slug === "chin-up") return "PU";
+  if (slug === "dip" || slug === "assisted-dip") return "DIP";
   if (slug.includes("row")) return "ROW";
   if (slug.includes("pulldown")) return "PD";
   if (slug.includes("curl")) return "CURL";

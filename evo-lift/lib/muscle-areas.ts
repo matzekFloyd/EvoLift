@@ -74,6 +74,7 @@ export const EXERCISE_MUSCLE_AREA_ROWS: ReadonlyArray<
   ["close-grip-bench-press", "triceps", "chest"],
   ["crunch", "core", null],
   ["deadlift", "hamstrings", "back"],
+  ["dip", "chest", "triceps"],
   ["dumbbell-bench-press", "chest", "triceps"],
   ["dumbbell-floor-press", "chest", "triceps"],
   ["dumbbell-flye", "chest", null],

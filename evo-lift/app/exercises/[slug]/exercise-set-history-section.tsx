@@ -85,7 +85,8 @@ type ExerciseSetHistorySectionProps = {
   topRepsRowKey: string | null;
   isCompactView: boolean;
   hideWarmups: boolean;
-  assistance: boolean;
+  /** Total column. Off when no visible set has a base weight. */
+  showTotal: boolean;
   loadColumnLabel: string;
   sortKey: HistorySortKey;
   sortDirection: HistorySortDirection;
@@ -105,7 +106,7 @@ export function ExerciseSetHistorySection({
   topRepsRowKey,
   isCompactView,
   hideWarmups,
-  assistance,
+  showTotal,
   loadColumnLabel,
   sortKey,
   sortDirection,
@@ -119,7 +120,7 @@ export function ExerciseSetHistorySection({
 }: ExerciseSetHistorySectionProps) {
   const router = useRouter();
   const showSetType = !hideWarmups;
-  const compactGridClassName = compactHistoryGridClass(assistance, showSetType);
+  const compactGridClassName = compactHistoryGridClass(!showTotal, showSetType);
 
   function renderSortIndicator(nextKey: HistorySortKey) {
     if (sortKey !== nextKey) {
@@ -169,14 +170,14 @@ export function ExerciseSetHistorySection({
             {hideWarmups ? null : <span className={COMPACT_HISTORY_TYPE_CELL}>Type</span>}
             <span className="text-right">Set</span>
             <CompactLoadHeader label={loadColumnLabel} />
-            {assistance ? null : (
+            {showTotal ? (
               <span
                 className="text-right"
-                title="Loaded weight plus optional base weight for this exercise on that session."
+                title="Loaded weight plus the base weight for this exercise on that session."
               >
                 Total
               </span>
-            )}
+            ) : null}
             <span className="text-right">Reps</span>
           </div>
           {pagedCompactRows.map((row, index) => (
@@ -235,11 +236,11 @@ export function ExerciseSetHistorySection({
                     <span className={`text-right tabular-nums ${historyValueClass(isTopRepsRow, isGoalRow)}`}>
                       {row.weightKg ?? "—"}
                     </span>
-                    {assistance ? null : (
+                    {showTotal ? (
                       <span className={`text-right tabular-nums ${historyValueClass(isTopRepsRow, isGoalRow)}`}>
                         {row.totalKg.toFixed(1)}
                       </span>
-                    )}
+                    ) : null}
                     <span className={`text-right tabular-nums ${historyValueClass(isTopRepsRow, isGoalRow)}`}>
                       {row.reps}
                     </span>
@@ -275,18 +276,18 @@ export function ExerciseSetHistorySection({
                   {loadColumnLabel} {renderSortIndicator("weightKg")}
                 </button>
               </th>
-              {assistance ? null : (
+              {showTotal ? (
                 <th className={appTableThClassName}>
                   <button
                     type="button"
                     onClick={() => onSort("totalKg")}
                     className={sortButtonClassName}
-                    title="Loaded weight plus optional base weight for this exercise on that session."
+                    title="Loaded weight plus the base weight for this exercise on that session."
                   >
                     Total (kg) {renderSortIndicator("totalKg")}
                   </button>
                 </th>
-              )}
+              ) : null}
               <th className={appTableThClassName}>
                 <button type="button" onClick={() => onSort("reps")} className={sortButtonClassName}>
                   Reps {renderSortIndicator("reps")}
@@ -323,11 +324,11 @@ export function ExerciseSetHistorySection({
                     <td className={`${appTableTdClassName} ${historyValueClass(isTopRepsRow, isGoalRow)}`}>
                       {row.weightKg ?? "-"}
                     </td>
-                    {assistance ? null : (
+                    {showTotal ? (
                       <td className={`${appTableTdClassName} ${historyValueClass(isTopRepsRow, isGoalRow)}`}>
                         {row.totalKg.toFixed(1)}
                       </td>
-                    )}
+                    ) : null}
                     <td className={`${appTableTdClassName} ${historyValueClass(isTopRepsRow, isGoalRow)}`}>
                       {row.reps}
                     </td>

@@ -14,9 +14,9 @@ const sectionSource = readFileSync(join(sectionDir, "exercise-summary-section.ts
 const layoutSource = readFileSync(join(sectionDir, "exercise-summary-layout.ts"), "utf8");
 
 describe("exercise summary layout", () => {
-  it("gives assistance five equal cards on a wide row and a full pair under the sets", () => {
-    const grid = exerciseSummaryGridClassName(true);
-    const load = exerciseSummaryLoadCardClassName(true);
+  it("gives five equal cards on a wide row when Total is hidden", () => {
+    const grid = exerciseSummaryGridClassName(false);
+    const load = exerciseSummaryLoadCardClassName(false);
     assert.match(grid, /grid-cols-6/);
     assert.match(grid, /@min-\[28rem\]:grid-cols-12/);
     assert.match(grid, /@min-\[56rem\]:grid-cols-5/);
@@ -26,9 +26,9 @@ describe("exercise summary layout", () => {
     assert.match(load, /@min-\[56rem\]:col-span-1/);
   });
 
-  it("keeps seven loaded cards, with four sharing the mid load row", () => {
-    const grid = exerciseSummaryGridClassName(false);
-    const load = exerciseSummaryLoadCardClassName(false);
+  it("keeps seven cards when Total is shown, with four sharing the mid load row", () => {
+    const grid = exerciseSummaryGridClassName(true);
+    const load = exerciseSummaryLoadCardClassName(true);
     assert.match(grid, /@min-\[56rem\]:grid-cols-7/);
     assert.equal(grid.includes("grid-cols-5"), false);
     assert.match(load, /^col-span-3 /);
@@ -43,9 +43,10 @@ describe("exercise summary layout", () => {
   });
 
   it("uses the layout helpers in the summary section", () => {
-    assert.match(sectionSource, /exerciseSummaryGridClassName\(assistance\)/);
+    assert.match(sectionSource, /exerciseSummaryGridClassName\(showTotal\)/);
     assert.match(sectionSource, /exerciseSummarySetCardClassName/);
-    assert.match(sectionSource, /exerciseSummaryLoadCardClassName\(assistance\)/);
+    assert.match(sectionSource, /exerciseSummaryLoadCardClassName\(showTotal\)/);
+    assert.match(sectionSource, /\{showTotal \? \(/);
     assert.equal(sectionSource.includes("grid-cols-7"), false);
     assert.match(layoutSource, /@min-\[28rem\]:col-span-6/);
     assert.match(layoutSource, /@min-\[56rem\]:grid-cols-5/);

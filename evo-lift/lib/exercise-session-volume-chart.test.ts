@@ -102,6 +102,37 @@ describe("buildExerciseSessionVolumeChartPoints", () => {
     );
     assert.equal(points[0]?.volumeKg, 5 * 70);
   });
+
+  it("sums reps times bodyweight plus added load and ignores a later bodyweight", () => {
+    const points = buildExerciseSessionVolumeChartPoints(
+      [
+        row({
+          sessionId: "before",
+          performedOn: "2026-10-01",
+          sessionCreatedAt: "2026-10-01T10:00:00Z",
+          reps: 5,
+          weightKg: 10,
+          totalKg: 10,
+        }),
+        row({ reps: 5, weightKg: 10, totalKg: 10 }),
+        row({ reps: 4, weightKg: null, totalKg: 0 }),
+        row({ reps: 8, weightKg: 20, totalKg: 20, isWarmup: true }),
+      ],
+      {
+        bodyweightPlusLoad: true,
+        bodyweightEntries: [
+          { loggedOn: "2026-10-14", bodyweightKg: 80 },
+          { loggedOn: "2026-10-20", bodyweightKg: 100 },
+        ],
+      },
+    );
+    assert.deepEqual(
+      points.map((point) => point.sessionId),
+      ["s1"],
+    );
+    assert.equal(points[0]?.volumeKg, 5 * 90 + 4 * 80);
+    assert.equal(points[0]?.workingSetsIncluded, 2);
+  });
 });
 
 describe("buildVolumeChangeSentence", () => {

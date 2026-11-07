@@ -29,19 +29,27 @@ type ExerciseWeightProgressChartProps = {
   points: ExerciseSessionWeightChartPoint[];
   /** Machine-assisted moves: Assistance (kg) only, no Total / Both. */
   assistance?: boolean;
+  /** Dip: Loaded (kg) plus bodyweight when a bodyweight is logged. */
+  bodyweightPlusLoad?: boolean;
+  /** Loaded and Total differ on the working sets in view. */
+  usesBaseWeight?: boolean;
 };
 
 const LINE_TOTAL = "Total (kg)";
 const LINE_LOADED = "Loaded (kg)";
 const LINE_ASSISTANCE = "Assistance (kg)";
 const LINE_MOVED_LOAD = "Bodyweight minus assistance (kg)";
+const LINE_PLUS_LOAD = "Bodyweight plus added load (kg)";
 
 export function ExerciseWeightProgressChart({
   points,
   assistance = false,
+  bodyweightPlusLoad = false,
+  usesBaseWeight = false,
 }: ExerciseWeightProgressChartProps) {
   const [seriesMode, setSeriesMode] = useState<ExerciseWeightProgressSeriesMode>("loaded");
   const [isCompactView, setIsCompactView] = useState(false);
+  const showSeriesToggle = !assistance && usesBaseWeight;
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 768px)");
@@ -51,9 +59,11 @@ export function ExerciseWeightProgressChart({
     return () => mediaQuery.removeEventListener("change", apply);
   }, []);
 
-  const effectiveMode: ExerciseWeightProgressSeriesMode = assistance ? "loaded" : seriesMode;
+  const effectiveMode: ExerciseWeightProgressSeriesMode = showSeriesToggle ? seriesMode : "loaded";
   const loadLineName = assistance ? LINE_ASSISTANCE : LINE_LOADED;
-  const showMovedLoad = assistance && points.some((point) => point.movedLoadKg != null);
+  const movedLoadName = bodyweightPlusLoad ? LINE_PLUS_LOAD : LINE_MOVED_LOAD;
+  const showMovedLoad =
+    (assistance || bodyweightPlusLoad) && points.some((point) => point.movedLoadKg != null);
 
   const chartData = useMemo(
     () =>
@@ -68,7 +78,10 @@ export function ExerciseWeightProgressChart({
 
   const showTotal = !assistance && (effectiveMode === "total" || effectiveMode === "both");
   const showLoaded = assistance || effectiveMode === "loaded" || effectiveMode === "both";
-  const changeSentence = buildWeightChangeSentence(points, effectiveMode, { assistance });
+  const changeSentence = buildWeightChangeSentence(points, effectiveMode, {
+    assistance,
+    bodyweightPlusLoad,
+  });
   const yDomain = useMemo(() => {
     const values = chartData.flatMap((point) => {
       const seriesValues: number[] = [];
@@ -98,21 +111,34 @@ export function ExerciseWeightProgressChart({
       return null;
     }
     const sessionDate = formatDateOnlyForLocale(source.performedOn);
-    if (assistance) {
+    if (assistance || bodyweightPlusLoad) {
       return (
         <div className="rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-sm shadow-sm">
           <p className="font-medium text-zinc-800">Session · {sessionDate}</p>
           <p className="text-zinc-700">
-            {LINE_ASSISTANCE}: {source.heaviestLoadedKg.toFixed(1)} kg
+            {loadLineName}: {source.heaviestLoadedKg.toFixed(1)} kg
           </p>
           {showMovedLoad ? (
             <p className="text-zinc-700">
               {source.movedLoadKg == null
-                ? `${LINE_MOVED_LOAD}: not plotted for this session`
-                : `${LINE_MOVED_LOAD}: ${source.movedLoadKg.toFixed(1)} kg`}
+                ? `${movedLoadName}: not plotted for this session`
+                : `${movedLoadName}: ${source.movedLoadKg.toFixed(1)} kg`}
             </p>
           ) : null}
-          <p className="text-zinc-500">Working set: #{source.heaviestSetNumber}</p>
+          <p className="text-zinc-500">
+            {bodyweightPlusLoad ? "Heaviest working set" : "Working set"}: #{source.heaviestSetNumber}
+          </p>
+        </div>
+      );
+    }
+    if (!usesBaseWeight) {
+      return (
+        <div className="rounded-md border border-zinc-200 bg-white px-2 py-1.5 text-sm shadow-sm">
+          <p className="font-medium text-zinc-800">Session · {sessionDate}</p>
+          <p className="text-zinc-700">
+            {LINE_LOADED}: {source.heaviestLoadedKg.toFixed(1)} kg
+          </p>
+          <p className="text-zinc-500">Heaviest working set: #{source.heaviestSetNumber}</p>
         </div>
       );
     }
@@ -147,7 +173,7 @@ export function ExerciseWeightProgressChart({
     <div className="space-y-3">
       <div className="flex w-full min-w-0 flex-wrap items-center gap-x-2 gap-y-2">
         <p className="min-w-0 flex-1 text-sm leading-snug text-zinc-800">{changeSentence}</p>
-        {assistance ? null : (
+        {showSeriesToggle ? (
           <SegmentedTabs<ExerciseWeightProgressSeriesMode>
             value={seriesMode}
             onChange={setSeriesMode}
@@ -161,7 +187,7 @@ export function ExerciseWeightProgressChart({
               { value: "both", label: "Both" },
             ]}
           />
-        )}
+        ) : null}
       </div>
 
       {effectiveMode === "both" ? (
@@ -175,8 +201,8 @@ export function ExerciseWeightProgressChart({
       {showMovedLoad ? (
         <ChartSeriesLegend
           items={[
-            { key: "assistance", label: LINE_ASSISTANCE, swatchClassName: "h-0.5 w-4 bg-teal-700" },
-            { key: "moved", label: LINE_MOVED_LOAD, swatchClassName: "h-0.5 w-4 bg-sky-600" },
+            { key: "load", label: loadLineName, swatchClassName: "h-0.5 w-4 bg-teal-700" },
+            { key: "moved", label: movedLoadName, swatchClassName: "h-0.5 w-4 bg-sky-600" },
           ]}
         />
       ) : null}
@@ -224,7 +250,11 @@ export function ExerciseWeightProgressChart({
                 type="monotone"
                 dataKey="loadedValue"
                 name={loadLineName}
-                stroke="#0f766e"
+                stroke={
+                  showSeriesToggle || assistance || (bodyweightPlusLoad && showMovedLoad)
+                    ? "#0f766e"
+                    : "#0284c7"
+                }
                 strokeWidth={2}
                 dot={{ r: points.length <= 8 ? 3 : 2 }}
                 activeDot={{ r: 4 }}
@@ -235,7 +265,7 @@ export function ExerciseWeightProgressChart({
               <Line
                 type="monotone"
                 dataKey="movedLoadValue"
-                name={LINE_MOVED_LOAD}
+                name={movedLoadName}
                 stroke="#0284c7"
                 strokeWidth={2}
                 connectNulls={false}
@@ -247,7 +277,9 @@ export function ExerciseWeightProgressChart({
           </LineChart>
         </ChartResponsiveContainer>
       </div>
-      <ChartTextAlternative model={exerciseWeightChartText(points, effectiveMode, assistance)} />
+      <ChartTextAlternative
+        model={exerciseWeightChartText(points, effectiveMode, assistance, bodyweightPlusLoad)}
+      />
     </div>
   );
 }

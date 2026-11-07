@@ -1,4 +1,5 @@
 import { assistedMovedLoadKg } from "@/lib/assisted-moved-load";
+import { bodyweightPlusAddedLoadKg, dipAddedLoadKg } from "@/lib/bodyweight-plus-load";
 import { bodyweightOnOrBefore, type BodyweightLogEntry } from "@/lib/bodyweight-log";
 import { buildChartAxisTickLabel } from "@/lib/date-format";
 import { estimateEpley1Rm } from "@/lib/exercise-progress-insights";
@@ -44,12 +45,19 @@ function loggedLoadKg(row: ExerciseSessionE1rmSetRow): number | null {
  * On Assisted Dip and Assisted Pull-Up, Epley uses bodyweight minus assistance in place of
  * Total (kg). A session with no bodyweight on or before its date, or with assistance greater
  * than that bodyweight, has no point. A later bodyweight is not used.
+ * On Dip, Epley uses bodyweight plus added load. A blank load is 0 kg added. A session
+ * with no bodyweight on or before its date has no point.
  */
 export function buildExerciseSessionE1rmChartPoints(
   rows: ExerciseSessionE1rmSetRow[],
-  options?: { assistance?: boolean; bodyweightEntries?: readonly BodyweightLogEntry[] },
+  options?: {
+    assistance?: boolean;
+    bodyweightPlusLoad?: boolean;
+    bodyweightEntries?: readonly BodyweightLogEntry[];
+  },
 ): ExerciseSessionE1rmChartPoint[] {
   const assistance = options?.assistance === true;
+  const bodyweightPlusLoad = options?.bodyweightPlusLoad === true && !assistance;
   const bodyweightEntries = options?.bodyweightEntries ?? [];
   const bySession = new Map<string, ExerciseSessionE1rmSetRow[]>();
   for (const row of rows) {
@@ -75,13 +83,16 @@ export function buildExerciseSessionE1rmChartPoints(
       if (r.isWarmup) {
         continue;
       }
-      const loaded = loggedLoadKg(r);
+      const loaded = bodyweightPlusLoad ? dipAddedLoadKg(r.weightKg) : loggedLoadKg(r);
       if (loaded === null) {
         continue;
       }
+      const bodyweightKg = bodyweightOnOrBefore(bodyweightEntries, r.performedOn);
       const loadKg = assistance
-        ? assistedMovedLoadKg(bodyweightOnOrBefore(bodyweightEntries, r.performedOn), loaded)
-        : r.totalKg;
+        ? assistedMovedLoadKg(bodyweightKg, loaded)
+        : bodyweightPlusLoad
+          ? bodyweightPlusAddedLoadKg(bodyweightKg, loaded)
+          : r.totalKg;
       if (loadKg == null) {
         continue;
       }

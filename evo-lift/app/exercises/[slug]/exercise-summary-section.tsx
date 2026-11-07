@@ -17,12 +17,15 @@ type ExerciseSummarySectionProps = {
   loggedSetCount: number;
   stats: ExerciseHistoryStats;
   assistance: boolean;
+  /** Avg total and Max total. Off when no set in view has a base weight. */
+  showTotal: boolean;
 };
 
 export function ExerciseSummarySection({
   loggedSetCount,
   stats,
   assistance,
+  showTotal,
 }: ExerciseSummarySectionProps) {
   const avgSetsText = stats.avgSetsPerSession == null ? "—" : stats.avgSetsPerSession.toFixed(1);
   const maxSetsText = stats.maxSetsInSession == null ? "—" : String(stats.maxSetsInSession);
@@ -41,7 +44,7 @@ export function ExerciseSummarySection({
           Summary
         </SectionHeading>
         <div className="@container">
-          <div className={exerciseSummaryGridClassName(assistance)}>
+          <div className={exerciseSummaryGridClassName(showTotal)}>
             <KpiBadge
               label="Logged sets"
               value={String(loggedSetCount)}
@@ -75,7 +78,7 @@ export function ExerciseSummarySection({
               icon={<Weight className="h-4 w-4" />}
               tone="neutral"
               valueClassName="text-sm font-medium"
-              className={exerciseSummaryLoadCardClassName(assistance)}
+              className={exerciseSummaryLoadCardClassName(showTotal)}
               description={
                 assistance
                   ? "Average assistance on working sets (no warmups). Blank or 0 is unassisted bodyweight."
@@ -88,14 +91,14 @@ export function ExerciseSummarySection({
               icon={<Weight className="h-4 w-4" />}
               tone="neutral"
               valueClassName="text-sm font-medium"
-              className={exerciseSummaryLoadCardClassName(assistance)}
+              className={exerciseSummaryLoadCardClassName(showTotal)}
               description={
                 assistance
                   ? "Lowest assistance on a working set (no warmups), including 0 kg. 0 kg is unassisted bodyweight."
                   : "Heaviest single working set by loaded weight (no warmups). Only sets with logged weight."
               }
             />
-            {assistance ? null : (
+            {showTotal ? (
               <>
                 <KpiBadge
                   label="Avg total (kg)"
@@ -103,7 +106,7 @@ export function ExerciseSummarySection({
                   icon={<TrendingUp className="h-4 w-4" />}
                   tone="neutral"
                   valueClassName="text-sm font-medium"
-                  className={exerciseSummaryLoadCardClassName(assistance)}
+                  className={exerciseSummaryLoadCardClassName(showTotal)}
                   description="Mean of each working set’s Total (kg)—loaded plus base for that session—same column as in set history. No warmups; only sets with logged load."
                 />
                 <KpiBadge
@@ -112,11 +115,11 @@ export function ExerciseSummarySection({
                   icon={<TrendingUp className="h-4 w-4" />}
                   tone="neutral"
                   valueClassName="text-sm font-medium"
-                  className={exerciseSummaryLoadCardClassName(assistance)}
+                  className={exerciseSummaryLoadCardClassName(showTotal)}
                   description="Heaviest single working set by Total (kg) in set history (loaded plus base). No warmups; only sets with logged load."
                 />
               </>
-            )}
+            ) : null}
           </div>
         </div>
       </section>

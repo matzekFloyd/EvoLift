@@ -13,9 +13,15 @@ import type { buildExerciseSessionWeightChartPoints } from "@/lib/exercise-sessi
 export function ExerciseWeightChartSection({
   points,
   assistance,
+  bodyweightPlusLoad = false,
+  usesBaseWeight,
 }: {
   points: ReturnType<typeof buildExerciseSessionWeightChartPoints>;
   assistance: boolean;
+  /** Dip: add a logged bodyweight to the added load. */
+  bodyweightPlusLoad?: boolean;
+  /** Working sets in view use a base, so Loaded and Total are different numbers. */
+  usesBaseWeight: boolean;
 }) {
   return (
     <section
@@ -38,7 +44,15 @@ export function ExerciseWeightChartSection({
                 bodyweight, bodyweight minus assistance is left off that session. Warmups are
                 omitted.
               </p>
-            ) : (
+            ) : bodyweightPlusLoad ? (
+              <p>
+                Each point is the heaviest working set. A blank load counts as no added weight.
+                The line is Loaded (kg). When a bodyweight is logged on or before that session,
+                the chart also shows bodyweight plus added load for the same set. A bodyweight
+                logged later is not used. Without that bodyweight, only Loaded (kg) is plotted.
+                Warmups are omitted.
+              </p>
+            ) : usesBaseWeight ? (
               <>
                 <p>
                   Total (kg) matches set history: loaded plus that session’s base for this
@@ -51,12 +65,22 @@ export function ExerciseWeightChartSection({
                   loaded, total, and base together.
                 </p>
               </>
+            ) : (
+              <p>
+                Each point is the heaviest working set with a logged load. The line is Loaded
+                (kg). Warmups and sets with no logged weight are omitted.
+              </p>
             )}
           </div>
         </InfoPopover>
       </div>
       <div className="mt-3">
-        <ExerciseWeightProgressChart points={points} assistance={assistance} />
+        <ExerciseWeightProgressChart
+          points={points}
+          assistance={assistance}
+          bodyweightPlusLoad={bodyweightPlusLoad}
+          usesBaseWeight={usesBaseWeight}
+        />
       </div>
     </section>
   );
@@ -65,9 +89,13 @@ export function ExerciseWeightChartSection({
 export function ExerciseE1rmChartSection({
   points,
   assistance,
+  bodyweightPlusLoad = false,
+  usesBaseWeight,
 }: {
   points: ReturnType<typeof buildExerciseSessionE1rmChartPoints>;
   assistance: boolean;
+  bodyweightPlusLoad?: boolean;
+  usesBaseWeight: boolean;
 }) {
   return (
     <section
@@ -89,13 +117,21 @@ export function ExerciseE1rmChartSection({
                 used. A set with no earlier bodyweight, or with assistance greater than that
                 bodyweight, is left off. A session with no remaining set is not plotted.
               </p>
+            ) : bodyweightPlusLoad ? (
+              <p>
+                When a bodyweight is logged on or before the session, each point is the highest
+                estimated 1RM from a working set of 12 reps or fewer. The estimate uses bodyweight
+                plus added load and the Epley formula. A blank load counts as no added weight. It
+                is not a tested max. Warmups and sets above 12 reps are excluded. A bodyweight
+                logged later is not used. A session with no earlier bodyweight is not plotted.
+              </p>
             ) : (
               <>
                 <p>
                   Each point is one workout session. The value is the highest estimated 1RM
                   from a <span className="font-medium">working set</span> with a logged load
-                  and 12 reps or fewer, using Total (kg) and the Epley formula. It is not a
-                  tested max.
+                  and 12 reps or fewer, using {usesBaseWeight ? "Total (kg)" : "Loaded (kg)"} and
+                  the Epley formula. It is not a tested max.
                 </p>
                 <p>
                   Warmups and sets above 12 reps are excluded. Tap or hover a point for the
@@ -107,7 +143,12 @@ export function ExerciseE1rmChartSection({
         </InfoPopover>
       </div>
       <div className="mt-3">
-        <ExerciseSessionE1rmChart points={points} assistance={assistance} />
+        <ExerciseSessionE1rmChart
+          points={points}
+          assistance={assistance}
+          bodyweightPlusLoad={bodyweightPlusLoad}
+          usesBaseWeight={usesBaseWeight}
+        />
       </div>
     </section>
   );
@@ -116,9 +157,13 @@ export function ExerciseE1rmChartSection({
 export function ExerciseVolumeChartSection({
   points,
   assistance,
+  bodyweightPlusLoad = false,
+  usesBaseWeight,
 }: {
   points: ReturnType<typeof buildExerciseSessionVolumeChartPoints>;
   assistance: boolean;
+  bodyweightPlusLoad?: boolean;
+  usesBaseWeight: boolean;
 }) {
   return (
     <section
@@ -139,17 +184,26 @@ export function ExerciseVolumeChartSection({
                 bodyweight, or with assistance greater than that bodyweight, is left off. A session
                 with no remaining set is not plotted.
               </p>
+            ) : bodyweightPlusLoad ? (
+              <p>
+                When a bodyweight is logged on or before the session, volume is the sum of reps
+                × bodyweight plus added load for every working set. A blank load counts as no
+                added weight. Warmups are excluded. A bodyweight logged later is not used. A
+                session with no earlier bodyweight is not plotted.
+              </p>
             ) : (
               <>
                 <p>
-                  Each point is one workout session. Volume is the sum of reps × Total (kg) on
-                  the bar for every <span className="font-medium">working set</span> with a
-                  logged load—same Total (kg) as set history (loaded plus base for that
-                  session).
+                  Each point is one workout session. Volume is the sum of reps ×{" "}
+                  {usesBaseWeight ? "Total (kg)" : "Loaded (kg)"} for every{" "}
+                  <span className="font-medium">working set</span> with a logged load.
+                  {usesBaseWeight
+                    ? " Total is loaded plus the base for that session, the same number as set history."
+                    : null}
                 </p>
                 <p>
                   Warmup sets are excluded. Sets without a logged weight are not counted. Tap
-                  or hover a point for session totals.
+                  or hover a point for the session volume.
                 </p>
               </>
             )}
@@ -157,7 +211,12 @@ export function ExerciseVolumeChartSection({
         </InfoPopover>
       </div>
       <div className="mt-3">
-        <ExerciseSessionVolumeChart points={points} assistance={assistance} />
+        <ExerciseSessionVolumeChart
+          points={points}
+          assistance={assistance}
+          bodyweightPlusLoad={bodyweightPlusLoad}
+          usesBaseWeight={usesBaseWeight}
+        />
       </div>
     </section>
   );

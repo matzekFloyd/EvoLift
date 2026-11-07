@@ -17,6 +17,7 @@ import {
 } from "@/lib/assistance-exercise";
 import { setsToShowForSkippedExercise } from "./session-exercise-status";
 import { SetKindIndicator } from "@/app/components/set-kind-indicator";
+import { baseWeightChangesLoad } from "@/app/exercises/[slug]/exercise-history-display";
 import { shouldShowSetSummarySeparator } from "./compact-set-summary";
 import {
   lastSessionComparisonLine,
@@ -259,6 +260,7 @@ export function SessionExerciseSets({
   const loadFieldLabel = externalLoadFieldLabel(exerciseSlug);
   const loadValuePrefix = externalLoadValuePrefix(exerciseSlug);
   const assistance = isAssistanceExercise(exerciseSlug);
+  const showTotalLoad = !assistance && baseWeightChangesLoad(baseWeightKg);
   const composers = addSetComposerVisible({
     canManageSets,
     targetsMet: targetSetsMet,
@@ -438,11 +440,11 @@ export function SessionExerciseSets({
                         ? "Unassisted bodyweight."
                         : "Assistance, not added load."}
                     </p>
-                  ) : (
+                  ) : showTotalLoad ? (
                     <p className="text-xs tabular-nums text-zinc-600">
                       Total: {((set.weight_kg ?? 0) + (baseWeightKg ?? 0)).toFixed(1)} kg
                     </p>
-                  )}
+                  ) : null}
                   {canManageSets ? (
                     <div className="mt-3 flex justify-end">
                       <CompactRowActions
@@ -716,11 +718,11 @@ export function SessionExerciseSets({
                             ? "Unassisted bodyweight"
                             : "Assistance"}
                         </div>
-                      ) : (
+                      ) : showTotalLoad ? (
                         <div className="text-xs text-zinc-500">
                           Total: {((set.weight_kg ?? 0) + (baseWeightKg ?? 0)).toFixed(1)} kg
                         </div>
-                      )}
+                      ) : null}
                     </td>
                     <td className="px-2 py-2 tabular-nums">
                       <span className="inline-flex flex-wrap items-center gap-1">

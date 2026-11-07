@@ -82,7 +82,7 @@ describe("muscle areas", () => {
     same(["dumbbell-lateral-raise", "cable-lateral-raise", "machine-lateral-raise"], "shoulders", null);
     same(["standing-calf-raise", "seated-calf-raise"], "calves", null);
     same(["plank", "crunch"], "core", null);
-    same(["assisted-dip"], "chest", "triceps");
+    same(["dip", "assisted-dip"], "chest", "triceps");
     same(["assisted-pull-up"], "back", "biceps");
   });
 
@@ -119,6 +119,7 @@ describe("muscle areas", () => {
         "machine-chest-press",
         "machine-incline-chest-press",
         "push-up",
+        "dip",
         "assisted-dip",
       ],
       "chest",

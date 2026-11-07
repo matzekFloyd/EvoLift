@@ -6,7 +6,7 @@ import {
   loadExerciseMetadata,
 } from "./exercise-metadata-cache";
 
-const CACHE_KEY = "evolift:exercise-metadata:v1";
+const CACHE_KEY = "evolift:exercise-metadata:v4";
 
 function metadataClient(options: {
   exercises?: unknown;

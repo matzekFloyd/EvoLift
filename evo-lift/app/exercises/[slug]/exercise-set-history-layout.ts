@@ -7,7 +7,7 @@
 export const compactHistoryGridClassName =
   "grid w-full min-w-0 grid-cols-[minmax(0,1fr)_2rem_2.75rem_2.5rem_2.25rem] gap-x-1 [&>*]:min-w-0 @min-[22rem]:grid-cols-[minmax(0,1fr)_4.75rem_2rem_2.75rem_2.5rem_2.25rem]";
 
-/** Assistance exercises omit Total. */
+/** Same tracks with the Total column omitted. */
 export const compactHistoryAssistanceGridClassName =
   "grid w-full min-w-0 grid-cols-[minmax(0,1fr)_2rem_2.75rem_2.25rem] gap-x-1 [&>*]:min-w-0 @min-[22rem]:grid-cols-[minmax(0,1fr)_4.75rem_2rem_2.75rem_2.25rem]";
 
@@ -18,8 +18,8 @@ export const compactHistoryAssistanceGridClassName =
 export const compactHistoryFrameClassName =
   "@container -mx-4 w-[calc(100%+2rem)] overflow-x-auto rounded-md border border-zinc-200 bg-white sm:-mx-5 sm:w-[calc(100%+2.5rem)]";
 
-export function compactHistoryGridClass(assistance: boolean, showType: boolean): string {
-  const withType = assistance ? compactHistoryAssistanceGridClassName : compactHistoryGridClassName;
+export function compactHistoryGridClass(omitTotal: boolean, showType: boolean): string {
+  const withType = omitTotal ? compactHistoryAssistanceGridClassName : compactHistoryGridClassName;
   if (showType) {
     return withType;
   }

@@ -9,6 +9,7 @@ import {
   EXERCISE_HISTORY_PLACEHOLDER_ROWS,
 } from "@/app/components/content-placeholder-layout";
 import { externalLoadFieldLabel, isAssistanceExercise } from "@/lib/assistance-exercise";
+import { isBodyweightPlusLoadExercise } from "@/lib/bodyweight-plus-load";
 import {
   historyPageCount,
   sliceRowsForPage,
@@ -16,6 +17,7 @@ import {
 } from "@/app/components/history-page-controls";
 import {
   buildExerciseDetailFilterQueryString,
+  setsUseBaseWeight,
   summarizeExerciseHistory,
 } from "@/app/exercises/[slug]/exercise-history-display";
 import {
@@ -133,6 +135,7 @@ function ExerciseDetailPageContent() {
   });
   const [trackedSlug, setTrackedSlug] = useState(slug);
   const assistance = isAssistanceExercise(slug);
+  const bodyweightPlusLoad = isBodyweightPlusLoadExercise(slug);
   const loadColumnLabel = externalLoadFieldLabel(slug);
   const presetToday = useMemo(() => new Date(), []);
   const defaultDateRange = useMemo(() => openingDateRange(presetToday), [presetToday]);
@@ -510,29 +513,33 @@ function ExerciseDetailPageContent() {
     [assistance, filteredHistoryRows],
   );
 
+  const showSummaryTotal = !assistance && setsUseBaseWeight(workingRows);
+  const showHistoryTotal = !assistance && setsUseBaseWeight(filteredHistoryRows);
+
   const bodyweightEntries = lifterProfile.bodyweightEntries;
-  const assistedChartOptions = useMemo(
-    () => (assistance ? { assistance: true as const, bodyweightEntries } : undefined),
-    [assistance, bodyweightEntries],
+  const chartLoadOptions = useMemo(
+    () =>
+      assistance
+        ? { assistance: true as const, bodyweightEntries }
+        : bodyweightPlusLoad
+          ? { bodyweightPlusLoad: true as const, bodyweightEntries }
+          : undefined,
+    [assistance, bodyweightEntries, bodyweightPlusLoad],
   );
 
   const sessionWeightChartPoints = useMemo(
-    () =>
-      buildExerciseSessionWeightChartPoints(filteredHistoryRows, {
-        assistance,
-        bodyweightEntries: assistance ? bodyweightEntries : undefined,
-      }),
-    [assistance, bodyweightEntries, filteredHistoryRows],
+    () => buildExerciseSessionWeightChartPoints(filteredHistoryRows, chartLoadOptions),
+    [chartLoadOptions, filteredHistoryRows],
   );
 
   const sessionE1rmChartPoints = useMemo(
-    () => buildExerciseSessionE1rmChartPoints(filteredHistoryRows, assistedChartOptions),
-    [assistedChartOptions, filteredHistoryRows],
+    () => buildExerciseSessionE1rmChartPoints(filteredHistoryRows, chartLoadOptions),
+    [chartLoadOptions, filteredHistoryRows],
   );
 
   const sessionVolumeChartPoints = useMemo(
-    () => buildExerciseSessionVolumeChartPoints(filteredHistoryRows, assistedChartOptions),
-    [assistedChartOptions, filteredHistoryRows],
+    () => buildExerciseSessionVolumeChartPoints(filteredHistoryRows, chartLoadOptions),
+    [chartLoadOptions, filteredHistoryRows],
   );
 
   /** Default date + session + set order (newest first, highest set first); same as Session date ↓ on wide layout. */
@@ -664,6 +671,7 @@ function ExerciseDetailPageContent() {
                 loggedSetCount={filteredHistoryRows.length}
                 stats={historyStats}
                 assistance={assistance}
+                showTotal={showSummaryTotal}
               />
               <ExerciseSetHistorySection
                 filteredCount={filteredHistoryRows.length}
@@ -672,7 +680,7 @@ function ExerciseDetailPageContent() {
                 topRepsRowKey={topRepsRowKey}
                 isCompactView={isCompactView}
                 hideWarmups={filterState.hideWarmups}
-                assistance={assistance}
+                showTotal={showHistoryTotal}
                 loadColumnLabel={loadColumnLabel}
                 sortKey={sortKey}
                 sortDirection={sortDirection}
@@ -701,9 +709,24 @@ function ExerciseDetailPageContent() {
             >
               {detailPanelTab === "charts" ? (
                 <>
-                  <ExerciseWeightChartSection points={sessionWeightChartPoints} assistance={assistance} />
-                  <ExerciseE1rmChartSection points={sessionE1rmChartPoints} assistance={assistance} />
-                  <ExerciseVolumeChartSection points={sessionVolumeChartPoints} assistance={assistance} />
+                  <ExerciseWeightChartSection
+                    points={sessionWeightChartPoints}
+                    assistance={assistance}
+                    bodyweightPlusLoad={bodyweightPlusLoad}
+                    usesBaseWeight={showSummaryTotal}
+                  />
+                  <ExerciseE1rmChartSection
+                    points={sessionE1rmChartPoints}
+                    assistance={assistance}
+                    bodyweightPlusLoad={bodyweightPlusLoad}
+                    usesBaseWeight={showSummaryTotal}
+                  />
+                  <ExerciseVolumeChartSection
+                    points={sessionVolumeChartPoints}
+                    assistance={assistance}
+                    bodyweightPlusLoad={bodyweightPlusLoad}
+                    usesBaseWeight={showSummaryTotal}
+                  />
                 </>
               ) : null}
             </div>

@@ -26,11 +26,17 @@ type ExerciseSessionE1rmChartProps = {
   points: ExerciseSessionE1rmChartPoint[];
   /** Assisted Dip and Assisted Pull-Up use bodyweight minus assistance in place of Total (kg). */
   assistance?: boolean;
+  /** Dip uses bodyweight plus added load in place of Total (kg). */
+  bodyweightPlusLoad?: boolean;
+  /** Working sets in view use a base, so the estimate is from Total (kg). */
+  usesBaseWeight?: boolean;
 };
 
 export function ExerciseSessionE1rmChart({
   points,
   assistance = false,
+  bodyweightPlusLoad = false,
+  usesBaseWeight = false,
 }: ExerciseSessionE1rmChartProps) {
   const [isCompactView, setIsCompactView] = useState(false);
 
@@ -74,13 +80,23 @@ export function ExerciseSessionE1rmChart({
         <p className="text-zinc-700">Estimated 1RM: {source.e1rmKg.toFixed(1)} kg</p>
         <p className="text-zinc-600">
           From set #{source.sourceSetNumber}: {source.sourceReps} reps ×{" "}
-          {source.sourceTotalKg.toFixed(1)} kg{" "}
-          {assistance ? "bodyweight minus assistance" : "Total"}
+          {source.sourceTotalKg.toFixed(1)} kg
+          {assistance
+            ? " bodyweight minus assistance"
+            : bodyweightPlusLoad
+              ? " bodyweight plus added load"
+              : usesBaseWeight
+                ? " Total"
+                : ""}
         </p>
-        <p className="text-zinc-500">
-          {assistance ? "Assistance" : "Loaded"} {source.sourceLoadedKg.toFixed(1)} kg · Epley · not a
-          tested max
-        </p>
+        {assistance || bodyweightPlusLoad || usesBaseWeight ? (
+          <p className="text-zinc-500">
+            {assistance ? "Assistance" : "Loaded"} {source.sourceLoadedKg.toFixed(1)} kg · Epley · not a
+            tested max
+          </p>
+        ) : (
+          <p className="text-zinc-500">Epley · not a tested max</p>
+        )}
       </div>
     );
   };
@@ -90,7 +106,9 @@ export function ExerciseSessionE1rmChart({
       <p className="text-sm text-zinc-600">
         {assistance
           ? "Log a bodyweight on or before the session to plot estimated 1RM from bodyweight minus assistance. Working sets of 12 reps or fewer count. Assistance above that bodyweight is left off."
-          : "No working sets of 12 reps or fewer with a logged load yet, so estimated 1RM cannot be plotted."}
+          : bodyweightPlusLoad
+            ? "Log a bodyweight on or before the session to plot estimated 1RM from bodyweight plus added load. Working sets of 12 reps or fewer count. A blank load counts as no added weight."
+            : "No working sets of 12 reps or fewer with a logged load yet, so estimated 1RM cannot be plotted."}
       </p>
     );
   }

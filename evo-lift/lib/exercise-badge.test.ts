@@ -29,6 +29,8 @@ describe("toExerciseBadge", () => {
     assert.equal(toExerciseBadge("pull-up"), "PU");
     assert.equal(toExerciseBadge("chin-up"), "PU");
     assert.equal(toExerciseBadge("assisted-pull-up"), "PU");
+    assert.equal(toExerciseBadge("dip"), "DIP");
+    assert.equal(toExerciseBadge("assisted-dip"), "DIP");
     assert.equal(toExerciseBadge("ez-bar-curl"), "CURL");
     assert.equal(toExerciseBadge("cable-tricep-kickback"), "TRI");
     assert.equal(toExerciseBadge("dumbbell-walking-lunge"), "LNG");

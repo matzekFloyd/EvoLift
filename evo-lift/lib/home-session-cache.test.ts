@@ -65,6 +65,10 @@ describe("home session cache", () => {
           exercise_badges: [{ slug: "back-squat", has_logged_set: false }],
         }),
         row({ id: "again", exercise_badges: [{ slug: "deadlift", has_logged_set: true }] }),
+        row({
+          id: "curl-without-sets",
+          exercise_badges: [{ slug: "dumbbell-curl", has_logged_set: false }],
+        }),
       ],
       error: null,
     });
@@ -77,6 +81,7 @@ describe("home session cache", () => {
     assert.equal(first.rows[1]?.set_count, 0);
     assert.equal(pastSessionCountsBySlug("user-1")?.get("deadlift"), 2);
     assert.equal(pastSessionCountsBySlug("user-1")?.has("back-squat"), false);
+    assert.equal(pastSessionCountsBySlug("user-1")?.has("dumbbell-curl"), false);
   });
 
   it("loads again after a workout change or an explicit refresh", async () => {

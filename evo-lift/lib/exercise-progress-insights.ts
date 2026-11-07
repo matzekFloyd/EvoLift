@@ -282,6 +282,7 @@ const MOVEMENT_PATTERNS: Record<string, MovementPattern> = {
       "machine-chest-press",
       "machine-incline-chest-press",
       "push-up",
+      "dip",
     ],
   },
   verticalPress: {
