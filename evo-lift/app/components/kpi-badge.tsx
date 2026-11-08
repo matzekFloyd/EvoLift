@@ -6,6 +6,8 @@ type KpiBadgeProps = {
   value: string;
   icon?: ReactNode;
   description?: string;
+  /** Comparison with the previous window, shown under the value. */
+  note?: string;
   tone?: KpiBadgeTone;
   className?: string;
   /** Replaces the default semibold value. Exercise detail uses this so the tiles stay quieter than the insight. */
@@ -17,6 +19,7 @@ export function KpiBadge({
   value,
   icon,
   description,
+  note,
   tone = "sky",
   className,
   valueClassName,
@@ -60,6 +63,7 @@ export function KpiBadge({
       <p className={`mt-0.5 leading-none ${valueClassName ?? "text-sm font-semibold sm:text-base"} ${valueClasses}`}>
         {value}
       </p>
+      {note ? <p className={`mt-1 text-[11px] font-normal leading-snug ${labelClasses}`}>{note}</p> : null}
     </div>
   );
 }

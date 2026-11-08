@@ -28,6 +28,9 @@ export function LiftComparisonPanel({
           ? "How your compounds sit next to each other, and next to published standards."
           : "Log a compound on at least 3 sessions to compare it with your other lifts."}
       </p>
+      {report.standardsCaption ? (
+        <p className="mt-1 text-xs text-zinc-500">{report.standardsCaption}</p>
+      ) : null}
       <details className="mt-2 text-xs text-zinc-600">
         <summary className="cursor-pointer font-medium text-zinc-700">How these comparisons work</summary>
         <div className="mt-2 space-y-2 leading-relaxed">
@@ -71,12 +74,7 @@ export function LiftComparisonPanel({
       </details>
       <InsightRowList rows={notes.map((note) => comparisonInsightRow(note))} />
       {report.comparisonHint ? (
-        <p className="mt-3 text-xs text-zinc-600">
-          {report.comparisonHint.replace(
-            "the ExRx table for ages 18–39",
-            "the ages 18–39 standards linked on each lift",
-          )}
-        </p>
+        <p className="mt-3 text-xs text-zinc-600">{report.comparisonHint}</p>
       ) : null}
     </CollapsibleSection>
   );

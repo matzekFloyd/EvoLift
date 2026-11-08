@@ -71,6 +71,7 @@ describe("buildExerciseProgressReport", () => {
     assert.equal(report.rows[0]?.read, "down");
     assert.match(report.summary, /Barbell Back Squat is down/);
     assert.match(report.rows[0]?.detail ?? "", /Best in this range was/);
+    assert.doesNotMatch(report.rows[0]?.detail ?? "", /Over /);
     assert.doesNotMatch(report.rows[0]?.detail ?? "", /Latest estimated 1RM/);
   });
 
@@ -85,9 +86,8 @@ describe("buildExerciseProgressReport", () => {
       NO_PROFILE,
     );
     assert.equal(report.rows[0]?.read, "ahead");
-    assert.match(report.rows[0]?.detail ?? "", /Over 3 sessions/);
-    assert.match(report.rows[0]?.detail ?? "", /1\.5 kg per month/);
-    assert.doesNotMatch(report.rows[0]?.detail ?? "", /\+[\d.]+ kg over/);
+    assert.match(report.rows[0]?.detail ?? "", /A steady rate for this lift is about 1\.5 kg per month/);
+    assert.doesNotMatch(report.rows[0]?.detail ?? "", /Over /);
   });
 
   it("does not use assisted-dip or assisted-pull-up assistance as a strength estimate", () => {
@@ -118,6 +118,8 @@ describe("buildExerciseProgressReport", () => {
       ageIsApproximate: false,
     });
     assert.equal(report.publicNotes[0]?.badge, "Novice");
+    assert.equal(report.publicNotes[0]?.detail, "");
+    assert.match(report.standardsCaption ?? "", /ExRx table for men, ages 18–39/);
     assert.match(report.publicNotes[0]?.tableHref ?? "", /exrx\.net/);
   });
 

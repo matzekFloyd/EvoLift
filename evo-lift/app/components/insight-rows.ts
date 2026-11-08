@@ -89,7 +89,7 @@ function progressMeta(row: ExerciseProgressRow): string | null {
   }
   const change =
     row.changeKg != null && row.read !== "early"
-      ? ` · ${row.changeKg > 0.05 ? "+" : ""}${row.changeKg.toFixed(1)} kg`
+      ? ` · ${row.changeKg > 0.05 ? "+" : ""}${row.changeKg.toFixed(1)} kg from the first session`
       : "";
   return `Latest est. 1RM ${row.latestE1rmKg.toFixed(1)} kg${change}`;
 }
@@ -97,28 +97,25 @@ function progressMeta(row: ExerciseProgressRow): string | null {
 /** Splits a bold estimate line so the change can use an arrow instead of + or -. */
 export function estimateChangeMark(
   meta: string,
-): { lead: string; direction: "up" | "down"; amount: string } | null {
-  const match = /^(.*) · ([+-])(\d+\.\d+ kg)$/.exec(meta);
+): { lead: string; direction: "up" | "down"; amount: string; suffix: string } | null {
+  const match = /^(.*) · ([+-])(\d+\.\d+) kg(.*)$/.exec(meta);
   if (!match) {
     return null;
   }
   return {
     lead: match[1],
     direction: match[2] === "-" ? "down" : "up",
-    amount: match[3],
+    amount: `${match[3]} kg`,
+    suffix: match[4],
   };
 }
 
-/** Drops the change and latest estimate already shown on the bold line. */
+/** Drops a best-in-range clause already shown by the rank row. */
 export function exerciseLeadDetail(detail: string, hasRank: boolean): string {
-  if (!detail.includes("since the first session in this range")) {
-    return detail;
-  }
-  if (hasRank) {
+  if (hasRank && detail.startsWith("Best in this range was ")) {
     return "";
   }
-  const best = detail.match(/Best in this range was .+$/);
-  return best ? best[0] : "";
+  return detail;
 }
 
 /** Says the rank is the best in the selected range, not the latest estimate. */

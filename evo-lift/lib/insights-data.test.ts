@@ -117,6 +117,42 @@ describe("insights history", () => {
     ]);
   });
 
+  it("keeps the previous window on the activity totals and out of the exercise sets", async () => {
+    const tables = historyTables();
+    tables.workout_sessions = {
+      data: [
+        { id: "session-1", performed_on: "2026-10-12" },
+        { id: "session-earlier", performed_on: "2026-09-15" },
+      ],
+      error: null,
+    };
+    tables.workout_session_exercises = {
+      data: [
+        { id: "se-1", session_id: "session-1", exercise_id: "ex-1", base_weight_kg: 20 },
+        { id: "se-earlier", session_id: "session-earlier", exercise_id: "ex-1", base_weight_kg: 20 },
+      ],
+      error: null,
+    };
+    tables.workout_sets = {
+      data: [
+        { session_exercise_id: "se-1", reps: 5, weight_kg: 40, is_warmup: true },
+        { session_exercise_id: "se-1", reps: 5, weight_kg: 60, is_warmup: false },
+        { session_exercise_id: "se-earlier", reps: 5, weight_kg: 50, is_warmup: false },
+      ],
+      error: null,
+    };
+    const { client } = queryClient(tables);
+    const history = await loadInsightsHistory(client as never, "user-1", WINDOW);
+    assert.deepEqual(
+      history.activity.map((point) => point.date),
+      ["2026-09-15", "2026-10-12"],
+    );
+    assert.deepEqual(
+      history.exerciseSets.map((sample) => sample.performedOn),
+      ["2026-10-12"],
+    );
+  });
+
   it("keeps 0 kg assistance for personal bests and leaves it out of strength volume", async () => {
     const tables = historyTables();
     tables.exercises = { data: [{ id: "ex-1", slug: "assisted-dip" }], error: null };

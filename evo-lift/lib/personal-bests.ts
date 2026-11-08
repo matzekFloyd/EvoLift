@@ -181,3 +181,15 @@ export function formatPersonalBestDate(mark: PersonalBestMark | null): string {
   }
   return formatDateOnlyForLocale(mark.performedOn);
 }
+
+/** The shared day when Best set and the load mark were both hit then. Otherwise each mark keeps its own date. */
+export function personalBestSharedDate(
+  row: Pick<PersonalBestRow, "bestSet" | "heaviestLoad">,
+): string | null {
+  const bestOn = row.bestSet?.performedOn;
+  const loadOn = row.heaviestLoad?.performedOn;
+  if (bestOn == null || loadOn == null || bestOn !== loadOn) {
+    return null;
+  }
+  return formatPersonalBestDate(row.bestSet);
+}

@@ -43,6 +43,12 @@ import {
   type WorkoutActivityPoint,
 } from "@/lib/insights-data";
 import { buildPersonalBestRows } from "@/lib/personal-bests";
+import {
+  formatInsightsVolumeKg,
+  insightsActivityTotals,
+  insightsKpiNote,
+  previousInsightsActivityWindow,
+} from "@/lib/insights-kpi";
 import { withWeeklyMovingAverage } from "@/app/insights/insights-weekly-chart-data";
 import {
   insightsClearFiltersDisabled,
@@ -197,12 +203,7 @@ export default function InsightsPage() {
     [basePoints, dateFrom, dateTo],
   );
 
-  const summary = useMemo(() => {
-    const workouts = filteredPoints.reduce((sum, item) => sum + item.workouts, 0);
-    const sets = filteredPoints.reduce((sum, item) => sum + item.sets, 0);
-    const loadedKg = filteredPoints.reduce((sum, item) => sum + item.loadedKg, 0);
-    return { workouts, sets, loadedKg };
-  }, [filteredPoints]);
+  const summary = useMemo(() => insightsActivityTotals(filteredPoints), [filteredPoints]);
 
   const weeklyVolumeFiltered = useMemo(
     () =>
@@ -237,6 +238,25 @@ export default function InsightsPage() {
     () => insightsComparisonPeriodName(dateFrom, dateTo, presetToday),
     [dateFrom, dateTo, presetToday],
   );
+
+  const kpiNotes = useMemo(() => {
+    const previousWindow = previousInsightsActivityWindow(dateFrom, dateTo);
+    if (!previousWindow) {
+      return null;
+    }
+    const previousPoints = basePoints.filter(
+      (point) => point.date >= previousWindow.from && point.date <= previousWindow.to,
+    );
+    if (previousPoints.length === 0) {
+      return null;
+    }
+    const previous = insightsActivityTotals(previousPoints);
+    return {
+      workouts: insightsKpiNote(summary.workouts, previous.workouts, "workouts", comparisonPeriodName),
+      sets: insightsKpiNote(summary.sets, previous.sets, "sets", comparisonPeriodName),
+      volume: insightsKpiNote(summary.volumeKg, previous.volumeKg, "volume", comparisonPeriodName),
+    };
+  }, [basePoints, comparisonPeriodName, dateFrom, dateTo, summary]);
 
   const sessionsComparisonSentence = useMemo(
     () =>
@@ -373,19 +393,22 @@ export default function InsightsPage() {
               <KpiBadge
                 label="Workouts"
                 value={String(summary.workouts)}
-                description="Total workout sessions in the selected filter window."
+                note={kpiNotes?.workouts}
+                description="Workout sessions in the selected range."
                 tone={kpiBadgeTone("count")}
               />
               <KpiBadge
                 label="Sets"
                 value={String(summary.sets)}
-                description="Total logged sets in the selected filter window."
+                note={kpiNotes?.sets}
+                description="Logged sets in the selected range."
                 tone={kpiBadgeTone("count")}
               />
               <KpiBadge
                 label="Volume (kg)"
-                value={summary.loadedKg.toFixed(1)}
-                description="Total weekly training volume (loaded kg × reps) in the selected filter window."
+                value={formatInsightsVolumeKg(summary.volumeKg)}
+                note={kpiNotes?.volume}
+                description="Loaded kg × reps in the selected range."
                 tone={kpiBadgeTone("count")}
               />
             </div>

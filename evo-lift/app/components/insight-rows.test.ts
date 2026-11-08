@@ -65,44 +65,37 @@ describe("progress insight rows", () => {
     assert.equal(linked.href, "/app/exercises/back-squat");
     assert.equal(progressInsightRow(progressRow("ahead"), { omitTitle: true }).title, null);
     assert.equal(progressInsightRow(progressRow("ahead"), { omitTitle: true }).slug, null);
-    assert.deepEqual(estimateChangeMark("Latest est. 1RM 93.3 kg · -35.0 kg"), {
+    assert.deepEqual(estimateChangeMark("Latest est. 1RM 93.3 kg · -35.0 kg from the first session"), {
       lead: "Latest est. 1RM 93.3 kg",
       direction: "down",
       amount: "35.0 kg",
+      suffix: " from the first session",
     });
     assert.deepEqual(estimateChangeMark("Latest est. 1RM 100.0 kg · +2.5 kg"), {
       lead: "Latest est. 1RM 100.0 kg",
       direction: "up",
       amount: "2.5 kg",
+      suffix: "",
     });
     assert.equal(estimateChangeMark("Best est. 1RM 100.0 kg · 1.3× bodyweight"), null);
+    assert.equal(exerciseLeadDetail("Best in this range was 164.7 kg.", true), "");
     assert.equal(
-      exerciseLeadDetail(
-        "Over 8 sessions since the first session in this range. Best in this range was 164.7 kg.",
-        true,
-      ),
-      "",
-    );
-    assert.equal(
-      exerciseLeadDetail(
-        "Over 8 sessions since the first session in this range. Best in this range was 164.7 kg.",
-        false,
-      ),
+      exerciseLeadDetail("Best in this range was 164.7 kg.", false),
       "Best in this range was 164.7 kg.",
     );
     assert.equal(
-      exerciseLeadDetail("Over 4 sessions. A steady rate for this lift is about 1.0 kg per month.", false),
-      "Over 4 sessions. A steady rate for this lift is about 1.0 kg per month.",
+      exerciseLeadDetail("A steady rate for this lift is about 1.0 kg per month.", false),
+      "A steady rate for this lift is about 1.0 kg per month.",
     );
     assert.equal(
       bestInRangeMeta("Best est. 1RM 164.7 kg · 1.9× bodyweight"),
       "Best in this range, 164.7 kg at 1.9× bodyweight",
     );
-    assert.equal(linked.meta, "Latest est. 1RM 100.0 kg · +2.5 kg");
+    assert.equal(linked.meta, "Latest est. 1RM 100.0 kg · +2.5 kg from the first session");
     assert.equal(progressInsightRow(progressRow("down", { changeKg: -3 }), { link: false }).href, null);
     assert.equal(
       progressInsightRow(progressRow("down", { changeKg: -3 })).meta,
-      "Latest est. 1RM 100.0 kg · -3.0 kg",
+      "Latest est. 1RM 100.0 kg · -3.0 kg from the first session",
     );
     assert.equal(progressInsightRow(progressRow("early", { changeKg: 4 })).meta, "Latest est. 1RM 100.0 kg");
     assert.equal(progressInsightRow(progressRow("ahead", { latestE1rmKg: null })).meta, null);
