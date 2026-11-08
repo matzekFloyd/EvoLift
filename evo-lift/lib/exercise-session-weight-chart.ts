@@ -191,7 +191,7 @@ function comparedWithPrevious(delta: number, noun?: string): string {
 /** Last session versus the session before, for the series on screen. */
 export function buildWeightChangeSentence(
   points: ExerciseSessionWeightChartPoint[],
-  mode: "total" | "loaded" | "both",
+  mode: "total" | "loaded",
   options?: { assistance?: boolean; bodyweightPlusLoad?: boolean },
 ): string {
   if (points.length === 0) {
@@ -223,19 +223,10 @@ export function buildWeightChangeSentence(
     if (mode === "total" && !assistance) {
       return `Last session: ${formatKg(last.heaviestTotalKg)} total. Log another session to see the change.`;
     }
-    if (mode === "both" && !assistance) {
-      return `Last session: ${formatKg(last.heaviestLoadedKg)} loaded and ${formatKg(last.heaviestTotalKg)} total. Log another session to see the change.`;
-    }
     return `Last session: ${formatKg(last.heaviestLoadedKg)} ${loadUnit}. Log another session to see the change.`;
   }
 
   const previous = points[points.length - 2];
-  if (mode === "both" && !assistance) {
-    const loadedDelta = last.heaviestLoadedKg - previous.heaviestLoadedKg;
-    const totalDelta = last.heaviestTotalKg - previous.heaviestTotalKg;
-    return `Last session: ${formatKg(last.heaviestLoadedKg)} loaded, ${comparedWithPrevious(loadedDelta)}, and ${formatKg(last.heaviestTotalKg)} total, ${comparedWithPrevious(totalDelta)}.`;
-  }
-
   const lastValue =
     mode === "total" && !assistance ? last.heaviestTotalKg : last.heaviestLoadedKg;
   const previousValue =

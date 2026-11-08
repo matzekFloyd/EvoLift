@@ -23,7 +23,7 @@ export type ChartTextAlternativeModel = {
   rows: ChartTextRow[];
 };
 
-export type WeightChartSeriesMode = "total" | "loaded" | "both";
+export type WeightChartSeriesMode = "total" | "loaded";
 
 export type WeeklyChartTextMetric = "volume" | "workingSets" | "sessions";
 
@@ -85,8 +85,8 @@ export function exerciseWeightChartText(
     label: assistance ? "Assistance (kg)" : "Loaded (kg)",
   };
   const total: ChartTextColumn = { key: "total", label: "Total (kg)" };
-  const showTotal = !assistance && (mode === "total" || mode === "both");
-  const showLoaded = assistance || mode === "loaded" || mode === "both";
+  const showTotal = !assistance && mode === "total";
+  const showLoaded = assistance || mode === "loaded";
   const showMovedLoad =
     (assistance || bodyweightPlusLoad) && points.some((point) => point.movedLoadKg != null);
   const movedLoad: ChartTextColumn = {
@@ -109,11 +109,9 @@ export function exerciseWeightChartText(
       ? showMovedLoad
         ? "Loaded (kg) and bodyweight plus added load by session"
         : "Loaded (kg) by session"
-    : mode === "both"
-      ? "Loaded (kg) and Total (kg) by session"
-      : mode === "total"
-        ? "Total (kg) by session"
-        : "Loaded (kg) by session";
+    : mode === "total"
+      ? "Total (kg) by session"
+      : "Loaded (kg) by session";
 
   return {
     caption,
