@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, Minus } from "lucide-react";
 import { ActionButton } from "@/app/components/action-button";
+import { ChangeMark, type ChangeDirection } from "@/app/components/change-mark";
 import { PanelInset } from "@/app/components/panel-inset";
 import { StatusNotice } from "@/app/components/status-notice";
 import { loadDoubleProgressionPreference } from "@/lib/double-progression-preference";
@@ -32,21 +32,23 @@ const DIRECTION_LABEL: Record<SuggestionDirection, string> = {
   unchanged: "unchanged",
 };
 
-const DIRECTION_CLASS: Record<SuggestionDirection, string> = {
-  increase: "text-emerald-700",
-  decrease: "text-amber-800",
-  unchanged: "text-zinc-500",
-};
+function suggestionChangeDirection(direction: SuggestionDirection): ChangeDirection {
+  if (direction === "increase") {
+    return "up";
+  }
+  if (direction === "decrease") {
+    return "down";
+  }
+  return "unchanged";
+}
 
 function DirectionMark({ direction, delta }: { direction: SuggestionDirection; delta: string | null }) {
-  const Icon = direction === "increase" ? ArrowUp : direction === "decrease" ? ArrowDown : Minus;
-  const label = DIRECTION_LABEL[direction];
   return (
-    <span className={`inline-flex items-center gap-0.5 ${DIRECTION_CLASS[direction]}`}>
-      <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-      <span className="sr-only">{label}</span>
-      {delta ? <span className="text-xs font-medium tabular-nums">{delta}</span> : null}
-    </span>
+    <ChangeMark
+      direction={suggestionChangeDirection(direction)}
+      amount={delta}
+      label={DIRECTION_LABEL[direction]}
+    />
   );
 }
 

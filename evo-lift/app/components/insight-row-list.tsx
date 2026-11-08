@@ -1,6 +1,6 @@
 import Link from "next/link";
-import { ArrowDown, ArrowUp } from "lucide-react";
 import type { ReactNode } from "react";
+import { ChangeMark } from "@/app/components/change-mark";
 import { ExerciseName } from "@/app/components/exercise-badge-chip";
 import { StatusBadge } from "@/app/components/status-badge";
 import { estimateChangeMark, type InsightRow } from "@/app/components/insight-rows";
@@ -38,21 +38,29 @@ export function TextWithExRxTableLink({ text, href }: { text: string; href: stri
   );
 }
 
-function EstimateLead({ meta }: { meta: string }) {
+function EstimateLead({ meta, subordinate = false }: { meta: string; subordinate?: boolean }) {
   const mark = estimateChangeMark(meta);
   if (!mark) {
-    return <p className="text-sm font-medium tabular-nums text-zinc-900">{meta}</p>;
+    return (
+      <p
+        className={
+          subordinate
+            ? "text-xs font-normal tabular-nums text-zinc-600"
+            : "text-sm font-medium tabular-nums text-zinc-900"
+        }
+      >
+        {meta}
+      </p>
+    );
   }
-  const Icon = mark.direction === "down" ? ArrowDown : ArrowUp;
-  const changeClass = mark.direction === "down" ? "text-amber-900" : "text-emerald-800";
   return (
     <p className="text-sm font-medium tabular-nums text-zinc-900">
       {mark.lead}{" "}
-      <span className={`inline-flex items-center gap-0.5 whitespace-nowrap ${changeClass}`}>
-        <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-        <span className="sr-only">{mark.direction === "down" ? "Down" : "Up"} </span>
-        {mark.amount}
-      </span>
+      <ChangeMark
+        direction={mark.direction}
+        amount={mark.amount}
+        label={mark.direction === "down" ? "Down" : "Up"}
+      />
       {mark.suffix}
     </p>
   );
@@ -77,7 +85,7 @@ function insightRowCopy(row: InsightRow): { first: ReactNode; rest: ReactNode } 
           </ExerciseName>
           {row.meta ? (
             <div className="mt-0.5">
-              <EstimateLead meta={row.meta} />
+              <EstimateLead meta={row.meta} subordinate />
             </div>
           ) : null}
         </div>
