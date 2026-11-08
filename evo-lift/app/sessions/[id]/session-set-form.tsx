@@ -1,8 +1,9 @@
 "use client";
 
-import { ArrowDown, ArrowUp, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { type Dispatch, type SetStateAction, useLayoutEffect, useRef, useState } from "react";
 import { ActionButton } from "@/app/components/action-button";
+import { ChangeMark } from "@/app/components/change-mark";
 import { EnterNextForm, enterNextHandlers } from "@/app/components/enter-next-form";
 import { Checkbox } from "@/app/components/checkbox";
 import { TextField } from "@/app/components/text-field";
@@ -63,16 +64,8 @@ function SetChangeMarkView({ mark }: { mark: SetChangeMark | null }) {
   if (!mark) {
     return null;
   }
-  const Icon = mark.direction === "up" ? ArrowUp : ArrowDown;
-  const tone = mark.direction === "up" ? "text-emerald-700" : "text-amber-800";
   return (
-    <span className={`inline-flex items-center gap-0.5 ${tone}`}>
-      <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
-      <span className="sr-only">{mark.label}</span>
-      <span aria-hidden className="text-xs font-medium tabular-nums">
-        {mark.amount}
-      </span>
-    </span>
+    <ChangeMark direction={mark.direction} amount={mark.amount} label={mark.label} hideAmountFromName />
   );
 }
 
