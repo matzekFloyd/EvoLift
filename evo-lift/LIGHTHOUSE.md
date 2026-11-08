@@ -89,7 +89,7 @@ Chrome UX Report has no field data for `https://evolift.at` or `https://www.evol
 | `/app`, `/app/insights`, `/app/exercises/[slug]` | `recharts` (about 277 kB on Insights, shared as one ~314 kB chunk) plus `d3-scale`, `d3-shape`, and `decimal.js-light` |
 | `/app/docs` | `swagger-ui-dist` (about 1.6 MB) and its CSS (about 180 kB), already a separate chunk |
 
-Those modules were not in `/login`, `/`, or a session page. They were still in the first-load entry of every chart route, including Insights sections that stay closed and the exercise Charts tab that starts hidden. Chart screens now load Recharts with `next/dynamic`. API docs loads Swagger UI the same way. The exercise Charts tab mounts those charts only after it is opened.
+Those modules were not in `/login`, `/`, or a session page. They were still in the first-load entry of every chart route, including Insights sections that stay closed and the exercise Charts tab that starts hidden. Chart screens now load Recharts with `next/dynamic`. API docs loads Swagger UI the same way. The exercise Charts tab mounts the chart sections, including their headings and help text, only after it is opened.
 
 | Route | Before | After | Budget |
 | --- | --- | --- | --- |

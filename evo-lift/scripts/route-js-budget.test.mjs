@@ -90,6 +90,10 @@ test("chart screens and API docs load those libraries with next/dynamic", () => 
   const insights = readFileSync(join(appRoot, "app/(shell)/app/insights/page.tsx"), "utf8");
   const exercise = readFileSync(join(appRoot, "app/(shell)/app/exercises/[slug]/page.tsx"), "utf8");
   const sections = readFileSync(join(appRoot, "app/exercises/[slug]/exercise-chart-sections.tsx"), "utf8");
+  const exerciseChartLoader = readFileSync(
+    join(appRoot, "app/exercises/[slug]/exercise-chart-sections-loader.tsx"),
+    "utf8",
+  );
   const pace = readFileSync(join(appRoot, "app/components/exercise-progress-panel.tsx"), "utf8");
   const publicHome = readFileSync(join(appRoot, "app/public-home-figure.tsx"), "utf8");
   const docs = readFileSync(join(appRoot, "app/(shell)/app/docs/page.tsx"), "utf8");
@@ -107,6 +111,10 @@ test("chart screens and API docs load those libraries with next/dynamic", () => 
   assert.match(publicHome, /from "@\/app\/components\/chart-dynamic"/);
   assert.doesNotMatch(publicHome, /exercise-progress-pace-chart"/);
   assert.match(sections, /from "@\/app\/components\/chart-dynamic"/);
+  assert.match(exerciseChartLoader, /from "next\/dynamic"/);
+  assert.match(exerciseChartLoader, /ssr: false/);
+  assert.match(exerciseChartLoader, /exercise-chart-sections/);
+  assert.doesNotMatch(exercise, /exercise-chart-sections"/);
   assert.match(exercise, /detailPanelTab === "charts"/);
   assert.match(docs, /from "@\/app\/docs\/api-docs-explorer-loader"/);
   assert.doesNotMatch(docs, /api-docs-explorer"/);

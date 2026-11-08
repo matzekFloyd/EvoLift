@@ -35,11 +35,7 @@ import {
   type HistorySortDirection,
   type HistorySortKey,
 } from "@/app/exercises/[slug]/exercise-detail-data";
-import {
-  ExerciseE1rmChartSection,
-  ExerciseVolumeChartSection,
-  ExerciseWeightChartSection,
-} from "@/app/exercises/[slug]/exercise-chart-sections";
+import { ExerciseDetailCharts } from "@/app/exercises/[slug]/exercise-chart-sections-loader";
 import { openingDateRange } from "@/app/components/date-range-presets";
 import { ExerciseFiltersSection } from "@/app/exercises/[slug]/exercise-filters-section";
 import { ExerciseSetHistorySection } from "@/app/exercises/[slug]/exercise-set-history-section";
@@ -708,26 +704,14 @@ function ExerciseDetailPageContent() {
               className="flex flex-col gap-4"
             >
               {detailPanelTab === "charts" ? (
-                <>
-                  <ExerciseWeightChartSection
-                    points={sessionWeightChartPoints}
-                    assistance={assistance}
-                    bodyweightPlusLoad={bodyweightPlusLoad}
-                    usesBaseWeight={showSummaryTotal}
-                  />
-                  <ExerciseE1rmChartSection
-                    points={sessionE1rmChartPoints}
-                    assistance={assistance}
-                    bodyweightPlusLoad={bodyweightPlusLoad}
-                    usesBaseWeight={showSummaryTotal}
-                  />
-                  <ExerciseVolumeChartSection
-                    points={sessionVolumeChartPoints}
-                    assistance={assistance}
-                    bodyweightPlusLoad={bodyweightPlusLoad}
-                    usesBaseWeight={showSummaryTotal}
-                  />
-                </>
+                <ExerciseDetailCharts
+                  weightPoints={sessionWeightChartPoints}
+                  e1rmPoints={sessionE1rmChartPoints}
+                  volumePoints={sessionVolumeChartPoints}
+                  assistance={assistance}
+                  bodyweightPlusLoad={bodyweightPlusLoad}
+                  usesBaseWeight={showSummaryTotal}
+                />
               ) : null}
             </div>
           </div>
