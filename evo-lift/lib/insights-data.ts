@@ -392,9 +392,7 @@ export async function loadInsightsHistory(
   const aggregateByDate = new Map<string, { workouts: number; sets: number; loadedKg: number }>();
   for (const session of sessions) {
     const date = normalizeDateOnly(session.performed_on);
-    if (!inSelectedWindow(date, window)) {
-      continue;
-    }
+    // Keep the previous window. The page filters the tiles, then compares with these days.
     const current = aggregateByDate.get(date) ?? { workouts: 0, sets: 0, loadedKg: 0 };
     current.workouts += 1;
     current.sets += setsBySessionId.get(session.id) ?? 0;

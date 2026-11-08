@@ -48,6 +48,8 @@ export type ExerciseProgressReport = {
   balanceNotes: LiftBalanceNote[];
   publicNotes: LiftBalanceNote[];
   comparisonHint: string | null;
+  /** One line for every graded lift. Null when none are graded. */
+  standardsCaption: string | null;
 };
 
 const MIN_SESSIONS = 3;
@@ -429,7 +431,7 @@ function bodyweightForEstimate(profile: LifterProfile, performedOn: string | nul
 function buildPublicComparison(
   rows: ExerciseProgressRow[],
   profile: LifterProfile,
-): { publicNotes: LiftBalanceNote[]; comparisonHint: string | null } {
+): { publicNotes: LiftBalanceNote[]; comparisonHint: string | null; standardsCaption: string | null } {
   const bySlug = new Map(rows.map((row) => [row.slug, row]));
   const gradedLifts = PUBLIC_LIFT_ORDER.flatMap((slug) => {
     const row = bySlug.get(slug);
@@ -442,6 +444,7 @@ function buildPublicComparison(
     return {
       publicNotes: [],
       comparisonHint: "Public standards here start at age 18, so no general-public level is shown.",
+      standardsCaption: null,
     };
   }
 
@@ -449,12 +452,13 @@ function buildPublicComparison(
 
   if (!canGrade) {
     if (gradedLifts.length === 0) {
-      return { publicNotes: [], comparisonHint: null };
+      return { publicNotes: [], comparisonHint: null, standardsCaption: null };
     }
     return {
       publicNotes: [],
       comparisonHint:
         "Add sex, date of birth, and bodyweight on Account to compare Barbell Back Squat, Barbell Bench Press, Barbell Deadlift, and Barbell Overhead Press with published standards.",
+      standardsCaption: null,
     };
   }
 
@@ -477,7 +481,7 @@ function buildPublicComparison(
       titleSlug: row.slug,
       badge: level,
       kind: "public",
-      detail: `On the ExRx table for ${sexWord}, ages ${EXRX_AGE_BAND}.`,
+      detail: "",
       tableHref: exrxTableUrl(row.slug),
       meta: `Best est. 1RM ${formatKg(row.bestE1rmKg)} · ${multiple}× bodyweight`,
     });
@@ -485,7 +489,7 @@ function buildPublicComparison(
 
   const hints: string[] = [];
   if (profile.ageYears == null) {
-    hints.push("Add a date of birth on Account. These levels use the ExRx table for ages 18–39.");
+    hints.push("Add a date of birth on Account.");
   }
   if (profile.ageYears != null && profile.ageYears >= 40) {
     hints.push(
@@ -495,7 +499,14 @@ function buildPublicComparison(
   if (profile.ageIsApproximate) {
     hints.push("Age is estimated from the year of birth on your profile.");
   }
-  return { publicNotes, comparisonHint: hints.length > 0 ? hints.join(" ") : null };
+  return {
+    publicNotes,
+    comparisonHint: hints.length > 0 ? hints.join(" ") : null,
+    standardsCaption:
+      publicNotes.length > 0
+        ? `Levels use the ExRx table for ${sexWord}, ages ${EXRX_AGE_BAND}.`
+        : null,
+  };
 }
 
 function groupSentence(
@@ -615,20 +626,16 @@ export function buildExerciseProgressReport(
     }
 
     const bestClause =
-      best.e1rmKg > latest.e1rmKg + 1
-        ? ` Best in this range was ${formatKg(best.e1rmKg)}.`
-        : "";
+      best.e1rmKg > latest.e1rmKg + 1 ? `Best in this range was ${formatKg(best.e1rmKg)}.` : "";
     let detail: string;
     if (read === "early") {
       detail = `${sessionCount} session${sessionCount === 1 ? "" : "s"} with an estimated 1RM.`;
     } else if (read === "down") {
-      detail = `Over ${sessionCount} sessions since the first session in this range.${bestClause}`;
-    } else if (read === "ahead") {
-      detail = `Over ${sessionCount} sessions. A steady rate for this lift is about ${formatKg(monthly)} per month.`;
-    } else if (read === "on-track") {
-      detail = `Over ${sessionCount} sessions, in line with about ${formatKg(monthly)} per month.`;
+      detail = bestClause;
+    } else if (read === "ahead" || read === "on-track") {
+      detail = `A steady rate for this lift is about ${formatKg(monthly)} per month.`;
     } else {
-      detail = `Over ${sessionCount} sessions. A steady rate is about ${formatKg(monthly)} per month, so more progress would be expected.`;
+      detail = `A steady rate is about ${formatKg(monthly)} per month.`;
     }
 
     rows.push({
@@ -661,5 +668,6 @@ export function buildExerciseProgressReport(
     balanceNotes: [...buildBalanceNotes(rows), ...buildPatternNotes(filtered, rows)],
     publicNotes: comparison.publicNotes,
     comparisonHint: comparison.comparisonHint,
+    standardsCaption: comparison.standardsCaption,
   };
 }

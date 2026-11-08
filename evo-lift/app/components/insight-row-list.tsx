@@ -44,14 +44,16 @@ function EstimateLead({ meta }: { meta: string }) {
     return <p className="text-sm font-medium tabular-nums text-zinc-900">{meta}</p>;
   }
   const Icon = mark.direction === "down" ? ArrowDown : ArrowUp;
+  const changeClass = mark.direction === "down" ? "text-amber-900" : "text-emerald-800";
   return (
     <p className="text-sm font-medium tabular-nums text-zinc-900">
       {mark.lead}{" "}
-      <span className="inline-flex items-center gap-0.5 whitespace-nowrap">
+      <span className={`inline-flex items-center gap-0.5 whitespace-nowrap ${changeClass}`}>
         <Icon className="h-3.5 w-3.5 shrink-0" aria-hidden />
         <span className="sr-only">{mark.direction === "down" ? "Down" : "Up"} </span>
         {mark.amount}
       </span>
+      {mark.suffix}
     </p>
   );
 }
@@ -60,27 +62,31 @@ function insightRowCopy(row: InsightRow): { first: ReactNode; rest: ReactNode } 
   if (row.title) {
     return {
       first: (
-        <ExerciseName slug={row.slug}>
-          {row.href ? (
-            <Link
-              href={row.href}
-              className="text-sm font-medium text-zinc-900 underline-offset-2 hover:text-sky-800 hover:underline"
-            >
-              {row.title}
-            </Link>
-          ) : (
-            <span className="text-sm font-medium text-zinc-900">{row.title}</span>
-          )}
-        </ExerciseName>
+        <div className="min-w-0">
+          <ExerciseName slug={row.slug}>
+            {row.href ? (
+              <Link
+                href={row.href}
+                className="text-sm font-medium text-zinc-900 underline-offset-2 hover:text-sky-800 hover:underline"
+              >
+                {row.title}
+              </Link>
+            ) : (
+              <span className="text-sm font-medium text-zinc-900">{row.title}</span>
+            )}
+          </ExerciseName>
+          {row.meta ? (
+            <div className="mt-0.5">
+              <EstimateLead meta={row.meta} />
+            </div>
+          ) : null}
+        </div>
       ),
-      rest: (
-        <>
-          <p className="text-xs text-zinc-700">
-            <TextWithExRxTableLink text={row.detail} href={row.tableHref} />
-          </p>
-          {row.meta ? <p className="mt-0.5 text-xs text-zinc-500">{row.meta}</p> : null}
-        </>
-      ),
+      rest: row.detail ? (
+        <p className="text-xs text-zinc-600">
+          <TextWithExRxTableLink text={row.detail} href={row.tableHref} />
+        </p>
+      ) : null,
     };
   }
   if (row.quiet) {
