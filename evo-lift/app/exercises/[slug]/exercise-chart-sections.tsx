@@ -221,3 +221,42 @@ export function ExerciseVolumeChartSection({
     </section>
   );
 }
+
+export function ExerciseDetailCharts({
+  weightPoints,
+  e1rmPoints,
+  volumePoints,
+  assistance,
+  bodyweightPlusLoad = false,
+  usesBaseWeight,
+}: {
+  weightPoints: ReturnType<typeof buildExerciseSessionWeightChartPoints>;
+  e1rmPoints: ReturnType<typeof buildExerciseSessionE1rmChartPoints>;
+  volumePoints: ReturnType<typeof buildExerciseSessionVolumeChartPoints>;
+  assistance: boolean;
+  bodyweightPlusLoad?: boolean;
+  usesBaseWeight: boolean;
+}) {
+  return (
+    <>
+      <ExerciseWeightChartSection
+        points={weightPoints}
+        assistance={assistance}
+        bodyweightPlusLoad={bodyweightPlusLoad}
+        usesBaseWeight={usesBaseWeight}
+      />
+      <ExerciseE1rmChartSection
+        points={e1rmPoints}
+        assistance={assistance}
+        bodyweightPlusLoad={bodyweightPlusLoad}
+        usesBaseWeight={usesBaseWeight}
+      />
+      <ExerciseVolumeChartSection
+        points={volumePoints}
+        assistance={assistance}
+        bodyweightPlusLoad={bodyweightPlusLoad}
+        usesBaseWeight={usesBaseWeight}
+      />
+    </>
+  );
+}
