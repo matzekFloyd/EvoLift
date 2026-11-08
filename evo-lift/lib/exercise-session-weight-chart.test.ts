@@ -211,7 +211,10 @@ describe("weight chart copy and axis", () => {
       buildWeightChangeSentence([point()], "loaded"),
       "Last session: 60.0 kg loaded. Log another session to see the change.",
     );
-    assert.match(buildWeightChangeSentence([point()], "both"), /60\.0 kg loaded and 80\.0 kg total/);
+    assert.equal(
+      buildWeightChangeSentence([point()], "total"),
+      "Last session: 80.0 kg total. Log another session to see the change.",
+    );
     const previous = point({ heaviestLoadedKg: 60, heaviestTotalKg: 80 });
     const same = point({ heaviestLoadedKg: 60.02, heaviestTotalKg: 80 });
     assert.match(buildWeightChangeSentence([previous, same], "total"), /the same as the session before/);

@@ -53,7 +53,7 @@ function e1rmPoint(
 }
 
 describe("exercise chart text alternatives", () => {
-  it("names the series on screen for loaded, total, both, and assistance", () => {
+  it("names the series on screen for loaded, total, and assistance", () => {
     const points = [
       weightPoint(),
       weightPoint({
@@ -81,14 +81,7 @@ describe("exercise chart text alternatives", () => {
     );
     assert.equal(total.rows[0]?.cells.total, "100.0");
 
-    const both = exerciseWeightChartText(points, "both", false);
-    assert.equal(both.caption, "Loaded (kg) and Total (kg) by session");
-    assert.deepEqual(
-      both.columns.map((column) => column.label),
-      ["Session", "Loaded (kg)", "Total (kg)"],
-    );
-
-    const assistance = exerciseWeightChartText(points, "both", true);
+    const assistance = exerciseWeightChartText(points, "loaded", true);
     assert.equal(assistance.caption, "Assistance (kg) by session");
     assert.deepEqual(
       assistance.columns.map((column) => column.label),

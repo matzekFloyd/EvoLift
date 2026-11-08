@@ -23,11 +23,11 @@ import {
   type ExerciseSessionWeightChartPoint,
 } from "@/lib/exercise-session-weight-chart";
 
-export type ExerciseWeightProgressSeriesMode = "total" | "loaded" | "both";
+export type ExerciseWeightProgressSeriesMode = "total" | "loaded";
 
 type ExerciseWeightProgressChartProps = {
   points: ExerciseSessionWeightChartPoint[];
-  /** Machine-assisted moves: Assistance (kg) only, no Total / Both. */
+  /** Machine-assisted moves: Assistance (kg) only, no Total. */
   assistance?: boolean;
   /** Dip: Loaded (kg) plus bodyweight when a bodyweight is logged. */
   bodyweightPlusLoad?: boolean;
@@ -76,8 +76,8 @@ export function ExerciseWeightProgressChart({
     [points],
   );
 
-  const showTotal = !assistance && (effectiveMode === "total" || effectiveMode === "both");
-  const showLoaded = assistance || effectiveMode === "loaded" || effectiveMode === "both";
+  const showTotal = !assistance && effectiveMode === "total";
+  const showLoaded = assistance || effectiveMode === "loaded";
   const changeSentence = buildWeightChangeSentence(points, effectiveMode, {
     assistance,
     bodyweightPlusLoad,
@@ -184,20 +184,11 @@ export function ExerciseWeightProgressChart({
             options={[
               { value: "loaded", label: "Loaded" },
               { value: "total", label: "Total" },
-              { value: "both", label: "Both" },
             ]}
           />
         ) : null}
       </div>
 
-      {effectiveMode === "both" ? (
-        <ChartSeriesLegend
-          items={[
-            { key: "loaded", label: LINE_LOADED, swatchClassName: "h-0.5 w-4 bg-teal-700" },
-            { key: "total", label: LINE_TOTAL, swatchClassName: "h-0.5 w-4 bg-sky-600" },
-          ]}
-        />
-      ) : null}
       {showMovedLoad ? (
         <ChartSeriesLegend
           items={[
@@ -251,9 +242,7 @@ export function ExerciseWeightProgressChart({
                 dataKey="loadedValue"
                 name={loadLineName}
                 stroke={
-                  showSeriesToggle || assistance || (bodyweightPlusLoad && showMovedLoad)
-                    ? "#0f766e"
-                    : "#0284c7"
+                  assistance || (bodyweightPlusLoad && showMovedLoad) ? "#0f766e" : "#0284c7"
                 }
                 strokeWidth={2}
                 dot={{ r: points.length <= 8 ? 3 : 2 }}

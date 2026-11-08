@@ -60,7 +60,7 @@ export function ExerciseWeightChartSection({
                   idea as your max-total stat).
                 </p>
                 <p>
-                  The line starts on Loaded (kg). Switch to Total or Both to include the base.
+                  The line starts on Loaded (kg). Switch to Total to include the base.
                   Warmups and sets with no logged weight are omitted. Tap or hover a point for
                   loaded, total, and base together.
                 </p>
