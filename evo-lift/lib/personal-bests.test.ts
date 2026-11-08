@@ -5,10 +5,12 @@ import { fileURLToPath } from "node:url";
 import { describe, it } from "vitest";
 import {
   buildPersonalBestRows,
+  formatPersonalBestDate,
   formatPersonalBestLoad,
   formatPersonalBestSet,
   isAssistanceExercise,
   personalBestLoadMarkLabel,
+  personalBestSharedDate,
   type PersonalBestCatalogExercise,
   type PersonalBestSetSample,
 } from "./personal-bests";
@@ -195,6 +197,25 @@ describe("personal bests", () => {
     ]);
     assert.deepEqual(tied[0]?.bestSet, { valueKg: 15, reps: 8, performedOn: "2026-02-01" });
     assert.deepEqual(tied[0]?.heaviestLoad, { valueKg: 15, reps: null, performedOn: "2026-01-01" });
+  });
+
+  it("uses one date when both marks fall on the same day", () => {
+    const sameDay = {
+      bestSet: { valueKg: 80, reps: 6, performedOn: "2026-11-08" },
+      heaviestLoad: { valueKg: 60, reps: null, performedOn: "2026-11-08" },
+    };
+    assert.equal(personalBestSharedDate(sameDay), formatPersonalBestDate(sameDay.bestSet));
+    assert.equal(
+      personalBestSharedDate({
+        bestSet: { valueKg: 7, reps: 8, performedOn: "2026-10-30" },
+        heaviestLoad: { valueKg: 7, reps: null, performedOn: "2026-09-29" },
+      }),
+      null,
+    );
+    assert.equal(
+      personalBestSharedDate({ bestSet: sameDay.bestSet, heaviestLoad: null }),
+      null,
+    );
   });
 
   it("describes least assistance in the Personal best glossary entry", () => {
