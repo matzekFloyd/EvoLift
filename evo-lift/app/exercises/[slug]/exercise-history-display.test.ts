@@ -5,6 +5,7 @@ import {
   baseWeightChangesLoad,
   buildExerciseDetailFilterQueryString,
   formatKgValue,
+  bestSetHistoryNote,
   historyRowSurfaceClass,
   historyRowTitle,
   historyValueClass,
@@ -94,8 +95,20 @@ describe("exercise history display", () => {
 
   it("describes a best set, a reached goal, and a plain set", () => {
     assert.equal(
+      bestSetHistoryNote(false),
+      "A medal marks the best set: the highest Total (kg), then the higher reps.",
+    );
+    assert.equal(
+      bestSetHistoryNote(true),
+      "A medal marks the best set: the lowest assistance, then the higher reps.",
+    );
+    assert.equal(
       historyRowTitle({ goalLabel: "100 kg", isWarmup: false }, true),
-      "Best set marker: top reps (with tie-break rules). Goal reached: 100 kg. Open session. Warmup: no.",
+      "Best set: highest Total (kg), then more reps. Goal reached: 100 kg. Open session. Warmup: no.",
+    );
+    assert.equal(
+      historyRowTitle({ goalLabel: null, isWarmup: false }, true, true),
+      "Best set: lowest assistance, then more reps. Open session. Warmup: no.",
     );
     assert.equal(
       historyRowTitle({ goalLabel: null, isWarmup: true }, false),
