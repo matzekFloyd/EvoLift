@@ -115,18 +115,30 @@ export function formatKgValue(value: number | null, fractionDigits: number): str
   return value == null ? "—" : `${value.toFixed(fractionDigits)} kg`;
 }
 
+/** Visible note for the medal on set history. */
+export function bestSetHistoryNote(assistance: boolean): string {
+  return assistance
+    ? "A medal marks the best set: the lowest assistance, then the higher reps."
+    : "A medal marks the best set: the highest Total (kg), then the higher reps.";
+}
+
 export function historyRowTitle(
   row: { goalLabel: string | null; isWarmup: boolean },
-  isTopRepsRow: boolean,
+  isBestSetRow: boolean,
+  assistance = false,
 ): string {
   const parts: string[] = [];
-  if (isTopRepsRow) {
-    parts.push("Best set marker: top reps (with tie-break rules).");
+  if (isBestSetRow) {
+    parts.push(
+      assistance
+        ? "Best set: lowest assistance, then more reps."
+        : "Best set: highest Total (kg), then more reps.",
+    );
   }
   if (row.goalLabel) {
     parts.push(`Goal reached: ${row.goalLabel}.`);
   }
-  if (!isTopRepsRow && !row.goalLabel) {
+  if (!isBestSetRow && !row.goalLabel) {
     parts.push("Set details for this exercise entry.");
   }
   parts.push("Open session.");
@@ -134,21 +146,21 @@ export function historyRowTitle(
   return parts.join(" ");
 }
 
-export function historyRowSurfaceClass(isTopRepsRow: boolean, isGoalRow: boolean): string {
+export function historyRowSurfaceClass(isBestSetRow: boolean, isGoalRow: boolean): string {
   if (isGoalRow) {
     return "!bg-emerald-100/70 text-emerald-950 hover:!bg-emerald-100";
   }
-  if (isTopRepsRow) {
+  if (isBestSetRow) {
     return "!bg-sky-100/70 text-sky-950 hover:!bg-sky-100";
   }
   return "odd:bg-white even:bg-zinc-100 hover:bg-sky-50";
 }
 
-export function historyValueClass(isTopRepsRow: boolean, isGoalRow: boolean): string {
+export function historyValueClass(isBestSetRow: boolean, isGoalRow: boolean): string {
   if (isGoalRow) {
     return "font-medium text-emerald-900";
   }
-  if (isTopRepsRow) {
+  if (isBestSetRow) {
     return "font-medium text-sky-900";
   }
   return "";

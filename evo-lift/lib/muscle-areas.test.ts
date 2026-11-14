@@ -104,6 +104,11 @@ describe("muscle areas", () => {
         "hack-squat",
         "bulgarian-split-squat",
         "leg-press",
+        "plate-loaded-leg-press",
+        "plate-loaded-hack-squat",
+        "plate-loaded-pendulum-squat",
+        "plate-loaded-belt-squat",
+        "plate-loaded-v-squat",
         "dumbbell-walking-lunge",
       ],
       "quads",
@@ -118,6 +123,10 @@ describe("muscle areas", () => {
         "dumbbell-incline-press",
         "machine-chest-press",
         "machine-incline-chest-press",
+        "plate-loaded-chest-press",
+        "plate-loaded-incline-chest-press",
+        "plate-loaded-decline-chest-press",
+        "plate-loaded-dip",
         "push-up",
         "dip",
         "assisted-dip",
@@ -128,7 +137,14 @@ describe("muscle areas", () => {
     tag(["cable-flye", "dumbbell-flye", "pec-deck"], "chest", null);
     tag(["close-grip-bench-press"], "triceps", "chest");
     tag(
-      ["overhead-press", "dumbbell-overhead-press", "dumbbell-seated-shoulder-press", "arnold-press"],
+      [
+        "overhead-press",
+        "dumbbell-overhead-press",
+        "dumbbell-seated-shoulder-press",
+        "arnold-press",
+        "machine-shoulder-press",
+        "plate-loaded-shoulder-press",
+      ],
       "shoulders",
       "triceps",
     );
@@ -139,7 +155,14 @@ describe("muscle areas", () => {
         "cable-seated-row",
         "chest-supported-row",
         "chest-supported-t-bar-row",
+        "plate-loaded-seated-row",
+        "plate-loaded-high-row",
+        "plate-loaded-low-row",
+        "plate-loaded-chest-supported-row",
+        "plate-loaded-chest-supported-t-bar-row",
         "lat-pulldown",
+        "plate-loaded-lat-pulldown",
+        "plate-loaded-single-arm-lat-pulldown",
         "neutral-grip-pulldown",
         "reverse-grip-lat-pulldown",
         "single-arm-pulldown",
@@ -153,14 +176,29 @@ describe("muscle areas", () => {
     tag(["barbell-romanian-deadlift", "dumbbell-romanian-deadlift"], "hamstrings", "glutes");
     tag(["deadlift", "sumo-deadlift", "trap-bar-deadlift"], "hamstrings", "back");
     tag(
-      ["barbell-hip-thrust", "dumbbell-single-leg-hip-thrust", "glute-bridge", "cable-pull-through"],
+      [
+        "barbell-hip-thrust",
+        "dumbbell-single-leg-hip-thrust",
+        "glute-bridge",
+        "cable-pull-through",
+        "plate-loaded-hip-thrust",
+      ],
       "glutes",
       "hamstrings",
     );
     tag(["leg-extension", "single-leg-leg-extension"], "quads", null);
     tag(["lying-leg-curl", "seated-leg-curl", "single-leg-lying-leg-curl"], "hamstrings", null);
     tag(
-      ["barbell-curl", "cable-curl", "dumbbell-supinated-curl", "ez-bar-curl", "hammer-curl", "single-arm-cable-curl"],
+      [
+        "barbell-curl",
+        "cable-curl",
+        "dumbbell-supinated-curl",
+        "ez-bar-curl",
+        "hammer-curl",
+        "single-arm-cable-curl",
+        "plate-loaded-biceps-curl",
+        "plate-loaded-preacher-curl",
+      ],
       "biceps",
       null,
     );
@@ -172,10 +210,21 @@ describe("muscle areas", () => {
     tag(["dumbbell-lateral-raise", "cable-lateral-raise", "machine-lateral-raise"], "shoulders", null);
     tag(["bent-over-reverse-dumbbell-flye", "cable-reverse-flye", "reverse-pec-deck"], "shoulders", null);
     tag(["seated-face-pull"], "shoulders", "back");
-    tag(["standing-calf-raise", "seated-calf-raise"], "calves", null);
+    tag(
+      [
+        "standing-calf-raise",
+        "seated-calf-raise",
+        "plate-loaded-standing-calf-raise",
+        "plate-loaded-seated-calf-raise",
+        "plate-loaded-tibia-raise",
+      ],
+      "calves",
+      null,
+    );
     tag(["plank", "crunch", "bicycle-crunch", "cable-crunch", "hanging-leg-raise", "pallof-press"], "core", null);
     tag(["machine-seated-hip-abduction"], "glutes", null);
     tag(["back-extension"], "back", "glutes");
+    tag(["plate-loaded-pullover", "plate-loaded-shrug"], "back", null);
 
     const catalog = EXERCISE_MUSCLE_AREA_ROWS.map(([slug]) => slug);
     assert.deepEqual([...covered].sort(), [...catalog].sort());
