@@ -82,6 +82,7 @@ function AddExerciseSuggestion({
         !props.targetSuggestionsDisabledExerciseIds.has(draft.exerciseId),
       )}
       exerciseDoubleProgression={props.doubleProgressionByExerciseId.get(draft.exerciseId)}
+      assistance={isAssistanceExercise(props.exerciseSlugById.get(draft.exerciseId))}
       onApply={({ weightKg, reps }) => {
         setField("targetWeightKg", weightKg);
         if (reps != null) {

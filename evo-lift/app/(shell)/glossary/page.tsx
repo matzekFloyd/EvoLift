@@ -52,7 +52,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Double progression",
     definition:
-      "An optional target suggestion for the next session. The account setting is the default, and Exercise defaults can turn it on or off for one exercise. It stays off until one of those is on. When every working set hits the rep target, the next suggestion adds 2 reps at the same weight. After that higher target is hit, the next suggestion adds weight and goes back to the lower reps. When the lowest working set reaches the lower reps, the next suggestion uses those reps at the same weight. When a working set is under the lower reps, the next suggestion drops the weight and uses the lower reps.",
+      "An optional target suggestion for the next session. The account setting is the default, and Exercise defaults can turn it on or off for one exercise. It stays off until one of those is on. When every working set hits the rep target, the next suggestion adds 2 reps at the same weight. After that higher target is hit, the next suggestion adds weight and goes back to the lower reps. When the lowest working set reaches the lower reps, the next suggestion uses those reps at the same weight. When a working set is under the lower reps, the next suggestion drops the weight and uses the lower reps. On Assisted Dip and Assisted Pull-Up, that weight step removes assistance after the higher target, and adds assistance when a working set is under the lower reps.",
   },
   {
     term: "Exercise",
@@ -115,7 +115,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Personal best",
     definition:
-      "On Insights, your strongest working sets in the selected date range. Best set is the highest Total (kg), then reps. Heaviest load is the highest Loaded (kg). Each mark shows the date it was first hit. Warmups do not count. On Assisted Dip and Assisted Pull-Up, Best set is the lowest assistance, then more reps, then the earlier date. Least assistance is the lowest Assistance (kg), then the earlier date. 0 kg is unassisted bodyweight.",
+      "On Insights, your strongest working sets in the selected date range. Best set is the highest Total (kg), then reps. Heaviest load is the highest Loaded (kg). Each mark shows the date it was first hit. Warmups do not count. On Assisted Dip and Assisted Pull-Up, Best set is the lowest assistance, then more reps, then the earlier date. Least assistance is the lowest Assistance (kg), then the earlier date. 0 kg is unassisted bodyweight. Set history on an exercise uses that same Best set ranking and marks the set with a medal.",
   },
   {
     term: "Plan",
@@ -144,7 +144,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Suggested target",
     definition:
-      "A Loaded (kg) or Assistance (kg) offered for the matching target field, from recent working sets for that exercise. The field changes only when you apply it.",
+      "A Loaded (kg) or Assistance (kg) offered for the matching target field, from recent working sets for that exercise. A hit raises Loaded (kg). On Assisted Dip and Assisted Pull-Up, a hit lowers assistance. The field changes only when you apply it.",
   },
   {
     term: "Target assistance (kg)",

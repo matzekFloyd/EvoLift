@@ -5,7 +5,7 @@ import { useId } from "react";
 import { ActionButton } from "@/app/components/action-button";
 import { EnterNextForm } from "@/app/components/enter-next-form";
 import { TargetWeightSuggestion } from "@/app/components/target-weight-suggestion";
-import { targetWeightFieldLabel } from "@/lib/assistance-exercise";
+import { isAssistanceExercise, targetWeightFieldLabel } from "@/lib/assistance-exercise";
 import { targetSuggestionsEnabled } from "@/lib/target-weight-suggestion";
 import { SessionBottomSheet } from "./session-bottom-sheet";
 import { SetTargetsFields } from "./set-targets-fields";
@@ -99,6 +99,7 @@ export function SessionTargetsSheet({
           excludeSessionId={sessionId ?? null}
           enabled={targetSuggestionsEnabled(!targetSuggestionsDisabledExerciseIds.has(exerciseId))}
           exerciseDoubleProgression={exerciseDoubleProgression}
+          assistance={isAssistanceExercise(exerciseSlug)}
           onApply={({ weightKg, reps }) => {
             onTargetsWeightChange(weightKg);
             if (reps != null) {

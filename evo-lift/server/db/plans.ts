@@ -5,26 +5,9 @@ import { PLAN_ALREADY_OPEN_MESSAGE, planSessionBlocksAnotherDay } from "@/lib/pl
 import { getTodayYyyyMmDd } from "@/lib/session-date";
 import type { Database } from "@/lib/supabase/database.types";
 import { ApiHttpError, MAX_SESSION_NOTES_LENGTH } from "@/server/api/http";
+import { planWriteFailure } from "@/server/db/plan-write-error";
+import { assertApiUserId } from "@/server/db/owned";
 import { createWorkoutSession, requireWorkoutSessionDetail } from "@/server/db/workouts";
-
-const PLAN_ERROR_MESSAGES = [
-  "You must be logged in.",
-  "Please enter a plan name.",
-  "Plan name cannot be longer than 120 characters.",
-  "Plan notes cannot be longer than 500 characters.",
-  "Please provide the plan days.",
-  "Please enter a name for each day.",
-  "A plan can have at most 7 days.",
-  "Day name cannot be longer than 80 characters.",
-  "Each day can only appear once.",
-  "That day is not part of this plan.",
-  "Please choose an exercise for each row.",
-  "A plan with this name already exists.",
-  "Another plan is already active. Try again.",
-  "Plan not found.",
-  "Add at least one exercise to this day.",
-  PLAN_ALREADY_OPEN_MESSAGE,
-] as const;
 
 export type WorkoutPlanListItem = {
   id: string;
@@ -59,19 +42,7 @@ type PlanDayQuery = {
 };
 
 function throwPlanWriteError(error: { message: string }, fallback: string): never {
-  for (const message of PLAN_ERROR_MESSAGES) {
-    if (error.message.includes(message)) {
-      const status = message === "Plan not found." ? 404 : 400;
-      throw new ApiHttpError(status, message);
-    }
-  }
-  if (error.message.includes("workout_plans_user_lower_name_uniq")) {
-    throw new ApiHttpError(400, "A plan with this name already exists.");
-  }
-  if (error.message.includes("workout_plans_one_active_per_user")) {
-    throw new ApiHttpError(400, "Another plan is already active. Try again.");
-  }
-  throw new Error(`${fallback}: ${error.message}`);
+  planWriteFailure(error, fallback);
 }
 
 function sortPlan(plan: WorkoutPlanWithDays): WorkoutPlanWithDays {
@@ -180,6 +151,7 @@ async function savePlan(
 
   const { data, error } = await client.rpc("save_workout_plan", {
     p_plan_id: planId,
+    p_user_id: assertApiUserId(userId),
     p_name: input.name.trim(),
     p_notes: input.notes?.trim() ? input.notes.trim() : null,
     p_is_active: input.isActive,

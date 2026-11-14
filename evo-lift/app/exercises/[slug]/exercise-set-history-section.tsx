@@ -24,6 +24,7 @@ import type {
   HistorySortKey,
 } from "@/app/exercises/[slug]/exercise-detail-data";
 import {
+  bestSetHistoryNote,
   historyRowSurfaceClass,
   historyRowTitle,
   historyValueClass,
@@ -82,7 +83,9 @@ type ExerciseSetHistorySectionProps = {
   filteredCount: number;
   pagedCompactRows: readonly ExerciseSetHistoryRow[];
   pagedTableRows: readonly ExerciseSetHistoryRow[];
-  topRepsRowKey: string | null;
+  bestSetRowKey: string | null;
+  /** Assisted Dip and Assisted Pull-Up. Best set is the lowest assistance. */
+  assistance: boolean;
   isCompactView: boolean;
   hideWarmups: boolean;
   /** Total column. Off when no visible set has a base weight. */
@@ -103,7 +106,8 @@ export function ExerciseSetHistorySection({
   filteredCount,
   pagedCompactRows,
   pagedTableRows,
-  topRepsRowKey,
+  bestSetRowKey,
+  assistance,
   isCompactView,
   hideWarmups,
   showTotal,
@@ -138,8 +142,8 @@ export function ExerciseSetHistorySection({
         <div className="min-w-0">
           <SectionHeading id="exercise-detail-history-heading">Set history</SectionHeading>
           <p className="mt-1 text-xs text-zinc-600">
-            Each row is one set for this exercise. A trophy marks the set that reached a goal.
-            Open a workout session to edit or review details.
+            Each row is one set for this exercise. {bestSetHistoryNote(assistance)} A trophy
+            marks the set that reached a goal. Open a workout session to edit or review details.
           </p>
         </div>
         {filteredCount > 0 ? (
@@ -184,15 +188,15 @@ export function ExerciseSetHistorySection({
             <article
               key={`${row.sessionId}-${row.setNumber}-${index}`}
               className={`cursor-pointer border-b ${compactHistoryCellPaddingClassName} py-1.5 text-xs last:border-b-0 ${historyRowSurfaceClass(
-                `${row.sessionId}-${row.setNumber}` === topRepsRowKey,
+                `${row.sessionId}-${row.setNumber}` === bestSetRowKey,
                 Boolean(row.goalLabel),
               )}`}
               onClick={() => router.push(appPath(`/sessions/${row.sessionId}`))}
-              title={historyRowTitle(row, `${row.sessionId}-${row.setNumber}` === topRepsRowKey)}
+              title={historyRowTitle(row, `${row.sessionId}-${row.setNumber}` === bestSetRowKey, assistance)}
             >
               {(() => {
                 const rowKey = `${row.sessionId}-${row.setNumber}`;
-                const isTopRepsRow = rowKey === topRepsRowKey;
+                const isBestSetRow = rowKey === bestSetRowKey;
                 const isGoalRow = Boolean(row.goalLabel);
                 return (
                   <div
@@ -200,14 +204,14 @@ export function ExerciseSetHistorySection({
                   >
                     <div className="flex min-w-0 items-center gap-1">
                       <SessionDateLink sessionId={row.sessionId} performedOn={row.performedOn} />
-                      {isTopRepsRow ? (
+                      {isBestSetRow ? (
                         <BestSetMark />
                       ) : isGoalRow && row.goalLabel ? (
                         <GoalReachedMark label={row.goalLabel} />
                       ) : (
                         <span className="inline-block h-3.5 w-3.5 shrink-0" aria-hidden />
                       )}
-                      {isTopRepsRow && row.goalLabel ? (
+                      {isBestSetRow && row.goalLabel ? (
                         <GoalReachedMark label={row.goalLabel} />
                       ) : null}
                     </div>
@@ -233,15 +237,15 @@ export function ExerciseSetHistorySection({
                         </>
                       )}
                     </span>
-                    <span className={`text-right tabular-nums ${historyValueClass(isTopRepsRow, isGoalRow)}`}>
+                    <span className={`text-right tabular-nums ${historyValueClass(isBestSetRow, isGoalRow)}`}>
                       {row.weightKg ?? "—"}
                     </span>
                     {showTotal ? (
-                      <span className={`text-right tabular-nums ${historyValueClass(isTopRepsRow, isGoalRow)}`}>
+                      <span className={`text-right tabular-nums ${historyValueClass(isBestSetRow, isGoalRow)}`}>
                         {row.totalKg.toFixed(1)}
                       </span>
                     ) : null}
-                    <span className={`text-right tabular-nums ${historyValueClass(isTopRepsRow, isGoalRow)}`}>
+                    <span className={`text-right tabular-nums ${historyValueClass(isBestSetRow, isGoalRow)}`}>
                       {row.reps}
                     </span>
                   </div>
@@ -299,19 +303,19 @@ export function ExerciseSetHistorySection({
             {pagedTableRows.map((row, index) => (
               (() => {
                 const rowKey = `${row.sessionId}-${row.setNumber}`;
-                const isTopRepsRow = rowKey === topRepsRowKey;
+                const isBestSetRow = rowKey === bestSetRowKey;
                 const isGoalRow = Boolean(row.goalLabel);
                 return (
                   <tr
                     key={`${row.sessionId}-${row.setNumber}-${index}`}
-                    className={`cursor-pointer border-b last:border-b-0 ${historyRowSurfaceClass(isTopRepsRow, isGoalRow)}`}
+                    className={`cursor-pointer border-b last:border-b-0 ${historyRowSurfaceClass(isBestSetRow, isGoalRow)}`}
                     onClick={() => router.push(appPath(`/sessions/${row.sessionId}`))}
-                    title={historyRowTitle(row, isTopRepsRow)}
+                    title={historyRowTitle(row, isBestSetRow, assistance)}
                   >
                     <td className={appTableTdClassName}>
                       <span className="inline-flex max-w-full flex-wrap items-center gap-1 text-left">
                         <SessionDateLink sessionId={row.sessionId} performedOn={row.performedOn} />
-                        {isTopRepsRow ? <BestSetMark /> : null}
+                        {isBestSetRow ? <BestSetMark /> : null}
                         {row.goalLabel ? <GoalReachedMark label={row.goalLabel} /> : null}
                       </span>
                     </td>
@@ -321,15 +325,15 @@ export function ExerciseSetHistorySection({
                       </td>
                     )}
                     <td className={appTableTdClassName}>{row.setNumber}</td>
-                    <td className={`${appTableTdClassName} ${historyValueClass(isTopRepsRow, isGoalRow)}`}>
+                    <td className={`${appTableTdClassName} ${historyValueClass(isBestSetRow, isGoalRow)}`}>
                       {row.weightKg ?? "-"}
                     </td>
                     {showTotal ? (
-                      <td className={`${appTableTdClassName} ${historyValueClass(isTopRepsRow, isGoalRow)}`}>
+                      <td className={`${appTableTdClassName} ${historyValueClass(isBestSetRow, isGoalRow)}`}>
                         {row.totalKg.toFixed(1)}
                       </td>
                     ) : null}
-                    <td className={`${appTableTdClassName} ${historyValueClass(isTopRepsRow, isGoalRow)}`}>
+                    <td className={`${appTableTdClassName} ${historyValueClass(isBestSetRow, isGoalRow)}`}>
                       {row.reps}
                     </td>
                   </tr>

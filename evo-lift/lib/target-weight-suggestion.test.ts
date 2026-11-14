@@ -50,6 +50,7 @@ function rawSuggest(
   plannedReps: number | null = 8,
   excludeSessionId: string | null = null,
   doubleProgression = false,
+  assistance = false,
 ) {
   return suggestTargetWeight({
     sets,
@@ -57,6 +58,7 @@ function rawSuggest(
     excludeSessionId,
     today: TODAY,
     doubleProgression,
+    assistance,
   });
 }
 
@@ -65,8 +67,9 @@ function suggest(
   plannedReps: number | null = 8,
   excludeSessionId: string | null = null,
   doubleProgression = false,
+  assistance = false,
 ) {
-  const result = rawSuggest(sets, plannedReps, excludeSessionId, doubleProgression);
+  const result = rawSuggest(sets, plannedReps, excludeSessionId, doubleProgression, assistance);
   if (result.status !== "suggestion") {
     return result;
   }
@@ -689,6 +692,329 @@ describe("suggestTargetWeight", () => {
   });
 });
 
+describe("assisted exercises", () => {
+  function assisted(overrides: Partial<TargetWeightHistorySet> = {}): TargetWeightHistorySet {
+    return historySet({ loadedKg: 7, targetWeightKg: 7, ...overrides });
+  }
+
+  it("lowers assistance when the last two sessions hit the same assistance", () => {
+    const result = rawSuggest(
+      [
+        assisted({
+          sessionId: "older",
+          performedOn: daysBefore(14),
+          sessionCreatedAt: `${daysBefore(14)}T10:00:00Z`,
+        }),
+        assisted({
+          sessionId: "newer",
+          performedOn: daysBefore(3),
+          sessionCreatedAt: `${daysBefore(3)}T10:00:00Z`,
+        }),
+      ],
+      8,
+      null,
+      false,
+      true,
+    );
+
+    assert.equal(result.status, "suggestion");
+    if (result.status !== "suggestion") {
+      return;
+    }
+    assert.equal(result.weightKg, 6.5);
+    assert.equal(result.previousWeightKg, 7);
+    assert.equal(suggestionDirection(result.weightKg, result.previousWeightKg), "decrease");
+    assert.equal(formatSuggestionKgDelta(result.weightKg, result.previousWeightKg), "0.5 kg");
+    assert.equal(result.rationale, "Last 2 sessions hit 8 reps at 7 kg.");
+  });
+
+  it("raises assistance when the last session missed by 2 or more reps", () => {
+    const result = suggest(
+      [
+        assisted({
+          sessionId: "older",
+          performedOn: daysBefore(14),
+          sessionCreatedAt: `${daysBefore(14)}T10:00:00Z`,
+        }),
+        assisted({
+          sessionId: "newer",
+          performedOn: daysBefore(3),
+          sessionCreatedAt: `${daysBefore(3)}T10:00:00Z`,
+          reps: 6,
+        }),
+      ],
+      8,
+      null,
+      false,
+      true,
+    );
+
+    assert.deepEqual(result, {
+      status: "suggestion",
+      weightKg: 7.5,
+      rationale: "Previous session missed 8 reps at 7 kg.",
+    });
+  });
+
+  it("holds assistance when the last session is one rep short", () => {
+    const result = suggest(
+      [
+        assisted({
+          sessionId: "older",
+          performedOn: daysBefore(14),
+          sessionCreatedAt: `${daysBefore(14)}T10:00:00Z`,
+        }),
+        assisted({
+          sessionId: "newer",
+          performedOn: daysBefore(3),
+          sessionCreatedAt: `${daysBefore(3)}T10:00:00Z`,
+          reps: 7,
+        }),
+      ],
+      8,
+      null,
+      false,
+      true,
+    );
+
+    assert.deepEqual(result, {
+      status: "suggestion",
+      weightKg: 7,
+      rationale: "Previous session was short of 8 reps at 7 kg.",
+    });
+  });
+
+  it("stays unassisted when reps were hit at 0 kg", () => {
+    const result = suggest(
+      [
+        assisted({
+          sessionId: "older",
+          performedOn: daysBefore(14),
+          sessionCreatedAt: `${daysBefore(14)}T10:00:00Z`,
+          loadedKg: 0,
+          targetWeightKg: 0,
+        }),
+        assisted({
+          sessionId: "newer",
+          performedOn: daysBefore(3),
+          sessionCreatedAt: `${daysBefore(3)}T10:00:00Z`,
+          loadedKg: 0,
+          targetWeightKg: 0,
+        }),
+      ],
+      8,
+      null,
+      false,
+      true,
+    );
+
+    assert.deepEqual(result, {
+      status: "suggestion",
+      weightKg: 0,
+      rationale: "Last 2 sessions hit 8 reps at 0 kg.",
+    });
+  });
+
+  it("adds assistance when unassisted reps were missed", () => {
+    const result = suggest(
+      [
+        assisted({
+          sessionId: "older",
+          performedOn: daysBefore(14),
+          sessionCreatedAt: `${daysBefore(14)}T10:00:00Z`,
+          loadedKg: 0,
+          targetWeightKg: 0,
+          reps: 6,
+        }),
+        assisted({
+          sessionId: "newer",
+          performedOn: daysBefore(3),
+          sessionCreatedAt: `${daysBefore(3)}T10:00:00Z`,
+          loadedKg: 0,
+          targetWeightKg: 0,
+          reps: 6,
+        }),
+      ],
+      8,
+      null,
+      false,
+      true,
+    );
+
+    assert.deepEqual(result, {
+      status: "suggestion",
+      weightKg: 0.5,
+      rationale: "Previous session missed 8 reps at 0 kg.",
+    });
+  });
+
+  it("returns to the lower assistance after a session that used more", () => {
+    const result = suggest(
+      [
+        assisted({
+          sessionId: "older",
+          performedOn: daysBefore(14),
+          sessionCreatedAt: `${daysBefore(14)}T10:00:00Z`,
+        }),
+        assisted({
+          sessionId: "newer",
+          performedOn: daysBefore(3),
+          sessionCreatedAt: `${daysBefore(3)}T10:00:00Z`,
+          loadedKg: 10,
+          targetWeightKg: 10,
+          reps: 6,
+        }),
+      ],
+      8,
+      null,
+      false,
+      true,
+    );
+
+    assert.deepEqual(result, {
+      status: "suggestion",
+      weightKg: 7,
+      rationale: "Previous session used more assistance than 7 kg.",
+    });
+  });
+
+  it("uses the least assistance in a session", () => {
+    const session = (sessionId: string, days: number) => [
+      assisted({
+        sessionId,
+        performedOn: daysBefore(days),
+        sessionCreatedAt: `${daysBefore(days)}T10:00:00Z`,
+        setNumber: 1,
+        loadedKg: 10,
+        targetWeightKg: 10,
+      }),
+      assisted({
+        sessionId,
+        performedOn: daysBefore(days),
+        sessionCreatedAt: `${daysBefore(days)}T10:00:00Z`,
+        setNumber: 2,
+        loadedKg: 7,
+        targetWeightKg: 7,
+      }),
+    ];
+    const result = suggest([...session("older", 14), ...session("newer", 3)], 8, null, false, true);
+
+    assert.deepEqual(result, {
+      status: "suggestion",
+      weightKg: 6.5,
+      rationale: "Last 2 sessions hit 8 reps at 7 kg.",
+    });
+  });
+
+  it("ignores an unassisted warmup when the working sets used assistance", () => {
+    const result = suggest(
+      [
+        assisted({
+          sessionId: "older",
+          performedOn: daysBefore(14),
+          sessionCreatedAt: `${daysBefore(14)}T10:00:00Z`,
+        }),
+        assisted({
+          sessionId: "newer",
+          performedOn: daysBefore(3),
+          sessionCreatedAt: `${daysBefore(3)}T10:00:00Z`,
+          setNumber: 1,
+          loadedKg: 0,
+          isWarmup: true,
+        }),
+        assisted({
+          sessionId: "newer",
+          performedOn: daysBefore(3),
+          sessionCreatedAt: `${daysBefore(3)}T10:00:00Z`,
+          setNumber: 2,
+        }),
+      ],
+      8,
+      null,
+      false,
+      true,
+    );
+
+    assert.deepEqual(result, {
+      status: "suggestion",
+      weightKg: 6.5,
+      rationale: "Last 2 sessions hit 8 reps at 7 kg.",
+    });
+  });
+
+  it("removes assistance and resets reps after the higher rep target is hit", () => {
+    const at = (sessionId: string, days: number, reps: number, targetReps: number) =>
+      [reps, reps].map((setReps, index) =>
+        assisted({
+          sessionId,
+          performedOn: daysBefore(days),
+          sessionCreatedAt: `${daysBefore(days)}T10:00:00Z`,
+          setNumber: index + 1,
+          reps: setReps,
+          targetReps,
+        }),
+      );
+    const result = suggest(
+      [...at("older", 14, 10, 10), ...at("newer", 3, 12, 12)],
+      12,
+      null,
+      true,
+      true,
+    );
+
+    assert.deepEqual(result, {
+      status: "suggestion",
+      weightKg: 6.5,
+      reps: 10,
+      rationale: "Previous session hit 12 reps at 7 kg.",
+    });
+  });
+
+  it("adds assistance when a working set is under the lower reps", () => {
+    const older = [8, 8].map((reps, index) =>
+      assisted({
+        sessionId: "older",
+        performedOn: daysBefore(14),
+        sessionCreatedAt: `${daysBefore(14)}T10:00:00Z`,
+        setNumber: index + 1,
+        reps,
+        targetReps: 8,
+      }),
+    );
+    const newer = [10, 6].map((reps, index) =>
+      assisted({
+        sessionId: "newer",
+        performedOn: daysBefore(3),
+        sessionCreatedAt: `${daysBefore(3)}T10:00:00Z`,
+        setNumber: index + 1,
+        reps,
+        targetReps: 10,
+      }),
+    );
+    const result = suggest([...older, ...newer], 10, null, true, true);
+
+    assert.deepEqual(result, {
+      status: "suggestion",
+      weightKg: 7.5,
+      reps: 8,
+      rationale: "Previous session was under 8 reps at 7 kg.",
+    });
+  });
+
+  it("says a hit lowers assistance", () => {
+    const glossary = readFileSync(
+      path.join(path.dirname(fileURLToPath(import.meta.url)), "../app/(shell)/glossary/page.tsx"),
+      "utf8",
+    ).replace(/\r\n/g, "\n");
+    const definition = glossary.slice(
+      glossary.indexOf('term: "Suggested target"'),
+      glossary.indexOf('term: "Target assistance (kg)"'),
+    );
+
+    assert.match(definition, /a hit lowers assistance/);
+  });
+});
+
 describe("double progression", () => {
   function workingSets(
     sessionId: string,
@@ -1005,6 +1331,8 @@ describe("double progression", () => {
     assert.match(definition, /uses those reps at the same weight/);
     assert.match(definition, /under the lower reps/);
     assert.match(definition, /drops the weight and uses the lower reps/);
+    assert.match(definition, /removes assistance after the higher target/);
+    assert.match(definition, /adds assistance when a working set is under the lower reps/);
   });
 
   it("still asks for a logged working set when history is empty", () => {

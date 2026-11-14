@@ -8,7 +8,7 @@ import { EnterNextForm } from "@/app/components/enter-next-form";
 import { panelInsetClass } from "@/app/components/panel-inset";
 import { TargetWeightSuggestion } from "@/app/components/target-weight-suggestion";
 import { WarmupSuggestion } from "@/app/components/warmup-suggestion";
-import { targetWeightFieldLabel } from "@/lib/assistance-exercise";
+import { isAssistanceExercise, targetWeightFieldLabel } from "@/lib/assistance-exercise";
 import { targetSuggestionsEnabled } from "@/lib/target-weight-suggestion";
 import { warmupSuggestionsEnabled } from "@/lib/warmup-suggestion";
 import { appPath } from "@/lib/app-paths";
@@ -310,6 +310,7 @@ export function SessionExerciseBlock({
             excludeSessionId={sessionId}
             enabled={targetSuggestionsEnabled(suggestTarget)}
             exerciseDoubleProgression={exerciseDoubleProgression}
+            assistance={isAssistanceExercise(exerciseSlug)}
             onApply={({ weightKg, reps }) => {
               onTargetsWeightChange(weightKg);
               if (reps != null) {

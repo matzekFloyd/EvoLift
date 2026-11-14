@@ -142,6 +142,46 @@ function stepBy(load: number, direction: 1 | -1): number {
   return Math.max(0, roundKg(load + direction * weightStepKg(load)));
 }
 
+/**
+ * 1 when more kilograms is harder (Loaded).
+ * -1 when fewer kilograms is harder (Assistance).
+ */
+type LoadProgress = 1 | -1;
+
+function loadProgress(assistance: boolean | undefined): LoadProgress {
+  return assistance ? -1 : 1;
+}
+
+function easierDirection(progress: LoadProgress): 1 | -1 {
+  return progress === 1 ? -1 : 1;
+}
+
+/** True when left is a harder load than right. */
+function isHarder(left: number, right: number, progress: LoadProgress): boolean {
+  return (left - right) * progress > 1e-9;
+}
+
+/** True when this session was an easier load than the one before it. */
+function isEasierSession(referenceKg: number, previousKg: number, progress: LoadProgress): boolean {
+  return (previousKg - referenceKg) * progress > LOAD_TOLERANCE_KG + 1e-9;
+}
+
+/** Keep a suggestion from going more than one step past the hardest load in the window. */
+function clampToHardestStep(proposed: number, hardestKg: number, progress: LoadProgress): number {
+  const limit = stepBy(hardestKg, progress);
+  return isHarder(proposed, limit, progress) ? limit : proposed;
+}
+
+function hardestLoad(loads: number[], progress: LoadProgress): number {
+  let best = loads[0] ?? 0;
+  for (const load of loads) {
+    if (isHarder(load, best, progress)) {
+      best = load;
+    }
+  }
+  return best;
+}
+
 function loggedLoadKg(value: number | null): number | null {
   if (value == null) {
     return null;
@@ -171,20 +211,24 @@ function loadsWithin(left: number, right: number): boolean {
   return Math.abs(left - right) <= LOAD_TOLERANCE_KG + 1e-9;
 }
 
-function pickTopSet(rows: TargetWeightHistorySet[]): TargetWeightHistorySet {
-  let best = rows[0];
-  let bestLoad = loggedLoadKg(best.loadedKg) ?? 0;
+function pickTopSet(rows: TargetWeightHistorySet[], progress: LoadProgress): TargetWeightHistorySet {
+  let best: TargetWeightHistorySet | null = null;
+  let bestLoad = 0;
   for (const row of rows) {
     const load = loggedLoadKg(row.loadedKg);
     if (load == null) {
       continue;
     }
-    if (load > bestLoad || (load === bestLoad && row.setNumber > best.setNumber)) {
+    if (
+      best == null ||
+      isHarder(load, bestLoad, progress) ||
+      (load === bestLoad && row.setNumber > best.setNumber)
+    ) {
       best = row;
       bestLoad = load;
     }
   }
-  return best;
+  return best ?? rows[0];
 }
 
 function repsReached(session: QualifyingSession, plannedReps: number): boolean {
@@ -273,18 +317,21 @@ function doubleProgressionBottom(sessions: ProgressionSession[], load: number, p
  *
  * When every working set hits the latest rep target:
  * - short of the top, suggest the top at the same weight
- * - at the top, suggest one weight step heavier and reset reps to the bottom
+ * - at the top, suggest one harder step and reset reps to the bottom
  *
  * A miss of 1 rep holds the weight and the rep target. A miss of 2 or more
  * that still reaches the bottom suggests that bottom at the same weight.
- * A working set under the bottom drops one weight step and sets reps to the
- * bottom. One completed session is enough. Weight-only mode still needs two.
+ * A working set under the bottom takes one easier step and sets reps to the
+ * bottom. On Assisted Dip and Assisted Pull-Up, harder means less assistance.
+ * One completed session is enough. Weight-only mode still needs two.
  */
 function suggestDoubleProgression(input: {
   sets: TargetWeightHistorySet[];
   excludeSessionId?: string | null;
   today: string;
+  assistance?: boolean;
 }): TargetWeightSuggestion {
+  const progress = loadProgress(input.assistance);
   const excludeSessionId = input.excludeSessionId ?? null;
   let sawWorkingSet = false;
   const bySession = new Map<string, TargetWeightHistorySet[]>();
@@ -375,7 +422,7 @@ function suggestDoubleProgression(input: {
       );
     }
     return suggestion(
-      stepBy(load, -1),
+      stepBy(load, easierDirection(progress)),
       `Previous session was under ${formatRepCount(bottom)} at ${formatKgAmount(load)}.`,
       comparedTo,
       bottom,
@@ -385,13 +432,11 @@ function suggestDoubleProgression(input: {
   const top = bottom + DOUBLE_PROGRESSION_REP_STEP;
   const hitText = `Previous session hit ${formatRepCount(achieved)} at ${formatKgAmount(load)}.`;
   if (achieved + 1e-9 >= top) {
-    let heaviest = load;
-    for (const session of sessions) {
-      for (const set of session.sets) {
-        heaviest = Math.max(heaviest, set.loadedKg);
-      }
-    }
-    const nextWeight = Math.min(stepBy(load, 1), stepBy(heaviest, 1));
+    const hardest = hardestLoad(
+      sessions.flatMap((session) => session.sets.map((set) => set.loadedKg)),
+      progress,
+    );
+    const nextWeight = clampToHardestStep(stepBy(load, progress), hardest, progress);
     return suggestion(nextWeight, hitText, comparedTo, bottom);
   }
 
@@ -400,6 +445,8 @@ function suggestDoubleProgression(input: {
 
 /**
  * Suggest a Target weight (kg) from working-set history.
+ * On Assisted Dip and Assisted Pull-Up the same rules move assistance the other way:
+ * a hit lowers it, and a miss raises it. 0 kg stays unassisted.
  * With double progression on, also suggest the next session's target reps.
  * Returns a message when there is nothing to apply.
  */
@@ -410,10 +457,13 @@ export function suggestTargetWeight(input: {
   today: string;
   /** Account switch. Off keeps the weight-only rule. */
   doubleProgression?: boolean;
+  /** Assisted Dip and Assisted Pull-Up. Less assistance is the harder step. */
+  assistance?: boolean;
 }): TargetWeightSuggestion {
   if (input.doubleProgression) {
     return suggestDoubleProgression(input);
   }
+  const progress = loadProgress(input.assistance);
   const excludeSessionId = input.excludeSessionId ?? null;
   const historyRows = input.sets.filter((row) => {
     if (excludeSessionId && row.sessionId === excludeSessionId) {
@@ -438,7 +488,7 @@ export function suggestTargetWeight(input: {
 
   const qualifying: QualifyingSession[] = [];
   for (const [sessionId, rows] of bySession) {
-    const top = pickTopSet(rows);
+    const top = pickTopSet(rows, progress);
     const loadedKg = loggedLoadKg(top.loadedKg);
     const ageDays = calendarAgeDays(top.performedOn, input.today);
     if (loadedKg == null || ageDays == null || ageDays < 0 || ageDays > HISTORY_DAYS) {
@@ -478,54 +528,56 @@ export function suggestTargetWeight(input: {
 
   const reference = recent[0];
   const previous = recent[1];
-  const heaviestLoad = recent.reduce((max, session) => Math.max(max, session.loadedKg), 0);
-  const ceiling = stepBy(heaviestLoad, 1);
+  const hardest = hardestLoad(
+    recent.map((session) => session.loadedKg),
+    progress,
+  );
   const comparedTo = { weightKg: reference.loadedKg, reps: reference.comparisonReps };
+  const hold = (load: number) => clampToHardestStep(load, hardest, progress);
 
   // A gap of more than 2 reps is a different rep target, so hold instead of converting or dropping.
   if (Math.abs(plannedReps - reference.reps) > REP_GAP + 1e-9) {
-    return suggestion(Math.min(reference.loadedKg, ceiling), REP_TARGET_MISMATCH_RATIONALE, comparedTo);
+    return suggestion(hold(reference.loadedKg), REP_TARGET_MISMATCH_RATIONALE, comparedTo);
   }
 
-  // The same Loaded (kg) twice is a hit even when it is not the stored target weight.
+  // The same load twice is a hit even when it is not the stored target weight.
   // A bar in the target, or a target that was edited, used to hold the load and call it mixed.
   const sameLoad = loadsWithin(reference.loadedKg, previous.loadedKg);
   if (repsReached(reference, plannedReps) && repsReached(previous, plannedReps) && sameLoad) {
     return suggestion(
-      Math.min(stepBy(reference.loadedKg, 1), ceiling),
+      hold(stepBy(reference.loadedKg, progress)),
       `Last 2 sessions hit ${formatRepCount(plannedReps)} at ${formatKgAmount(reference.loadedKg)}.`,
       comparedTo,
     );
   }
 
   const recentWorkingWeight = previous.loadedKg;
-  const isDeload = reference.loadedKg < recentWorkingWeight - LOAD_TOLERANCE_KG - 1e-9;
-  if (missedByAtLeast(reference, plannedReps) && !isDeload) {
+  const deload = isEasierSession(reference.loadedKg, recentWorkingWeight, progress);
+  if (missedByAtLeast(reference, plannedReps) && !deload) {
     return suggestion(
-      Math.min(stepBy(reference.loadedKg, -1), ceiling),
+      hold(stepBy(reference.loadedKg, easierDirection(progress))),
       `Previous session missed ${formatRepCount(plannedReps)} at ${formatKgAmount(reference.loadedKg)}.`,
       comparedTo,
     );
   }
 
-  if (isDeload) {
-    return suggestion(
-      Math.min(recentWorkingWeight, ceiling),
-      `Previous session was lighter than ${formatKgAmount(recentWorkingWeight)}.`,
-      comparedTo,
-    );
+  if (deload) {
+    const rationale = input.assistance
+      ? `Previous session used more assistance than ${formatKgAmount(recentWorkingWeight)}.`
+      : `Previous session was lighter than ${formatKgAmount(recentWorkingWeight)}.`;
+    return suggestion(hold(recentWorkingWeight), rationale, comparedTo);
   }
 
   if (sameLoad && reference.reps + 1e-9 < plannedReps) {
     return suggestion(
-      Math.min(reference.loadedKg, ceiling),
+      hold(reference.loadedKg),
       `Previous session was short of ${formatRepCount(plannedReps)} at ${formatKgAmount(reference.loadedKg)}.`,
       comparedTo,
     );
   }
 
   return suggestion(
-    Math.min(reference.loadedKg, ceiling),
+    hold(reference.loadedKg),
     `Recent sessions were mixed at ${formatKgAmount(reference.loadedKg)}.`,
     comparedTo,
   );

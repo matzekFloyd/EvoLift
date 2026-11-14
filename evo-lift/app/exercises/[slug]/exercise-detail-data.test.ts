@@ -6,7 +6,7 @@ import {
   filterExerciseHistoryRows,
   fullHistoryClearDateRange,
   sortExerciseHistoryTableRows,
-  topRepsRowKeyFor,
+  bestSetRowKeyFor,
   type ExerciseSetHistoryRow,
 } from "./exercise-detail-data";
 
@@ -148,26 +148,34 @@ describe("filterExerciseHistoryRows", () => {
   });
 });
 
-describe("topRepsRowKeyFor", () => {
+describe("bestSetRowKeyFor", () => {
   it("returns null without rows", () => {
-    assert.equal(topRepsRowKeyFor([]), null);
+    assert.equal(bestSetRowKeyFor([]), null);
   });
 
-  it("prefers more reps, then heavier load, then the earlier set", () => {
+  it("prefers the higher Total (kg), then more reps, then the earlier set", () => {
     const rows = [
-      row({ sessionId: "a", setNumber: 1, reps: 5, weightKg: 100 }),
-      row({ sessionId: "b", setNumber: 1, reps: 8, weightKg: 60 }),
-      row({ sessionId: "c", setNumber: 2, reps: 8, weightKg: 70 }),
+      row({ sessionId: "light", setNumber: 1, reps: 9, weightKg: 25, totalKg: 45 }),
+      row({ sessionId: "heavy", setNumber: 2, reps: 6, weightKg: 32.5, totalKg: 52.5 }),
+      row({ sessionId: "heavy-fewer", setNumber: 1, reps: 5, weightKg: 32.5, totalKg: 52.5 }),
     ];
-    assert.equal(topRepsRowKeyFor(rows), "c-2");
+    assert.equal(bestSetRowKeyFor(rows), "heavy-2");
   });
 
-  it("breaks full ties on the earlier session", () => {
+  it("breaks a matching total and reps on the earlier session", () => {
     const rows = [
-      row({ sessionId: "late", performedOn: "2026-02-01", reps: 8, weightKg: 70 }),
-      row({ sessionId: "early", performedOn: "2026-01-01", reps: 8, weightKg: 70 }),
+      row({ sessionId: "late", performedOn: "2026-02-01", reps: 8, weightKg: 70, totalKg: 70 }),
+      row({ sessionId: "early", performedOn: "2026-01-01", reps: 8, weightKg: 70, totalKg: 70 }),
     ];
-    assert.equal(topRepsRowKeyFor(rows), "early-1");
+    assert.equal(bestSetRowKeyFor(rows), "early-1");
+  });
+
+  it("prefers less assistance, then more reps", () => {
+    const rows = [
+      row({ sessionId: "more-help", setNumber: 1, reps: 9, weightKg: 15, totalKg: 15 }),
+      row({ sessionId: "less-help", setNumber: 1, reps: 6, weightKg: 7, totalKg: 7 }),
+    ];
+    assert.equal(bestSetRowKeyFor(rows, { assistance: true }), "less-help-1");
   });
 });
 

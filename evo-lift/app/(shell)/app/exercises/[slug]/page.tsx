@@ -30,7 +30,7 @@ import {
   filterExerciseHistoryRows,
   fullHistoryClearDateRange as computeFullHistoryClearDateRange,
   sortExerciseHistoryTableRows,
-  topRepsRowKeyFor,
+  bestSetRowKeyFor,
   type ExerciseSetHistoryRow,
   type HistorySortDirection,
   type HistorySortKey,
@@ -544,7 +544,10 @@ function ExerciseDetailPageContent() {
     [filteredHistoryRows],
   );
 
-  const topRepsRowKey = useMemo(() => topRepsRowKeyFor(workingRows), [workingRows]);
+  const bestSetRowKey = useMemo(
+    () => bestSetRowKeyFor(workingRows, { assistance }),
+    [assistance, workingRows],
+  );
 
   const sortedTableRows = useMemo(
     () => sortExerciseHistoryTableRows(filteredHistoryRows, sortKey, sortDirection),
@@ -673,7 +676,8 @@ function ExerciseDetailPageContent() {
                 filteredCount={filteredHistoryRows.length}
                 pagedCompactRows={pagedCompactHistoryRows}
                 pagedTableRows={pagedTableRows}
-                topRepsRowKey={topRepsRowKey}
+                bestSetRowKey={bestSetRowKey}
+                assistance={assistance}
                 isCompactView={isCompactView}
                 hideWarmups={filterState.hideWarmups}
                 showTotal={showHistoryTotal}
