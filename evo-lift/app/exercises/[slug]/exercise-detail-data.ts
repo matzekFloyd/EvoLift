@@ -3,7 +3,6 @@ import {
   isRowEarlier,
   sortExerciseHistoryRowsCanonical,
 } from "@/app/exercises/[slug]/exercise-history";
-import { normalizeLoadedForComparison } from "@/app/exercises/[slug]/exercise-history-display";
 import { formatMilestoneTarget, type MilestoneType } from "@/lib/milestone-progress";
 
 export type ExerciseSetHistoryRow = {
@@ -156,27 +155,45 @@ export function filterExerciseHistoryRows(
   return inRange;
 }
 
-/** Key of the best working set: most reps, then heaviest load, then earliest. */
-export function topRepsRowKeyFor(workingRows: readonly ExerciseSetHistoryRow[]): string | null {
-  if (workingRows.length === 0) {
-    return null;
-  }
+const BEST_SET_KG_EPSILON = 0.001;
+
+/**
+ * Key of the best working set: highest Total (kg), then more reps, then the earlier set.
+ * On Assisted Dip and Assisted Pull-Up, lowest assistance, then more reps, then the earlier set.
+ */
+export function bestSetRowKeyFor(
+  workingRows: readonly ExerciseSetHistoryRow[],
+  options?: { assistance?: boolean },
+): string | null {
+  const assistance = options?.assistance === true;
   let selectedRow: ExerciseSetHistoryRow | null = null;
   for (const row of workingRows) {
-    if (!selectedRow || row.reps > selectedRow.reps) {
+    if (!Number.isFinite(row.totalKg) || row.reps < 1) {
+      continue;
+    }
+    if (assistance && row.totalKg < 0) {
+      continue;
+    }
+    if (!selectedRow) {
       selectedRow = row;
       continue;
     }
-    if (selectedRow && row.reps === selectedRow.reps) {
-      const rowLoaded = normalizeLoadedForComparison(row.weightKg);
-      const selectedLoaded = normalizeLoadedForComparison(selectedRow.weightKg);
-      if (rowLoaded > selectedLoaded) {
-        selectedRow = row;
-        continue;
-      }
-      if (rowLoaded === selectedLoaded && isRowEarlier(row, selectedRow)) {
+    const kgDelta = row.totalKg - selectedRow.totalKg;
+    if (Math.abs(kgDelta) > BEST_SET_KG_EPSILON) {
+      const better = assistance ? kgDelta < 0 : kgDelta > 0;
+      if (better) {
         selectedRow = row;
       }
+      continue;
+    }
+    if (row.reps !== selectedRow.reps) {
+      if (row.reps > selectedRow.reps) {
+        selectedRow = row;
+      }
+      continue;
+    }
+    if (isRowEarlier(row, selectedRow)) {
+      selectedRow = row;
     }
   }
   if (!selectedRow) {
