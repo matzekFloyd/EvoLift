@@ -52,7 +52,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Double progression",
     definition:
-      "An optional target suggestion for the next session. The account setting is the default, and Exercise defaults can turn it on or off for one exercise. It stays off until one of those is on. When every working set hits the rep target, the next suggestion adds 2 reps at the same weight. After that higher target is hit, the next suggestion adds weight and goes back to the lower reps. When the lowest working set reaches the lower reps, the next suggestion uses those reps at the same weight. When a working set is under the lower reps, the next suggestion drops the weight and uses the lower reps.",
+      "An optional target suggestion for the next session. The account setting is the default, and Exercise defaults can turn it on or off for one exercise. It stays off until one of those is on. When every working set hits the rep target, the next suggestion adds 2 reps at the same weight. After that higher target is hit, the next suggestion adds weight and goes back to the lower reps. When the lowest working set reaches the lower reps, the next suggestion uses those reps at the same weight. When a working set is under the lower reps, the next suggestion drops the weight and uses the lower reps. On Assisted Dip and Assisted Pull-Up, that weight step removes assistance after the higher target, and adds assistance when a working set is under the lower reps.",
   },
   {
     term: "Exercise",
@@ -144,7 +144,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Suggested target",
     definition:
-      "A Loaded (kg) or Assistance (kg) offered for the matching target field, from recent working sets for that exercise. The field changes only when you apply it.",
+      "A Loaded (kg) or Assistance (kg) offered for the matching target field, from recent working sets for that exercise. A hit raises Loaded (kg). On Assisted Dip and Assisted Pull-Up, a hit lowers assistance. The field changes only when you apply it.",
   },
   {
     term: "Target assistance (kg)",
