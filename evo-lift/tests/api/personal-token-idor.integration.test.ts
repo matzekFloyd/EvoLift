@@ -5,6 +5,7 @@ import { DELETE as deleteBodyweight } from "@/app/api/account/bodyweight/[id]/ro
 import { GET as getExercises } from "@/app/api/exercises/route";
 import { GET as getGoal } from "@/app/api/goals/[id]/route";
 import { POST as createGoal } from "@/app/api/goals/route";
+import { POST as duplicatePlan } from "@/app/api/plans/[id]/duplicate/route";
 import { GET as getPlan } from "@/app/api/plans/[id]/route";
 import { POST as createPlan } from "@/app/api/plans/route";
 import { GET as getSession, PATCH as patchSession } from "@/app/api/sessions/[id]/route";
@@ -114,33 +115,31 @@ describe("personal API token IDOR on local Supabase", () => {
         }),
       ),
     );
-    // Plan create uses save_workout_plan (auth.uid()); personal tokens may fail closed.
-    if (plan.status === 201) {
-      const planId = (plan.body.data as { id: string }).id;
-      const otherPlan = await readJson(
-        await getPlan(buildRequest(`/api/plans/${planId}`, "GET", otherPersonalToken), {
-          params: Promise.resolve({ id: planId }),
-        }),
-      );
-      assert.equal(otherPlan.status, 404);
-      assert.equal(otherPlan.body.error, "Plan not found.");
-    } else {
-      assert.ok(plan.status >= 400);
-      const { data: insertedPlan, error: planInsertError } = await admin
-        .from("workout_plans")
-        .insert({ user_id: userIds[0], name: "Owner plan (admin)" })
-        .select("id")
-        .single();
-      assert.equal(planInsertError, null);
-      assert.ok(insertedPlan?.id);
-      const otherPlan = await readJson(
-        await getPlan(buildRequest(`/api/plans/${insertedPlan.id}`, "GET", otherPersonalToken), {
-          params: Promise.resolve({ id: insertedPlan.id }),
-        }),
-      );
-      assert.equal(otherPlan.status, 404);
-      assert.equal(otherPlan.body.error, "Plan not found.");
-    }
+    assertHttpStatus(plan.status, 201, plan.body.error);
+    const planId = (plan.body.data as { id: string }).id;
+    const otherPlan = await readJson(
+      await getPlan(buildRequest(`/api/plans/${planId}`, "GET", otherPersonalToken), {
+        params: Promise.resolve({ id: planId }),
+      }),
+    );
+    assert.equal(otherPlan.status, 404);
+    assert.equal(otherPlan.body.error, "Plan not found.");
+
+    const copy = await readJson(
+      await duplicatePlan(
+        buildRequest(`/api/plans/${planId}/duplicate`, "POST", ownerPersonalToken),
+        { params: Promise.resolve({ id: planId }) },
+      ),
+    );
+    assertHttpStatus(copy.status, 201, copy.body.error);
+    const otherCopy = await readJson(
+      await duplicatePlan(
+        buildRequest(`/api/plans/${planId}/duplicate`, "POST", otherPersonalToken),
+        { params: Promise.resolve({ id: planId }) },
+      ),
+    );
+    assert.equal(otherCopy.status, 404);
+    assert.equal(otherCopy.body.error, "Plan not found.");
 
     const goal = await readJson(
       await createGoal(
