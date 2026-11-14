@@ -681,6 +681,7 @@ export type Database = {
           p_notes: string | null;
           p_is_active: boolean;
           p_days: Json;
+          p_user_id?: string;
         };
         Returns: string;
       };
