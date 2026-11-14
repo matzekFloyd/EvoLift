@@ -220,4 +220,25 @@ describe("buildExerciseProgressReport", () => {
     );
     assert.equal(report.publicNotes.some((note) => note.badge === "Not trained"), false);
   });
+
+  it("counts plate-loaded presses with the same movement as the pin-loaded machine", () => {
+    const press = (sessionId: string, performedOn: string) =>
+      sample({
+        exerciseId: "ex-plate-chest",
+        slug: "plate-loaded-chest-press",
+        label: "Plate-Loaded Chest Press",
+        sessionId,
+        performedOn,
+        totalKg: 80,
+        reps: 5,
+      });
+    const report = buildExerciseProgressReport(
+      [press("s1", "2026-01-01"), press("s2", "2026-01-15"), press("s3", "2026-02-01")],
+      RANGE,
+      NO_PROFILE,
+    );
+    const pattern = report.balanceNotes.find((note) => note.id === "pattern-horizontal-press-horizontal-pull");
+    assert.equal(pattern?.badge, "Missing");
+    assert.equal(pattern?.title, "Plate-Loaded Chest Press");
+  });
 });
