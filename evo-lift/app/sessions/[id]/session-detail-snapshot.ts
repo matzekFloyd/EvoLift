@@ -59,6 +59,7 @@ export function buildSessionSnapshot(input: {
       source_template_id: sessionRow.source_template_id,
       plan_id: sessionRow.plan_id,
       plan_day_id: sessionRow.plan_day_id,
+      plan_version: sessionRow.plan_version,
       started_at: sessionRow.started_at ?? null,
       completed_at: sessionRow.completed_at ?? null,
       created_at: sessionRow.created_at,
