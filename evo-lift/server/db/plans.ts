@@ -117,6 +117,7 @@ export async function getPlanById(
     name: data.name,
     notes: data.notes,
     is_active: data.is_active,
+    content_version: data.content_version,
     created_at: data.created_at,
     updated_at: data.updated_at,
     days,

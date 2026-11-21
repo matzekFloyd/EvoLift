@@ -229,7 +229,7 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
       .eq("id", sessionId)
       .is("started_at", null)
       .select(
-        "id, user_id, performed_on, notes, created_at, updated_at, source_template_id, plan_id, plan_day_id, started_at, completed_at",
+        "id, user_id, performed_on, notes, created_at, updated_at, source_template_id, plan_id, plan_day_id, plan_version, started_at, completed_at",
       )
       .maybeSingle();
 
@@ -249,7 +249,7 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
       const { data: refreshed } = await supabaseBrowserClient
         .from("workout_sessions")
         .select(
-          "id, user_id, performed_on, notes, created_at, updated_at, source_template_id, plan_id, plan_day_id, started_at, completed_at",
+          "id, user_id, performed_on, notes, created_at, updated_at, source_template_id, plan_id, plan_day_id, plan_version, started_at, completed_at",
         )
         .eq("id", sessionId)
         .single();
@@ -739,7 +739,7 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
       })
       .eq("id", sessionId)
       .select(
-        "id, user_id, performed_on, notes, created_at, updated_at, source_template_id, plan_id, plan_day_id, started_at, completed_at",
+        "id, user_id, performed_on, notes, created_at, updated_at, source_template_id, plan_id, plan_day_id, plan_version, started_at, completed_at",
       )
       .single();
 
@@ -778,7 +778,7 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
       .update({ performed_on: getTodayYyyyMmDd() })
       .eq("id", sessionId)
       .select(
-        "id, user_id, performed_on, notes, created_at, updated_at, source_template_id, plan_id, plan_day_id, started_at, completed_at",
+        "id, user_id, performed_on, notes, created_at, updated_at, source_template_id, plan_id, plan_day_id, plan_version, started_at, completed_at",
       )
       .single();
 
@@ -837,7 +837,7 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
       .eq("id", sessionId)
       .is("completed_at", null)
       .select(
-        "id, user_id, performed_on, notes, created_at, updated_at, source_template_id, plan_id, plan_day_id, started_at, completed_at",
+        "id, user_id, performed_on, notes, created_at, updated_at, source_template_id, plan_id, plan_day_id, plan_version, started_at, completed_at",
       )
       .maybeSingle();
 
@@ -916,7 +916,7 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
       .eq("id", sessionId)
       .not("completed_at", "is", null)
       .select(
-        "id, user_id, performed_on, notes, created_at, updated_at, source_template_id, plan_id, plan_day_id, started_at, completed_at",
+        "id, user_id, performed_on, notes, created_at, updated_at, source_template_id, plan_id, plan_day_id, plan_version, started_at, completed_at",
       )
       .maybeSingle();
 
