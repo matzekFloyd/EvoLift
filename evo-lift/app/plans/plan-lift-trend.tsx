@@ -1,6 +1,6 @@
 import { ChangeMark } from "@/app/components/change-mark";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
-import { planLiftsQuietText, type PlanInsightLift } from "@/lib/plan-insights";
+import { planLiftE1rmText, planLiftsQuietText, type PlanInsightLift } from "@/lib/plan-insights";
 
 function PlanLiftTrend({ lift }: { lift: PlanInsightLift }) {
   const direction =
@@ -31,12 +31,14 @@ function PlanLiftTrend({ lift }: { lift: PlanInsightLift }) {
 export function PlanLiftTrends({ lifts }: { lifts: PlanInsightLift[] }) {
   const plotted = lifts.filter((lift) => lift.points.length > 0);
   const quiet = planLiftsQuietText(lifts);
+  const e1rmText = planLiftE1rmText(lifts);
   if (plotted.length === 0) {
     return quiet ? <p className="mt-3 text-sm text-zinc-600">{quiet}</p> : null;
   }
   return (
     <>
-      <ul className="mt-3">
+      {e1rmText ? <p className="mt-3 text-sm text-zinc-600">{e1rmText}</p> : null}
+      <ul className="mt-1">
         {plotted.map((lift) => (
           <PlanLiftTrend key={lift.slug} lift={lift} />
         ))}

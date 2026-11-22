@@ -185,6 +185,21 @@ function liftChange(sets: readonly PlanInsightSet[], slug: string, label: string
   };
 }
 
+/**
+ * Names the estimated 1RM rows. The comparison clause is only there when a lift
+ * has a first session and a later one.
+ */
+export function planLiftE1rmText(lifts: readonly PlanInsightLift[]): string | null {
+  const plotted = lifts.filter((lift) => lift.points.length > 0);
+  if (plotted.length === 0) {
+    return null;
+  }
+  if (plotted.some((lift) => lift.points.length > 1)) {
+    return "Estimated one-rep max (1RM) from the first session to the latest.";
+  }
+  return "Estimated one-rep max (1RM).";
+}
+
 /** Names the main lifts that have no estimated 1RM on this plan. */
 export function planLiftsQuietText(lifts: readonly PlanInsightLift[]): string | null {
   const missing = lifts.filter((lift) => lift.points.length === 0);

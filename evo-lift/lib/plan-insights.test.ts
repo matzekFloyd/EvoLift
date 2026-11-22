@@ -4,6 +4,7 @@ import {
   buildPlanInsights,
   planAdherenceText,
   planDurationText,
+  planLiftE1rmText,
   planLiftsQuietText,
   planSessionsText,
   planSummaryText,
@@ -138,12 +139,21 @@ describe("buildPlanInsights", () => {
       squat?.points.map((point) => point.e1rmKg),
       [120, 128.3],
     );
+    assert.equal(
+      planLiftE1rmText(insights.lifts),
+      "Estimated one-rep max (1RM) from the first session to the latest.",
+    );
     assert.equal(planLiftsQuietText(insights.lifts), "No working sets for bench or press.");
     assert.equal(bench?.summary, "No working sets");
     assert.equal(deadlift?.summary, "154.0 kg");
     assert.equal(deadlift?.changeKg, null);
+    assert.equal(
+      planLiftE1rmText([deadlift].filter((lift) => lift != null)),
+      "Estimated one-rep max (1RM).",
+    );
     assert.equal(press?.summary, "No working sets");
     assert.equal(planLiftsQuietText(insights.lifts.map((lift) => ({ ...lift, points: [] }))), "No working sets on the main lifts.");
+    assert.equal(planLiftE1rmText(insights.lifts.map((lift) => ({ ...lift, points: [] }))), null);
   });
 
   it("averages working-set volume per week on the primary muscle", () => {
