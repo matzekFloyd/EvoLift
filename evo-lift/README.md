@@ -200,7 +200,7 @@ Confirm signup (`Confirm your EvoLift email`) and Reset password (`Reset your Ev
 
 Email and password stay on `/login`. Magic link is not offered. The panel shows **Sign in with Google** under the email form. **Sign in with Apple** stays off until [#380](https://github.com/matzekFloyd/EvoLift/issues/380). Each provider is switched in `SOCIAL_SIGN_IN_ENABLED` (`evo-lift/app/login/social-sign-in.ts`). A verified provider email joins the existing EvoLift account (Supabase automatic linking). Keep **Confirm email** enabled on the hosted project.
 
-**Account actions.** API tokens use the session only. An account with no password can set one on Account → Login, and can delete the account there without a password. After a password exists, changing it, changing email through `PATCH /api/account/email`, and deleting the account require the current password.
+**Account actions.** API tokens use the session only. An account with no password can set one on Settings → Login, and can delete the account there without a password. After a password exists, changing it, changing email through `PATCH /api/account/email`, and deleting the account require the current password.
 
 **Google Cloud** (APIs & Services → Credentials → OAuth client ID, Web):
 
@@ -250,7 +250,7 @@ Restart local Supabase after editing `config.toml` (`supabase stop`, then `supab
 
 - Users authenticate via Supabase Auth with email and password, or with Google or Apple. Magic link is not offered.
 - Frontend gets `access_token` from Supabase session for in-app requests.
-- Authenticated `/api/*` routes accept a session JWT or a personal API token created on Account → Login (`Authorization: Bearer evo_…`). Tokens are stored hashed, shown once, and do not expire until revoked.
+- Authenticated `/api/*` routes accept a session JWT or a personal API token created on Settings → Login (`Authorization: Bearer evo_…`). Tokens are stored hashed, shown once, and do not expire until revoked.
 - Workout sessions and templates can be listed, created, updated, and deleted over the API (same ownership rules as the UI). Use `/app/docs` to try them.
 - In Swagger (`/app/docs`), the logged-in session is sent automatically. To use a personal token, use Authorize and paste the raw token value (without adding an extra `Bearer` prefix).
 

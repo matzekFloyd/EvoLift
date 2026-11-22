@@ -80,7 +80,7 @@ export function buildOpenApiSpec(baseUrl: string) {
       title: "Evo Lift API",
       version: "1.1.0",
       description:
-        "Authenticated HTTP API for the same actions as the app UI.\n\nUse a session JWT or a personal API token from Account (Bearer evo_…).\n\nCreate a session with exercises, from a template, or from a plan day. Then add sets on each session exercise. Upcoming sessions (future performed_on) cannot have sets yet. Plans, goals, account settings, Insights, and exercise history use the same rules as the app.",
+        "Authenticated HTTP API for the same actions as the app UI.\n\nUse a session JWT or a personal API token from Settings (Bearer evo_…).\n\nCreate a session with exercises, from a template, or from a plan day. Then add sets on each session exercise. Upcoming sessions (future performed_on) cannot have sets yet. Plans, goals, account settings, Insights, and exercise history use the same rules as the app.",
     },
     servers: [{ url: baseUrl }],
     components: {
@@ -90,7 +90,7 @@ export function buildOpenApiSpec(baseUrl: string) {
           scheme: "bearer",
           bearerFormat: "JWT or personal API token",
           description:
-            "Supabase session access token, or a personal API token created on Account (prefix evo_).",
+            "Supabase session access token, or a personal API token created on Settings (prefix evo_).",
         },
       },
       schemas: {

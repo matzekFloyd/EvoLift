@@ -72,7 +72,7 @@ export function GoalCard({
         <p className="mt-3 text-sm text-zinc-700">
           Add bodyweight on{" "}
           <Link href={appPath("/account")} className="font-medium text-sky-800 underline-offset-2 hover:underline">
-            Account
+            Settings
           </Link>{" "}
           to track this goal.
         </p>

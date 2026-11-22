@@ -9,6 +9,7 @@ import {
   ListOrdered,
   LogOut,
   Menu,
+  Settings,
   Target,
   UserRound,
   X,
@@ -55,7 +56,8 @@ const HEADER_NAV: HeaderNavItem[] = [
   { href: appPath("/goals"), label: "Goals", icon: Target, match: "section" },
   { href: appPath("/plans"), label: "Plans", icon: ListOrdered, match: "section" },
   { href: appPath("/templates"), label: "Templates", icon: FileStack, match: "section" },
-  { href: appPath("/account"), label: "Account", icon: UserRound, match: "exact" },
+  { href: appPath("/profile"), label: "Profile", icon: UserRound, match: "exact" },
+  { href: appPath("/account"), label: "Settings", icon: Settings, match: "exact" },
 ];
 
 export function HeaderActions() {
@@ -197,7 +199,7 @@ export function HeaderActions() {
     if (href !== appPath("/account")) {
       return undefined;
     }
-    return userEmail ? `Account — ${userEmail}` : "Account";
+    return userEmail ? `Settings — ${userEmail}` : "Settings";
   }
 
   return (

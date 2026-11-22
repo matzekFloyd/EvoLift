@@ -18,7 +18,7 @@ describe("app paths", () => {
     assert.equal(appPath("/plans/id/edit"), "/app/plans/id/edit");
   });
 
-  it("marks Home and Account exactly and other nav items with their children", () => {
+  it("marks Home, Profile, and Settings exactly and other nav items with their children", () => {
     assert.equal(isAppNavItemActive("/app", appPath("/"), "exact"), true);
     assert.equal(isAppNavItemActive("/app/exercises", appPath("/"), "exact"), false);
     assert.equal(isAppNavItemActive("/app/exercises", appPath("/exercises"), "section"), true);
@@ -44,6 +44,7 @@ describe("app paths", () => {
     assert.equal(bySource.get("/templates"), "/app/templates");
     assert.equal(bySource.get("/templates/new"), "/app/templates/new");
     assert.equal(bySource.get("/templates/:id/edit"), "/app/templates/:id/edit");
+    assert.equal(bySource.get("/profile"), "/app/profile");
     assert.equal(bySource.get("/account"), "/app/account");
     assert.equal(bySource.get("/docs"), "/app/docs");
     assert.equal(bySource.get("/api"), "/app/docs");

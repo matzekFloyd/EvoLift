@@ -10,7 +10,7 @@ const ibmPlexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Account",
+  title: "Settings",
 };
 
 export default function AccountLayout({ children }: { children: ReactNode }) {

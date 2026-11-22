@@ -28,12 +28,12 @@ describe("segmented tab layout", () => {
 });
 
 describe("account tabs", () => {
-  it("wraps Account tabs so Login, Profile, and Data stay tappable when narrow", () => {
+  it("wraps Settings tabs so Login, Body metrics, and Data stay tappable when narrow", () => {
     const page = readFileSync(new URL("../(shell)/app/account/page.tsx", import.meta.url), "utf8");
     const sections = readFileSync(new URL("../account/account-section.ts", import.meta.url), "utf8");
     assert.match(page, /equalRowWrap/);
     assert.match(sections, /Login/);
-    assert.match(sections, /Profile/);
+    assert.match(sections, /Body metrics/);
     assert.match(sections, /Data/);
   });
 });

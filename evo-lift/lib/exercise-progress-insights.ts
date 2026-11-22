@@ -488,7 +488,7 @@ function buildPublicComparison(
     return {
       publicNotes: [],
       comparisonHint:
-        "Add sex, date of birth, and bodyweight on Account to compare Barbell Back Squat, Barbell Bench Press, Barbell Deadlift, and Barbell Overhead Press with published standards.",
+        "Add sex, date of birth, and bodyweight on Settings to compare Barbell Back Squat, Barbell Bench Press, Barbell Deadlift, and Barbell Overhead Press with published standards.",
       standardsCaption: null,
     };
   }
@@ -520,7 +520,7 @@ function buildPublicComparison(
 
   const hints: string[] = [];
   if (profile.ageYears == null) {
-    hints.push("Add a date of birth on Account.");
+    hints.push("Add a date of birth on Settings.");
   }
   if (profile.ageYears != null && profile.ageYears >= 40) {
     hints.push(

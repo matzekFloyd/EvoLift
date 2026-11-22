@@ -64,7 +64,7 @@ describe("first-login tour", () => {
     assert.equal(steps[5]?.prevPath, productTourAccountPath());
   });
 
-  it("opens Goals, Insights, and Account Profile instead of header links", () => {
+  it("opens Goals, Insights, and Settings body metrics instead of header links", () => {
     assert.equal(productTourAccountPath(), `${appPath("/account")}?section=profile`);
     assert.equal(productTourGoalsPath(), appPath("/goals"));
     assert.equal(productTourInsightsPath(), appPath("/insights"));

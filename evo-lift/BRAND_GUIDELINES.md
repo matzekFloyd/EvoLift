@@ -42,13 +42,13 @@ Examples:
 - Rounded controls (`rounded-md`) and small radii for consistency.
 - Global header uses a branded light-sky gradient to reinforce navigation hierarchy
   (`bg-gradient-to-l from-sky-200 via-sky-100 to-sky-50`, darker on the right, with no bottom border).
-- Typeface: **IBM Plex Sans** for UI text. Use tabular lining figures for Loaded (kg), Target weight (kg), and reps so logging columns stay still. **IBM Plex Mono** only for monospace needs (e.g. API tokens on Account). Do not use Inter or Geist as the product face.
+- Typeface: **IBM Plex Sans** for UI text. Use tabular lining figures for Loaded (kg), Target weight (kg), and reps so logging columns stay still. **IBM Plex Mono** only for monospace needs (e.g. API tokens on Settings). Do not use Inter or Geist as the product face.
 
 ## Header and navigation
 
 The signed-in header is the plate mark and the word **EvoLift** on the left, and the destinations on the right. Keep the light-sky gradient above, with no bottom border. The inner bar stays `max-w-5xl`, the same width as the page, so the wordmark lines up with the page title and the destinations line up with the page action.
 
-Destinations, in this order: Home, Exercises, Insights, Goals, Plans, Templates, Account. Then **Log out**. Every destination is a Lucide icon plus that visible label. Keep the icons. Do not rename these items or add a destination in the header.
+Destinations, in this order: Home, Exercises, Insights, Goals, Plans, Templates, Profile, Settings. Then **Log out**. Every destination is a Lucide icon plus that visible label. Keep the icons. Do not rename these items or add a destination in the header. Profile is achievements. Settings is account, body metrics, and preferences.
 
 The same items have two drawings. Keep both.
 
