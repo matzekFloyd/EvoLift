@@ -284,6 +284,167 @@ describe("suggestTargetWeight", () => {
     }
   });
 
+  it("converts a stored rep target through the last session's estimated 1RM", () => {
+    const result = suggest(
+      [
+        historySet({
+          sessionId: "older",
+          performedOn: daysBefore(14),
+          sessionCreatedAt: `${daysBefore(14)}T10:00:00Z`,
+          loadedKg: 100,
+          reps: 8,
+          targetReps: 8,
+          targetWeightKg: 100,
+        }),
+        historySet({
+          sessionId: "newer",
+          performedOn: daysBefore(3),
+          sessionCreatedAt: `${daysBefore(3)}T10:00:00Z`,
+          loadedKg: 100,
+          reps: 8,
+          targetReps: 8,
+          targetWeightKg: 100,
+        }),
+      ],
+      6,
+    );
+
+    assert.deepEqual(result, {
+      status: "suggestion",
+      weightKg: 105.56,
+      rationale: "Last session was 8 reps at 100 kg. 6 reps is about 105.56 kg.",
+    });
+  });
+
+  it("converts from one session when that session stored a different rep target", () => {
+    const result = suggest(
+      [
+        historySet({
+          sessionId: "only",
+          performedOn: daysBefore(3),
+          sessionCreatedAt: `${daysBefore(3)}T10:00:00Z`,
+          loadedKg: 100,
+          reps: 7,
+          targetReps: 8,
+          targetWeightKg: 100,
+        }),
+      ],
+      6,
+    );
+
+    assert.deepEqual(result, {
+      status: "suggestion",
+      weightKg: 102.78,
+      rationale: "Last session was 7 reps at 100 kg. 6 reps is about 102.78 kg.",
+    });
+  });
+
+  it("steps up from sessions logged at the new rep target and leaves the old target out", () => {
+    const at = (sessionId: string, days: number, targetReps: number, reps: number) =>
+      historySet({
+        sessionId,
+        performedOn: daysBefore(days),
+        sessionCreatedAt: `${daysBefore(days)}T10:00:00Z`,
+        loadedKg: 100,
+        reps,
+        targetReps,
+        targetWeightKg: 100,
+      });
+    const result = suggest([at("old", 21, 8, 8), at("middle", 14, 6, 6), at("new", 3, 6, 6)], 6);
+
+    assert.deepEqual(result, {
+      status: "suggestion",
+      weightKg: 105,
+      rationale: "Last 2 sessions hit 6 reps at 100 kg.",
+    });
+  });
+
+  it("does not treat one session at the new target plus an older target as two hits", () => {
+    const result = suggest(
+      [
+        historySet({
+          sessionId: "old",
+          performedOn: daysBefore(14),
+          sessionCreatedAt: `${daysBefore(14)}T10:00:00Z`,
+          loadedKg: 100,
+          reps: 8,
+          targetReps: 8,
+          targetWeightKg: 100,
+        }),
+        historySet({
+          sessionId: "new",
+          performedOn: daysBefore(3),
+          sessionCreatedAt: `${daysBefore(3)}T10:00:00Z`,
+          loadedKg: 100,
+          reps: 6,
+          targetReps: 6,
+          targetWeightKg: 100,
+        }),
+      ],
+      6,
+    );
+
+    assert.deepEqual(result, { status: "message", message: THIN_HISTORY_MESSAGE });
+  });
+
+  it("keeps a miss against the stored target when the logged reps are short", () => {
+    const result = suggest(
+      [
+        historySet({
+          sessionId: "older",
+          performedOn: daysBefore(14),
+          sessionCreatedAt: `${daysBefore(14)}T10:00:00Z`,
+          loadedKg: 100,
+          reps: 8,
+          targetReps: 8,
+          targetWeightKg: 100,
+        }),
+        historySet({
+          sessionId: "newer",
+          performedOn: daysBefore(3),
+          sessionCreatedAt: `${daysBefore(3)}T10:00:00Z`,
+          loadedKg: 100,
+          reps: 6,
+          targetReps: 8,
+          targetWeightKg: 100,
+        }),
+      ],
+      8,
+    );
+
+    assert.deepEqual(result, {
+      status: "suggestion",
+      weightKg: 95,
+      rationale: "Previous session missed 8 reps at 100 kg.",
+    });
+  });
+
+  it("holds assistance when the stored rep target changes", () => {
+    const result = suggest(
+      [
+        historySet({
+          sessionId: "newer",
+          performedOn: daysBefore(3),
+          sessionCreatedAt: `${daysBefore(3)}T10:00:00Z`,
+          loadedKg: 7,
+          reps: 8,
+          targetReps: 8,
+          targetWeightKg: 7,
+        }),
+      ],
+      6,
+      null,
+      false,
+      true,
+    );
+
+    assert.deepEqual(result, {
+      status: "suggestion",
+      weightKg: 7,
+      rationale: REP_TARGET_MISMATCH_RATIONALE,
+    });
+  });
+
   it("holds when the planned reps differ from the reference set by more than 2", () => {
     const result = suggest(
       [
@@ -1036,6 +1197,37 @@ describe("double progression", () => {
       }),
     );
   }
+
+  it("converts the last session when the field rep target differs", () => {
+    const result = rawSuggest(workingSets("latest", 3, [8, 8], 8, 100), 6, null, true);
+
+    assert.equal(result.status, "suggestion");
+    if (result.status !== "suggestion") {
+      return;
+    }
+    assert.equal(result.weightKg, 105.56);
+    assert.equal(result.reps, 6);
+    assert.equal(result.previousReps, 8);
+    assert.equal(result.previousWeightKg, 100);
+    assert.equal(result.rationale, "Last session was 8 reps at 100 kg. 6 reps is about 105.56 kg.");
+  });
+
+  it("holds assistance when the field rep target differs", () => {
+    const result = suggest(
+      workingSets("latest", 3, [8, 8], 8, 7).map((set) => ({ ...set, targetWeightKg: 7 })),
+      6,
+      null,
+      true,
+      true,
+    );
+
+    assert.deepEqual(result, {
+      status: "suggestion",
+      weightKg: 7,
+      reps: 6,
+      rationale: REP_TARGET_MISMATCH_RATIONALE,
+    });
+  });
 
   it("suggests 2 more reps at the same weight when every working set hits 10", () => {
     const result = suggest(workingSets("latest", 3, [10, 10, 10], 10), 10, null, true);
