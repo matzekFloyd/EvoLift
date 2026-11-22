@@ -23,8 +23,10 @@ import { STARTER_PLAN_NOTES, STARTER_PLANS } from "@/lib/starter-plans";
 import { GET as listPlans, POST as createPlan } from "@/app/api/plans/route";
 import { DELETE as deletePlan, GET as getPlan } from "@/app/api/plans/[id]/route";
 import { POST as setActive } from "@/app/api/plans/[id]/active/route";
+import { GET as listPlanHistory } from "@/app/api/plans/history/route";
 import { POST as startPlanDay } from "@/app/api/plans/[id]/days/[dayId]/sessions/route";
-import { POST as createSession } from "@/app/api/sessions/route";
+import { GET as getSession } from "@/app/api/sessions/[id]/route";
+import { GET as listSessions, POST as createSession } from "@/app/api/sessions/route";
 import { POST as addSet } from "@/app/api/sessions/[id]/exercises/[sessionExerciseId]/sets/route";
 import {
   adminClient,
@@ -115,18 +117,84 @@ describe("app API on local Supabase", () => {
       ),
     );
     assert.equal(started.status, 201);
-    const session = started.body.data as { plan_id: string; exercises: Array<{ exercise_id: string }> };
+    const session = started.body.data as {
+      id: string;
+      plan_id: string;
+      exercises: Array<{ exercise_id: string }>;
+    };
     assert.equal(session.plan_id, plan.id);
     assert.equal(session.exercises[0]?.exercise_id, squatId);
+
+    const loaded = await readJson(
+      await getSession(buildRequest(`/api/sessions/${session.id}`, "GET", ownerToken), {
+        params: Promise.resolve({ id: session.id }),
+      }),
+    );
+    assert.equal(loaded.status, 200);
+    assert.equal((loaded.body.data as { plan_id: string | null }).plan_id, plan.id);
+
+    const sessionList = await readJson(
+      await listSessions(buildRequest("/api/sessions", "GET", ownerToken)),
+    );
+    assert.equal(sessionList.status, 200);
+    const listedSession = (sessionList.body.data as Array<{ id: string; plan_id: string | null }>).find(
+      (row) => row.id === session.id,
+    );
+    assert.equal(listedSession?.plan_id, plan.id);
 
     const listed = await readJson(await listPlans(buildRequest("/api/plans", "GET", ownerToken)));
     assert.equal(
       (listed.body.data as Array<{ id: string }>).some((row) => row.id === plan.id),
       true,
     );
-    await setActive(
-      buildRequest(`/api/plans/${plan.id}/active`, "POST", ownerToken, { is_active: false }),
-      { params: Promise.resolve({ id: plan.id }) },
+    const deactivated = await readJson(
+      await setActive(
+        buildRequest(`/api/plans/${plan.id}/active`, "POST", ownerToken, { is_active: false }),
+        { params: Promise.resolve({ id: plan.id }) },
+      ),
+    );
+    assert.equal(deactivated.status, 200);
+
+    const history = await readJson(
+      await listPlanHistory(buildRequest("/api/plans/history", "GET", ownerToken)),
+    );
+    assert.equal(history.status, 200);
+    const activations = (
+      history.body.data as Array<{
+        plan_id: string;
+        activated_at: string;
+        deactivated_at: string | null;
+      }>
+    ).filter((row) => row.plan_id === plan.id);
+    assert.equal(activations.length, 1);
+    assert.match(activations[0]?.activated_at ?? "", /^\d{4}-\d{2}-\d{2}T/);
+    assert.match(activations[0]?.deactivated_at ?? "", /^\d{4}-\d{2}-\d{2}T/);
+
+    const filtered = await readJson(
+      await listPlanHistory(
+        buildRequest(`/api/plans/history?plan_id=${plan.id}`, "GET", ownerToken),
+      ),
+    );
+    assert.equal(filtered.status, 200);
+    const filteredRows = filtered.body.data as Array<{ plan_id: string }>;
+    assert.ok(filteredRows.length >= 1);
+    assert.ok(filteredRows.every((row) => row.plan_id === plan.id));
+
+    const invalid = await readJson(
+      await listPlanHistory(
+        buildRequest("/api/plans/history?plan_id=not-a-uuid", "GET", ownerToken),
+      ),
+    );
+    assert.equal(invalid.status, 400);
+    assert.equal(invalid.body.error, "Please provide a valid plan_id.");
+
+    const hiddenHistory = await readJson(
+      await listPlanHistory(buildRequest("/api/plans/history", "GET", otherToken)),
+    );
+    assert.equal(hiddenHistory.status, 200);
+    assert.equal(
+      (hiddenHistory.body.data as Array<{ plan_id: string }>).some((row) => row.plan_id === plan.id),
+      false,
     );
   });
 

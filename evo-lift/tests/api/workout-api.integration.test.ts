@@ -37,11 +37,13 @@ type SessionDetail = {
   notes: string | null;
   performed_on: string;
   source_template_id: string | null;
+  plan_id: string | null;
   exercises: SessionExercise[];
 };
 
 type SessionListItem = {
   id: string;
+  plan_id: string | null;
 };
 
 const SESSION_DATE = "2020-01-15";
@@ -160,6 +162,7 @@ describe("workout API on local Supabase", () => {
     assert.equal(loaded.status, 200);
     const session = loaded.body.data as SessionDetail;
     assert.equal(session.notes, "API integration");
+    assert.equal(session.plan_id, null);
     assert.deepEqual(
       session.exercises.map((exercise) => exercise.exercise_id).sort(),
       [deadliftId, squatId].sort(),
@@ -172,7 +175,9 @@ describe("workout API on local Supabase", () => {
 
     const ownerList = await readJson(await listSessions(buildRequest("/api/sessions", "GET", ownerToken)));
     assert.equal(ownerList.status, 200);
-    assert.ok((ownerList.body.data as SessionListItem[]).some((row) => row.id === session.id));
+    const listed = (ownerList.body.data as SessionListItem[]).find((row) => row.id === session.id);
+    assert.ok(listed);
+    assert.equal(listed.plan_id, null);
 
     const otherList = await readJson(await listSessions(buildRequest("/api/sessions", "GET", otherToken)));
     assert.equal(otherList.status, 200);

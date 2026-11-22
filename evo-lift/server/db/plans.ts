@@ -82,6 +82,37 @@ export async function listPlans(
   }));
 }
 
+export type PlanActivation = {
+  id: string;
+  plan_id: string;
+  activated_at: string;
+  deactivated_at: string | null;
+};
+
+/** Activation rows for the user, newest first. Pass planId to limit to one plan. */
+export async function listPlanActivations(
+  client: SupabaseClient<Database>,
+  userId: string,
+  planId?: string,
+): Promise<PlanActivation[]> {
+  let query = client
+    .from("workout_plan_activations")
+    .select("id, plan_id, activated_at, deactivated_at")
+    .eq("user_id", userId)
+    .order("activated_at", { ascending: false });
+
+  if (planId) {
+    query = query.eq("plan_id", planId);
+  }
+
+  const { data, error } = await query;
+  if (error) {
+    throw new Error(`Failed to list plan history: ${error.message}`);
+  }
+
+  return data ?? [];
+}
+
 export async function getPlanById(
   client: SupabaseClient<Database>,
   userId: string,

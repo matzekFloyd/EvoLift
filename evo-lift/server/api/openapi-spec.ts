@@ -156,7 +156,12 @@ export function buildOpenApiSpec(baseUrl: string) {
             performed_on: { type: "string", format: "date" },
             notes: { type: "string", nullable: true },
             source_template_id: { type: "string", format: "uuid", nullable: true },
-            plan_id: { type: "string", format: "uuid", nullable: true },
+            plan_id: {
+              type: "string",
+              format: "uuid",
+              nullable: true,
+              description: "Plan this session was started from. Null when the session has no plan.",
+            },
             plan_day_id: { type: "string", format: "uuid", nullable: true },
             created_at: { type: "string" },
             updated_at: { type: "string" },
@@ -174,11 +179,30 @@ export function buildOpenApiSpec(baseUrl: string) {
             performed_on: { type: "string", format: "date" },
             notes: { type: "string", nullable: true },
             source_template_id: { type: "string", format: "uuid", nullable: true },
-            plan_id: { type: "string", format: "uuid", nullable: true },
+            plan_id: {
+              type: "string",
+              format: "uuid",
+              nullable: true,
+              description: "Plan this session was started from. Null when the session has no plan.",
+            },
             plan_day_id: { type: "string", format: "uuid", nullable: true },
             created_at: { type: "string" },
             updated_at: { type: "string" },
             exercise_count: { type: "integer" },
+          },
+        },
+        PlanActivation: {
+          type: "object",
+          properties: {
+            id: { type: "string", format: "uuid" },
+            plan_id: { type: "string", format: "uuid" },
+            activated_at: { type: "string", format: "date-time" },
+            deactivated_at: {
+              type: "string",
+              format: "date-time",
+              nullable: true,
+              description: "Null while this activation is still open.",
+            },
           },
         },
         TemplateExercise: {
@@ -241,7 +265,8 @@ export function buildOpenApiSpec(baseUrl: string) {
       },
       {
         name: "Plans",
-        description: "Workout plans, the active plan, and starting a session from a plan day.",
+        description:
+          "Workout plans, the active plan, plan activation history, and starting a session from a plan day.",
       },
       {
         name: "Goals",
@@ -725,6 +750,33 @@ export function buildOpenApiSpec(baseUrl: string) {
               ...jsonData({ $ref: "#/components/schemas/WorkoutSession" }),
             },
             ...errorResponse,
+          },
+        },
+      },
+      "/api/plans/history": {
+        get: {
+          summary: "List plan activation history",
+          description:
+            "One row each time a plan was activated. deactivated_at is null while that activation is still open. Newest activation first.",
+          parameters: [
+            {
+              name: "plan_id",
+              in: "query",
+              required: false,
+              schema: { type: "string", format: "uuid" },
+              description: "Limit the history to one plan.",
+            },
+          ],
+          responses: {
+            "200": {
+              description: "Plan activation history",
+              ...jsonData({
+                type: "array",
+                items: { $ref: "#/components/schemas/PlanActivation" },
+              }),
+            },
+            "400": errorResponse["400"],
+            "401": errorResponse["401"],
           },
         },
       },
