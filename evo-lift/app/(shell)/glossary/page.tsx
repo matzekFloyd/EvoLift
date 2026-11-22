@@ -95,7 +95,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Insights",
     definition:
-      "Charts and notes for a date range: training volume, working sets, Lift comparison, and personal bests.",
+      "Charts and notes for a date range: training volume, working sets, Lift comparison, and personal bests. It also notes when Squat, Bench, Deadlift, or Press estimated 1RM has not improved for the number of weeks you set on that page.",
   },
   {
     term: "Lift",

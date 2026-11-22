@@ -19,6 +19,7 @@ import {
   InsightsWeeklyVolumeChart,
 } from "@/app/components/chart-dynamic";
 import { LiftComparisonPanel } from "@/app/components/lift-comparison-panel";
+import { MainLiftStagnationNotice } from "@/app/components/main-lift-stagnation-notice";
 import { PersonalBestsPanel } from "@/app/components/personal-bests-panel";
 import { applyDateRangePreset } from "@/app/components/date-range-presets";
 import { DateRangeFields } from "@/app/components/date-range-fields";
@@ -413,6 +414,7 @@ export default function InsightsPage() {
               />
             </div>
             <ExerciseProgressPanel report={exerciseProgress} defaultOpen />
+            <MainLiftStagnationNotice series={compoundE1rmSeries} />
             <CollapsibleSection title="Estimated one-rep max (1RM)" defaultOpen={false}>
               <p className="text-sm text-zinc-800">
                 Best estimated 1RM per session for Barbell Back Squat, Bench Press, Deadlift, and
