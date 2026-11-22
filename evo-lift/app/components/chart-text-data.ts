@@ -46,6 +46,29 @@ export type HeatmapChartTextDay = {
 
 const NOT_ENOUGH_WEEKS = "Not enough weeks";
 
+/** Adds a Marker column when a chart has plan-switch or deload lines. */
+export function withChartEventColumn(
+  model: ChartTextAlternativeModel,
+  markers: readonly { x: string; labels: readonly string[] }[],
+  xByRowKey: ReadonlyMap<string, string>,
+): ChartTextAlternativeModel {
+  if (markers.length === 0) {
+    return model;
+  }
+  const labelsByX = new Map(markers.map((marker) => [marker.x, marker.labels.join(" · ")]));
+  return {
+    ...model,
+    columns: [...model.columns, { key: "marker", label: "Marker" }],
+    rows: model.rows.map((row) => ({
+      ...row,
+      cells: {
+        ...row.cells,
+        marker: labelsByX.get(xByRowKey.get(row.key) ?? "") ?? "",
+      },
+    })),
+  };
+}
+
 function kg(value: number): string {
   return value.toFixed(1);
 }

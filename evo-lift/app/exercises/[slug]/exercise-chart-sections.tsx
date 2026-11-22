@@ -6,6 +6,7 @@ import {
 import { InfoPopover } from "@/app/components/info-popover";
 import { panelInsetClass } from "@/app/components/panel-inset";
 import { SectionHeading } from "@/app/components/section-heading";
+import type { ChartEvent } from "@/lib/chart-event-markers";
 import type { buildExerciseSessionE1rmChartPoints } from "@/lib/exercise-session-e1rm-chart";
 import type { buildExerciseSessionVolumeChartPoints } from "@/lib/exercise-session-volume-chart";
 import type { buildExerciseSessionWeightChartPoints } from "@/lib/exercise-session-weight-chart";
@@ -15,6 +16,7 @@ export function ExerciseWeightChartSection({
   assistance,
   bodyweightPlusLoad = false,
   usesBaseWeight,
+  events = [],
 }: {
   points: ReturnType<typeof buildExerciseSessionWeightChartPoints>;
   assistance: boolean;
@@ -22,6 +24,7 @@ export function ExerciseWeightChartSection({
   bodyweightPlusLoad?: boolean;
   /** Working sets in view use a base, so Loaded and Total are different numbers. */
   usesBaseWeight: boolean;
+  events?: readonly ChartEvent[];
 }) {
   return (
     <section
@@ -71,6 +74,7 @@ export function ExerciseWeightChartSection({
                 (kg). Warmups and sets with no logged weight are omitted.
               </p>
             )}
+            <p>A dashed line marks a plan switch. The label is the plan you activated.</p>
           </div>
         </InfoPopover>
       </div>
@@ -80,6 +84,7 @@ export function ExerciseWeightChartSection({
           assistance={assistance}
           bodyweightPlusLoad={bodyweightPlusLoad}
           usesBaseWeight={usesBaseWeight}
+          events={events}
         />
       </div>
     </section>
@@ -91,11 +96,13 @@ export function ExerciseE1rmChartSection({
   assistance,
   bodyweightPlusLoad = false,
   usesBaseWeight,
+  events = [],
 }: {
   points: ReturnType<typeof buildExerciseSessionE1rmChartPoints>;
   assistance: boolean;
   bodyweightPlusLoad?: boolean;
   usesBaseWeight: boolean;
+  events?: readonly ChartEvent[];
 }) {
   return (
     <section
@@ -139,6 +146,7 @@ export function ExerciseE1rmChartSection({
                 </p>
               </>
             )}
+            <p>A dashed line marks a plan switch. The label is the plan you activated.</p>
           </div>
         </InfoPopover>
       </div>
@@ -148,6 +156,7 @@ export function ExerciseE1rmChartSection({
           assistance={assistance}
           bodyweightPlusLoad={bodyweightPlusLoad}
           usesBaseWeight={usesBaseWeight}
+          events={events}
         />
       </div>
     </section>
@@ -159,11 +168,13 @@ export function ExerciseVolumeChartSection({
   assistance,
   bodyweightPlusLoad = false,
   usesBaseWeight,
+  events = [],
 }: {
   points: ReturnType<typeof buildExerciseSessionVolumeChartPoints>;
   assistance: boolean;
   bodyweightPlusLoad?: boolean;
   usesBaseWeight: boolean;
+  events?: readonly ChartEvent[];
 }) {
   return (
     <section
@@ -207,6 +218,7 @@ export function ExerciseVolumeChartSection({
                 </p>
               </>
             )}
+            <p>A dashed line marks a plan switch. The label is the plan you activated.</p>
           </div>
         </InfoPopover>
       </div>
@@ -216,6 +228,7 @@ export function ExerciseVolumeChartSection({
           assistance={assistance}
           bodyweightPlusLoad={bodyweightPlusLoad}
           usesBaseWeight={usesBaseWeight}
+          events={events}
         />
       </div>
     </section>
@@ -229,6 +242,7 @@ export function ExerciseDetailCharts({
   assistance,
   bodyweightPlusLoad = false,
   usesBaseWeight,
+  events = [],
 }: {
   weightPoints: ReturnType<typeof buildExerciseSessionWeightChartPoints>;
   e1rmPoints: ReturnType<typeof buildExerciseSessionE1rmChartPoints>;
@@ -236,6 +250,7 @@ export function ExerciseDetailCharts({
   assistance: boolean;
   bodyweightPlusLoad?: boolean;
   usesBaseWeight: boolean;
+  events?: readonly ChartEvent[];
 }) {
   return (
     <>
@@ -244,18 +259,21 @@ export function ExerciseDetailCharts({
         assistance={assistance}
         bodyweightPlusLoad={bodyweightPlusLoad}
         usesBaseWeight={usesBaseWeight}
+        events={events}
       />
       <ExerciseE1rmChartSection
         points={e1rmPoints}
         assistance={assistance}
         bodyweightPlusLoad={bodyweightPlusLoad}
         usesBaseWeight={usesBaseWeight}
+        events={events}
       />
       <ExerciseVolumeChartSection
         points={volumePoints}
         assistance={assistance}
         bodyweightPlusLoad={bodyweightPlusLoad}
         usesBaseWeight={usesBaseWeight}
+        events={events}
       />
     </>
   );

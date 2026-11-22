@@ -12,14 +12,24 @@ import {
 } from "recharts";
 import type { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
 import { ChartResponsiveContainer } from "@/app/components/chart-responsive-container";
-import { ChartTextAlternative } from "@/app/components/chart-text-alternative";
-import { exerciseE1rmChartText } from "@/app/components/chart-text-data";
+import {
+  ChartEventNotes,
+  chartEventReferenceLines,
+  chartEventLegendItems,
+} from "@/app/components/chart-event-markers";
+import { ChartSeriesLegend, ChartTextAlternative } from "@/app/components/chart-text-alternative";
+import { exerciseE1rmChartText, withChartEventColumn } from "@/app/components/chart-text-data";
 import { formatKgTick } from "@/app/components/exercise-weight-progress-format";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import {
   buildE1rmChangeSentence,
   type ExerciseSessionE1rmChartPoint,
 } from "@/lib/exercise-session-e1rm-chart";
+import {
+  chartEventLabelsAt,
+  sessionChartMarkers,
+  type ChartEvent,
+} from "@/lib/chart-event-markers";
 import { zoomedWeightAxisDomain } from "@/lib/exercise-session-weight-chart";
 
 type ExerciseSessionE1rmChartProps = {
@@ -30,6 +40,7 @@ type ExerciseSessionE1rmChartProps = {
   bodyweightPlusLoad?: boolean;
   /** Working sets in view use a base, so the estimate is from Total (kg). */
   usesBaseWeight?: boolean;
+  events?: readonly ChartEvent[];
 };
 
 export function ExerciseSessionE1rmChart({
@@ -37,6 +48,7 @@ export function ExerciseSessionE1rmChart({
   assistance = false,
   bodyweightPlusLoad = false,
   usesBaseWeight = false,
+  events = [],
 }: ExerciseSessionE1rmChartProps) {
   const [isCompactView, setIsCompactView] = useState(false);
 
@@ -56,6 +68,9 @@ export function ExerciseSessionE1rmChart({
       })),
     [points],
   );
+
+  const markers = useMemo(() => sessionChartMarkers(points, events), [events, points]);
+  const legendItems = useMemo(() => chartEventLegendItems(markers), [markers]);
 
   const yDomain = useMemo(
     () => zoomedWeightAxisDomain(chartData.map((point) => point.e1rmValue)),
@@ -97,6 +112,7 @@ export function ExerciseSessionE1rmChart({
         ) : (
           <p className="text-zinc-500">Epley · not a tested max</p>
         )}
+        <ChartEventNotes labels={chartEventLabelsAt(markers, source.xTickLabel)} />
       </div>
     );
   };
@@ -116,6 +132,7 @@ export function ExerciseSessionE1rmChart({
   return (
     <div className="space-y-3">
       <p className="text-sm leading-snug text-zinc-800">{buildE1rmChangeSentence(points)}</p>
+      {legendItems.length > 0 ? <ChartSeriesLegend items={legendItems} /> : null}
 
       <div
         className="exercise-session-e1rm-chart relative h-52 w-full sm:h-64"
@@ -126,7 +143,7 @@ export function ExerciseSessionE1rmChart({
           <LineChart
             accessibilityLayer={false}
             data={chartData}
-            margin={{ top: 8, right: 8, left: 0, bottom: 4 }}
+            margin={{ top: markers.length > 0 ? 18 : 8, right: 8, left: 0, bottom: 4 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
             <XAxis
@@ -143,6 +160,7 @@ export function ExerciseSessionE1rmChart({
               width={isCompactView ? 56 : 64}
             />
             <Tooltip content={renderTooltip} />
+            {chartEventReferenceLines(markers)}
             <Line
               type="monotone"
               dataKey="e1rmValue"
@@ -156,7 +174,13 @@ export function ExerciseSessionE1rmChart({
           </LineChart>
         </ChartResponsiveContainer>
       </div>
-      <ChartTextAlternative model={exerciseE1rmChartText(points)} />
+      <ChartTextAlternative
+        model={withChartEventColumn(
+          exerciseE1rmChartText(points),
+          markers,
+          new Map(points.map((point) => [point.sessionId, point.xTickLabel])),
+        )}
+      />
     </div>
   );
 }

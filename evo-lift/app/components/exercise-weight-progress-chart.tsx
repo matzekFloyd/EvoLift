@@ -12,11 +12,21 @@ import {
 } from "recharts";
 import type { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
 import { ChartResponsiveContainer } from "@/app/components/chart-responsive-container";
+import {
+  ChartEventNotes,
+  chartEventReferenceLines,
+  chartEventLegendItems,
+} from "@/app/components/chart-event-markers";
 import { ChartSeriesLegend, ChartTextAlternative } from "@/app/components/chart-text-alternative";
-import { exerciseWeightChartText } from "@/app/components/chart-text-data";
+import { exerciseWeightChartText, withChartEventColumn } from "@/app/components/chart-text-data";
 import { SegmentedTabs } from "@/app/components/segmented-tabs";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { formatKgTick } from "@/app/components/exercise-weight-progress-format";
+import {
+  chartEventLabelsAt,
+  sessionChartMarkers,
+  type ChartEvent,
+} from "@/lib/chart-event-markers";
 import {
   buildWeightChangeSentence,
   zoomedWeightAxisDomain,
@@ -33,6 +43,7 @@ type ExerciseWeightProgressChartProps = {
   bodyweightPlusLoad?: boolean;
   /** Loaded and Total differ on the working sets in view. */
   usesBaseWeight?: boolean;
+  events?: readonly ChartEvent[];
 };
 
 const LINE_TOTAL = "Total (kg)";
@@ -46,6 +57,7 @@ export function ExerciseWeightProgressChart({
   assistance = false,
   bodyweightPlusLoad = false,
   usesBaseWeight = false,
+  events = [],
 }: ExerciseWeightProgressChartProps) {
   const [seriesMode, setSeriesMode] = useState<ExerciseWeightProgressSeriesMode>("loaded");
   const [isCompactView, setIsCompactView] = useState(false);
@@ -74,6 +86,20 @@ export function ExerciseWeightProgressChart({
         movedLoadValue: p.movedLoadKg ?? null,
       })),
     [points],
+  );
+
+  const markers = useMemo(() => sessionChartMarkers(points, events), [events, points]);
+  const legendItems = useMemo(
+    () => [
+      ...(showMovedLoad
+        ? [
+            { key: "load", label: loadLineName, swatchClassName: "h-0.5 w-4 bg-teal-700" },
+            { key: "moved", label: movedLoadName, swatchClassName: "h-0.5 w-4 bg-sky-600" },
+          ]
+        : []),
+      ...chartEventLegendItems(markers),
+    ],
+    [loadLineName, markers, movedLoadName, showMovedLoad],
   );
 
   const showTotal = !assistance && effectiveMode === "total";
@@ -128,6 +154,7 @@ export function ExerciseWeightProgressChart({
           <p className="text-zinc-500">
             {bodyweightPlusLoad ? "Heaviest working set" : "Working set"}: #{source.heaviestSetNumber}
           </p>
+          <ChartEventNotes labels={chartEventLabelsAt(markers, source.xTickLabel)} />
         </div>
       );
     }
@@ -139,6 +166,7 @@ export function ExerciseWeightProgressChart({
             {LINE_LOADED}: {source.heaviestLoadedKg.toFixed(1)} kg
           </p>
           <p className="text-zinc-500">Heaviest working set: #{source.heaviestSetNumber}</p>
+          <ChartEventNotes labels={chartEventLabelsAt(markers, source.xTickLabel)} />
         </div>
       );
     }
@@ -155,6 +183,7 @@ export function ExerciseWeightProgressChart({
           Base: {source.baseKg.toFixed(1)} kg (total minus loaded for that set)
         </p>
         <p className="text-zinc-500">Heaviest working set: #{source.heaviestSetNumber}</p>
+        <ChartEventNotes labels={chartEventLabelsAt(markers, source.xTickLabel)} />
       </div>
     );
   };
@@ -189,14 +218,7 @@ export function ExerciseWeightProgressChart({
         ) : null}
       </div>
 
-      {showMovedLoad ? (
-        <ChartSeriesLegend
-          items={[
-            { key: "load", label: loadLineName, swatchClassName: "h-0.5 w-4 bg-teal-700" },
-            { key: "moved", label: movedLoadName, swatchClassName: "h-0.5 w-4 bg-sky-600" },
-          ]}
-        />
-      ) : null}
+      {legendItems.length > 0 ? <ChartSeriesLegend items={legendItems} /> : null}
 
       <div
         className="exercise-weight-progress-chart relative h-52 w-full sm:h-64"
@@ -207,7 +229,7 @@ export function ExerciseWeightProgressChart({
           <LineChart
             accessibilityLayer={false}
             data={chartData}
-            margin={{ top: 8, right: 8, left: 0, bottom: 4 }}
+            margin={{ top: markers.length > 0 ? 18 : 8, right: 8, left: 0, bottom: 4 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
             <XAxis
@@ -224,6 +246,7 @@ export function ExerciseWeightProgressChart({
               width={isCompactView ? 56 : 64}
             />
             <Tooltip content={renderTooltip} />
+            {chartEventReferenceLines(markers)}
             {showTotal ? (
               <Line
                 type="monotone"
@@ -267,7 +290,11 @@ export function ExerciseWeightProgressChart({
         </ChartResponsiveContainer>
       </div>
       <ChartTextAlternative
-        model={exerciseWeightChartText(points, effectiveMode, assistance, bodyweightPlusLoad)}
+        model={withChartEventColumn(
+          exerciseWeightChartText(points, effectiveMode, assistance, bodyweightPlusLoad),
+          markers,
+          new Map(points.map((point) => [point.sessionId, point.xTickLabel])),
+        )}
       />
     </div>
   );
