@@ -39,7 +39,7 @@ vi.mock("@/lib/supabase/browser", () => ({
   },
 }));
 
-const DESTINATIONS = ["Home", "Exercises", "Insights", "Goals", "Plans", "Templates", "Account", "Log out"];
+const DESTINATIONS = ["Home", "Exercises", "Insights", "Goals", "Plans", "Templates", "Profile", "Settings", "Log out"];
 
 type MediaListener = () => void;
 
@@ -191,8 +191,8 @@ describe("header and navigation baseline", () => {
     assert.match(logOut?.parentElement?.className ?? "", /border-s/);
     assert.match(logOut?.parentElement?.className ?? "", /border-zinc-400/);
 
-    const account = [...row().querySelectorAll("a")].find((element) => element.textContent?.trim() === "Account");
-    assert.equal(account?.getAttribute("title"), "Account — lifter@example.com");
+    const settings = [...row().querySelectorAll("a")].find((element) => element.textContent?.trim() === "Settings");
+    assert.equal(settings?.getAttribute("title"), "Settings — lifter@example.com");
     assert.equal(menuButton().getAttribute("aria-label"), "Open navigation menu");
     assert.equal(menuButton().getAttribute("aria-expanded"), "false");
   });

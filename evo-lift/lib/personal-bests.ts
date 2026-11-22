@@ -168,14 +168,14 @@ export function formatPersonalBestSet(mark: PersonalBestMark | null): string {
   return `${formatKgAmount(mark.valueKg)} × ${formatRepCount(mark.reps)}`;
 }
 
-export function formatPersonalBestLoad(mark: PersonalBestMark | null): string {
+export function formatPersonalBestLoad(mark: { valueKg: number } | null): string {
   if (!mark) {
     return "—";
   }
   return formatKgAmount(mark.valueKg);
 }
 
-export function formatPersonalBestDate(mark: PersonalBestMark | null): string {
+export function formatPersonalBestDate(mark: { performedOn: string } | null): string {
   if (!mark) {
     return "—";
   }

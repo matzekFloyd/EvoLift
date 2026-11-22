@@ -80,7 +80,7 @@ describe("workout API on local Supabase", () => {
     assert.equal(missing.status, 401);
     assert.equal(
       missing.body.error,
-      "Missing bearer token. Use a personal API token from Account or a session access token.",
+      "Missing bearer token. Use a personal API token from Settings or a session access token.",
     );
 
     const signedIn = await readJson(await getExercises(buildRequest("/api/exercises", "GET", ownerToken)));

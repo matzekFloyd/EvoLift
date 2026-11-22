@@ -3,7 +3,7 @@ import { describe, it } from "vitest";
 import { accountSectionFromSearchParam } from "@/app/account/account-section";
 
 describe("account section search param", () => {
-  it("selects Profile for the first-login tour", () => {
+  it("selects body metrics for the first-login tour", () => {
     assert.equal(accountSectionFromSearchParam("profile"), "profile");
   });
 

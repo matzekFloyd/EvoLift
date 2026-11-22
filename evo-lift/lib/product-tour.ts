@@ -18,7 +18,7 @@ export const PRODUCT_TOUR_CARD_WIDTH_VAR = "--evolift-tour-card-width";
 
 /**
  * Page controls the tour highlights. Header links stay out: on a phone, Plans,
- * Goals, and Account live in the full-screen menu, so the tour opens the page.
+ * Goals, and Settings live in the full-screen menu, so the tour opens the page.
  */
 export const PRODUCT_TOUR_TARGET_IDS = {
   createSession: "tour-create-session",
@@ -59,7 +59,7 @@ export function productTourSelector(targetId: string): string {
   return `#${targetId}`;
 }
 
-/** Account → Profile, where bodyweight lives. Login is the default tab. */
+/** Settings → Body metrics, where bodyweight lives. Login is the default tab. */
 export function productTourAccountPath(): string {
   return `${appPath("/account")}?section=profile`;
 }

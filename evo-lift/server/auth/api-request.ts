@@ -50,7 +50,7 @@ export async function authenticateBearer(
     return {
       status: 401,
       error:
-        "Missing bearer token. Use a personal API token from Account or a session access token.",
+        "Missing bearer token. Use a personal API token from Settings or a session access token.",
     };
   }
 

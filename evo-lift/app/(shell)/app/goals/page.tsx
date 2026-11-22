@@ -320,7 +320,7 @@ export default function GoalsPage() {
         <p id={PRODUCT_TOUR_TARGET_IDS.goals} className="text-sm text-zinc-600">
           Set a strength goal for one exercise. Progress uses working sets you have already logged. New
           accounts start with bodyweight goals on the main barbell lifts. Edit or delete them anytime.
-          Bodyweight goals need a bodyweight entry on Account.
+          Bodyweight goals need a bodyweight entry on Settings.
         </p>
         {isChecking ? (
           <ContentPlaceholder

@@ -139,7 +139,7 @@ describe("API auth failures", () => {
   it("logs a structured security event without echoing credentials", async () => {
     authenticateApiRequest.mockResolvedValue({
       status: 401,
-      error: "Missing bearer token. Use a personal API token from Account or a session access token.",
+      error: "Missing bearer token. Use a personal API token from Settings or a session access token.",
     });
     const consoleInfo = vi.spyOn(console, "info").mockImplementation(() => {});
     try {
