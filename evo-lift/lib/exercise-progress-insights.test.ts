@@ -241,4 +241,98 @@ describe("buildExerciseProgressReport", () => {
     assert.equal(pattern?.badge, "Missing");
     assert.equal(pattern?.title, "Plate-Loaded Chest Press");
   });
+
+  it("averages the main lifts when 3 of 4 are inside the last 8 weeks", () => {
+    const profile: LifterProfile = {
+      sex: "male",
+      bodyweightKg: 75,
+      bodyweightEntries: [],
+      ageYears: 30,
+      ageIsApproximate: false,
+    };
+    const main = (
+      slug: string,
+      label: string,
+      totalKg: number,
+      performedOn: string,
+    ): ExerciseWorkingSetSample =>
+      sample({
+        exerciseId: `ex-${slug}`,
+        slug,
+        label,
+        sessionId: slug,
+        performedOn,
+        totalKg,
+        reps: 1,
+      });
+    const recent = [
+      main("back-squat", "Barbell Back Squat", 202.5, "2026-02-01"),
+      main("barbell-bench-press", "Barbell Bench Press", 70, "2026-02-01"),
+      main("deadlift", "Barbell Deadlift", 185, "2026-02-01"),
+    ];
+    const stalePress = main("overhead-press", "Barbell Overhead Press", 32.5, "2026-01-03");
+    const machine = sample({
+      exerciseId: "ex-curl",
+      slug: "ez-bar-curl",
+      label: "EZ-Bar Curl",
+      sessionId: "curl",
+      performedOn: "2026-02-01",
+      totalKg: 200,
+      reps: 1,
+    });
+    const report = buildExerciseProgressReport([...recent, stalePress, machine], RANGE, profile);
+    assert.equal(report.publicNotes.find((note) => note.titleSlug === "back-squat")?.badge, "Elite");
+    assert.equal(report.publicNotes.find((note) => note.titleSlug === "barbell-bench-press")?.badge, "Novice");
+    assert.equal(report.publicNotes.find((note) => note.titleSlug === "deadlift")?.badge, "Advanced");
+    assert.equal(report.publicNotes.find((note) => note.titleSlug === "overhead-press")?.badge, "Untrained");
+    assert.equal(report.overallLevel?.badge, "Advanced");
+    assert.match(report.overallLevel?.detail ?? "", /each count the same/);
+    assert.match(report.overallLevel?.detail ?? "", /Barbell Overhead Press is outside the last 8 weeks/);
+    assert.equal(report.overallLevel?.meta, "3 of 4 main lifts in the last 8 weeks.");
+  });
+
+  it("keeps the overall level provisional until 3 main lifts are recent", () => {
+    const profile: LifterProfile = {
+      sex: "male",
+      bodyweightKg: 75,
+      bodyweightEntries: [],
+      ageYears: 30,
+      ageIsApproximate: false,
+    };
+    const lift = (slug: string, label: string, totalKg: number, performedOn: string) =>
+      sample({
+        exerciseId: `ex-${slug}`,
+        slug,
+        label,
+        sessionId: `${slug}-${performedOn}`,
+        performedOn,
+        totalKg,
+        reps: 1,
+      });
+    const onTheBoundary = buildExerciseProgressReport(
+      [
+        lift("back-squat", "Barbell Back Squat", 112.5, "2026-01-04"),
+        lift("barbell-bench-press", "Barbell Bench Press", 85, "2026-01-04"),
+        lift("deadlift", "Barbell Deadlift", 135, "2026-01-04"),
+      ],
+      RANGE,
+      profile,
+    );
+    assert.equal(onTheBoundary.overallLevel?.badge, "Intermediate");
+    assert.equal(onTheBoundary.publicNotes[0]?.badge, "Intermediate");
+
+    const oneDayOlder = buildExerciseProgressReport(
+      [
+        lift("back-squat", "Barbell Back Squat", 112.5, "2026-01-04"),
+        lift("barbell-bench-press", "Barbell Bench Press", 85, "2026-01-04"),
+        lift("deadlift", "Barbell Deadlift", 135, "2026-01-03"),
+      ],
+      RANGE,
+      profile,
+    );
+    assert.equal(oneDayOlder.publicNotes.find((note) => note.titleSlug === "deadlift")?.badge, "Intermediate");
+    assert.equal(oneDayOlder.overallLevel?.badge, "Provisional");
+    assert.match(oneDayOlder.overallLevel?.detail ?? "", /at least 3 of the 4 main barbell lifts/);
+    assert.equal(oneDayOlder.overallLevel?.meta, "2 of 4 main lifts in the last 8 weeks.");
+  });
 });

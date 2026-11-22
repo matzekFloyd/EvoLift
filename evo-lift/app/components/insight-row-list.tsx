@@ -8,6 +8,7 @@ import { estimateChangeMark, type InsightRow } from "@/app/components/insight-ro
 export type { InsightRow } from "@/app/components/insight-rows";
 export {
   comparisonInsightRow,
+  overallLevelInsightRow,
   progressInsightRow,
   progressReadBadgeTone,
 } from "@/app/components/insight-rows";

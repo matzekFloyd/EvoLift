@@ -2,7 +2,15 @@ import { isAssistanceExercise } from "@/lib/assistance-exercise";
 import type { ProfileSex } from "@/lib/body-metrics";
 import { bodyweightOnOrBefore, type BodyweightLogEntry } from "@/lib/bodyweight-log";
 import type { ExerciseWorkingSetSample } from "@/lib/insights-data";
-import { classifyExrxLift, EXRX_AGE_BAND, exrxTableUrl, isPublicStandardLift } from "@/lib/strength-standards";
+import {
+  classifyExrxLift,
+  EXRX_AGE_BAND,
+  exrxLevelFromAverage,
+  exrxLevelScore,
+  exrxTableUrl,
+  isPublicStandardLift,
+  type ExrxLevel,
+} from "@/lib/strength-standards";
 
 export type ProgressRead = "ahead" | "on-track" | "room" | "down" | "early";
 
@@ -42,11 +50,20 @@ export type LifterProfile = {
   ageIsApproximate: boolean;
 };
 
+export type OverallLifterLevel = {
+  /** An ExRx level, or Provisional when fewer than 3 main lifts are recent. */
+  badge: string;
+  detail: string;
+  meta: string;
+};
+
 export type ExerciseProgressReport = {
   summary: string;
   rows: ExerciseProgressRow[];
   balanceNotes: LiftBalanceNote[];
   publicNotes: LiftBalanceNote[];
+  /** Average of the main barbell lifts. Null when none of them can be graded. */
+  overallLevel: OverallLifterLevel | null;
   comparisonHint: string | null;
   /** One line for every graded lift. Null when none are graded. */
   standardsCaption: string | null;
@@ -55,6 +72,9 @@ export type ExerciseProgressReport = {
 const MIN_SESSIONS = 3;
 const MIN_SPAN_DAYS = 14;
 const DOWN_KG = 2.5;
+/** A main lift counts toward a firm overall level only inside this window. */
+const OVERALL_RECENT_DAYS = 56;
+const MIN_RECENT_MAIN_LIFTS = 3;
 
 /**
  * Steady monthly gain for someone past the first months of training.
@@ -459,10 +479,77 @@ function bodyweightForEstimate(profile: LifterProfile, performedOn: string | nul
   return profile.bodyweightKg != null && profile.bodyweightKg > 0 ? profile.bodyweightKg : null;
 }
 
+function shiftIsoDate(iso: string, days: number): string {
+  const [year, month, day] = iso.split("-").map(Number);
+  const date = new Date(Date.UTC(year, month - 1, day));
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
+}
+
+function overallAsOf(rangeTo: string, rows: ExerciseProgressRow[]): string | null {
+  if (rangeTo) {
+    return rangeTo;
+  }
+  const dates = rows.flatMap((row) => (row.bestPerformedOn ? [row.bestPerformedOn] : []));
+  if (dates.length === 0) {
+    return null;
+  }
+  return dates.reduce((latest, date) => (date > latest ? date : latest));
+}
+
+type GradedMainLift = {
+  row: ExerciseProgressRow;
+  level: ExrxLevel;
+};
+
+function buildOverallLevel(graded: GradedMainLift[], asOf: string | null): OverallLifterLevel | null {
+  if (graded.length === 0 || asOf == null) {
+    return null;
+  }
+  const cutoff = shiftIsoDate(asOf, -OVERALL_RECENT_DAYS);
+  const recent = graded.filter(
+    (lift) => lift.row.bestPerformedOn != null && lift.row.bestPerformedOn >= cutoff && lift.row.bestPerformedOn <= asOf,
+  );
+  if (recent.length < MIN_RECENT_MAIN_LIFTS) {
+    const meta =
+      recent.length === 0
+        ? "None of the 4 main lifts are in the last 8 weeks."
+        : `${recent.length} of 4 main lifts in the last 8 weeks.`;
+    return {
+      badge: "Provisional",
+      detail:
+        "An overall level needs a best in the last 8 weeks on at least 3 of the 4 main barbell lifts.",
+      meta,
+    };
+  }
+  const average =
+    recent.reduce((sum, lift) => sum + exrxLevelScore(lift.level), 0) / recent.length;
+  const leftOut = graded.filter((lift) => !recent.includes(lift));
+  let detail = `${joinLabels(recent.map((lift) => lift.row.label))} each count the same.`;
+  if (leftOut.length > 0) {
+    const names = joinLabels(leftOut.map((lift) => lift.row.label));
+    detail +=
+      leftOut.length === 1
+        ? ` ${names} is outside the last 8 weeks, so it is left out.`
+        : ` ${names} are outside the last 8 weeks, so they are left out.`;
+  }
+  return {
+    badge: exrxLevelFromAverage(average),
+    detail,
+    meta: `${recent.length} of 4 main lifts in the last 8 weeks.`,
+  };
+}
+
 function buildPublicComparison(
   rows: ExerciseProgressRow[],
   profile: LifterProfile,
-): { publicNotes: LiftBalanceNote[]; comparisonHint: string | null; standardsCaption: string | null } {
+  asOf: string | null,
+): {
+  publicNotes: LiftBalanceNote[];
+  overallLevel: OverallLifterLevel | null;
+  comparisonHint: string | null;
+  standardsCaption: string | null;
+} {
   const bySlug = new Map(rows.map((row) => [row.slug, row]));
   const gradedLifts = PUBLIC_LIFT_ORDER.flatMap((slug) => {
     const row = bySlug.get(slug);
@@ -474,6 +561,7 @@ function buildPublicComparison(
   if (profile.ageYears != null && profile.ageYears < 18 && profile.sex != null && hasBodyweight) {
     return {
       publicNotes: [],
+      overallLevel: null,
       comparisonHint: "Public standards here start at age 18, so no general-public level is shown.",
       standardsCaption: null,
     };
@@ -483,10 +571,11 @@ function buildPublicComparison(
 
   if (!canGrade) {
     if (gradedLifts.length === 0) {
-      return { publicNotes: [], comparisonHint: null, standardsCaption: null };
+      return { publicNotes: [], overallLevel: null, comparisonHint: null, standardsCaption: null };
     }
     return {
       publicNotes: [],
+      overallLevel: null,
       comparisonHint:
         "Add sex, date of birth, and bodyweight on Settings to compare Barbell Back Squat, Barbell Bench Press, Barbell Deadlift, and Barbell Overhead Press with published standards.",
       standardsCaption: null,
@@ -495,6 +584,7 @@ function buildPublicComparison(
 
   const sexWord = profile.sex === "female" ? "women" : "men";
   const publicNotes: LiftBalanceNote[] = [];
+  const gradedMainLifts: GradedMainLift[] = [];
   for (const row of gradedLifts) {
     const bodyweightKg = bodyweightForEstimate(profile, row.bestPerformedOn);
     if (row.bestE1rmKg == null || profile.sex == null || bodyweightKg == null || !isPublicStandardLift(row.slug)) {
@@ -504,6 +594,7 @@ function buildPublicComparison(
     if (level == null) {
       continue;
     }
+    gradedMainLifts.push({ row, level });
     const multiple = (row.bestE1rmKg / bodyweightKg).toFixed(1);
     publicNotes.push({
       id: `public-${row.slug}`,
@@ -532,6 +623,7 @@ function buildPublicComparison(
   }
   return {
     publicNotes,
+    overallLevel: buildOverallLevel(gradedMainLifts, asOf),
     comparisonHint: hints.length > 0 ? hints.join(" ") : null,
     standardsCaption:
       publicNotes.length > 0
@@ -691,13 +783,14 @@ export function buildExerciseProgressReport(
     return left.label.localeCompare(right.label);
   });
 
-  const comparison = buildPublicComparison(rows, profile);
+  const comparison = buildPublicComparison(rows, profile, overallAsOf(range.to, rows));
 
   return {
     summary: buildSummary(rows),
     rows,
     balanceNotes: [...buildBalanceNotes(rows), ...buildPatternNotes(filtered, rows)],
     publicNotes: comparison.publicNotes,
+    overallLevel: comparison.overallLevel,
     comparisonHint: comparison.comparisonHint,
     standardsCaption: comparison.standardsCaption,
   };

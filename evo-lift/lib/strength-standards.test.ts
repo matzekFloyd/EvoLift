@@ -1,6 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
-import { classifyExrxLift, exrxTableUrl, isPublicStandardLift } from "./strength-standards";
+import {
+  classifyExrxLift,
+  exrxLevelFromAverage,
+  exrxLevelScore,
+  exrxTableUrl,
+  isPublicStandardLift,
+} from "./strength-standards";
 
 describe("ExRx standards", () => {
   it("recognizes the four published lifts", () => {
@@ -23,6 +29,15 @@ describe("ExRx standards", () => {
     assert.equal(classifyExrxLift("back-squat", 20, "female", 44), "Untrained");
     assert.equal(classifyExrxLift("back-squat", 20, "male", 44), "Under the untrained mark");
     assert.equal(classifyExrxLift("back-squat", 70, "male", 200), "Untrained");
+  });
+
+  it("numbers the levels from under the untrained mark up to elite", () => {
+    assert.equal(exrxLevelScore("Under the untrained mark"), 0);
+    assert.equal(exrxLevelScore("Untrained"), 1);
+    assert.equal(exrxLevelScore("Elite"), 5);
+    assert.equal(exrxLevelFromAverage(2.5), "Intermediate");
+    assert.equal(exrxLevelFromAverage(3.666), "Advanced");
+    assert.equal(exrxLevelFromAverage(0), "Under the untrained mark");
   });
 
   it("returns nothing without a lift, a positive estimate, or a positive bodyweight", () => {
