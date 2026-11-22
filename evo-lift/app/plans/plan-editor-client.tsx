@@ -21,6 +21,7 @@ import { AppDialog } from "@/app/components/app-dialog";
 import { PageShell } from "@/app/components/page-shell";
 import { StatusNotice } from "@/app/components/status-notice";
 import { MuscleAreaCoverageChart } from "@/app/components/muscle-area-coverage-chart";
+import { PlanInsightsPanel } from "@/app/plans/plan-insights-panel";
 import { SampleWeek } from "@/app/components/sample-week-row";
 import { WorkoutExerciseDraftList } from "@/app/components/workout-exercise-draft-list";
 import {
@@ -339,7 +340,9 @@ export function PlanEditorClient(props: Props) {
       <EditorHeading title={title} back={back} />
       {props.mode === "create" ? (
         <p className="mt-2 text-sm text-zinc-600">Add the days in the order you train them.</p>
-      ) : null}
+      ) : (
+        <PlanInsightsPanel planId={props.planId} />
+      )}
 
       <form onSubmit={(event) => void handleSubmit(event)} className="mt-6 space-y-4 text-sm">
         <label className="block font-medium">
