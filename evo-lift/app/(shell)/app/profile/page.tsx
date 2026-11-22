@@ -162,21 +162,10 @@ export default function ProfilePage() {
       <section className="panel flex min-w-0 flex-col gap-3 p-5">
         <SectionHeading>Personal records</SectionHeading>
         <p className="text-sm text-zinc-800">
-          Best weight is the highest Loaded (kg). Estimated 1RM uses working sets of 12 reps or fewer.
-          The date is when that mark was first hit.
+          Best weight is the highest Loaded (kg), or the lowest assistance on Assisted Dip and Assisted
+          Pull-Up. Estimated 1RM uses working sets of 12 reps or fewer, and the date is when that mark
+          was first hit.
         </p>
-        <details className="text-xs text-zinc-600">
-          <summary className="cursor-pointer rounded-sm font-medium text-zinc-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60">
-            How ranking works
-          </summary>
-          <p className="mt-2 leading-relaxed">
-            Warmups are left out. Estimated 1RM uses the Epley formula on Total (kg). It is not a tested
-            max. On Assisted Dip and Assisted Pull-Up, best weight is the lowest Assistance (kg), and
-            estimated 1RM uses bodyweight minus assistance when a bodyweight is logged on or before the
-            session. On Dip, estimated 1RM uses bodyweight plus added load. Without that bodyweight, the
-            estimate is left off.
-          </p>
-        </details>
         {isChecking ? (
           <ContentPlaceholder label="Loading personal records..." rows={4} rowClassName="h-12" />
         ) : recordsError ? (
@@ -188,7 +177,7 @@ export default function ProfilePage() {
         )}
       </section>
 
-      <section className="panel flex min-w-0 flex-col gap-3 p-5">
+      <section className="flex min-w-0 flex-col gap-3">
         <SectionHeading>Achieved goals</SectionHeading>
         <p className="text-sm text-zinc-800">
           Goals you have already reached.{" "}
