@@ -19,6 +19,7 @@ export type Database = {
           display_name: string | null;
           preferred_lang_code: LanguageCode;
           double_progression: boolean;
+          main_lift_stagnation_weeks: number;
           created_at: string;
           updated_at: string;
         };
@@ -27,6 +28,7 @@ export type Database = {
           display_name?: string | null;
           preferred_lang_code?: LanguageCode;
           double_progression?: boolean;
+          main_lift_stagnation_weeks?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -35,6 +37,7 @@ export type Database = {
           display_name?: string | null;
           preferred_lang_code?: LanguageCode;
           double_progression?: boolean;
+          main_lift_stagnation_weeks?: number;
           created_at?: string;
           updated_at?: string;
         };

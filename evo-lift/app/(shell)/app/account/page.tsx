@@ -22,6 +22,7 @@ import {
 import { PageShell } from "@/app/components/page-shell";
 import { SegmentedTabs } from "@/app/components/segmented-tabs";
 import { AccountDoubleProgressionSection } from "@/app/account/account-double-progression-section";
+import { AccountMainLiftStagnationSection } from "@/app/account/account-main-lift-stagnation-section";
 import { AccountDataSection } from "@/app/account/account-data-section";
 import { AccountDeleteSection } from "@/app/account/account-delete-section";
 import { AccountEmailSection } from "@/app/account/account-email-section";
@@ -41,6 +42,7 @@ import { useAccountMetrics } from "@/app/account/use-account-metrics";
 import { useAccountMfa } from "@/app/account/use-account-mfa";
 import { useAccountPassword } from "@/app/account/use-account-password";
 import { useDoubleProgression } from "@/app/account/use-double-progression";
+import { useMainLiftStagnationWeeks } from "@/app/account/use-main-lift-stagnation-weeks";
 import { useExerciseDefaults } from "@/app/account/use-exercise-defaults";
 import { useHiddenExercises } from "@/app/account/use-hidden-exercises";
 
@@ -100,6 +102,7 @@ function AccountPageContent() {
   const hidden = useHiddenExercises({ userId, cachedAccount, activeSection });
   const defaults = useExerciseDefaults({ userId, exerciseOptions, cachedAccount, activeSection });
   const progression = useDoubleProgression({ userId, cachedAccount, activeSection });
+  const stagnation = useMainLiftStagnationWeeks({ userId, cachedAccount, activeSection });
 
   function applyAccountSnapshot(snapshot: AccountProfileSnapshot) {
     setExerciseOptions(snapshot.exerciseOptions);
@@ -112,6 +115,9 @@ function AccountPageContent() {
     hidden.applySnapshot(snapshot);
     if (!progression.isDirty()) {
       progression.applySnapshot(snapshot);
+    }
+    if (!stagnation.isDirty()) {
+      stagnation.applySnapshot(snapshot);
     }
   }
 
@@ -240,6 +246,7 @@ function AccountPageContent() {
                   metrics.applySnapshot(result.snapshot);
                   hidden.applySnapshot(result.snapshot);
                   progression.applySnapshot(result.snapshot);
+                  stagnation.applySnapshot(result.snapshot);
                 }
               });
             }}
@@ -256,6 +263,7 @@ function AccountPageContent() {
         <>
           <AccountHiddenExercisesSection exerciseOptions={exerciseOptions} hidden={hidden} />
           <AccountExerciseDefaultsSection exerciseOptions={exerciseOptions} defaults={defaults} />
+          <AccountMainLiftStagnationSection stagnation={stagnation} />
           <AccountDoubleProgressionSection progression={progression} />
         </>
       ) : null}

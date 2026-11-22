@@ -33,6 +33,8 @@ import { buildExerciseProgressReport, type LifterProfile } from "@/lib/exercise-
 import { buildInsightsComparisonSentence } from "@/lib/insights-chart-summary";
 import { visibleInsightExerciseSets } from "@/lib/hidden-exercise-lists";
 import { buildInsightsCompoundE1rmSeries } from "@/lib/insights-compound-e1rm";
+import { DEFAULT_MAIN_LIFT_STAGNATION_WEEKS } from "@/lib/main-lift-stagnation";
+import { loadMainLiftStagnationWeeks } from "@/lib/main-lift-stagnation-preference";
 import { resolveLifterAge } from "@/lib/body-metrics";
 import { loadExerciseMetadata } from "@/lib/exercise-metadata-cache";
 import {
@@ -87,6 +89,7 @@ export default function InsightsPage() {
   >([]);
   const [hiddenExerciseIds, setHiddenExerciseIds] = useState<Set<string>>(() => new Set());
   const [lifterProfile, setLifterProfile] = useState<LifterProfile>(emptyLifterProfile);
+  const [stagnationWeeks, setStagnationWeeks] = useState(DEFAULT_MAIN_LIFT_STAGNATION_WEEKS);
   const isMountedRef = useRef(true);
   const loadRequestRef = useRef(0);
 
@@ -112,7 +115,7 @@ export default function InsightsPage() {
       }
 
       try {
-        const [history, profile, catalog, hiddenResult] = await Promise.all([
+        const [history, profile, catalog, hiddenResult, weeks] = await Promise.all([
           loadCachedInsightsHistory(supabaseBrowserClient, session.user.id, historyWindow, {
             fresh: mode === "refresh",
           }),
@@ -122,6 +125,7 @@ export default function InsightsPage() {
             .from("user_hidden_exercises")
             .select("exercise_id")
             .eq("user_id", session.user.id),
+          loadMainLiftStagnationWeeks(supabaseBrowserClient),
         ]);
         if (hiddenResult.error) {
           throw new Error("Could not load exercise visibility.");
@@ -148,6 +152,7 @@ export default function InsightsPage() {
           ageYears: age?.ageYears ?? null,
           ageIsApproximate: age?.ageIsApproximate ?? false,
         });
+        setStagnationWeeks(weeks);
         setErrorMessage(null);
       } catch (error) {
         if (!isMountedRef.current || requestId !== loadRequestRef.current) {
@@ -414,7 +419,7 @@ export default function InsightsPage() {
               />
             </div>
             <ExerciseProgressPanel report={exerciseProgress} defaultOpen />
-            <MainLiftStagnationNotice series={compoundE1rmSeries} />
+            <MainLiftStagnationNotice series={compoundE1rmSeries} weeks={stagnationWeeks} />
             <CollapsibleSection title="Estimated one-rep max (1RM)" defaultOpen={false}>
               <p className="text-sm text-zinc-800">
                 Best estimated 1RM per session for Barbell Back Squat, Bench Press, Deadlift, and

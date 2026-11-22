@@ -95,7 +95,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Insights",
     definition:
-      "Charts and notes for a date range: training volume, working sets, Lift comparison, and personal bests. It also notes when Squat, Bench, Deadlift, or Press estimated 1RM has not improved for the number of weeks you set on that page.",
+      "Charts and notes for a date range: training volume, working sets, Lift comparison, and personal bests. It also notes when Squat, Bench, Deadlift, or Press estimated 1RM has not improved for the weeks set in Stalled lifts on Account.",
   },
   {
     term: "Lift",
@@ -140,6 +140,11 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
     term: "Skipped",
     definition:
       "A mark on an exercise in a session when you did not do it, such as when you ran out of time. Finish session sets Skipped on every exercise that has no sets. Targets, sets, and history stay on screen under a cover until you clear the mark. On Past workouts, the same colour also means a finished session logged fewer working sets than Target sets. That badge reads the count, such as 2 of 3 sets.",
+  },
+  {
+    term: "Stalled lifts",
+    definition:
+      "The Account setting, under Exercises, for how many weeks Squat, Bench, Deadlift, or Press can go without a higher estimated 1RM before Insights shows a note. The note uses the date range on Insights.",
   },
   {
     term: "Suggested target",

@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 import {
   DEFAULT_MAIN_LIFT_STAGNATION_WEEKS,
+  MAIN_LIFT_STAGNATION_WEEKS_ERROR,
   mainLiftStagnationMessage,
-  mainLiftStagnationWeeksOrDefault,
+  mainLiftStagnationWeeksError,
+  mainLiftStagnationWeeksFromStored,
   parseMainLiftStagnationWeeks,
   stagnantMainLifts,
   type MainLiftStagnationSeries,
@@ -109,8 +111,12 @@ describe("main lift stagnation weeks setting", () => {
     assert.equal(parseMainLiftStagnationWeeks("53"), null);
     assert.equal(parseMainLiftStagnationWeeks("6.5"), null);
     assert.equal(parseMainLiftStagnationWeeks(""), null);
-    assert.equal(mainLiftStagnationWeeksOrDefault(null), DEFAULT_MAIN_LIFT_STAGNATION_WEEKS);
-    assert.equal(mainLiftStagnationWeeksOrDefault("nope"), DEFAULT_MAIN_LIFT_STAGNATION_WEEKS);
-    assert.equal(mainLiftStagnationWeeksOrDefault("8"), 8);
+    assert.equal(mainLiftStagnationWeeksFromStored(null), DEFAULT_MAIN_LIFT_STAGNATION_WEEKS);
+    assert.equal(mainLiftStagnationWeeksFromStored(undefined), DEFAULT_MAIN_LIFT_STAGNATION_WEEKS);
+    assert.equal(mainLiftStagnationWeeksFromStored(0), DEFAULT_MAIN_LIFT_STAGNATION_WEEKS);
+    assert.equal(mainLiftStagnationWeeksFromStored(6.5), DEFAULT_MAIN_LIFT_STAGNATION_WEEKS);
+    assert.equal(mainLiftStagnationWeeksFromStored(8), 8);
+    assert.equal(mainLiftStagnationWeeksError(""), MAIN_LIFT_STAGNATION_WEEKS_ERROR);
+    assert.equal(mainLiftStagnationWeeksError("8"), null);
   });
 });

@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { latestBodyweightEntry } from "@/lib/bodyweight-log";
 import { loadExerciseMetadata } from "@/lib/exercise-metadata-cache";
+import { mainLiftStagnationWeeksFromStored } from "@/lib/main-lift-stagnation";
 import type { Database } from "@/lib/supabase/database.types";
 import { createUserMemoryCache } from "@/lib/user-memory-cache";
 
@@ -25,6 +26,8 @@ export type AccountProfileSnapshot = {
   birthYearFallback: number | null;
   /** Account switch. Missing or false stays off. */
   doubleProgression: boolean;
+  /** Weeks without a higher estimated 1RM before Insights notes a main lift. */
+  mainLiftStagnationWeeks: number;
 };
 
 export type AccountProfileLoadFailure = "profile" | "hidden" | "exercises" | "defaults";
@@ -95,7 +98,7 @@ async function fetchAccountProfile(
       .eq("user_id", userId)
       .order("logged_on", { ascending: false }),
     client.from("user_exercise_defaults").select("*").eq("user_id", userId),
-    client.from("app_users").select("double_progression").eq("id", userId).maybeSingle(),
+    client.from("app_users").select("double_progression, main_lift_stagnation_weeks").eq("id", userId).maybeSingle(),
   ]);
 
   if (profileResult.error || logResult.error || userResult.error) {
@@ -132,5 +135,6 @@ async function fetchAccountProfile(
     dateOfBirth: profile?.date_of_birth ?? "",
     birthYearFallback: profile?.date_of_birth ? null : (profile?.birth_year ?? null),
     doubleProgression: userResult.data?.double_progression === true,
+    mainLiftStagnationWeeks: mainLiftStagnationWeeksFromStored(userResult.data?.main_lift_stagnation_weeks),
   };
 }

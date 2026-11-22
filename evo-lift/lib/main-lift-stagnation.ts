@@ -4,7 +4,7 @@ export const DEFAULT_MAIN_LIFT_STAGNATION_WEEKS = 6;
 export const MIN_MAIN_LIFT_STAGNATION_WEEKS = 1;
 export const MAX_MAIN_LIFT_STAGNATION_WEEKS = 52;
 
-export const MAIN_LIFT_STAGNATION_WEEKS_KEY = "evolift-main-lift-stagnation-weeks";
+export const MAIN_LIFT_STAGNATION_WEEKS_ERROR = "Please enter a whole number of weeks from 1 to 52.";
 
 export type MainLiftStagnationPoint = {
   performedOn: string;
@@ -58,12 +58,20 @@ export function parseMainLiftStagnationWeeks(raw: string): number | null {
   return weeks;
 }
 
-/** Saved weeks, or the default when nothing valid is stored. */
-export function mainLiftStagnationWeeksOrDefault(raw: string | null): number {
-  if (raw == null) {
+/** Saved account value, or the default when the stored number is missing or out of range. */
+export function mainLiftStagnationWeeksFromStored(value: number | null | undefined): number {
+  if (typeof value !== "number" || !Number.isInteger(value)) {
     return DEFAULT_MAIN_LIFT_STAGNATION_WEEKS;
   }
-  return parseMainLiftStagnationWeeks(raw) ?? DEFAULT_MAIN_LIFT_STAGNATION_WEEKS;
+  if (value < MIN_MAIN_LIFT_STAGNATION_WEEKS || value > MAX_MAIN_LIFT_STAGNATION_WEEKS) {
+    return DEFAULT_MAIN_LIFT_STAGNATION_WEEKS;
+  }
+  return value;
+}
+
+/** Null when the field can be saved. */
+export function mainLiftStagnationWeeksError(raw: string): string | null {
+  return parseMainLiftStagnationWeeks(raw) == null ? MAIN_LIFT_STAGNATION_WEEKS_ERROR : null;
 }
 
 /**
