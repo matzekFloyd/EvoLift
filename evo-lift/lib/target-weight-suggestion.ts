@@ -1,3 +1,4 @@
+import { estimateEpley1Rm } from "@/lib/exercise-progress-insights";
 import { formatKgAmount, formatRepCount, roundKg } from "@/lib/milestone-progress";
 
 /** Smallest and largest weight step. The step also rounds to this 0.5 kg size. */
@@ -8,7 +9,7 @@ const LOAD_TOLERANCE_KG = 0.25;
 const HISTORY_DAYS = 56;
 const MAX_SESSIONS = 3;
 const MIN_SESSIONS = 2;
-/** A miss, or a rep-target mismatch, starts at more than this many reps. */
+/** A miss starts at more than this many reps. A session with no stored target uses the same gap. */
 const REP_GAP = 2;
 /**
  * Double progression adds this many reps before a weight increase.
@@ -87,6 +88,8 @@ type QualifyingSession = {
   reps: number;
   /** Rep target when the session stored one, otherwise the top set's logged reps. */
   comparisonReps: number | null;
+  /** Rep target stored on the top set. Null when that set stored none. */
+  storedTargetReps: number | null;
 };
 
 function message(text: string): TargetWeightSuggestion {
@@ -231,6 +234,48 @@ function pickTopSet(rows: TargetWeightHistorySet[], progress: LoadProgress): Tar
   return best ?? rows[0];
 }
 
+function storedTargetReps(value: number | null): number | null {
+  if (value != null && Number.isFinite(value) && value > 0) {
+    return value;
+  }
+  return null;
+}
+
+/**
+ * A stored target matches only itself.
+ * A session that stored none still matches when the logged reps are within 2 of the field.
+ */
+function sameRepTarget(
+  session: { storedTargetReps: number | null; reps: number },
+  plannedReps: number,
+): boolean {
+  if (session.storedTargetReps != null) {
+    return session.storedTargetReps === plannedReps;
+  }
+  return Math.abs(plannedReps - session.reps) <= REP_GAP + 1e-9;
+}
+
+/** Load for `nextReps` with the same Epley estimate the progress charts use. */
+function weightForNewRepTarget(loadKg: number, performedReps: number, nextReps: number): number | null {
+  const estimate = estimateEpley1Rm(loadKg, performedReps);
+  if (estimate == null || !Number.isFinite(nextReps) || nextReps < 1) {
+    return null;
+  }
+  if (nextReps === 1) {
+    return roundKg(estimate);
+  }
+  return roundKg(estimate / (1 + nextReps / 30));
+}
+
+function repTargetChangeRationale(
+  performedReps: number,
+  loadKg: number,
+  nextReps: number,
+  nextLoadKg: number,
+): string {
+  return `Last session was ${formatRepCount(performedReps)} at ${formatKgAmount(loadKg)}. ${formatRepCount(nextReps)} is about ${formatKgAmount(nextLoadKg)}.`;
+}
+
 function repsReached(session: QualifyingSession, plannedReps: number): boolean {
   return session.reps + 1e-9 >= plannedReps;
 }
@@ -245,6 +290,8 @@ type ProgressionSession = {
   sessionCreatedAt: string;
   /** Planned reps when every set stored the same target, else the shared logged reps. */
   targetReps: number | null;
+  /** Shared stored target. Null when the session stored none or the sets disagree. */
+  storedTargetReps: number | null;
   sets: Array<{ reps: number; loadedKg: number }>;
 };
 
@@ -327,6 +374,7 @@ function doubleProgressionBottom(sessions: ProgressionSession[], load: number, p
  */
 function suggestDoubleProgression(input: {
   sets: TargetWeightHistorySet[];
+  plannedReps: number | null;
   excludeSessionId?: string | null;
   today: string;
   assistance?: boolean;
@@ -368,6 +416,7 @@ function suggestDoubleProgression(input: {
       performedOn: first.performedOn.slice(0, 10),
       sessionCreatedAt: first.sessionCreatedAt,
       targetReps: progressionTargetReps(rows),
+      storedTargetReps: agreedPositive(rows.map((row) => row.targetReps)),
       sets: rows.map((row) => ({
         reps: row.reps,
         loadedKg: loggedLoadKg(row.loadedKg) ?? 0,
@@ -395,6 +444,28 @@ function suggestDoubleProgression(input: {
   const load = sharedLoad(latest.sets);
   if (load == null) {
     return message(MIXED_LOAD_MESSAGE);
+  }
+  const fieldReps =
+    input.plannedReps != null && Number.isFinite(input.plannedReps) && input.plannedReps > 0
+      ? input.plannedReps
+      : null;
+  if (
+    fieldReps != null &&
+    latest.storedTargetReps != null &&
+    latest.storedTargetReps !== fieldReps
+  ) {
+    const performedReps = latest.sets.reduce((best, set) => Math.max(best, set.reps), 0);
+    const comparedTo = { weightKg: load, reps: latest.storedTargetReps };
+    const converted = input.assistance ? null : weightForNewRepTarget(load, performedReps, fieldReps);
+    if (converted == null) {
+      return suggestion(load, REP_TARGET_MISMATCH_RATIONALE, comparedTo, fieldReps);
+    }
+    return suggestion(
+      converted,
+      repTargetChangeRationale(performedReps, load, fieldReps, converted),
+      comparedTo,
+      fieldReps,
+    );
   }
   const plannedReps = latest.targetReps;
   if (plannedReps == null) {
@@ -501,6 +572,7 @@ export function suggestTargetWeight(input: {
       loadedKg,
       reps: top.reps,
       comparisonReps: comparisonReps(top),
+      storedTargetReps: storedTargetReps(top.targetReps),
     });
   }
 
@@ -516,17 +588,44 @@ export function suggestTargetWeight(input: {
     return right.sessionId.localeCompare(left.sessionId);
   });
 
-  const recent = qualifying.slice(0, MAX_SESSIONS);
-  if (recent.length < MIN_SESSIONS) {
+  if (qualifying.length === 0) {
     return message(THIN_HISTORY_MESSAGE);
   }
 
   const plannedReps = input.plannedReps;
-  if (plannedReps == null || !Number.isFinite(plannedReps) || plannedReps <= 0) {
+  const plannedValid = plannedReps != null && Number.isFinite(plannedReps) && plannedReps > 0;
+  const reference = qualifying[0];
+  if (plannedValid && !sameRepTarget(reference, plannedReps)) {
+    if (reference.storedTargetReps == null && qualifying.length < MIN_SESSIONS) {
+      return message(THIN_HISTORY_MESSAGE);
+    }
+    const comparedTo = { weightKg: reference.loadedKg, reps: reference.comparisonReps };
+    const converted =
+      reference.storedTargetReps != null && !input.assistance
+        ? weightForNewRepTarget(reference.loadedKg, reference.reps, plannedReps)
+        : null;
+    if (converted == null) {
+      return suggestion(reference.loadedKg, REP_TARGET_MISMATCH_RATIONALE, comparedTo);
+    }
+    return suggestion(
+      converted,
+      repTargetChangeRationale(reference.reps, reference.loadedKg, plannedReps, converted),
+      comparedTo,
+    );
+  }
+
+  const recent = (plannedValid ? qualifying.filter((session) => sameRepTarget(session, plannedReps)) : qualifying).slice(
+    0,
+    MAX_SESSIONS,
+  );
+  if (recent.length < MIN_SESSIONS) {
+    return message(THIN_HISTORY_MESSAGE);
+  }
+
+  if (!plannedValid || plannedReps == null) {
     return message(NEED_TARGET_REPS_MESSAGE);
   }
 
-  const reference = recent[0];
   const previous = recent[1];
   const hardest = hardestLoad(
     recent.map((session) => session.loadedKg),
@@ -534,11 +633,6 @@ export function suggestTargetWeight(input: {
   );
   const comparedTo = { weightKg: reference.loadedKg, reps: reference.comparisonReps };
   const hold = (load: number) => clampToHardestStep(load, hardest, progress);
-
-  // A gap of more than 2 reps is a different rep target, so hold instead of converting or dropping.
-  if (Math.abs(plannedReps - reference.reps) > REP_GAP + 1e-9) {
-    return suggestion(hold(reference.loadedKg), REP_TARGET_MISMATCH_RATIONALE, comparedTo);
-  }
 
   // The same load twice is a hit even when it is not the stored target weight.
   // A bar in the target, or a target that was edited, used to hold the load and call it mixed.
