@@ -12,10 +12,20 @@ import {
 } from "recharts";
 import type { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
 import { ChartResponsiveContainer } from "@/app/components/chart-responsive-container";
-import { ChartTextAlternative } from "@/app/components/chart-text-alternative";
-import { exerciseVolumeChartText } from "@/app/components/chart-text-data";
+import {
+  ChartEventNotes,
+  chartEventReferenceLines,
+  chartEventLegendItems,
+} from "@/app/components/chart-event-markers";
+import { ChartSeriesLegend, ChartTextAlternative } from "@/app/components/chart-text-alternative";
+import { exerciseVolumeChartText, withChartEventColumn } from "@/app/components/chart-text-data";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { formatVolumeTick } from "@/app/components/exercise-session-volume-format";
+import {
+  chartEventLabelsAt,
+  sessionChartMarkers,
+  type ChartEvent,
+} from "@/lib/chart-event-markers";
 import {
   buildVolumeChangeSentence,
   type ExerciseSessionVolumeChartPoint,
@@ -29,6 +39,7 @@ type ExerciseSessionVolumeChartProps = {
   bodyweightPlusLoad?: boolean;
   /** Working sets in view use a base, so volume uses Total (kg). */
   usesBaseWeight?: boolean;
+  events?: readonly ChartEvent[];
 };
 
 export function ExerciseSessionVolumeChart({
@@ -36,6 +47,7 @@ export function ExerciseSessionVolumeChart({
   assistance = false,
   bodyweightPlusLoad = false,
   usesBaseWeight = false,
+  events = [],
 }: ExerciseSessionVolumeChartProps) {
   const [isCompactView, setIsCompactView] = useState(false);
 
@@ -55,6 +67,9 @@ export function ExerciseSessionVolumeChart({
       })),
     [points],
   );
+
+  const markers = useMemo(() => sessionChartMarkers(points, events), [events, points]);
+  const legendItems = useMemo(() => chartEventLegendItems(markers), [markers]);
 
   const renderTooltip = ({
     active,
@@ -85,6 +100,7 @@ export function ExerciseSessionVolumeChart({
           {source.workingSetsIncluded} working set
           {source.workingSetsIncluded === 1 ? "" : "s"} (warmups excluded).
         </p>
+        <ChartEventNotes labels={chartEventLabelsAt(markers, source.xTickLabel)} />
       </div>
     );
   };
@@ -104,6 +120,7 @@ export function ExerciseSessionVolumeChart({
   return (
     <div className="space-y-3">
       <p className="text-sm leading-snug text-zinc-800">{buildVolumeChangeSentence(points)}</p>
+      {legendItems.length > 0 ? <ChartSeriesLegend items={legendItems} /> : null}
 
       <div
         className="exercise-session-volume-chart relative h-52 w-full sm:h-64"
@@ -114,7 +131,7 @@ export function ExerciseSessionVolumeChart({
           <LineChart
             accessibilityLayer={false}
             data={chartData}
-            margin={{ top: 8, right: 8, left: 0, bottom: 4 }}
+            margin={{ top: markers.length > 0 ? 22 : 8, right: 8, left: 0, bottom: 4 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
             <XAxis
@@ -129,6 +146,7 @@ export function ExerciseSessionVolumeChart({
               width={isCompactView ? 52 : 64}
             />
             <Tooltip content={renderTooltip} />
+            {chartEventReferenceLines(markers)}
             <Line
               type="monotone"
               dataKey="volumeValue"
@@ -142,7 +160,13 @@ export function ExerciseSessionVolumeChart({
           </LineChart>
         </ChartResponsiveContainer>
       </div>
-      <ChartTextAlternative model={exerciseVolumeChartText(points)} />
+      <ChartTextAlternative
+        model={withChartEventColumn(
+          exerciseVolumeChartText(points),
+          markers,
+          new Map(points.map((point) => [point.sessionId, point.xTickLabel])),
+        )}
+      />
     </div>
   );
 }

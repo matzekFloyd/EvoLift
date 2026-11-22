@@ -123,6 +123,11 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
       "An ordered cycle of up to 7 days. One plan can be active. Starting a day copies its exercises and targets into a new workout session. Only one of those sessions can stay unfinished. Finish it before starting another day. Later edits do not change sessions you already started.",
   },
   {
+    term: "Plan switch",
+    definition:
+      "A dashed line on a progress chart for the day you activated a plan. The label is that plan's name.",
+  },
+  {
     term: "Reps",
     definition:
       "How many times you complete the movement in a set. Written as a number plus reps, for example 5 reps.",

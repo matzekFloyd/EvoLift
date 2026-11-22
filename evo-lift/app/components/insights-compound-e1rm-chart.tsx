@@ -13,18 +13,35 @@ import {
 import type { NameType, ValueType } from "recharts/types/component/DefaultTooltipContent";
 import { ChartResponsiveContainer } from "@/app/components/chart-responsive-container";
 import { ExerciseName } from "@/app/components/exercise-badge-chip";
-import { ChartTextAlternative } from "@/app/components/chart-text-alternative";
-import { compoundE1rmChartText } from "@/app/components/chart-text-data";
+import {
+  ChartEventNotes,
+  chartEventReferenceLines,
+  chartEventLegendItems,
+} from "@/app/components/chart-event-markers";
+import { ChartSeriesLegend, ChartTextAlternative } from "@/app/components/chart-text-alternative";
+import { compoundE1rmChartText, withChartEventColumn } from "@/app/components/chart-text-data";
 import { formatKgTick } from "@/app/components/exercise-weight-progress-format";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
+import {
+  chartEventLabelsAt,
+  sessionChartMarkers,
+  type ChartEvent,
+} from "@/lib/chart-event-markers";
 import type { InsightsCompoundE1rmSeries } from "@/lib/insights-compound-e1rm";
 import { zoomedWeightAxisDomain } from "@/lib/exercise-session-weight-chart";
 
 type InsightsCompoundE1rmChartProps = {
   series: InsightsCompoundE1rmSeries[];
+  events?: readonly ChartEvent[];
 };
 
-function CompoundE1rmMiniChart({ item }: { item: InsightsCompoundE1rmSeries }) {
+function CompoundE1rmMiniChart({
+  item,
+  events,
+}: {
+  item: InsightsCompoundE1rmSeries;
+  events: readonly ChartEvent[];
+}) {
   const [isCompactView, setIsCompactView] = useState(false);
 
   useEffect(() => {
@@ -43,6 +60,9 @@ function CompoundE1rmMiniChart({ item }: { item: InsightsCompoundE1rmSeries }) {
       })),
     [item.points],
   );
+
+  const markers = useMemo(() => sessionChartMarkers(item.points, events), [events, item.points]);
+  const legendItems = useMemo(() => chartEventLegendItems(markers), [markers]);
 
   const yDomain = useMemo(
     () => zoomedWeightAxisDomain(chartData.map((point) => point.e1rmValue)),
@@ -83,6 +103,7 @@ function CompoundE1rmMiniChart({ item }: { item: InsightsCompoundE1rmSeries }) {
         <p className="text-zinc-500">
           {source.sourceReps} reps × {source.sourceTotalKg.toFixed(1)} kg Total
         </p>
+        <ChartEventNotes labels={chartEventLabelsAt(markers, source.xTickLabel)} />
       </div>
     );
   };
@@ -101,6 +122,11 @@ function CompoundE1rmMiniChart({ item }: { item: InsightsCompoundE1rmSeries }) {
           {changeText}
         </p>
       </div>
+      {legendItems.length > 0 ? (
+        <div className="mt-1">
+          <ChartSeriesLegend items={legendItems} />
+        </div>
+      ) : null}
       <div
         className="insights-compound-e1rm-chart relative mt-2 h-36 w-full sm:h-40"
         style={{ WebkitTapHighlightColor: "transparent" }}
@@ -110,7 +136,7 @@ function CompoundE1rmMiniChart({ item }: { item: InsightsCompoundE1rmSeries }) {
           <LineChart
             accessibilityLayer={false}
             data={chartData}
-            margin={{ top: 4, right: 4, left: 0, bottom: 0 }}
+            margin={{ top: markers.length > 0 ? 20 : 4, right: 4, left: 0, bottom: 0 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
             <XAxis
@@ -127,6 +153,7 @@ function CompoundE1rmMiniChart({ item }: { item: InsightsCompoundE1rmSeries }) {
               width={isCompactView ? 36 : 44}
             />
             <Tooltip content={renderTooltip} />
+            {chartEventReferenceLines(markers)}
             <Line
               type="monotone"
               dataKey="e1rmValue"
@@ -141,13 +168,22 @@ function CompoundE1rmMiniChart({ item }: { item: InsightsCompoundE1rmSeries }) {
         </ChartResponsiveContainer>
       </div>
       <div className="mt-2">
-        <ChartTextAlternative model={compoundE1rmChartText(item.shortLabel, item.points)} />
+        <ChartTextAlternative
+          model={withChartEventColumn(
+            compoundE1rmChartText(item.shortLabel, item.points),
+            markers,
+            new Map(item.points.map((point) => [point.sessionId, point.xTickLabel])),
+          )}
+        />
       </div>
     </div>
   );
 }
 
-export function InsightsCompoundE1rmChart({ series }: InsightsCompoundE1rmChartProps) {
+export function InsightsCompoundE1rmChart({
+  series,
+  events = [],
+}: InsightsCompoundE1rmChartProps) {
   if (series.length === 0) {
     return (
       <p className="text-sm text-zinc-600">
@@ -160,7 +196,7 @@ export function InsightsCompoundE1rmChart({ series }: InsightsCompoundE1rmChartP
   return (
     <div className="grid gap-5 sm:grid-cols-2">
       {series.map((item) => (
-        <CompoundE1rmMiniChart key={item.slug} item={item} />
+        <CompoundE1rmMiniChart key={item.slug} item={item} events={events} />
       ))}
     </div>
   );

@@ -31,6 +31,7 @@ import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { buildExerciseProgressReport, type LifterProfile } from "@/lib/exercise-progress-insights";
 import { buildInsightsComparisonSentence } from "@/lib/insights-chart-summary";
 import { visibleInsightExerciseSets } from "@/lib/hidden-exercise-lists";
+import { loadPlanSwitchEvents, type ChartEvent } from "@/lib/chart-event-markers";
 import { buildInsightsCompoundE1rmSeries } from "@/lib/insights-compound-e1rm";
 import { resolveLifterAge } from "@/lib/body-metrics";
 import { loadExerciseMetadata } from "@/lib/exercise-metadata-cache";
@@ -86,6 +87,7 @@ export default function InsightsPage() {
   >([]);
   const [hiddenExerciseIds, setHiddenExerciseIds] = useState<Set<string>>(() => new Set());
   const [lifterProfile, setLifterProfile] = useState<LifterProfile>(emptyLifterProfile);
+  const [planEvents, setPlanEvents] = useState<ChartEvent[]>([]);
   const isMountedRef = useRef(true);
   const loadRequestRef = useRef(0);
 
@@ -111,7 +113,7 @@ export default function InsightsPage() {
       }
 
       try {
-        const [history, profile, catalog, hiddenResult] = await Promise.all([
+        const [history, profile, catalog, hiddenResult, loadedPlanEvents] = await Promise.all([
           loadCachedInsightsHistory(supabaseBrowserClient, session.user.id, historyWindow, {
             fresh: mode === "refresh",
           }),
@@ -121,6 +123,7 @@ export default function InsightsPage() {
             .from("user_hidden_exercises")
             .select("exercise_id")
             .eq("user_id", session.user.id),
+          loadPlanSwitchEvents(supabaseBrowserClient, session.user.id).catch(() => [] as ChartEvent[]),
         ]);
         if (hiddenResult.error) {
           throw new Error("Could not load exercise visibility.");
@@ -140,6 +143,7 @@ export default function InsightsPage() {
         setExerciseSets(sets);
         setCatalogExercises(catalog.map((row) => ({ id: row.id, slug: row.slug, label: row.label })));
         setHiddenExerciseIds(new Set((hiddenResult.data ?? []).map((row) => row.exercise_id)));
+        setPlanEvents(loadedPlanEvents);
         setLifterProfile({
           sex: profile.sex,
           bodyweightKg: profile.bodyweightKg,
@@ -419,11 +423,11 @@ export default function InsightsPage() {
                 Overhead Press.
               </p>
               <p className="mt-1 text-xs text-zinc-500">
-                Epley on Total (kg), working sets of 12 reps or fewer. Not a tested max. Open an
-                exercise for the full chart.
+                Epley on Total (kg), working sets of 12 reps or fewer. Not a tested max. A dashed
+                line marks a plan switch. Open an exercise for the full chart.
               </p>
               <div className="mt-3">
-                <InsightsCompoundE1rmChart series={compoundE1rmSeries} />
+                <InsightsCompoundE1rmChart series={compoundE1rmSeries} events={planEvents} />
               </div>
             </CollapsibleSection>
             <LiftComparisonPanel report={exerciseProgress} />
@@ -439,10 +443,15 @@ export default function InsightsPage() {
                     <p className="text-sm font-medium text-zinc-800">Sessions</p>
                     <p className="mt-1 text-sm text-zinc-800">{sessionsComparisonSentence}</p>
                     <p className="mt-1 text-xs text-zinc-500">
-                      Workout sessions per week. The line is a 4-week average.
+                      Workout sessions per week. The line is a 4-week average. A dashed line marks
+                      a plan switch.
                     </p>
                     <div className="mt-3">
-                      <InsightsWeeklyVolumeChart data={sessionsChartData} metric="sessions" />
+                      <InsightsWeeklyVolumeChart
+                        data={sessionsChartData}
+                        metric="sessions"
+                        events={planEvents}
+                      />
                     </div>
                   </div>
                   <div>
@@ -452,7 +461,11 @@ export default function InsightsPage() {
                       Weekly total of loaded kg × reps. The line is a 4-week average.
                     </p>
                     <div className="mt-3">
-                      <InsightsWeeklyVolumeChart data={volumeChartData} metric="volume" />
+                      <InsightsWeeklyVolumeChart
+                        data={volumeChartData}
+                        metric="volume"
+                        events={planEvents}
+                      />
                     </div>
                   </div>
                   <div>
@@ -462,7 +475,11 @@ export default function InsightsPage() {
                       Weekly working sets, warmups excluded. The line is a 4-week average.
                     </p>
                     <div className="mt-3">
-                      <InsightsWeeklyVolumeChart data={workingSetsChartData} metric="workingSets" />
+                      <InsightsWeeklyVolumeChart
+                        data={workingSetsChartData}
+                        metric="workingSets"
+                        events={planEvents}
+                      />
                     </div>
                   </div>
                 </div>
