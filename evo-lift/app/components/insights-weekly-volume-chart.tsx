@@ -239,7 +239,7 @@ export function InsightsWeeklyVolumeChart({
         <ComposedChart
           accessibilityLayer={false}
           data={data}
-          margin={{ top: markers.length > 0 ? 18 : 10, right: 8, left: 0, bottom: 0 }}
+          margin={{ top: markers.length > 0 ? 22 : 10, right: 8, left: 0, bottom: 0 }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
           <XAxis

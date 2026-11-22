@@ -29,22 +29,28 @@ export function ChartEventNotes({ labels }: { labels: readonly string[] }) {
   ));
 }
 
+/** The legend already says Plan switch. The chart shows the plan name in the margin. */
+function marginLabel(chartLabel: string): string {
+  return chartLabel.replace(/^Plan: /, "");
+}
+
 function markerLabel(chartLabel: string) {
+  const label = marginLabel(chartLabel);
   return function MarkerLabel(props: {
     viewBox?: { x?: number; y?: number };
   }) {
     const x = props.viewBox?.x ?? 0;
-    const y = (props.viewBox?.y ?? 0) + 11;
-    const placeLeft = x > 88;
+    const y = props.viewBox?.y ?? 0;
+    const placeLeft = x > 96;
     return (
       <text
-        x={placeLeft ? x - 4 : x + 4}
-        y={y}
+        x={placeLeft ? x - 6 : x + 6}
+        y={Math.max(y - 6, 11)}
         textAnchor={placeLeft ? "end" : "start"}
-        fill="#3f3f46"
-        fontSize={10}
+        fill="#52525b"
+        fontSize={11}
       >
-        {chartLabel}
+        {label}
       </text>
     );
   };

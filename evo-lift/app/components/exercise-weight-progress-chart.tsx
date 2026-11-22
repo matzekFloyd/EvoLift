@@ -229,7 +229,7 @@ export function ExerciseWeightProgressChart({
           <LineChart
             accessibilityLayer={false}
             data={chartData}
-            margin={{ top: markers.length > 0 ? 18 : 8, right: 8, left: 0, bottom: 4 }}
+            margin={{ top: markers.length > 0 ? 22 : 8, right: 8, left: 0, bottom: 4 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
             <XAxis

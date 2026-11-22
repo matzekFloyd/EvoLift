@@ -136,7 +136,7 @@ function CompoundE1rmMiniChart({
           <LineChart
             accessibilityLayer={false}
             data={chartData}
-            margin={{ top: markers.length > 0 ? 16 : 4, right: 4, left: 0, bottom: 0 }}
+            margin={{ top: markers.length > 0 ? 20 : 4, right: 4, left: 0, bottom: 0 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
             <XAxis
