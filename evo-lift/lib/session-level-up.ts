@@ -7,6 +7,7 @@ import {
   type ExerciseWorkingSetSample,
 } from "@/lib/insights-data";
 import { overallLevelUpMessage } from "@/lib/overall-level-detail";
+import { overallLevelSnapshotFromInputs, rememberOverallLevelCache } from "@/lib/overall-level-cache";
 import type { Database } from "@/lib/supabase/database.types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
@@ -43,6 +44,16 @@ export async function loadSessionLevelUpMessage(
   if (hidden.error) {
     return null;
   }
+  const hiddenExerciseIds = new Set((hidden.data ?? []).map((row) => row.exercise_id));
+  rememberOverallLevelCache(
+    userId,
+    overallLevelSnapshotFromInputs({
+      samples: history.exerciseSets,
+      hiddenExerciseIds,
+      profile,
+      today,
+    }),
+  );
   const age = resolveLifterAge({
     dateOfBirth: profile.dateOfBirth,
     birthYear: profile.birthYear,
@@ -57,7 +68,7 @@ export async function loadSessionLevelUpMessage(
   };
   return sessionLevelUpMessage({
     samples: history.exerciseSets,
-    hiddenExerciseIds: new Set((hidden.data ?? []).map((row) => row.exercise_id)),
+    hiddenExerciseIds,
     profile: lifter,
     sessionId,
     today,

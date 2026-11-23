@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { birthYearFromDate, validateBodyMetricsInput } from "@/lib/body-metrics";
 import { latestBodyweightEntry } from "@/lib/bodyweight-log";
+import { invalidateOverallLevelCache } from "@/lib/overall-level-cache";
 import type { AccountProfileSnapshot } from "@/lib/account-profile-cache";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { refillAccountCache } from "@/app/account/account-cache";
@@ -148,10 +149,18 @@ export function useAccountMetrics({
     }
 
     const displayedBodyweight = latestBodyweight == null ? "" : String(latestBodyweight.bodyweightKg);
+    const previous = savedRef.current;
     rememberSaved({ bodyweightKg: displayedBodyweight, heightCm, sex, dateOfBirth });
     setBodyweightKg(displayedBodyweight);
     if (parsed.value.date_of_birth) {
       setBirthYearFallback(null);
+    }
+    if (
+      previous.bodyweightKg !== displayedBodyweight ||
+      previous.sex !== sex ||
+      previous.dateOfBirth !== dateOfBirth
+    ) {
+      invalidateOverallLevelCache();
     }
     notice.clear();
     refillAccountCache(userId);
@@ -225,6 +234,7 @@ export function useAccountMetrics({
       saved,
     ];
     setBodyweightLog(nextLog);
+    invalidateOverallLevelCache();
     return syncProfileBodyweight(nextLog);
   }
 
@@ -238,6 +248,7 @@ export function useAccountMetrics({
     }
     const nextLog = bodyweightLog.filter((entry) => entry.id !== id);
     setBodyweightLog(nextLog);
+    invalidateOverallLevelCache();
     return syncProfileBodyweight(nextLog);
   }
 

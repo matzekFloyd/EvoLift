@@ -2,6 +2,7 @@ import type { Dispatch, SetStateAction } from "react";
 import type { Database } from "@/lib/supabase/database.types";
 import { isAssistanceExercise } from "@/lib/assistance-exercise";
 import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
+import { invalidateOverallLevelCacheForSlugs } from "@/lib/overall-level-cache";
 import { APP_HOME_PATH } from "@/lib/app-paths";
 import { PLAN_ALREADY_OPEN_MESSAGE } from "@/lib/plan-cycle";
 import {
@@ -167,6 +168,30 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
     return exerciseLabelForSessionExercise(sessionExercises, exerciseLabels, sessionExerciseId);
   }
 
+  function slugForSessionExercise(sessionExerciseId: string): string | undefined {
+    const exercise = sessionExercises.find((item) => item.id === sessionExerciseId);
+    return exercise ? exerciseSlugById.get(exercise.exercise_id) : undefined;
+  }
+
+  /** A working set on a main lift changes the cached level. Warmups do not. */
+  function dropLevelCacheForWorkingSet(sessionExerciseId: string) {
+    const slug = slugForSessionExercise(sessionExerciseId);
+    if (slug) {
+      invalidateOverallLevelCacheForSlugs([slug]);
+    }
+  }
+
+  function dropLevelCacheForSessionDate() {
+    const slugs = sessionExercises.flatMap((exercise) => {
+      const slug = exerciseSlugById.get(exercise.exercise_id);
+      const hasWorkingSet = workoutSets.some(
+        (set) => set.session_exercise_id === exercise.id && !set.is_warmup && set.reps > 0,
+      );
+      return slug && hasWorkingSet ? [slug] : [];
+    });
+    invalidateOverallLevelCacheForSlugs(slugs);
+  }
+
   function lifecycleFields(row: SessionRow) {
     return {
       performedOn: row.performed_on,
@@ -303,6 +328,9 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
     }
 
     invalidateLoggedHistoryCaches();
+    if (!isWarmup) {
+      dropLevelCacheForWorkingSet(sessionExerciseId);
+    }
     setWorkoutSets((prev) => [...prev, data]);
     const sessionExercise = sessionExercises.find((item) => item.id === sessionExerciseId);
     const mergedForExercise = [...setsForSessionExercise(workoutSets, sessionExerciseId), data].sort(
@@ -432,6 +460,9 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
 
     invalidateLoggedHistoryCaches();
     const previousSet = workoutSets.find((item) => item.id === setId);
+    if (!isWarmup || (previousSet != null && !previousSet.is_warmup)) {
+      dropLevelCacheForWorkingSet(data.session_exercise_id);
+    }
     const exerciseLabel = previousSet ? labelFor(previousSet.session_exercise_id) : "exercise";
     setWorkoutSets((prev) => prev.map((item) => (item.id === setId ? data : item)));
     setEditingSetId(null);
@@ -452,6 +483,9 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
     }
 
     invalidateLoggedHistoryCaches();
+    if (deletedSet && !deletedSet.is_warmup) {
+      dropLevelCacheForWorkingSet(deletedSet.session_exercise_id);
+    }
     const renumberedById = new Map<string, WorkoutSetRow>();
     if (deletedSet) {
       const remaining = setsForSessionExercise(workoutSets, deletedSet.session_exercise_id).filter(
@@ -556,6 +590,7 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
     }
 
     invalidateLoggedHistoryCaches();
+    dropLevelCacheForSessionDate();
     router.replace(APP_HOME_PATH);
   }
 
@@ -759,6 +794,9 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
     }
 
     invalidateLoggedHistoryCaches();
+    if (parsedDate !== session.performed_on) {
+      dropLevelCacheForSessionDate();
+    }
     setSession(data);
     setPerformedOnDraft(data.performed_on);
     setNotesDraft(data.notes ?? "");
@@ -798,6 +836,7 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
     }
 
     invalidateLoggedHistoryCaches();
+    dropLevelCacheForSessionDate();
     setSession(data);
     setPerformedOnDraft(data.performed_on);
     setNotesDraft(data.notes ?? "");

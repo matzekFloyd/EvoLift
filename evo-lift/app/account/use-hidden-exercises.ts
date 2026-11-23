@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { AccountProfileSnapshot } from "@/lib/account-profile-cache";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
 import { refillAccountCache } from "@/app/account/account-cache";
+import { invalidateOverallLevelCacheForSlugs } from "@/lib/overall-level-cache";
 import type { AccountSectionId } from "@/app/account/account-section";
 import { useAccountNotice } from "@/app/account/use-account-notice";
 
@@ -29,7 +30,7 @@ export function useHiddenExercises({
     setHiddenExerciseIds(new Set(snapshot.hiddenExerciseIds));
   }
 
-  async function handleToggle(exerciseId: string, hide: boolean) {
+  async function handleToggle(exerciseId: string, hide: boolean, slug?: string) {
     if (!userId) {
       return;
     }
@@ -67,6 +68,9 @@ export function useHiddenExercises({
       });
     }
     refillAccountCache(userId);
+    if (slug) {
+      invalidateOverallLevelCacheForSlugs([slug]);
+    }
     setToggleExerciseId(null);
   }
 

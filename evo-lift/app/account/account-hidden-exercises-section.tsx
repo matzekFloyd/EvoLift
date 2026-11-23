@@ -45,7 +45,7 @@ export function AccountHiddenExercisesSection({
                   checked={isHidden}
                   disabled={isBusy}
                   onChange={(checked) => {
-                    void handleToggle(option.id, checked);
+                    void handleToggle(option.id, checked, option.slug);
                   }}
                   className="shrink-0"
                 >

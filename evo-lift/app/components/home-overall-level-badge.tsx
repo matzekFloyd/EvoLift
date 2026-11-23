@@ -1,75 +1,68 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { markedOverallLevel } from "@/app/components/overall-level-figure";
 import { OverallLevelBody } from "@/app/components/overall-level-body";
 import { OverallLevelProgressBar } from "@/app/components/overall-level-progress-bar";
 import { StatusNotice } from "@/app/components/status-notice";
+import { useOverallLevelCache } from "@/app/components/use-overall-level-cache";
 import { appPath } from "@/lib/app-paths";
-import { loadCachedInsightsHistory, loadUserStrengthProfile } from "@/lib/insights-data";
 import { clearOverallLevelHint, readOverallLevelHint } from "@/lib/overall-level-hint-storage";
-import { profileOverallLevel, type ProfileOverallLevel } from "@/lib/profile-overall-level";
-import { getTodayYyyyMmDd } from "@/lib/session-date";
-import { supabaseBrowserClient } from "@/lib/supabase/browser";
 
 type HomeOverallLevelBadgeProps = {
   userId: string;
 };
 
+function HomeOverallLevelSkeleton() {
+  return (
+    <section className="h-full w-full max-w-full lg:w-max lg:justify-self-start" aria-label="Overall level" aria-busy="true">
+      <div className="h-full rounded-xl border border-zinc-200 bg-white p-5">
+        <span className="flex w-full items-center gap-4">
+          <span className="aspect-[100/204] h-28 shrink-0 rounded-md bg-zinc-100 sm:h-32" aria-hidden />
+          <span className="min-w-0 flex-1 lg:w-52 lg:flex-none" aria-hidden>
+            <span className="block h-7 w-28 rounded-md bg-zinc-100" />
+            <span className="mt-2 block h-4 w-36 rounded-md bg-zinc-100" />
+            <span className="mt-1 block h-2 w-full rounded-full bg-zinc-100" />
+          </span>
+        </span>
+        <p className="sr-only" role="status">
+          Loading overall level...
+        </p>
+      </div>
+    </section>
+  );
+}
+
 export function HomeOverallLevelBadge({ userId }: HomeOverallLevelBadgeProps) {
-  const [level, setLevel] = useState<ProfileOverallLevel | null>(null);
-  const [loaded, setLoaded] = useState(false);
+  const { snapshot, ready } = useOverallLevelCache(userId);
   const [hint, setHint] = useState<string | null>(() => readOverallLevelHint());
-
-  useEffect(() => {
-    let isMounted = true;
-    async function load() {
-      try {
-        const today = getTodayYyyyMmDd();
-        const [history, profile, hidden] = await Promise.all([
-          loadCachedInsightsHistory(supabaseBrowserClient, userId, { from: "", to: "" }),
-          loadUserStrengthProfile(supabaseBrowserClient, userId),
-          supabaseBrowserClient.from("user_hidden_exercises").select("exercise_id").eq("user_id", userId),
-        ]);
-        if (!isMounted || hidden.error) {
-          return;
-        }
-        const snapshot = profileOverallLevel({
-          samples: history.exerciseSets,
-          hiddenExerciseIds: new Set((hidden.data ?? []).map((row) => row.exercise_id)),
-          profile,
-          today,
-        });
-        if (!isMounted) {
-          return;
-        }
-        setLevel(snapshot.overall ? snapshot : null);
-        setLoaded(true);
-      } catch {
-        if (isMounted) {
-          setLevel(null);
-          setLoaded(true);
-        }
-      }
-    }
-    void load();
-    return () => {
-      isMounted = false;
-    };
-  }, [userId]);
-
-  const overall = level?.overall;
+  const level = snapshot?.level ?? null;
+  const overall = level?.overall ?? null;
   const marked = markedOverallLevel(overall?.badge ?? null);
-  if (loaded && !overall && !hint) {
+  if (!ready) {
+    return (
+      <div className="grid gap-4">
+        {hint ? (
+          <StatusNotice
+            message={hint}
+            tone="success"
+            onDismiss={() => {
+              clearOverallLevelHint();
+              setHint(null);
+            }}
+          />
+        ) : null}
+        <HomeOverallLevelSkeleton />
+      </div>
+    );
+  }
+  if (!overall && !hint) {
     return null;
   }
 
   return (
     <section className="h-full w-full max-w-full lg:w-max lg:justify-self-start" aria-label="Overall level">
-      {!loaded && !hint ? (
-        <p className="rounded-xl border border-zinc-200 bg-white p-5 text-sm text-zinc-600">Loading overall level...</p>
-      ) : null}
       {hint || overall ? (
         <div
           className={[

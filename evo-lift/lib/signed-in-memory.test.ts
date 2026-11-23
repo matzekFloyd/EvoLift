@@ -6,6 +6,11 @@ import { rememberOpenedExerciseHistory, peekOpenedExerciseHistory } from "./open
 import { rememberOpenedSession, peekOpenedSession } from "./opened-session-cache";
 import { loadPlansList, peekPlansList } from "./plans-list-cache";
 import { clearSignedInMemory, rememberedUserEmail, rememberedUserId, rememberUserId } from "./signed-in-memory";
+import {
+  overallLevelSnapshotFromInputs,
+  peekOverallLevelCache,
+  rememberOverallLevelCache,
+} from "./overall-level-cache";
 
 function emptyListClient() {
   return {
@@ -56,6 +61,15 @@ describe("signed-in memory", () => {
       hiddenExerciseIds: [],
     });
     rememberOpenedExerciseHistory("user-1", "deadlift", { label: "Deadlift", rows: [] });
+    rememberOverallLevelCache(
+      "user-1",
+      overallLevelSnapshotFromInputs({
+        samples: [],
+        hiddenExerciseIds: new Set(),
+        profile: null,
+        today: "2026-03-01",
+      }),
+    );
     clearSignedInMemory();
     assert.equal(rememberedUserId(), null);
     assert.equal(rememberedUserEmail(), null);
@@ -64,6 +78,7 @@ describe("signed-in memory", () => {
     assert.equal(peekOpenedSession("user-1", "session-1"), null);
     assert.equal(peekOpenedExerciseHistory("user-1", "deadlift"), null);
     assert.equal(peekAccountProfile("user-1"), null);
+    assert.equal(peekOverallLevelCache("user-1"), null);
   });
 
   it("drops the previous account before remembering the next one", async () => {
