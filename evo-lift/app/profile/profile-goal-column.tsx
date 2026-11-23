@@ -55,13 +55,13 @@ export function ProfileGoalColumn({ highlights, error, checking }: ProfileGoalCo
       ) : highlights.goals.length === 0 ? (
         <p className="text-sm text-zinc-600">No goals yet.</p>
       ) : (
-        <ul className="flex min-h-0 flex-1 flex-col divide-y divide-zinc-200">
+        <ul className="divide-y divide-zinc-200">
           {highlights.goals.map((goal) => {
             const showMeter =
               highlights.mode === "closest" &&
               goalMeterVisible({ percent: goal.percent, achieved: goal.achieved });
             return (
-              <li key={goal.id} className="flex flex-1 flex-col justify-center py-3 first:pt-0 last:pb-0">
+              <li key={goal.id} className="py-3 first:pt-0 last:pb-0">
                 <ExerciseName slug={goal.slug}>
                   <Link
                     href={goal.href}

@@ -1,7 +1,8 @@
 import Link from "next/link";
+import { OverallLevelHistoryChart } from "@/app/components/chart-dynamic";
+import { overallLevelHistoryChart } from "@/app/components/overall-level-history-series";
 import { OverallLevelProgressBar } from "@/app/components/overall-level-progress-bar";
 import { appPath } from "@/lib/app-paths";
-import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { overallLevelInfluenceLabel } from "@/lib/overall-level-detail";
 import type { OverallLifterLevel } from "@/lib/exercise-progress-insights";
 
@@ -10,7 +11,7 @@ type OverallLevelDetailProps = {
 };
 
 export function OverallLevelDetail({ level }: OverallLevelDetailProps) {
-  const history = level.history.slice(-12);
+  const history = overallLevelHistoryChart(level.history, { through: level.asOf });
   return (
     <div className="mt-3 space-y-3">
       <OverallLevelProgressBar progress={level.progress} />
@@ -33,17 +34,10 @@ export function OverallLevelDetail({ level }: OverallLevelDetailProps) {
           </ul>
         </div>
       ) : null}
-      {history.length > 0 ? (
+      {history ? (
         <div>
-          <h3 className="text-sm font-medium text-zinc-800">Level history</h3>
-          <p className="mt-1 text-xs text-zinc-600">In this date range.</p>
-          <ol className="mt-1 space-y-1 text-sm text-zinc-800">
-            {history.map((point) => (
-              <li key={`${point.asOf}-${point.badge}`}>
-                {formatDateOnlyForLocale(point.asOf)} · {point.badge}
-              </li>
-            ))}
-          </ol>
+          <h3 className="text-sm font-medium text-zinc-800">Evolution</h3>
+          <OverallLevelHistoryChart model={history} />
         </div>
       ) : null}
     </div>

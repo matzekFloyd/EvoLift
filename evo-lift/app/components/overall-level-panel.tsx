@@ -35,7 +35,7 @@ export function OverallLevelPanel({ overall, hint, facts, className }: OverallLe
           {levelName ? (
             <div className="contents">
               <dt className="text-zinc-600">Level</dt>
-              <dd className="font-medium text-zinc-950">{levelName}</dd>
+              <dd className="text-lg font-medium text-zinc-950">{levelName}</dd>
             </div>
           ) : null}
           {rows.map((row) => (

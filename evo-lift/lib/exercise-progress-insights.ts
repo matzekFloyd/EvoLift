@@ -69,6 +69,8 @@ export type OverallLifterLevel = {
   lifts: OverallLevelLift[];
   /** Badge changes in the samples used for this report, through the range end. */
   history: OverallLevelHistoryPoint[];
+  /** Range end. The history line holds the latest level through this day. */
+  asOf?: string | null;
   /** One line naming the published table. */
   source: string;
 };
@@ -559,6 +561,7 @@ function buildOverallLevel(
       progress: emptyProgress,
       lifts: overallLevelLifts(graded, recent, "Provisional"),
       history: [],
+      asOf,
       source,
     };
   }
@@ -581,6 +584,7 @@ function buildOverallLevel(
     progress: overallLevelProgress(average, badge),
     lifts: overallLevelLifts(graded, recent, badge),
     history: [],
+    asOf,
     source,
   };
 }
