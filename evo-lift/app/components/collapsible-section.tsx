@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronRight } from "lucide-react";
-import { useId, useState, type ReactNode, type SyntheticEvent } from "react";
+import { useEffect, useId, useState, type ReactNode, type SyntheticEvent } from "react";
 import {
   collapsibleSectionCanToggle,
   initialCollapsibleSectionOpen,
@@ -46,6 +46,8 @@ type CollapsibleSectionProps = {
   titleTone?: "section" | "chrome";
   className?: string;
   titleId?: string;
+  /** Scroll target for the whole section, separate from the heading id. */
+  sectionId?: string;
 };
 
 export function CollapsibleSection({
@@ -61,6 +63,7 @@ export function CollapsibleSection({
   titleTone = "section",
   className,
   titleId,
+  sectionId,
 }: CollapsibleSectionProps) {
   const autoId = useId();
   const headingId = titleId ?? autoId;
@@ -68,6 +71,12 @@ export function CollapsibleSection({
   const [open, setOpen] = useState(() =>
     initialCollapsibleSectionOpen({ alwaysOpen, defaultOpen }),
   );
+
+  useEffect(() => {
+    if (defaultOpen) {
+      setOpen(true);
+    }
+  }, [defaultOpen]);
   const isChromeTitle = titleTone === "chrome";
 
   function handleToggle(event: SyntheticEvent<HTMLDetailsElement>) {
@@ -167,8 +176,16 @@ export function CollapsibleSection({
   );
 
   if (!inset) {
-    return <section className={className}>{details}</section>;
+    return (
+      <section id={sectionId} className={className}>
+        {details}
+      </section>
+    );
   }
 
-  return <PanelInset className={["overflow-hidden p-0", className].filter(Boolean).join(" ")}>{details}</PanelInset>;
+  return (
+    <PanelInset id={sectionId} className={["scroll-mt-4 overflow-hidden p-0", className].filter(Boolean).join(" ")}>
+      {details}
+    </PanelInset>
+  );
 }

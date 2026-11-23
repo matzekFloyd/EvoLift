@@ -6,6 +6,7 @@ import {
   overallLevelInfluence,
   overallLevelInfluenceLabel,
   overallLevelProgress,
+  overallLevelProgressNote,
   overallLevelSource,
   overallLevelUpMessage,
 } from "./overall-level-detail";
@@ -47,6 +48,38 @@ describe("overallLevelProgress", () => {
     });
     assert.deepEqual(overallLevelProgress(5, "Elite"), { fraction: 1, nextLabel: null });
   });
+
+  it("explains the percent and names lifts still short of the next level", () => {
+    assert.equal(
+      overallLevelProgressNote({
+        badge: "Untrained",
+        progress: { fraction: 0.83, nextLabel: "Novice" },
+        lifts: [
+          { slug: "back-squat", label: "Barbell Back Squat", level: "Novice", influence: "pulls-up" },
+          { slug: "barbell-bench-press", label: "Barbell Bench Press", level: "Untrained", influence: "matches" },
+          { slug: "deadlift", label: "Barbell Deadlift", level: "Under the untrained mark", influence: "holds-back" },
+          { slug: "overhead-press", label: "Barbell Overhead Press", level: "Intermediate", influence: "left-out" },
+        ],
+      }),
+      "The percent is how far the average of 3 recent main lifts sits from Untrained toward Novice. Each lift counts the same. Barbell Overhead Press is outside the last 8 weeks, so it is left out. Barbell Bench Press and Barbell Deadlift are still short of Novice.",
+    );
+    assert.equal(
+      overallLevelProgressNote({
+        badge: "Elite",
+        progress: { fraction: 1, nextLabel: null },
+        lifts: [],
+      }),
+      null,
+    );
+    assert.equal(
+      overallLevelProgressNote({
+        badge: "Provisional",
+        progress: { fraction: null, nextLabel: null },
+        lifts: [],
+      }),
+      null,
+    );
+  });
 });
 
 describe("overall level lifts and history", () => {
@@ -54,8 +87,9 @@ describe("overall level lifts and history", () => {
     assert.equal(overallLevelInfluence(5, 4), "pulls-up");
     assert.equal(overallLevelInfluence(2, 4), "holds-back");
     assert.equal(overallLevelInfluence(4, 4), "matches");
-    assert.equal(overallLevelInfluenceLabel("pulls-up"), "Pulls the level up");
-    assert.equal(overallLevelInfluenceLabel("holds-back"), "Holds the level back");
+    assert.equal(overallLevelInfluenceLabel("pulls-up"), null);
+    assert.equal(overallLevelInfluenceLabel("holds-back"), null);
+    assert.equal(overallLevelInfluenceLabel("matches"), null);
     assert.equal(overallLevelInfluenceLabel("left-out"), "Outside the last 8 weeks");
   });
 

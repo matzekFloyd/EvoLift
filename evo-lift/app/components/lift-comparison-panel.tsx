@@ -24,7 +24,12 @@ export function LiftComparisonPanel({
 }: LiftComparisonPanelProps) {
   const notes = [...report.publicNotes, ...report.balanceNotes];
   return (
-    <CollapsibleSection title="Lift comparison" defaultOpen={defaultOpen} titleId="overall-level">
+    <CollapsibleSection
+      title="Lift comparison"
+      defaultOpen={defaultOpen}
+      titleId="overall-level-heading"
+      sectionId="overall-level"
+    >
       <p className="text-sm text-zinc-800">
         {notes.length > 0
           ? "How your compounds sit next to each other, and next to published standards."
