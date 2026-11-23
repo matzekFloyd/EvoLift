@@ -17,7 +17,12 @@ import { isAssistanceExercise } from "@/lib/assistance-exercise";
 import { confirmSignedInUser } from "@/lib/confirm-signed-in-user";
 import { loadGoalsList, peekGoalsList, type GoalMilestoneRow } from "@/lib/goals-list-cache";
 import { loadCachedInsightsHistory, loadUserStrengthProfile } from "@/lib/insights-data";
-import { profileOverallLevel, type ProfileOverallLevel } from "@/lib/profile-overall-level";
+import {
+  profileOverallLevel,
+  profilePageSummary,
+  showProfileOverallLevel,
+  type ProfileOverallLevel,
+} from "@/lib/profile-overall-level";
 import { formatMilestoneTarget, type GoalProgress } from "@/lib/milestone-progress";
 import { profileGoalHighlights, type ProfileGoalCandidate } from "@/lib/profile-goal-highlights";
 import { buildProfileRecords, profileExerciseHref, type ProfileRecordRow } from "@/lib/profile-summary";
@@ -160,15 +165,15 @@ export default function ProfilePage() {
     <PageShell>
       <section>
         <h1 className="text-2xl font-semibold tracking-tight">Profile</h1>
-        <p className="mt-1 text-sm text-zinc-600">Your overall level, personal records, and latest reached goals.</p>
+        <p className="mt-1 text-sm text-zinc-600">
+          {profilePageSummary(isChecking || showProfileOverallLevel(level))}
+        </p>
       </section>
 
       <div className="grid gap-4 lg:grid-cols-2">
         {isChecking ? (
           <ContentPlaceholder label="Loading overall level..." rows={2} rowClassName="h-16" />
-        ) : recordsError || !level ? (
-          <div />
-        ) : (
+        ) : showProfileOverallLevel(level) && level ? (
           <OverallLevelPanel
             overall={level.overall}
             hint={level.hint}
@@ -179,7 +184,7 @@ export default function ProfilePage() {
               bodyweightKg: level.bodyweightKg,
             }}
           />
-        )}
+        ) : null}
         <ProfileGoalColumn highlights={goalHighlights} error={goalsError} checking={isChecking} />
       </div>
 
