@@ -49,3 +49,14 @@ export function profileOverallLevel(input: {
     bodyweightKg: input.profile?.bodyweightKg ?? null,
   };
 }
+
+/** Profile shows the level panel for a rating, including Provisional, or for a hint that explains why there is none. */
+export function showProfileOverallLevel(level: ProfileOverallLevel | null): boolean {
+  return level != null && (level.overall != null || level.hint != null);
+}
+
+export function profilePageSummary(showLevel: boolean): string {
+  return showLevel
+    ? "Your overall level, personal records, and latest reached goals."
+    : "Your personal records and latest reached goals.";
+}

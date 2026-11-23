@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 import type { ExerciseWorkingSetSample, UserStrengthProfile } from "@/lib/insights-data";
-import { profileOverallLevel } from "./profile-overall-level";
+import { profileOverallLevel, profilePageSummary, showProfileOverallLevel } from "./profile-overall-level";
 
 const PROFILE: UserStrengthProfile = {
   sex: "male",
@@ -63,5 +63,35 @@ describe("profileOverallLevel", () => {
     });
     assert.equal(result.overall, null);
     assert.match(result.hint ?? "", /Add sex, date of birth, and bodyweight/);
+    assert.equal(showProfileOverallLevel(result), true);
+  });
+
+  it("hides the profile level when no main barbell lift is logged", () => {
+    const result = profileOverallLevel({
+      samples: [lift("ez-bar-curl", "EZ-Bar Curl", 40, "2026-02-01")],
+      hiddenExerciseIds: new Set(),
+      profile: PROFILE,
+      today: "2026-03-01",
+    });
+    assert.equal(result.overall, null);
+    assert.equal(result.hint, null);
+    assert.equal(showProfileOverallLevel(result), false);
+    assert.equal(showProfileOverallLevel(null), false);
+    assert.equal(profilePageSummary(false), "Your personal records and latest reached goals.");
+    assert.equal(
+      profilePageSummary(true),
+      "Your overall level, personal records, and latest reached goals.",
+    );
+  });
+
+  it("keeps a provisional profile level when fewer than 3 main lifts are recent", () => {
+    const result = profileOverallLevel({
+      samples: [lift("back-squat", "Barbell Back Squat", 140, "2026-02-01")],
+      hiddenExerciseIds: new Set(),
+      profile: PROFILE,
+      today: "2026-03-01",
+    });
+    assert.equal(result.overall?.badge, "Provisional");
+    assert.equal(showProfileOverallLevel(result), true);
   });
 });
