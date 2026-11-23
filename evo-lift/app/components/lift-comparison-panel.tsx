@@ -1,4 +1,5 @@
 import { type ExerciseProgressReport } from "@/lib/exercise-progress-insights";
+import { OverallLevelDetail } from "@/app/components/overall-level-detail";
 import { isPublicStandardLift, exrxTableUrl } from "@/lib/strength-standards";
 import { exerciseDetailRankRow, exerciseLeadDetail } from "@/app/components/insight-rows";
 import {
@@ -23,7 +24,7 @@ export function LiftComparisonPanel({
 }: LiftComparisonPanelProps) {
   const notes = [...report.publicNotes, ...report.balanceNotes];
   return (
-    <CollapsibleSection title="Lift comparison" defaultOpen={defaultOpen}>
+    <CollapsibleSection title="Lift comparison" defaultOpen={defaultOpen} titleId="overall-level">
       <p className="text-sm text-zinc-800">
         {notes.length > 0
           ? "How your compounds sit next to each other, and next to published standards."
@@ -86,6 +87,7 @@ export function LiftComparisonPanel({
           ...notes.map((note) => comparisonInsightRow(note)),
         ]}
       />
+      {report.overallLevel ? <OverallLevelDetail level={report.overallLevel} /> : null}
       {report.comparisonHint ? (
         <p className="mt-3 text-xs text-zinc-600">{report.comparisonHint}</p>
       ) : null}

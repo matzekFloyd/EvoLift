@@ -1,3 +1,4 @@
+import { appPath } from "@/lib/app-paths";
 import type { InsightsRange } from "@/lib/insights-data";
 import { getDefaultDateRange } from "@/lib/session-date";
 
@@ -24,4 +25,14 @@ export function getInsightsPresetRange(range: InsightsRange, today: Date): { fro
     return { from: toYyyyMmDd(fromDate), to };
   }
   return { from: "", to };
+}
+
+/** Profile opens level details across every session, the same window as the overall level. */
+export function insightsLevelDetailsHref(): string {
+  return `${appPath("/insights")}?range=all#overall-level`;
+}
+
+/** `all` when Profile asks for every session. Anything else keeps the Insights default. */
+export function insightsOpeningRange(range: string | null): InsightsRange {
+  return range === "all" ? "all" : "12w";
 }

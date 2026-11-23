@@ -142,6 +142,7 @@ type ActivePlanPanelProps = {
   onPlanOpenSessionIdsChange?: (sessionIds: string[]) => void;
   /** True once a plan is loaded and can offer Start or Continue. */
   onForwardActionChange?: (owns: boolean) => void;
+  className?: string;
 };
 
 export function ActivePlanPanel({
@@ -150,6 +151,7 @@ export function ActivePlanPanel({
   onOpenSession,
   onPlanOpenSessionIdsChange,
   onForwardActionChange,
+  className,
 }: ActivePlanPanelProps) {
   const router = useRouter();
   const continueRequestRef = useRef(0);
@@ -490,7 +492,15 @@ export function ActivePlanPanel({
     ) : null;
 
   return (
-    <section className={planIsFocal ? "rounded-xl border border-sky-300 bg-sky-50 p-5" : "panel p-5"}>
+    <section
+      className={[
+        planIsFocal ? "rounded-xl border border-sky-300 bg-sky-50 p-5" : "panel p-5",
+        "h-full",
+        className,
+      ]
+        .filter(Boolean)
+        .join(" ")}
+    >
       <div id={PRODUCT_TOUR_TARGET_IDS.plan}>
         <div className="mb-2">
           <SectionHeading>Plan</SectionHeading>

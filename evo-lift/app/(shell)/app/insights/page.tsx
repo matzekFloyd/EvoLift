@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, Suspense } from "react";
 import { FilterX } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
 import { ContentPlaceholder } from "@/app/components/content-placeholder";
 import {
@@ -56,10 +56,8 @@ import {
   insightsComparisonPeriodName,
   insightsMarkedRange,
 } from "@/app/insights/insights-range";
-import { getInsightsPresetRange } from "@/app/insights/insights-presets";
+import { getInsightsPresetRange, insightsOpeningRange } from "@/app/insights/insights-presets";
 import { getTodayYyyyMmDd } from "@/lib/session-date";
-
-const defaultInsightsRange = "12w" as const;
 
 const emptyLifterProfile: LifterProfile = {
   sex: null,
@@ -69,16 +67,22 @@ const emptyLifterProfile: LifterProfile = {
   ageIsApproximate: false,
 };
 
-export default function InsightsPage() {
+function InsightsPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const todayYyyyMmDd = getTodayYyyyMmDd();
   const presetToday = useMemo(() => new Date(), []);
+  const [openLevelDetails] = useState(
+    () => typeof window !== "undefined" && window.location.hash === "#overall-level",
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [dateFrom, setDateFrom] = useState(
-    () => getInsightsPresetRange(defaultInsightsRange, presetToday).from,
+    () => getInsightsPresetRange(insightsOpeningRange(searchParams.get("range")), presetToday).from,
   );
-  const [dateTo, setDateTo] = useState(() => getInsightsPresetRange(defaultInsightsRange, presetToday).to);
+  const [dateTo, setDateTo] = useState(
+    () => getInsightsPresetRange(insightsOpeningRange(searchParams.get("range")), presetToday).to,
+  );
   const [basePoints, setBasePoints] = useState<WorkoutActivityPoint[]>([]);
   const [weeklyVolumeBase, setWeeklyVolumeBase] = useState<WeeklyVolumePoint[]>([]);
   const [exerciseSets, setExerciseSets] = useState<ExerciseWorkingSetSample[]>([]);
@@ -430,7 +434,7 @@ export default function InsightsPage() {
                 <InsightsCompoundE1rmChart series={compoundE1rmSeries} events={planEvents} />
               </div>
             </CollapsibleSection>
-            <LiftComparisonPanel report={exerciseProgress} />
+            <LiftComparisonPanel report={exerciseProgress} defaultOpen={openLevelDetails} />
             <PersonalBestsPanel rows={personalBestRows} />
             <CollapsibleSection title="Weekly sessions, volume & sets" defaultOpen={false}>
               {!hasTrendChartData ? (
@@ -489,5 +493,20 @@ export default function InsightsPage() {
         )}
       </section>
     </PageShell>
+  );
+}
+
+export default function InsightsPage() {
+  return (
+    <Suspense
+      fallback={
+        <PageShell>
+          <h1 className="text-2xl font-semibold tracking-tight">Insights</h1>
+          <ContentPlaceholder label="Loading insights..." />
+        </PageShell>
+      }
+    >
+      <InsightsPageContent />
+    </Suspense>
   );
 }
