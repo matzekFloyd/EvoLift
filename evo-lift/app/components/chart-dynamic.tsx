@@ -70,6 +70,12 @@ export const ExerciseSessionE1rmChart = dynamic(
   { loading: chartPlaceholder(EXERCISE_CHART_HEIGHT_CLASS) },
 );
 
+export const OverallLevelHistoryChart = dynamic(
+  () =>
+    import("@/app/components/overall-level-history-chart").then((mod) => mod.OverallLevelHistoryChart),
+  { loading: chartPlaceholder("h-40 w-full") },
+);
+
 export const ExerciseSessionVolumeChart = dynamic(
   () =>
     import("@/app/components/exercise-session-volume-chart").then(

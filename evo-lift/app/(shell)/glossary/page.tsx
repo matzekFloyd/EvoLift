@@ -55,6 +55,11 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
       "An optional target suggestion for the next session. The account setting is the default, and Exercise defaults can turn it on or off for one exercise. It stays off until one of those is on. When every working set hits the rep target, the next suggestion adds 2 reps at the same weight. After that higher target is hit, the next suggestion adds weight and goes back to the lower reps. When the lowest working set reaches the lower reps, the next suggestion uses those reps at the same weight. When a working set is under the lower reps, the next suggestion drops the weight and uses the lower reps. On Assisted Dip and Assisted Pull-Up, that weight step removes assistance after the higher target, and adds assistance when a working set is under the lower reps.",
   },
   {
+    term: "Evolution",
+    definition:
+      "Your overall level over time. Each mark is a day the level changed, with the figure for the level you reached. Provisional has no figure. Profile shows every session. Insights shows the selected date range.",
+  },
+  {
     term: "Exercise",
     definition: "A movement inside a workout session, such as Barbell Back Squat.",
   },
@@ -115,7 +120,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Overall level",
     definition:
-      "One ExRx level for Barbell Back Squat, Barbell Bench Press, Barbell Deadlift, and Barbell Overhead Press. It is the average of those per-exercise levels when at least 3 of the 4 have a best in the last 8 weeks. Otherwise it stays provisional. Machines and isolation exercises are left out. Home shows the level and progress toward the next one. Insights lists each lift, whether it pulls the level up or holds it back, and earlier levels in the selected date range.",
+      "One ExRx level for Barbell Back Squat, Barbell Bench Press, Barbell Deadlift, and Barbell Overhead Press. It is the average of those per-exercise levels when at least 3 of the 4 have a best in the last 8 weeks. Otherwise it stays provisional. Machines and isolation exercises are left out. Home shows the level, progress toward the next one, and a note when a finished session reaches a higher level. Insights lists each lift and whether it pulls the level up or holds it back. Profile and Insights show Evolution for that level.",
   },
   {
     term: "Personal best",

@@ -6,6 +6,8 @@ import { ContentPlaceholder } from "@/app/components/content-placeholder";
 import { PageShell } from "@/app/components/page-shell";
 import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
+import { OverallLevelHistoryChart } from "@/app/components/chart-dynamic";
+import { overallLevelHistoryChart } from "@/app/components/overall-level-history-series";
 import { OverallLevelPanel } from "@/app/components/overall-level-panel";
 import { ProfileGoalColumn } from "@/app/profile/profile-goal-column";
 import { ProfileRecordsList } from "@/app/profile/profile-records-list";
@@ -146,6 +148,13 @@ export default function ProfilePage() {
   }, [bodyweightEntries, exerciseById, goalRows, progressById]);
 
   const goalHighlights = useMemo(() => profileGoalHighlights(goalCandidates), [goalCandidates]);
+  const levelHistory = useMemo(
+    () =>
+      level?.overall
+        ? overallLevelHistoryChart(level.overall.history, { through: level.overall.asOf })
+        : null,
+    [level],
+  );
 
   return (
     <PageShell>
@@ -173,6 +182,13 @@ export default function ProfilePage() {
         )}
         <ProfileGoalColumn highlights={goalHighlights} error={goalsError} checking={isChecking} />
       </div>
+
+      {levelHistory ? (
+        <section className="panel flex min-w-0 flex-col gap-3 p-5" aria-labelledby="profile-evolution">
+          <SectionHeading id="profile-evolution">Evolution</SectionHeading>
+          <OverallLevelHistoryChart model={levelHistory} />
+        </section>
+      ) : null}
 
       <section className="panel flex min-w-0 flex-col gap-3 p-5">
         <SectionHeading>Personal records</SectionHeading>
