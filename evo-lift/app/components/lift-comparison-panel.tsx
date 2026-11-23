@@ -80,9 +80,10 @@ export function LiftComparisonPanel({
           <p>
             The overall level is the nearest of those labels to the average of Barbell Back Squat, Barbell
             Bench Press, Barbell Deadlift, and Barbell Overhead Press. Each of those lifts counts the same.
-            A lift counts only when its best in this range falls in the last 8 weeks before the end of the
-            range. With fewer than 3 of the 4 in that window, the overall level stays provisional. Machine
-            and isolation exercises are left out. The level on each lift stays the same.
+            A lift counts when it has an estimated 1RM in the last 8 weeks before the end of the range.
+            That estimate is the best inside those 8 weeks. An older best outside the window is left out.
+            With fewer than 3 of the 4 in that window, the overall level stays provisional. Machine and
+            isolation exercises are left out. The level on each lift is its best in this range.
           </p>
         </div>
       </details>

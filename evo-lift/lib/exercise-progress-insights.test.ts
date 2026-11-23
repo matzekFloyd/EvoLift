@@ -7,6 +7,7 @@ import {
   type LifterProfile,
 } from "./exercise-progress-insights";
 import type { ExerciseWorkingSetSample } from "./insights-data";
+import { overallLevelProgressNote } from "./overall-level-detail";
 
 const RANGE = { from: "2026-01-01", to: "2026-03-01" };
 const NO_PROFILE: LifterProfile = {
@@ -345,5 +346,72 @@ describe("buildExerciseProgressReport", () => {
     assert.equal(oneDayOlder.overallLevel?.badge, "Provisional");
     assert.match(oneDayOlder.overallLevel?.detail ?? "", /at least 3 of the 4 main barbell lifts/);
     assert.equal(oneDayOlder.overallLevel?.meta, "2 of 4 main lifts in the last 8 weeks.");
+  });
+
+  it("counts all 4 main lifts from the best inside the last 8 weeks", () => {
+    const profile: LifterProfile = {
+      sex: "male",
+      bodyweightKg: 75,
+      bodyweightEntries: [],
+      ageYears: 30,
+      ageIsApproximate: false,
+    };
+    const lift = (slug: string, label: string, totalKg: number, performedOn: string) =>
+      sample({
+        exerciseId: `ex-${slug}`,
+        slug,
+        label,
+        sessionId: `${slug}-${performedOn}`,
+        performedOn,
+        totalKg,
+        reps: 1,
+      });
+    const samples = [
+      lift("back-squat", "Barbell Back Squat", 202.5, "2026-02-01"),
+      lift("barbell-bench-press", "Barbell Bench Press", 70, "2026-02-01"),
+      lift("deadlift", "Barbell Deadlift", 185, "2026-02-01"),
+      lift("overhead-press", "Barbell Overhead Press", 32.5, "2026-02-01"),
+      lift("overhead-press", "Barbell Overhead Press", 80, "2025-06-01"),
+    ];
+    const allHistory = buildExerciseProgressReport(samples, { from: "", to: "2026-03-01" }, profile);
+    const lastEightWeeks = buildExerciseProgressReport(
+      samples,
+      { from: "2026-01-04", to: "2026-03-01" },
+      profile,
+    );
+    assert.equal(allHistory.overallLevel?.badge, lastEightWeeks.overallLevel?.badge);
+    assert.equal(allHistory.overallLevel?.meta, "4 of 4 main lifts in the last 8 weeks.");
+    assert.equal(lastEightWeeks.overallLevel?.meta, "4 of 4 main lifts in the last 8 weeks.");
+    assert.equal(allHistory.overallLevel?.badge, "Intermediate");
+    assert.equal(allHistory.overallLevel?.progress.fraction, 0.5);
+    assert.match(
+      overallLevelProgressNote({
+        badge: allHistory.overallLevel?.badge ?? "",
+        progress: allHistory.overallLevel?.progress ?? { fraction: null, nextLabel: null },
+        lifts: allHistory.overallLevel?.lifts ?? [],
+      }) ?? "",
+      /Barbell Bench Press and Barbell Overhead Press are still short of Advanced/,
+    );
+    assert.deepEqual(allHistory.overallLevel?.progress, lastEightWeeks.overallLevel?.progress);
+    assert.deepEqual(
+      allHistory.overallLevel?.lifts.map((liftRow) => ({
+        slug: liftRow.slug,
+        level: liftRow.level,
+        influence: liftRow.influence,
+      })),
+      lastEightWeeks.overallLevel?.lifts.map((liftRow) => ({
+        slug: liftRow.slug,
+        level: liftRow.level,
+        influence: liftRow.influence,
+      })),
+    );
+    assert.equal(
+      allHistory.overallLevel?.lifts.find((liftRow) => liftRow.slug === "overhead-press")?.level,
+      "Untrained",
+    );
+    assert.notEqual(
+      allHistory.overallLevel?.lifts.find((liftRow) => liftRow.slug === "overhead-press")?.influence,
+      "left-out",
+    );
   });
 });

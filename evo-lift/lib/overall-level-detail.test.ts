@@ -119,6 +119,23 @@ describe("overall level lifts and history", () => {
     assert.equal(history[1]?.asOf, "2026-02-01");
   });
 
+  it("keeps a recent lighter set when an older best sits outside the window", () => {
+    const history = overallLevelHistory({
+      samples: [
+        lift("back-squat", "Barbell Back Squat", 202.5, "2026-02-01"),
+        lift("barbell-bench-press", "Barbell Bench Press", 70, "2026-02-01"),
+        lift("deadlift", "Barbell Deadlift", 185, "2026-02-01"),
+        lift("overhead-press", "Barbell Overhead Press", 32.5, "2026-02-01"),
+        lift("overhead-press", "Barbell Overhead Press", 80, "2025-06-01"),
+      ],
+      sex: "male",
+      bodyweightKg: 75,
+      bodyweightEntries: [],
+      asOf: "2026-03-01",
+    });
+    assert.equal(history.at(-1)?.badge, "Intermediate");
+  });
+
   it("names ExRx as the source", () => {
     assert.equal(overallLevelSource("male"), "ExRx.net standards for men, ages 18–39.");
     assert.equal(overallLevelSource("female"), "ExRx.net standards for women, ages 18–39.");

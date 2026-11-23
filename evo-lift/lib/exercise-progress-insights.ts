@@ -3,12 +3,12 @@ import type { ProfileSex } from "@/lib/body-metrics";
 import { bodyweightOnOrBefore, type BodyweightLogEntry } from "@/lib/bodyweight-log";
 import type { ExerciseWorkingSetSample } from "@/lib/insights-data";
 import {
+  overallLevelGrades,
   overallLevelHistory,
   overallLevelInfluence,
   overallLevelProgress,
   overallLevelSource,
   OVERALL_LEVEL_MIN_RECENT_LIFTS,
-  OVERALL_LEVEL_RECENT_DAYS,
   type OverallLevelHistoryPoint,
   type OverallLevelLift,
   type OverallLevelProgress,
@@ -90,8 +90,6 @@ export type ExerciseProgressReport = {
 const MIN_SESSIONS = 3;
 const MIN_SPAN_DAYS = 14;
 const DOWN_KG = 2.5;
-/** A main lift counts toward a firm overall level only inside this window. */
-const OVERALL_RECENT_DAYS = OVERALL_LEVEL_RECENT_DAYS;
 const MIN_RECENT_MAIN_LIFTS = OVERALL_LEVEL_MIN_RECENT_LIFTS;
 
 /**
@@ -497,13 +495,6 @@ function bodyweightForEstimate(profile: LifterProfile, performedOn: string | nul
   return profile.bodyweightKg != null && profile.bodyweightKg > 0 ? profile.bodyweightKg : null;
 }
 
-function shiftIsoDate(iso: string, days: number): string {
-  const [year, month, day] = iso.split("-").map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
-  date.setUTCDate(date.getUTCDate() + days);
-  return date.toISOString().slice(0, 10);
-}
-
 function overallAsOf(rangeTo: string, rows: ExerciseProgressRow[]): string | null {
   if (rangeTo) {
     return rangeTo;
@@ -520,14 +511,16 @@ type GradedMainLift = {
   level: ExrxLevel;
 };
 
-function overallLevelLifts(graded: GradedMainLift[], recent: GradedMainLift[], badge: string): OverallLevelLift[] {
-  const recentSlugs = new Set(recent.map((lift) => lift.row.slug));
+function overallLevelLifts(
+  grades: readonly { slug: string; label: string; level: ExrxLevel; recent: boolean }[],
+  badge: string,
+): OverallLevelLift[] {
   const overallScore = badge === "Provisional" ? null : exrxLevelScore(badge as ExrxLevel);
-  return graded.map((lift) => ({
-    slug: lift.row.slug,
-    label: lift.row.label,
+  return grades.map((lift) => ({
+    slug: lift.slug,
+    label: lift.label,
     level: lift.level,
-    influence: !recentSlugs.has(lift.row.slug)
+    influence: !lift.recent
       ? "left-out"
       : overallScore == null || overallScore < 0
         ? null
@@ -536,17 +529,25 @@ function overallLevelLifts(graded: GradedMainLift[], recent: GradedMainLift[], b
 }
 
 function buildOverallLevel(
-  graded: GradedMainLift[],
+  samples: readonly ExerciseWorkingSetSample[],
+  profile: LifterProfile,
   asOf: string | null,
   source: string,
 ): OverallLifterLevel | null {
-  if (graded.length === 0 || asOf == null) {
+  if (asOf == null || profile.sex == null) {
     return null;
   }
-  const cutoff = shiftIsoDate(asOf, -OVERALL_RECENT_DAYS);
-  const recent = graded.filter(
-    (lift) => lift.row.bestPerformedOn != null && lift.row.bestPerformedOn >= cutoff && lift.row.bestPerformedOn <= asOf,
-  );
+  const grades = overallLevelGrades({
+    samples,
+    sex: profile.sex,
+    bodyweightKg: profile.bodyweightKg,
+    bodyweightEntries: profile.bodyweightEntries,
+    asOf,
+  });
+  if (grades.length === 0) {
+    return null;
+  }
+  const recent = grades.filter((lift) => lift.recent);
   const emptyProgress: OverallLevelProgress = { fraction: null, nextLabel: null };
   if (recent.length < MIN_RECENT_MAIN_LIFTS) {
     const meta =
@@ -559,19 +560,18 @@ function buildOverallLevel(
         "An overall level needs a best in the last 8 weeks on at least 3 of the 4 main barbell lifts.",
       meta,
       progress: emptyProgress,
-      lifts: overallLevelLifts(graded, recent, "Provisional"),
+      lifts: overallLevelLifts(grades, "Provisional"),
       history: [],
       asOf,
       source,
     };
   }
-  const average =
-    recent.reduce((sum, lift) => sum + exrxLevelScore(lift.level), 0) / recent.length;
+  const average = recent.reduce((sum, lift) => sum + exrxLevelScore(lift.level), 0) / recent.length;
   const badge = exrxLevelFromAverage(average);
-  const leftOut = graded.filter((lift) => !recent.includes(lift));
-  let detail = `${joinLabels(recent.map((lift) => lift.row.label))} each count the same.`;
+  const leftOut = grades.filter((lift) => !lift.recent);
+  let detail = `${joinLabels(recent.map((lift) => lift.label))} each count the same.`;
   if (leftOut.length > 0) {
-    const names = joinLabels(leftOut.map((lift) => lift.row.label));
+    const names = joinLabels(leftOut.map((lift) => lift.label));
     detail +=
       leftOut.length === 1
         ? ` ${names} is outside the last 8 weeks, so it is left out.`
@@ -582,7 +582,7 @@ function buildOverallLevel(
     detail,
     meta: `${recent.length} of 4 main lifts in the last 8 weeks.`,
     progress: overallLevelProgress(average, badge),
-    lifts: overallLevelLifts(graded, recent, badge),
+    lifts: overallLevelLifts(grades, badge),
     history: [],
     asOf,
     source,
@@ -671,7 +671,7 @@ function buildPublicComparison(
   if (profile.ageIsApproximate) {
     hints.push("Age is estimated from the year of birth on your profile.");
   }
-  const overallLevel = buildOverallLevel(gradedMainLifts, asOf, source);
+  const overallLevel = buildOverallLevel(samples, profile, asOf, source);
   if (overallLevel && asOf && profile.sex) {
     overallLevel.history = overallLevelHistory({
       samples,
