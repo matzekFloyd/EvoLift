@@ -88,6 +88,13 @@ export function comparisonBadgeTone(note: LiftBalanceNote): StatusBadgeTone {
   return publicLevelTone(note.badge);
 }
 
+export function overallLevelBadgeTone(badge: string): StatusBadgeTone {
+  if (badge === "Provisional") {
+    return "neutral";
+  }
+  return publicLevelTone(badge);
+}
+
 export function overallLevelBadgeDescription(badge: string): string {
   if (badge === "Provisional") {
     return "Fewer than 3 of the 4 main lifts have a best in the last 8 weeks, so this is not a full rating.";
@@ -160,7 +167,7 @@ export function overallLevelInsightRow(level: OverallLifterLevel): InsightRow {
     slug: null,
     href: null,
     badge: level.badge,
-    badgeTone: level.badge === "Provisional" ? "neutral" : publicLevelTone(level.badge),
+    badgeTone: overallLevelBadgeTone(level.badge),
     badgeDescription: overallLevelBadgeDescription(level.badge),
     detail: level.detail,
     tableHref: null,

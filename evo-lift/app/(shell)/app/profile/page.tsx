@@ -8,6 +8,7 @@ import { ExerciseName } from "@/app/components/exercise-badge-chip";
 import { PageShell } from "@/app/components/page-shell";
 import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
+import { OverallLevelPanel } from "@/app/components/overall-level-panel";
 import { ProfileRecordsList } from "@/app/profile/profile-records-list";
 import { formatGoalBodyweightTarget } from "@/app/goals/goal-bodyweight-label";
 import { definitionFromRow, storedFromRow } from "@/app/goals/goal-row";
@@ -16,6 +17,7 @@ import { confirmSignedInUser } from "@/lib/confirm-signed-in-user";
 import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { loadGoalsList, peekGoalsList, type GoalMilestoneRow } from "@/lib/goals-list-cache";
 import { loadCachedInsightsHistory, loadUserStrengthProfile } from "@/lib/insights-data";
+import { profileOverallLevel, type ProfileOverallLevel } from "@/lib/profile-overall-level";
 import { formatMilestoneTarget, type GoalProgress } from "@/lib/milestone-progress";
 import { appPath } from "@/lib/app-paths";
 import {
@@ -60,6 +62,7 @@ export default function ProfilePage() {
     () => new Map((cachedGoals?.exerciseOptions ?? []).map((option) => [option.id, option])),
   );
   const [bodyweightEntries, setBodyweightEntries] = useState(cachedGoals?.bodyweightEntries ?? []);
+  const [level, setLevel] = useState<ProfileOverallLevel | null>(null);
   const [recordsError, setRecordsError] = useState<string | null>(null);
   const [goalsError, setGoalsError] = useState<string | null>(null);
 
@@ -92,14 +95,24 @@ export default function ProfilePage() {
       }
 
       if (historyResult.history) {
+        const hiddenExerciseIds = new Set(goalsResult.snapshot?.hiddenExerciseIds ?? []);
         setRecords(
           buildProfileRecords(
             historyResult.history.exerciseSets,
             strengthResult?.bodyweightEntries ?? [],
           ),
         );
+        setLevel(
+          profileOverallLevel({
+            samples: historyResult.history.exerciseSets,
+            hiddenExerciseIds,
+            profile: strengthResult,
+            today: getTodayYyyyMmDd(),
+          }),
+        );
         setRecordsError(null);
       } else {
+        setLevel(null);
         setRecordsError(historyResult.error);
       }
 
@@ -156,8 +169,14 @@ export default function ProfilePage() {
     <PageShell>
       <section>
         <h1 className="text-2xl font-semibold tracking-tight">Profile</h1>
-        <p className="mt-1 text-sm text-zinc-600">Personal records and goals you have reached.</p>
+        <p className="mt-1 text-sm text-zinc-600">Your overall level, personal records, and goals you have reached.</p>
       </section>
+
+      {isChecking ? (
+        <ContentPlaceholder label="Loading overall level..." rows={2} rowClassName="h-16" />
+      ) : recordsError || !level ? null : (
+        <OverallLevelPanel overall={level.overall} hint={level.hint} />
+      )}
 
       <section className="panel flex min-w-0 flex-col gap-3 p-5">
         <SectionHeading>Personal records</SectionHeading>

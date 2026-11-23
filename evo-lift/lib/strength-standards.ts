@@ -14,17 +14,17 @@ const LEVELS = ["Untrained", "Novice", "Intermediate", "Advanced", "Elite"] as c
 export type ExrxLevel = (typeof LEVELS)[number] | "Under the untrained mark";
 
 /** Lowest to highest. Score 0 is under the untrained mark. */
-const LEVEL_ORDER: ExrxLevel[] = ["Under the untrained mark", ...LEVELS];
+export const EXRX_LEVELS: readonly ExrxLevel[] = ["Under the untrained mark", ...LEVELS];
 
 export function exrxLevelScore(level: ExrxLevel): number {
-  return LEVEL_ORDER.indexOf(level);
+  return EXRX_LEVELS.indexOf(level);
 }
 
 /** Nearest level. A halfway score rounds up. */
 export function exrxLevelFromAverage(score: number): ExrxLevel {
   const index = Math.round(score);
-  const clamped = Math.min(LEVEL_ORDER.length - 1, Math.max(0, index));
-  return LEVEL_ORDER[clamped];
+  const clamped = Math.min(EXRX_LEVELS.length - 1, Math.max(0, index));
+  return EXRX_LEVELS[clamped];
 }
 
 type LevelKg = [number, number, number, number, number];

@@ -135,7 +135,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Profile",
     definition:
-      "Your achievements across every session: best weight and estimated 1RM for each exercise, and goals you have reached. Best weight is the highest Loaded (kg). Estimated 1RM uses working sets of 12 reps or fewer. Each mark shows the date it was first hit. Warmups do not count. On Assisted Dip and Assisted Pull-Up, best weight is the lowest Assistance (kg). Estimated 1RM for those exercises, and for Dip, needs a bodyweight entry on or before the session.",
+      "Your achievements across every session: overall level, best weight and estimated 1RM for each exercise, and goals you have reached. Best weight is the highest Loaded (kg). Estimated 1RM uses working sets of 12 reps or fewer. Each mark shows the date it was first hit. Warmups do not count. On Assisted Dip and Assisted Pull-Up, best weight is the lowest Assistance (kg). Estimated 1RM for those exercises, and for Dip, needs a bodyweight entry on or before the session.",
   },
   {
     term: "Reps",
