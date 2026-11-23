@@ -38,6 +38,7 @@ describe("buildSessionSnapshot", () => {
     source_template_id: null,
     plan_id: null,
     plan_day_id: null,
+    plan_version: null,
     started_at: undefined,
     completed_at: undefined,
     created_at: "2026-01-02T08:00:00Z",

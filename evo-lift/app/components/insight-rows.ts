@@ -4,6 +4,7 @@ import {
   progressReadLabel,
   type ExerciseProgressRow,
   type LiftBalanceNote,
+  type OverallLifterLevel,
   type ProgressRead,
 } from "@/lib/exercise-progress-insights";
 
@@ -70,17 +71,35 @@ export function comparisonBadgeDescription(note: LiftBalanceNote): string {
   return "Compared with the ExRx standards for your sex and bodyweight, ages 18–39.";
 }
 
+function publicLevelTone(badge: string): StatusBadgeTone {
+  if (badge === "Advanced" || badge === "Elite") {
+    return "success";
+  }
+  if (badge === "Intermediate" || badge === "Novice") {
+    return "info";
+  }
+  return "neutral";
+}
+
 export function comparisonBadgeTone(note: LiftBalanceNote): StatusBadgeTone {
   if (note.kind === "balance") {
     return "warning";
   }
-  if (note.badge === "Advanced" || note.badge === "Elite") {
-    return "success";
+  return publicLevelTone(note.badge);
+}
+
+export function overallLevelBadgeTone(badge: string): StatusBadgeTone {
+  if (badge === "Provisional") {
+    return "neutral";
   }
-  if (note.badge === "Intermediate" || note.badge === "Novice") {
-    return "info";
+  return publicLevelTone(badge);
+}
+
+export function overallLevelBadgeDescription(badge: string): string {
+  if (badge === "Provisional") {
+    return "Fewer than 3 of the 4 main lifts have a best in the last 8 weeks, so this is not a full rating.";
   }
-  return "neutral";
+  return "Nearest ExRx level to the average of the main lifts with a best in the last 8 weeks. Each lift counts the same.";
 }
 
 function progressMeta(row: ExerciseProgressRow): string | null {
@@ -138,6 +157,21 @@ export function progressInsightRow(
     detail: row.detail,
     tableHref: null,
     meta: progressMeta(row),
+  };
+}
+
+export function overallLevelInsightRow(level: OverallLifterLevel): InsightRow {
+  return {
+    id: "overall-level",
+    title: "Overall level",
+    slug: null,
+    href: null,
+    badge: level.badge,
+    badgeTone: overallLevelBadgeTone(level.badge),
+    badgeDescription: overallLevelBadgeDescription(level.badge),
+    detail: level.detail,
+    tableHref: null,
+    meta: level.meta,
   };
 }
 

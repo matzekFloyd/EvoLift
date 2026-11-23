@@ -18,12 +18,22 @@ import type {
 } from "recharts/types/component/DefaultTooltipContent";
 import { ChartResponsiveContainer } from "@/app/components/chart-responsive-container";
 import {
+  ChartEventNotes,
+  chartEventReferenceLines,
+  chartEventLegendItems,
+} from "@/app/components/chart-event-markers";
+import {
   ChartSeriesLegend,
   ChartTextAlternative,
 } from "@/app/components/chart-text-alternative";
-import { insightsWeeklyChartText } from "@/app/components/chart-text-data";
+import { insightsWeeklyChartText, withChartEventColumn } from "@/app/components/chart-text-data";
 import { useDisplayLocale } from "@/app/components/use-display-locale";
 import { formatCompactNumber } from "@/app/components/insights-weekly-volume-format";
+import {
+  chartEventLabelsAt,
+  weekChartMarkers,
+  type ChartEvent,
+} from "@/lib/chart-event-markers";
 import type { InsightsTrendMetric } from "@/app/insights/insights-weekly-chart-data";
 
 type WeeklyVolumeChartPoint = {
@@ -37,6 +47,7 @@ type WeeklyVolumeChartPoint = {
 type InsightsWeeklyVolumeChartProps = {
   data: WeeklyVolumeChartPoint[];
   metric: InsightsTrendMetric;
+  events?: readonly ChartEvent[];
 };
 
 function formatWeekLabel(dateText: string): string {
@@ -103,13 +114,18 @@ function metricConfig(metric: InsightsTrendMetric) {
   };
 }
 
-export function InsightsWeeklyVolumeChart({ data, metric }: InsightsWeeklyVolumeChartProps) {
+export function InsightsWeeklyVolumeChart({
+  data,
+  metric,
+  events = [],
+}: InsightsWeeklyVolumeChartProps) {
   const config = metricConfig(metric);
   const locale = useDisplayLocale();
   const { valueKey, barName, movingAverageName, barSeries } = config;
   const [isCompactView, setIsCompactView] = useState(false);
   const [selectedWeekStart, setSelectedWeekStart] = useState<string | null>(null);
   const chartRef = useRef<HTMLDivElement | null>(null);
+  const markers = useMemo(() => weekChartMarkers(data, events), [data, events]);
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(max-width: 768px)");
@@ -196,6 +212,7 @@ export function InsightsWeeklyVolumeChart({ data, metric }: InsightsWeeklyVolume
         {metric === "sessions" ? null : (
           <p className="text-zinc-700">Sessions: {sessionCount}</p>
         )}
+        <ChartEventNotes labels={source ? chartEventLabelsAt(markers, source.weekStart) : []} />
       </div>
     );
   };
@@ -209,6 +226,7 @@ export function InsightsWeeklyVolumeChart({ data, metric }: InsightsWeeklyVolume
         items={[
           { key: "bars", label: barName, swatchClassName: barSwatchClassName },
           { key: "average", label: movingAverageName, swatchClassName: "h-0.5 w-4 bg-teal-700" },
+          ...chartEventLegendItems(markers),
         ]}
       />
       <div ref={chartRef} className="min-w-0 space-y-2">
@@ -221,7 +239,7 @@ export function InsightsWeeklyVolumeChart({ data, metric }: InsightsWeeklyVolume
         <ComposedChart
           accessibilityLayer={false}
           data={data}
-          margin={{ top: 10, right: 8, left: 0, bottom: 0 }}
+          margin={{ top: markers.length > 0 ? 22 : 10, right: 8, left: 0, bottom: 0 }}
         >
           <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" />
           <XAxis
@@ -242,6 +260,7 @@ export function InsightsWeeklyVolumeChart({ data, metric }: InsightsWeeklyVolume
             cursor={isCompactView ? false : undefined}
             active={isCompactView ? false : undefined}
           />
+          {chartEventReferenceLines(markers)}
           <Bar
             dataKey={valueKey}
             name={barName}
@@ -299,10 +318,17 @@ export function InsightsWeeklyVolumeChart({ data, metric }: InsightsWeeklyVolume
             <p className="text-zinc-700">Sessions: {selectedWeek.sessionCount}</p>
           )}
           <p className="text-zinc-500">{selectedWeekRangeLabel}</p>
+          <ChartEventNotes labels={chartEventLabelsAt(markers, selectedWeek.weekStart)} />
         </div>
       ) : null}
       </div>
-      <ChartTextAlternative model={insightsWeeklyChartText(data, metric, locale)} />
+      <ChartTextAlternative
+        model={withChartEventColumn(
+          insightsWeeklyChartText(data, metric, locale),
+          markers,
+          new Map(data.map((point) => [point.weekStart, point.weekStart])),
+        )}
+      />
     </div>
   );
 }

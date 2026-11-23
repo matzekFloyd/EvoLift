@@ -26,7 +26,7 @@ export const termsOfUseSections: TermsOfUseSection[] = [
     paragraphs: [
       "You can use an email and password, or sign in with Google or Apple.",
       "Keep your password private when you use one. You are responsible for activity on your account.",
-      "You can delete the account from Account. After that, that email cannot log in.",
+      "You can delete the account from Settings. After that, that email cannot log in.",
     ],
   },
   {
@@ -39,8 +39,8 @@ export const termsOfUseSections: TermsOfUseSection[] = [
   {
     heading: "Personal API tokens",
     paragraphs: [
-      "You may create personal API tokens on Account to call the EvoLift API for your own account.",
-      "Do not share a token. Do not use the API to harm the service or other users. You can revoke a token at any time on Account.",
+      "You may create personal API tokens on Settings to call the EvoLift API for your own account.",
+      "Do not share a token. Do not use the API to harm the service or other users. You can revoke a token at any time on Settings.",
     ],
   },
   {

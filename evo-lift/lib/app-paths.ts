@@ -15,7 +15,7 @@ export function appPath(tail: string): string {
 
 export type AppNavMatch = "exact" | "section";
 
-/** Home and Account match the path exactly. Other nav items also match their child routes. */
+/** Home, Profile, and Settings match the path exactly. Other nav items also match their child routes. */
 export function isAppNavItemActive(pathname: string, href: string, match: AppNavMatch): boolean {
   if (match === "exact") {
     return pathname === href;
@@ -36,6 +36,7 @@ const LEGACY_SIGNED_IN_TAILS = [
   "/templates/new",
   "/templates/:id/edit",
   "/templates",
+  "/profile",
   "/account",
   "/docs",
 ] as const;

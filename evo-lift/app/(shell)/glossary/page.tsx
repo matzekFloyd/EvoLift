@@ -27,7 +27,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Authenticator app",
     definition:
-      "An optional second check at login. When it is on, EvoLift asks for a 6-digit code from an authenticator app after your password. You turn it on or off under Account. It is not required.",
+      "An optional second check at login. When it is on, EvoLift asks for a 6-digit code from an authenticator app after your password. You turn it on or off under Settings. It is not required.",
   },
   {
     term: "Base weight",
@@ -55,6 +55,11 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
       "An optional target suggestion for the next session. The account setting is the default, and Exercise defaults can turn it on or off for one exercise. It stays off until one of those is on. When every working set hits the rep target, the next suggestion adds 2 reps at the same weight. After that higher target is hit, the next suggestion adds weight and goes back to the lower reps. When the lowest working set reaches the lower reps, the next suggestion uses those reps at the same weight. When a working set is under the lower reps, the next suggestion drops the weight and uses the lower reps. On Assisted Dip and Assisted Pull-Up, that weight step removes assistance after the higher target, and adds assistance when a working set is under the lower reps.",
   },
   {
+    term: "Evolution",
+    definition:
+      "Your overall level over time. Each mark is a day the level changed, with the figure for the level you reached. Provisional has no figure. Profile shows every session. Insights shows the selected date range.",
+  },
+  {
     term: "Exercise",
     definition: "A movement inside a workout session, such as Barbell Back Squat.",
   },
@@ -80,12 +85,12 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Goal",
     definition:
-      "A strength target for one exercise. Progress uses working sets you have already logged. You can aim for a Total (kg) or a multiple of your bodyweight, with a minimum number of reps. New accounts start with bodyweight goals on Barbell Back Squat, Barbell Bench Press, Barbell Deadlift, and Barbell Overhead Press. You can edit or delete them. Progress on a bodyweight goal needs a bodyweight entry on Account.",
+      "A strength target for one exercise. Progress uses working sets you have already logged. You can aim for a Total (kg) or a multiple of your bodyweight, with a minimum number of reps. New accounts start with bodyweight goals on Barbell Back Squat, Barbell Bench Press, Barbell Deadlift, and Barbell Overhead Press. You can edit or delete them. Progress on a bodyweight goal needs a bodyweight entry on Settings.",
   },
   {
     term: "Hidden exercise",
     definition:
-      "An exercise you hide on Account. It stays out of pickers for new workout entries, Insights lists, and Exercises. Past sessions and exercise defaults stay.",
+      "An exercise you hide on Settings. It stays out of pickers for new workout entries, Insights lists, and Exercises. Past sessions and exercise defaults stay.",
   },
   {
     term: "In progress",
@@ -113,6 +118,11 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
       "The part of the body an exercise trains. Each exercise has a primary muscle area and sometimes a secondary one.",
   },
   {
+    term: "Overall level",
+    definition:
+      "One ExRx level for Barbell Back Squat, Barbell Bench Press, Barbell Deadlift, and Barbell Overhead Press. It is the average of those per-exercise levels when at least 3 of the 4 have a best in the last 8 weeks. Otherwise it stays provisional. Machines and isolation exercises are left out. Home shows the level, progress toward the next one, and a note when a finished session reaches a higher level. Insights lists each lift and whether it pulls the level up or holds it back. Profile and Insights show Evolution for that level.",
+  },
+  {
     term: "Personal best",
     definition:
       "On Insights, your strongest working sets in the selected date range. Best set is the highest Total (kg), then reps. Heaviest load is the highest Loaded (kg). Each mark shows the date it was first hit. Warmups do not count. On Assisted Dip and Assisted Pull-Up, Best set is the lowest assistance, then more reps, then the earlier date. Least assistance is the lowest Assistance (kg), then the earlier date. 0 kg is unassisted bodyweight. Set history on an exercise uses that same Best set ranking and marks the set with a medal.",
@@ -121,6 +131,16 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
     term: "Plan",
     definition:
       "An ordered cycle of up to 7 days. One plan can be active. Starting a day copies its exercises and targets into a new workout session. Only one of those sessions can stay unfinished. Finish it before starting another day. Later edits do not change sessions you already started.",
+  },
+  {
+    term: "Plan switch",
+    definition:
+      "A dashed line on a progress chart for the day you activated a plan. The label is that plan's name.",
+  },
+  {
+    term: "Profile",
+    definition:
+      "Your achievements across every session: overall level, best weight and estimated 1RM for each exercise, and the latest reached goals. Best weight is the highest Loaded (kg). Estimated 1RM uses working sets of 12 reps or fewer. Each mark shows the date it was first hit. Warmups do not count. On Assisted Dip and Assisted Pull-Up, best weight is the lowest Assistance (kg). Estimated 1RM for those exercises, and for Dip, needs a bodyweight entry on or before the session.",
   },
   {
     term: "Reps",

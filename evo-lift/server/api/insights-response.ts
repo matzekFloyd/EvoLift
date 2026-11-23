@@ -258,6 +258,13 @@ export function buildInsightsPayload(input: {
       read: row.read,
       detail: row.detail,
     })),
+    overall_level: progress.overallLevel
+      ? {
+          badge: progress.overallLevel.badge,
+          detail: progress.overallLevel.detail,
+          meta: progress.overallLevel.meta,
+        }
+      : null,
     lift_comparison: [...progress.publicNotes, ...progress.balanceNotes].map((note) => ({
       id: note.id,
       title: note.title,

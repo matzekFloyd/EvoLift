@@ -39,6 +39,7 @@ describe("invalidateLoggedHistoryCaches", () => {
         source_template_id: null,
         plan_id: null,
         plan_day_id: null,
+        plan_version: null,
         started_at: null,
         completed_at: null,
         created_at: "2026-10-01T00:00:00Z",

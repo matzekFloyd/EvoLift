@@ -74,6 +74,7 @@ import {
   peekInsightsExerciseSets,
   type ExerciseWorkingSetSample,
 } from "@/lib/insights-data";
+import { loadPlanSwitchEvents, type ChartEvent } from "@/lib/chart-event-markers";
 import { getTodayYyyyMmDd } from "@/lib/session-date";
 
 type ExerciseRow = {
@@ -155,6 +156,7 @@ function ExerciseDetailPageContent() {
   const [historyPageSize, setHistoryPageSize] = useState<HistoryPageSize>("25");
   const [historyPage, setHistoryPage] = useState(1);
   const [detailPanelTab, setDetailPanelTab] = useState<ExerciseDetailPanelTab>("data");
+  const [planEvents, setPlanEvents] = useState<ChartEvent[]>([]);
 
   if (slug !== trackedSlug) {
     setTrackedSlug(slug);
@@ -339,10 +341,11 @@ function ExerciseDetailPageContent() {
           .eq("exercise_id", exercise.id)
           .not("achieved_at", "is", null),
       );
-      const [sessionsResult, setsResult, milestonesResult] = await Promise.all([
+      const [sessionsResult, setsResult, milestonesResult, loadedPlanEvents] = await Promise.all([
         sessionsPromise,
         setsPromise,
         milestonesPromise,
+        loadPlanSwitchEvents(supabaseBrowserClient, visit.userId).catch(() => [] as ChartEvent[]),
       ]);
       if (sessionsResult.error) {
         if (!keepCached) {
@@ -360,6 +363,10 @@ function ExerciseDetailPageContent() {
         perf.flush();
         return;
       }
+      if (!isMounted) {
+        return;
+      }
+      setPlanEvents(loadedPlanEvents);
 
       const sessionMetaBySessionId = new Map<string, { performedOn: string; createdAt: string }>();
       for (const row of sessionsResult.data ?? []) {
@@ -715,6 +722,7 @@ function ExerciseDetailPageContent() {
                   assistance={assistance}
                   bodyweightPlusLoad={bodyweightPlusLoad}
                   usesBaseWeight={showSummaryTotal}
+                  events={planEvents}
                 />
               ) : null}
             </div>

@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, Suspense } from "react";
 import { FilterX } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
 import { ContentPlaceholder } from "@/app/components/content-placeholder";
 import {
@@ -31,6 +31,7 @@ import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 import { buildExerciseProgressReport, type LifterProfile } from "@/lib/exercise-progress-insights";
 import { buildInsightsComparisonSentence } from "@/lib/insights-chart-summary";
 import { visibleInsightExerciseSets } from "@/lib/hidden-exercise-lists";
+import { loadPlanSwitchEvents, type ChartEvent } from "@/lib/chart-event-markers";
 import { buildInsightsCompoundE1rmSeries } from "@/lib/insights-compound-e1rm";
 import { resolveLifterAge } from "@/lib/body-metrics";
 import { loadExerciseMetadata } from "@/lib/exercise-metadata-cache";
@@ -55,10 +56,8 @@ import {
   insightsComparisonPeriodName,
   insightsMarkedRange,
 } from "@/app/insights/insights-range";
-import { getInsightsPresetRange } from "@/app/insights/insights-presets";
+import { getInsightsPresetRange, insightsOpeningRange } from "@/app/insights/insights-presets";
 import { getTodayYyyyMmDd } from "@/lib/session-date";
-
-const defaultInsightsRange = "12w" as const;
 
 const emptyLifterProfile: LifterProfile = {
   sex: null,
@@ -68,16 +67,22 @@ const emptyLifterProfile: LifterProfile = {
   ageIsApproximate: false,
 };
 
-export default function InsightsPage() {
+function InsightsPageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const todayYyyyMmDd = getTodayYyyyMmDd();
   const presetToday = useMemo(() => new Date(), []);
+  const [openLevelDetails] = useState(
+    () => typeof window !== "undefined" && window.location.hash === "#overall-level",
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [dateFrom, setDateFrom] = useState(
-    () => getInsightsPresetRange(defaultInsightsRange, presetToday).from,
+    () => getInsightsPresetRange(insightsOpeningRange(searchParams.get("range")), presetToday).from,
   );
-  const [dateTo, setDateTo] = useState(() => getInsightsPresetRange(defaultInsightsRange, presetToday).to);
+  const [dateTo, setDateTo] = useState(
+    () => getInsightsPresetRange(insightsOpeningRange(searchParams.get("range")), presetToday).to,
+  );
   const [basePoints, setBasePoints] = useState<WorkoutActivityPoint[]>([]);
   const [weeklyVolumeBase, setWeeklyVolumeBase] = useState<WeeklyVolumePoint[]>([]);
   const [exerciseSets, setExerciseSets] = useState<ExerciseWorkingSetSample[]>([]);
@@ -86,6 +91,7 @@ export default function InsightsPage() {
   >([]);
   const [hiddenExerciseIds, setHiddenExerciseIds] = useState<Set<string>>(() => new Set());
   const [lifterProfile, setLifterProfile] = useState<LifterProfile>(emptyLifterProfile);
+  const [planEvents, setPlanEvents] = useState<ChartEvent[]>([]);
   const isMountedRef = useRef(true);
   const loadRequestRef = useRef(0);
 
@@ -111,7 +117,7 @@ export default function InsightsPage() {
       }
 
       try {
-        const [history, profile, catalog, hiddenResult] = await Promise.all([
+        const [history, profile, catalog, hiddenResult, loadedPlanEvents] = await Promise.all([
           loadCachedInsightsHistory(supabaseBrowserClient, session.user.id, historyWindow, {
             fresh: mode === "refresh",
           }),
@@ -121,6 +127,7 @@ export default function InsightsPage() {
             .from("user_hidden_exercises")
             .select("exercise_id")
             .eq("user_id", session.user.id),
+          loadPlanSwitchEvents(supabaseBrowserClient, session.user.id).catch(() => [] as ChartEvent[]),
         ]);
         if (hiddenResult.error) {
           throw new Error("Could not load exercise visibility.");
@@ -140,6 +147,7 @@ export default function InsightsPage() {
         setExerciseSets(sets);
         setCatalogExercises(catalog.map((row) => ({ id: row.id, slug: row.slug, label: row.label })));
         setHiddenExerciseIds(new Set((hiddenResult.data ?? []).map((row) => row.exercise_id)));
+        setPlanEvents(loadedPlanEvents);
         setLifterProfile({
           sex: profile.sex,
           bodyweightKg: profile.bodyweightKg,
@@ -419,14 +427,14 @@ export default function InsightsPage() {
                 Overhead Press.
               </p>
               <p className="mt-1 text-xs text-zinc-500">
-                Epley on Total (kg), working sets of 12 reps or fewer. Not a tested max. Open an
-                exercise for the full chart.
+                Epley on Total (kg), working sets of 12 reps or fewer. Not a tested max. A dashed
+                line marks a plan switch. Open an exercise for the full chart.
               </p>
               <div className="mt-3">
-                <InsightsCompoundE1rmChart series={compoundE1rmSeries} />
+                <InsightsCompoundE1rmChart series={compoundE1rmSeries} events={planEvents} />
               </div>
             </CollapsibleSection>
-            <LiftComparisonPanel report={exerciseProgress} />
+            <LiftComparisonPanel report={exerciseProgress} defaultOpen={openLevelDetails} />
             <PersonalBestsPanel rows={personalBestRows} />
             <CollapsibleSection title="Weekly sessions, volume & sets" defaultOpen={false}>
               {!hasTrendChartData ? (
@@ -439,10 +447,15 @@ export default function InsightsPage() {
                     <p className="text-sm font-medium text-zinc-800">Sessions</p>
                     <p className="mt-1 text-sm text-zinc-800">{sessionsComparisonSentence}</p>
                     <p className="mt-1 text-xs text-zinc-500">
-                      Workout sessions per week. The line is a 4-week average.
+                      Workout sessions per week. The line is a 4-week average. A dashed line marks
+                      a plan switch.
                     </p>
                     <div className="mt-3">
-                      <InsightsWeeklyVolumeChart data={sessionsChartData} metric="sessions" />
+                      <InsightsWeeklyVolumeChart
+                        data={sessionsChartData}
+                        metric="sessions"
+                        events={planEvents}
+                      />
                     </div>
                   </div>
                   <div>
@@ -452,7 +465,11 @@ export default function InsightsPage() {
                       Weekly total of loaded kg × reps. The line is a 4-week average.
                     </p>
                     <div className="mt-3">
-                      <InsightsWeeklyVolumeChart data={volumeChartData} metric="volume" />
+                      <InsightsWeeklyVolumeChart
+                        data={volumeChartData}
+                        metric="volume"
+                        events={planEvents}
+                      />
                     </div>
                   </div>
                   <div>
@@ -462,7 +479,11 @@ export default function InsightsPage() {
                       Weekly working sets, warmups excluded. The line is a 4-week average.
                     </p>
                     <div className="mt-3">
-                      <InsightsWeeklyVolumeChart data={workingSetsChartData} metric="workingSets" />
+                      <InsightsWeeklyVolumeChart
+                        data={workingSetsChartData}
+                        metric="workingSets"
+                        events={planEvents}
+                      />
                     </div>
                   </div>
                 </div>
@@ -472,5 +493,20 @@ export default function InsightsPage() {
         )}
       </section>
     </PageShell>
+  );
+}
+
+export default function InsightsPage() {
+  return (
+    <Suspense
+      fallback={
+        <PageShell>
+          <h1 className="text-2xl font-semibold tracking-tight">Insights</h1>
+          <ContentPlaceholder label="Loading insights..." />
+        </PageShell>
+      }
+    >
+      <InsightsPageContent />
+    </Suspense>
   );
 }

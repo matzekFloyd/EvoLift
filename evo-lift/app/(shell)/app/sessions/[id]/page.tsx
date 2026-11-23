@@ -27,7 +27,13 @@ import {
   sessionLifecycleStatus,
   sessionIsReadOnly,
 } from "@/lib/session-lifecycle";
-import { isFutureSessionDate } from "@/lib/session-date";
+import { getTodayYyyyMmDd, isFutureSessionDate } from "@/lib/session-date";
+import { supabaseBrowserClient } from "@/lib/supabase/browser";
+import { loadSessionLevelUpMessage } from "@/lib/session-level-up";
+import {
+  clearOverallLevelHint,
+  rememberOverallLevelHint,
+} from "@/lib/overall-level-hint-storage";
 import {
   createSessionDetailActions,
   type SessionExerciseRow,
@@ -361,6 +367,26 @@ function SessionDetailPageContent() {
     setIsMarkingCompleted,
     warmupSuggestionsDisabledExerciseIds,
     maxWarmupSetsByExerciseId,
+    onSessionCompleted: (completed) => {
+      void loadSessionLevelUpMessage(
+        supabaseBrowserClient,
+        completed.user_id,
+        completed.id,
+        getTodayYyyyMmDd(),
+      )
+        .then((levelUp) => {
+          if (!levelUp) {
+            return;
+          }
+          rememberOverallLevelHint(levelUp);
+          setMessageTone("success");
+          setMessage(levelUp);
+        })
+        .catch(() => undefined);
+    },
+    onSessionReopened: () => {
+      clearOverallLevelHint();
+    },
   });
 
   if (isChecking) {

@@ -10,6 +10,7 @@ import {
   exerciseWeightChartText,
   heatmapActivityChartText,
   insightsWeeklyChartText,
+  withChartEventColumn,
 } from "./chart-text-data";
 import type { ExerciseSessionE1rmChartPoint } from "@/lib/exercise-session-e1rm-chart";
 import type { ExerciseSessionVolumeChartPoint } from "@/lib/exercise-session-volume-chart";
@@ -257,6 +258,31 @@ describe("home activity chart text alternatives", () => {
     assert.equal(model.rows[1]?.cells.workouts, "1");
     assert.match(model.rows[1]?.cells.day ?? "", /This week · Today/);
     assert.equal(model.rows[1]?.cells.status, "Workout · Goal reached: Squat 100 kg");
+  });
+});
+
+describe("withChartEventColumn", () => {
+  it("adds the marker text on the matching session and leaves the model unchanged without markers", () => {
+    const model = exerciseE1rmChartText([
+      e1rmPoint({ sessionId: "s1", xTickLabel: "Oct 14" }),
+      e1rmPoint({ sessionId: "s2", xTickLabel: "Oct 16", performedOn: "2026-10-16" }),
+    ]);
+    assert.equal(withChartEventColumn(model, [], new Map()).columns.length, model.columns.length);
+
+    const marked = withChartEventColumn(
+      model,
+      [{ x: "Oct 16", labels: ["Plan: Upper Power"] }],
+      new Map([
+        ["s1", "Oct 14"],
+        ["s2", "Oct 16"],
+      ]),
+    );
+    assert.deepEqual(
+      marked.columns.map((column) => column.label),
+      ["Session", "Estimated 1RM (kg)", "Marker"],
+    );
+    assert.equal(marked.rows[0]?.cells.marker, "");
+    assert.equal(marked.rows[1]?.cells.marker, "Plan: Upper Power");
   });
 });
 

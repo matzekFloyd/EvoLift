@@ -15,8 +15,8 @@ export const privacyPolicySections: PrivacyPolicySection[] = [
       `EvoLift at ${PUBLIC_APP_ORIGIN} stores the data needed to run your account.`,
       "It stores your email, and the password held by Supabase Auth when you set one. If you sign in with Google or Apple, that provider confirms the email.",
       "It stores workout sessions and sets, templates, plans, and goals.",
-      "It stores bodyweight, height, sex, and date of birth when you save them on Account.",
-      "It stores personal API tokens you create on Account.",
+      "It stores bodyweight, height, sex, and date of birth when you save them on Settings.",
+      "It stores personal API tokens you create on Settings.",
     ],
   },
   {
@@ -37,13 +37,13 @@ export const privacyPolicySections: PrivacyPolicySection[] = [
     heading: "How long this data is kept",
     paragraphs: [
       "The data is kept while the account exists, and removed when the account is deleted.",
-      "You can ask for a copy or a correction by emailing the contact on the legal notice. Deleting the account stays on Account, on the Login tab.",
+      "You can ask for a copy or a correction by emailing the contact on the legal notice. Deleting the account stays on Settings, on the Login tab.",
     ],
   },
   {
     heading: "Delete the account",
     paragraphs: [
-      "You can delete the account and the workout data stored for it from Account. On the Login tab, confirm Delete account. Enter your current password when the account has one. After that, that email cannot log in.",
+      "You can delete the account and the workout data stored for it from Settings. On the Login tab, confirm Delete account. Enter your current password when the account has one. After that, that email cannot log in.",
     ],
   },
 ];

@@ -35,7 +35,7 @@ export async function loadSessionSnapshot(input: {
       supabaseBrowserClient
         .from("workout_sessions")
         .select(
-          "id, user_id, performed_on, notes, created_at, updated_at, source_template_id, plan_id, plan_day_id, started_at, completed_at, workout_templates(name), workout_plans(name), workout_plan_days(name)",
+          "id, user_id, performed_on, notes, created_at, updated_at, source_template_id, plan_id, plan_day_id, plan_version, started_at, completed_at, workout_templates(name), workout_plans(name), workout_plan_days(name)",
         )
         .eq("id", sessionId)
         .single(),

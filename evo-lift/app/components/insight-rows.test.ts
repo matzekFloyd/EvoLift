@@ -9,6 +9,7 @@ import {
   estimateChangeMark,
   exerciseDetailRankRow,
   exerciseLeadDetail,
+  overallLevelInsightRow,
   progressBadgeDescription,
   progressInsightRow,
   progressReadBadgeTone,
@@ -146,5 +147,34 @@ describe("comparison insight rows", () => {
     assert.equal(row.meta, "80 kg");
     assert.equal(comparisonInsightRow(note({ kind: "public", badge: "Novice", titleSlug: null })).href, null);
     assert.equal(comparisonInsightRow(note({ kind: "public", badge: "Novice", titleSlug: null })).slug, null);
+  });
+
+  it("shows the overall level without linking a single exercise", () => {
+    const rated = overallLevelInsightRow({
+      badge: "Advanced",
+      detail: "Barbell Back Squat, Barbell Bench Press, and Barbell Deadlift each count the same.",
+      meta: "3 of 4 main lifts in the last 8 weeks.",
+      progress: { fraction: 0.5, nextLabel: "Elite" },
+      lifts: [],
+      history: [],
+      source: "ExRx.net standards for men, ages 18–39.",
+    });
+    assert.equal(rated.title, "Overall level");
+    assert.equal(rated.href, null);
+    assert.equal(rated.slug, null);
+    assert.equal(rated.badge, "Advanced");
+    assert.equal(rated.badgeTone, "success");
+    assert.match(rated.badgeDescription, /Each lift counts the same/);
+    const provisional = overallLevelInsightRow({
+      badge: "Provisional",
+      detail: "An overall level needs a best in the last 8 weeks on at least 3 of the 4 main barbell lifts.",
+      meta: "2 of 4 main lifts in the last 8 weeks.",
+      progress: { fraction: null, nextLabel: null },
+      lifts: [],
+      history: [],
+      source: "ExRx.net standards for men, ages 18–39.",
+    });
+    assert.equal(provisional.badgeTone, "neutral");
+    assert.match(provisional.badgeDescription, /not a full rating/);
   });
 });

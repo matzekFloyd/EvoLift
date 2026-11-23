@@ -226,6 +226,7 @@ export type Database = {
           source_template_id: string | null;
           plan_id: string | null;
           plan_day_id: string | null;
+          plan_version: number | null;
           started_at: string | null;
           completed_at: string | null;
           created_at: string;
@@ -239,6 +240,7 @@ export type Database = {
           source_template_id?: string | null;
           plan_id?: string | null;
           plan_day_id?: string | null;
+          plan_version?: number | null;
           started_at?: string | null;
           completed_at?: string | null;
           created_at?: string;
@@ -252,6 +254,7 @@ export type Database = {
           source_template_id?: string | null;
           plan_id?: string | null;
           plan_day_id?: string | null;
+          plan_version?: number | null;
           started_at?: string | null;
           completed_at?: string | null;
           created_at?: string;
@@ -510,6 +513,7 @@ export type Database = {
           name: string;
           notes: string | null;
           is_active: boolean;
+          content_version: number;
           created_at: string;
           updated_at: string;
         };
@@ -519,6 +523,7 @@ export type Database = {
           name: string;
           notes?: string | null;
           is_active?: boolean;
+          content_version?: number;
           created_at?: string;
           updated_at?: string;
         };
@@ -528,10 +533,78 @@ export type Database = {
           name?: string;
           notes?: string | null;
           is_active?: boolean;
+          content_version?: number;
           created_at?: string;
           updated_at?: string;
         };
         Relationships: [];
+      };
+      workout_plan_versions: {
+        Row: {
+          id: string;
+          plan_id: string;
+          user_id: string;
+          version: number;
+          snapshot: Json;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          plan_id: string;
+          user_id: string;
+          version: number;
+          snapshot: Json;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          plan_id?: string;
+          user_id?: string;
+          version?: number;
+          snapshot?: Json;
+          created_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "workout_plan_versions_plan_id_fkey";
+            columns: ["plan_id"];
+            isOneToOne: false;
+            referencedRelation: "workout_plans";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      workout_plan_activations: {
+        Row: {
+          id: string;
+          user_id: string;
+          plan_id: string;
+          activated_at: string;
+          deactivated_at: string | null;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          plan_id: string;
+          activated_at?: string;
+          deactivated_at?: string | null;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          plan_id?: string;
+          activated_at?: string;
+          deactivated_at?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "workout_plan_activations_plan_id_fkey";
+            columns: ["plan_id"];
+            isOneToOne: false;
+            referencedRelation: "workout_plans";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       workout_plan_days: {
         Row: {

@@ -223,6 +223,17 @@ const PLANNED_SESSION_SPECS = [
   },
 ];
 
+/** A later Full body squat so the plan progress line has two points. The note keeps it idempotent. */
+const PLAN_SQUAT_FOLLOW_UP = {
+  planName: "Full body",
+  dayName: "Full Body #1",
+  note: "Full body: squat, second session",
+  daysAgo: 8,
+  reps: 6,
+  loadedKg: 142.5,
+  sets: 3,
+};
+
 /** Finished-session timestamps for a performed calendar day (local noon / evening). */
 function finishedTimestamps(performed) {
   const started = new Date(
@@ -803,6 +814,107 @@ async function seedMissingAssistedDipSessions(supabase, userId, exerciseId) {
   return added;
 }
 
+async function seedMissingPlanSquatFollowUp(supabase, userId, exerciseId) {
+  const { data: existing, error: existingError } = await supabase
+    .from("workout_sessions")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("notes", PLAN_SQUAT_FOLLOW_UP.note)
+    .maybeSingle();
+  if (existingError) {
+    throw new Error(`Could not read the plan squat follow-up: ${existingError.message}`);
+  }
+  if (existing?.id) {
+    return 0;
+  }
+
+  const { data: plan, error: planError } = await supabase
+    .from("workout_plans")
+    .select("id")
+    .eq("user_id", userId)
+    .eq("name", PLAN_SQUAT_FOLLOW_UP.planName)
+    .maybeSingle();
+  if (planError) {
+    throw new Error(`Could not read the Full body plan: ${planError.message}`);
+  }
+  if (!plan?.id) {
+    return 0;
+  }
+
+  const { data: day, error: dayError } = await supabase
+    .from("workout_plan_days")
+    .select("id")
+    .eq("plan_id", plan.id)
+    .eq("name", PLAN_SQUAT_FOLLOW_UP.dayName)
+    .maybeSingle();
+  if (dayError) {
+    throw new Error(`Could not read Full Body #1: ${dayError.message}`);
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const performed = addDays(today, -PLAN_SQUAT_FOLLOW_UP.daysAgo);
+  const sessionId = randomUUID();
+  const sessionExerciseId = randomUUID();
+  const { error: sessionError } = await supabase.from("workout_sessions").insert({
+    id: sessionId,
+    user_id: userId,
+    performed_on: toYyyyMmDd(performed),
+    notes: PLAN_SQUAT_FOLLOW_UP.note,
+    plan_id: plan.id,
+    plan_day_id: day?.id ?? null,
+    source_template_id: null,
+    ...finishedTimestamps(performed),
+  });
+  if (sessionError) {
+    throw new Error(`Could not add the plan squat follow-up: ${sessionError.message}`);
+  }
+
+  const { error: exerciseError } = await supabase.from("workout_session_exercises").insert({
+    id: sessionExerciseId,
+    session_id: sessionId,
+    exercise_id: exerciseId,
+    position: 1,
+    target_sets: PLAN_SQUAT_FOLLOW_UP.sets,
+    target_reps: PLAN_SQUAT_FOLLOW_UP.reps,
+    target_weight_kg: PLAN_SQUAT_FOLLOW_UP.loadedKg,
+    base_weight_kg: null,
+    notes: null,
+  });
+  if (exerciseError) {
+    throw new Error(`Could not add the plan squat follow-up exercise: ${exerciseError.message}`);
+  }
+
+  const sets = [
+    { reps: 5, weight_kg: 60, is_warmup: true },
+    ...Array.from({ length: PLAN_SQUAT_FOLLOW_UP.sets }, () => ({
+      reps: PLAN_SQUAT_FOLLOW_UP.reps,
+      weight_kg: PLAN_SQUAT_FOLLOW_UP.loadedKg,
+      is_warmup: false,
+    })),
+  ];
+  const { error: setsError } = await supabase.from("workout_sets").insert(
+    sets.map((set, setIndex) => ({
+      session_exercise_id: sessionExerciseId,
+      set_number: setIndex + 1,
+      reps: set.reps,
+      weight_kg: set.weight_kg,
+      is_warmup: set.is_warmup,
+      performed_at: new Date(
+        performed.getFullYear(),
+        performed.getMonth(),
+        performed.getDate(),
+        12,
+        setIndex,
+      ).toISOString(),
+    })),
+  );
+  if (setsError) {
+    throw new Error(`Could not add the plan squat follow-up sets: ${setsError.message}`);
+  }
+  return 1;
+}
+
 async function seedMissingPlannedSessions(supabase, userId, exerciseIdBySlug) {
   const notes = PLANNED_SESSION_SPECS.map((spec) => spec.note);
   const { data: existing, error } = await supabase
@@ -1022,6 +1134,13 @@ async function seed() {
   const seededNoBaseSessions = await seedMissingNoBaseSessions(supabase, userId, exerciseIdBySlug);
   sessionCount += seededNoBaseSessions;
 
+  const seededPlanSquat = await seedMissingPlanSquatFollowUp(
+    supabase,
+    userId,
+    exerciseIdBySlug.get(LIFTS.squat.slug),
+  );
+  sessionCount += seededPlanSquat;
+
   const createdLabel = created ? "Created" : "Using";
   const templateNames = templates.map((template) => template.name).join(", ");
   const templateCreated = templates.filter((template) => template.created).length;
@@ -1031,6 +1150,7 @@ async function seed() {
     seededPlannedSessions ? `+${seededPlannedSessions} planned` : null,
     seededAssistedDipSessions ? `+${seededAssistedDipSessions} assisted dip` : null,
     seededNoBaseSessions ? `+${seededNoBaseSessions} no base` : null,
+    seededPlanSquat ? `+${seededPlanSquat} plan squat` : null,
     removedPlans ? `-${removedPlans} old plans` : null,
   ].filter(Boolean);
   console.log(
