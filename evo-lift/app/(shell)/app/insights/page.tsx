@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, Suspense } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, Suspense } from "react";
 import { FilterX } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
@@ -56,12 +56,11 @@ import {
   insightsComparisonPeriodName,
   insightsMarkedRange,
 } from "@/app/insights/insights-range";
-import {
-  getInsightsPresetRange,
-  insightsLevelDetailsRequested,
-  insightsOpeningDates,
-} from "@/app/insights/insights-presets";
+import { getInsightsPresetRange, insightsLevelDetailsRequested, insightsOpeningDates } from "@/app/insights/insights-presets";
+import { useOverallLevelCache } from "@/app/components/use-overall-level-cache";
 import { getTodayYyyyMmDd } from "@/lib/session-date";
+import { exerciseProgressWithCachedLevel, cachedOverallLevelCoversRange } from "@/lib/overall-level-cache";
+import { rememberedUserId } from "@/lib/signed-in-memory";
 
 const emptyLifterProfile: LifterProfile = {
   sex: null,
@@ -76,6 +75,8 @@ function InsightsPageContent() {
   const searchParams = useSearchParams();
   const todayYyyyMmDd = getTodayYyyyMmDd();
   const presetToday = useMemo(() => new Date(), []);
+  const [levelUserId, setLevelUserId] = useState<string | null>(() => rememberedUserId());
+  const { snapshot: levelSnapshot } = useOverallLevelCache(levelUserId, { load: false });
   const [openLevelDetails, setOpenLevelDetails] = useState(false);
   const [levelDetailsChecked, setLevelDetailsChecked] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -102,7 +103,7 @@ function InsightsPageContent() {
   const isMountedRef = useRef(true);
   const loadRequestRef = useRef(0);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     setOpenLevelDetails(insightsLevelDetailsRequested(window.location.hash));
     setLevelDetailsChecked(true);
   }, []);
@@ -128,6 +129,7 @@ function InsightsPageContent() {
         router.replace("/login");
         return;
       }
+      setLevelUserId(session.user.id);
 
       const historyWindow = { from: dateFrom, to: dateTo };
       const cached = mode === "refresh" ? null : peekInsightsHistory(session.user.id, historyWindow);
@@ -330,8 +332,13 @@ function InsightsPageContent() {
   );
 
   const exerciseProgress = useMemo(
-    () => buildExerciseProgressReport(listedExerciseSets, { from: dateFrom, to: dateTo }, lifterProfile),
-    [dateFrom, dateTo, listedExerciseSets, lifterProfile],
+    () =>
+      exerciseProgressWithCachedLevel(
+        buildExerciseProgressReport(listedExerciseSets, { from: dateFrom, to: dateTo }, lifterProfile),
+        levelSnapshot,
+        { from: dateFrom, to: dateTo },
+      ),
+    [dateFrom, dateTo, levelSnapshot, listedExerciseSets, lifterProfile],
   );
 
   const compoundE1rmSeries = useMemo(() => {
@@ -354,6 +361,14 @@ function InsightsPageContent() {
   );
 
   const hasTrendChartData = weeklyVolumeFiltered.length > 0;
+  const showCachedLevel =
+    levelSnapshot != null && cachedOverallLevelCoversRange(levelSnapshot.asOf, { from: dateFrom, to: dateTo });
+  const levelSection =
+    showCachedLevel || (!isLoading && levelDetailsChecked && filteredPoints.length > 0) ? (
+      <LiftComparisonPanel report={exerciseProgress} defaultOpen={openLevelDetails} />
+    ) : (
+      <ContentPlaceholder label="Loading overall level..." rowClassName="h-14" />
+    );
 
   return (
     <PageShell>
@@ -408,6 +423,7 @@ function InsightsPageContent() {
               rowClassName={INSIGHTS_KPI_PLACEHOLDER_CLASS}
               barsClassName="grid gap-2 sm:grid-cols-3"
             />
+            {levelSection}
             <ContentPlaceholder rowClassName={INSIGHTS_WEEKLY_CHART_HEIGHT_CLASS} />
           </div>
         ) : filteredPoints.length === 0 ? (
@@ -439,6 +455,7 @@ function InsightsPageContent() {
                 tone={kpiBadgeTone("count")}
               />
             </div>
+            {levelSection}
             <ExerciseProgressPanel report={exerciseProgress} defaultOpen={!openLevelDetails} />
             <CollapsibleSection title="Estimated one-rep max (1RM)" defaultOpen={false}>
               <p className="text-sm text-zinc-800">
@@ -453,7 +470,6 @@ function InsightsPageContent() {
                 <InsightsCompoundE1rmChart series={compoundE1rmSeries} events={planEvents} />
               </div>
             </CollapsibleSection>
-            <LiftComparisonPanel report={exerciseProgress} defaultOpen={openLevelDetails} />
             <PersonalBestsPanel rows={personalBestRows} />
             <CollapsibleSection title="Weekly sessions, volume & sets" defaultOpen={false}>
               {!hasTrendChartData ? (

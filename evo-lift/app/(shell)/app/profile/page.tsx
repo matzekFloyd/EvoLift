@@ -9,6 +9,7 @@ import { StatusNotice } from "@/app/components/status-notice";
 import { OverallLevelHistoryChart } from "@/app/components/chart-dynamic";
 import { overallLevelHistoryChart } from "@/app/components/overall-level-history-series";
 import { OverallLevelPanel } from "@/app/components/overall-level-panel";
+import { useOverallLevelCache } from "@/app/components/use-overall-level-cache";
 import { ProfileGoalColumn } from "@/app/profile/profile-goal-column";
 import { ProfileRecordsList } from "@/app/profile/profile-records-list";
 import { formatGoalBodyweightTarget } from "@/app/goals/goal-bodyweight-label";
@@ -17,12 +18,7 @@ import { isAssistanceExercise } from "@/lib/assistance-exercise";
 import { confirmSignedInUser } from "@/lib/confirm-signed-in-user";
 import { loadGoalsList, peekGoalsList, type GoalMilestoneRow } from "@/lib/goals-list-cache";
 import { loadCachedInsightsHistory, loadUserStrengthProfile } from "@/lib/insights-data";
-import {
-  profileOverallLevel,
-  profilePageSummary,
-  showProfileOverallLevel,
-  type ProfileOverallLevel,
-} from "@/lib/profile-overall-level";
+import { profilePageSummary, showProfileOverallLevel } from "@/lib/profile-overall-level";
 import { formatMilestoneTarget, type GoalProgress } from "@/lib/milestone-progress";
 import { profileGoalHighlights, type ProfileGoalCandidate } from "@/lib/profile-goal-highlights";
 import { buildProfileRecords, profileExerciseHref, type ProfileRecordRow } from "@/lib/profile-summary";
@@ -36,6 +32,8 @@ export default function ProfilePage() {
     const remembered = rememberedUserId();
     return remembered ? peekGoalsList(remembered) : null;
   });
+  const [userId, setUserId] = useState<string | null>(() => rememberedUserId());
+  const { snapshot: levelSnapshot, ready: levelReady } = useOverallLevelCache(userId);
   const [isChecking, setIsChecking] = useState(true);
   const [records, setRecords] = useState<ProfileRecordRow[]>([]);
   const [goalRows, setGoalRows] = useState<GoalMilestoneRow[]>(cachedGoals?.rows ?? []);
@@ -46,7 +44,6 @@ export default function ProfilePage() {
     () => new Map((cachedGoals?.exerciseOptions ?? []).map((option) => [option.id, option])),
   );
   const [bodyweightEntries, setBodyweightEntries] = useState(cachedGoals?.bodyweightEntries ?? []);
-  const [level, setLevel] = useState<ProfileOverallLevel | null>(null);
   const [recordsError, setRecordsError] = useState<string | null>(null);
   const [goalsError, setGoalsError] = useState<string | null>(null);
 
@@ -61,6 +58,7 @@ export default function ProfilePage() {
         router.replace("/login");
         return;
       }
+      setUserId(visit.userId);
 
       const [historyResult, strengthResult, goalsResult] = await Promise.all([
         loadCachedInsightsHistory(supabaseBrowserClient, visit.userId, { from: "", to: "" }).then(
@@ -79,24 +77,14 @@ export default function ProfilePage() {
       }
 
       if (historyResult.history) {
-        const hiddenExerciseIds = new Set(goalsResult.snapshot?.hiddenExerciseIds ?? []);
         setRecords(
           buildProfileRecords(
             historyResult.history.exerciseSets,
             strengthResult?.bodyweightEntries ?? [],
           ),
         );
-        setLevel(
-          profileOverallLevel({
-            samples: historyResult.history.exerciseSets,
-            hiddenExerciseIds,
-            profile: strengthResult,
-            today: getTodayYyyyMmDd(),
-          }),
-        );
         setRecordsError(null);
       } else {
-        setLevel(null);
         setRecordsError(historyResult.error);
       }
 
@@ -153,6 +141,7 @@ export default function ProfilePage() {
   }, [bodyweightEntries, exerciseById, goalRows, progressById]);
 
   const goalHighlights = useMemo(() => profileGoalHighlights(goalCandidates), [goalCandidates]);
+  const level = levelSnapshot?.level ?? null;
   const levelHistory = useMemo(
     () =>
       level?.overall
@@ -166,13 +155,13 @@ export default function ProfilePage() {
       <section>
         <h1 className="text-2xl font-semibold tracking-tight">Profile</h1>
         <p className="mt-1 text-sm text-zinc-600">
-          {profilePageSummary(isChecking || showProfileOverallLevel(level))}
+          {profilePageSummary(!levelReady || showProfileOverallLevel(level))}
         </p>
       </section>
 
       <div className="grid gap-4 lg:grid-cols-2">
-        {isChecking ? (
-          <ContentPlaceholder label="Loading overall level..." rows={2} rowClassName="h-16" />
+        {!levelReady ? (
+          <ContentPlaceholder label="Loading overall level..." rowClassName="h-72" />
         ) : showProfileOverallLevel(level) && level ? (
           <OverallLevelPanel
             overall={level.overall}

@@ -1,6 +1,7 @@
 import { invalidateAccountProfile } from "@/lib/account-profile-cache";
 import { invalidateGoalsList } from "@/lib/goals-list-cache";
 import { invalidateLoggedHistoryCaches } from "@/lib/logged-history-cache";
+import { invalidateOverallLevelCache } from "@/lib/overall-level-cache";
 import { invalidatePlansList } from "@/lib/plans-list-cache";
 import { invalidateTemplatesList } from "@/lib/templates-list-cache";
 
@@ -23,6 +24,7 @@ export function rememberedUserEmail(): string | null {
 export function clearSignedInMemory() {
   tabUser = null;
   invalidateLoggedHistoryCaches();
+  invalidateOverallLevelCache();
   invalidatePlansList();
   invalidateTemplatesList();
   invalidateGoalsList();
