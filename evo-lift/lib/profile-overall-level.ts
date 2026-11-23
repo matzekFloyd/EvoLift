@@ -9,6 +9,10 @@ import type { ExerciseWorkingSetSample, UserStrengthProfile } from "@/lib/insigh
 export type ProfileOverallLevel = {
   overall: OverallLifterLevel | null;
   hint: string | null;
+  sex: "female" | "male" | null;
+  ageYears: number | null;
+  ageIsApproximate: boolean;
+  bodyweightKg: number | null;
 };
 
 /** Overall level for Profile: every session through today, with hidden exercises left out. */
@@ -36,5 +40,12 @@ export function profileOverallLevel(input: {
       ageIsApproximate: age?.ageIsApproximate ?? false,
     },
   );
-  return { overall: report.overallLevel, hint: report.comparisonHint };
+  return {
+    overall: report.overallLevel,
+    hint: report.comparisonHint,
+    sex: input.profile?.sex ?? null,
+    ageYears: age?.ageYears ?? null,
+    ageIsApproximate: age?.ageIsApproximate ?? false,
+    bodyweightKg: input.profile?.bodyweightKg ?? null,
+  };
 }

@@ -40,6 +40,10 @@ describe("profileOverallLevel", () => {
       today: "2026-03-01",
     });
     assert.equal(rated.overall?.badge, "Advanced");
+    assert.equal(rated.sex, "male");
+    assert.equal(rated.ageYears, 30);
+    assert.equal(rated.ageIsApproximate, false);
+    assert.equal(rated.bodyweightKg, 75);
 
     const hiddenSquat = profileOverallLevel({
       samples,
