@@ -105,6 +105,8 @@ export type SessionDetailActionDeps = {
   warmupSuggestionsDisabledExerciseIds: ReadonlySet<string>;
   /** Per-exercise cap; missing or null keeps the full warmup ladder. */
   maxWarmupSetsByExerciseId: ReadonlyMap<string, number | null>;
+  onSessionCompleted?: (session: SessionRow) => void;
+  onSessionReopened?: () => void;
 };
 
 export function createSessionDetailActions(deps: SessionDetailActionDeps) {
@@ -866,6 +868,7 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
     setSession(data);
     clearMessage();
     setIsMarkingCompleted(false);
+    deps.onSessionCompleted?.(data);
   }
 
   async function undoSessionCompleted() {
@@ -943,6 +946,7 @@ export function createSessionDetailActions(deps: SessionDetailActionDeps) {
     setSession(data);
     clearMessage();
     setIsMarkingCompleted(false);
+    deps.onSessionReopened?.();
   }
 
   return {

@@ -3,8 +3,18 @@ import type { ProfileSex } from "@/lib/body-metrics";
 import { bodyweightOnOrBefore, type BodyweightLogEntry } from "@/lib/bodyweight-log";
 import type { ExerciseWorkingSetSample } from "@/lib/insights-data";
 import {
+  overallLevelHistory,
+  overallLevelInfluence,
+  overallLevelProgress,
+  overallLevelSource,
+  OVERALL_LEVEL_MIN_RECENT_LIFTS,
+  OVERALL_LEVEL_RECENT_DAYS,
+  type OverallLevelHistoryPoint,
+  type OverallLevelLift,
+  type OverallLevelProgress,
+} from "@/lib/overall-level-detail";
+import {
   classifyExrxLift,
-  EXRX_AGE_BAND,
   exrxLevelFromAverage,
   exrxLevelScore,
   exrxTableUrl,
@@ -55,6 +65,12 @@ export type OverallLifterLevel = {
   badge: string;
   detail: string;
   meta: string;
+  progress: OverallLevelProgress;
+  lifts: OverallLevelLift[];
+  /** Badge changes in the samples used for this report, through the range end. */
+  history: OverallLevelHistoryPoint[];
+  /** One line naming the published table. */
+  source: string;
 };
 
 export type ExerciseProgressReport = {
@@ -73,8 +89,8 @@ const MIN_SESSIONS = 3;
 const MIN_SPAN_DAYS = 14;
 const DOWN_KG = 2.5;
 /** A main lift counts toward a firm overall level only inside this window. */
-const OVERALL_RECENT_DAYS = 56;
-const MIN_RECENT_MAIN_LIFTS = 3;
+const OVERALL_RECENT_DAYS = OVERALL_LEVEL_RECENT_DAYS;
+const MIN_RECENT_MAIN_LIFTS = OVERALL_LEVEL_MIN_RECENT_LIFTS;
 
 /**
  * Steady monthly gain for someone past the first months of training.
@@ -502,7 +518,26 @@ type GradedMainLift = {
   level: ExrxLevel;
 };
 
-function buildOverallLevel(graded: GradedMainLift[], asOf: string | null): OverallLifterLevel | null {
+function overallLevelLifts(graded: GradedMainLift[], recent: GradedMainLift[], badge: string): OverallLevelLift[] {
+  const recentSlugs = new Set(recent.map((lift) => lift.row.slug));
+  const overallScore = badge === "Provisional" ? null : exrxLevelScore(badge as ExrxLevel);
+  return graded.map((lift) => ({
+    slug: lift.row.slug,
+    label: lift.row.label,
+    level: lift.level,
+    influence: !recentSlugs.has(lift.row.slug)
+      ? "left-out"
+      : overallScore == null || overallScore < 0
+        ? null
+        : overallLevelInfluence(exrxLevelScore(lift.level), overallScore),
+  }));
+}
+
+function buildOverallLevel(
+  graded: GradedMainLift[],
+  asOf: string | null,
+  source: string,
+): OverallLifterLevel | null {
   if (graded.length === 0 || asOf == null) {
     return null;
   }
@@ -510,6 +545,7 @@ function buildOverallLevel(graded: GradedMainLift[], asOf: string | null): Overa
   const recent = graded.filter(
     (lift) => lift.row.bestPerformedOn != null && lift.row.bestPerformedOn >= cutoff && lift.row.bestPerformedOn <= asOf,
   );
+  const emptyProgress: OverallLevelProgress = { fraction: null, nextLabel: null };
   if (recent.length < MIN_RECENT_MAIN_LIFTS) {
     const meta =
       recent.length === 0
@@ -520,10 +556,15 @@ function buildOverallLevel(graded: GradedMainLift[], asOf: string | null): Overa
       detail:
         "An overall level needs a best in the last 8 weeks on at least 3 of the 4 main barbell lifts.",
       meta,
+      progress: emptyProgress,
+      lifts: overallLevelLifts(graded, recent, "Provisional"),
+      history: [],
+      source,
     };
   }
   const average =
     recent.reduce((sum, lift) => sum + exrxLevelScore(lift.level), 0) / recent.length;
+  const badge = exrxLevelFromAverage(average);
   const leftOut = graded.filter((lift) => !recent.includes(lift));
   let detail = `${joinLabels(recent.map((lift) => lift.row.label))} each count the same.`;
   if (leftOut.length > 0) {
@@ -534,9 +575,13 @@ function buildOverallLevel(graded: GradedMainLift[], asOf: string | null): Overa
         : ` ${names} are outside the last 8 weeks, so they are left out.`;
   }
   return {
-    badge: exrxLevelFromAverage(average),
+    badge,
     detail,
     meta: `${recent.length} of 4 main lifts in the last 8 weeks.`,
+    progress: overallLevelProgress(average, badge),
+    lifts: overallLevelLifts(graded, recent, badge),
+    history: [],
+    source,
   };
 }
 
@@ -544,6 +589,7 @@ function buildPublicComparison(
   rows: ExerciseProgressRow[],
   profile: LifterProfile,
   asOf: string | null,
+  samples: readonly ExerciseWorkingSetSample[],
 ): {
   publicNotes: LiftBalanceNote[];
   overallLevel: OverallLifterLevel | null;
@@ -582,7 +628,7 @@ function buildPublicComparison(
     };
   }
 
-  const sexWord = profile.sex === "female" ? "women" : "men";
+  const source = profile.sex ? overallLevelSource(profile.sex) : "";
   const publicNotes: LiftBalanceNote[] = [];
   const gradedMainLifts: GradedMainLift[] = [];
   for (const row of gradedLifts) {
@@ -621,14 +667,21 @@ function buildPublicComparison(
   if (profile.ageIsApproximate) {
     hints.push("Age is estimated from the year of birth on your profile.");
   }
+  const overallLevel = buildOverallLevel(gradedMainLifts, asOf, source);
+  if (overallLevel && asOf && profile.sex) {
+    overallLevel.history = overallLevelHistory({
+      samples,
+      sex: profile.sex,
+      bodyweightKg: profile.bodyweightKg,
+      bodyweightEntries: profile.bodyweightEntries,
+      asOf,
+    });
+  }
   return {
     publicNotes,
-    overallLevel: buildOverallLevel(gradedMainLifts, asOf),
+    overallLevel,
     comparisonHint: hints.length > 0 ? hints.join(" ") : null,
-    standardsCaption:
-      publicNotes.length > 0
-        ? `Levels use the ExRx table for ${sexWord}, ages ${EXRX_AGE_BAND}.`
-        : null,
+    standardsCaption: publicNotes.length > 0 ? source : null,
   };
 }
 
@@ -783,7 +836,7 @@ export function buildExerciseProgressReport(
     return left.label.localeCompare(right.label);
   });
 
-  const comparison = buildPublicComparison(rows, profile, overallAsOf(range.to, rows));
+  const comparison = buildPublicComparison(rows, profile, overallAsOf(range.to, rows), filtered);
 
   return {
     summary: buildSummary(rows),

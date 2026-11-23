@@ -154,6 +154,10 @@ describe("comparison insight rows", () => {
       badge: "Advanced",
       detail: "Barbell Back Squat, Barbell Bench Press, and Barbell Deadlift each count the same.",
       meta: "3 of 4 main lifts in the last 8 weeks.",
+      progress: { fraction: 0.5, nextLabel: "Elite" },
+      lifts: [],
+      history: [],
+      source: "ExRx.net standards for men, ages 18–39.",
     });
     assert.equal(rated.title, "Overall level");
     assert.equal(rated.href, null);
@@ -165,6 +169,10 @@ describe("comparison insight rows", () => {
       badge: "Provisional",
       detail: "An overall level needs a best in the last 8 weeks on at least 3 of the 4 main barbell lifts.",
       meta: "2 of 4 main lifts in the last 8 weeks.",
+      progress: { fraction: null, nextLabel: null },
+      lifts: [],
+      history: [],
+      source: "ExRx.net standards for men, ages 18–39.",
     });
     assert.equal(provisional.badgeTone, "neutral");
     assert.match(provisional.badgeDescription, /not a full rating/);

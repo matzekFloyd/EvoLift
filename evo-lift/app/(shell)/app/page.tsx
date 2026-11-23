@@ -13,6 +13,7 @@ import { PageShell } from "@/app/components/page-shell";
 import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
 import { ActivePlanPanel } from "@/app/components/active-plan-panel";
+import { HomeOverallLevelBadge } from "@/app/components/home-overall-level-badge";
 import { NewSessionDraftCallout } from "@/app/components/new-session-draft-callout";
 import { SessionsTable, type SessionsTableRow } from "@/app/components/sessions-table";
 import { ActivityDaySessionDialog } from "@/app/components/activity-day-session-dialog";
@@ -567,13 +568,17 @@ export default function Home() {
           ) : null}
         </section>
       ) : null}
-      <ActivePlanPanel
-        forwardActionTaken={!planIsFocal && planOwnsForwardAction}
-        openingSessionId={openingSessionId}
-        onOpenSession={openSession}
-        onPlanOpenSessionIdsChange={handlePlanOpenSessionIdsChange}
-        onForwardActionChange={handlePlanOwnsForwardAction}
-      />
+      <div className="grid items-stretch gap-4 lg:grid-cols-[auto_minmax(0,1fr)]">
+        {userId ? <HomeOverallLevelBadge userId={userId} /> : null}
+        <ActivePlanPanel
+          className="lg:only:col-span-2"
+          forwardActionTaken={!planIsFocal && planOwnsForwardAction}
+          openingSessionId={openingSessionId}
+          onOpenSession={openSession}
+          onPlanOpenSessionIdsChange={handlePlanOpenSessionIdsChange}
+          onForwardActionChange={handlePlanOwnsForwardAction}
+        />
+      </div>
       <section className="space-y-3" aria-busy={isChecking}>
         {sessionsError ? (
           <div className="space-y-3">

@@ -1,9 +1,13 @@
 import Link from "next/link";
 import { overallLevelFacts, type OverallLevelFacts } from "@/app/components/overall-level-facts";
-import { LEVEL_FIGURE_VIEW_BOX, levelFigure, markedOverallLevel } from "@/app/components/overall-level-figure";
+import { markedOverallLevel } from "@/app/components/overall-level-figure";
+import { OverallLevelBody } from "@/app/components/overall-level-body";
+import { OverallLevelProgressBar } from "@/app/components/overall-level-progress-bar";
+import { StrengthStandardsSource } from "@/app/components/strength-standards-source";
+import { insightsLevelDetailsHref } from "@/app/insights/insights-presets";
+import { actionLinkClassName } from "@/app/components/inline-link-class";
 import { appPath } from "@/lib/app-paths";
 import type { OverallLifterLevel } from "@/lib/exercise-progress-insights";
-import type { ExrxLevel } from "@/lib/strength-standards";
 
 type OverallLevelPanelProps = {
   overall: OverallLifterLevel | null;
@@ -11,19 +15,6 @@ type OverallLevelPanelProps = {
   facts: OverallLevelFacts;
   className?: string;
 };
-
-function LevelBody({ level }: { level: ExrxLevel }) {
-  const figure = levelFigure(level);
-  return (
-    <svg viewBox={LEVEL_FIGURE_VIEW_BOX} className="h-36 w-auto sm:h-44" aria-hidden>
-      <path d={figure.body} className="fill-sky-500 stroke-sky-950" strokeWidth="1.6" strokeLinejoin="round" />
-      <path d={figure.head} className="fill-sky-500 stroke-sky-950" strokeWidth="1.6" strokeLinejoin="round" />
-      {figure.seams.map((seamPath) => (
-        <path key={seamPath} d={seamPath} fill="none" className="stroke-sky-950" strokeWidth="1.1" strokeLinecap="round" />
-      ))}
-    </svg>
-  );
-}
 
 export function OverallLevelPanel({ overall, hint, facts, className }: OverallLevelPanelProps) {
   const marked = markedOverallLevel(overall?.badge ?? null);
@@ -37,7 +28,7 @@ export function OverallLevelPanel({ overall, hint, facts, className }: OverallLe
       <div className="flex items-center gap-x-5 sm:gap-x-8">
         {marked ? (
           <div className="shrink-0">
-            <LevelBody level={marked} />
+            <OverallLevelBody level={marked} className="sm:h-44" />
           </div>
         ) : null}
         <dl className="grid grid-cols-[max-content_auto] items-baseline gap-x-6 gap-y-2 text-sm">
@@ -68,6 +59,13 @@ export function OverallLevelPanel({ overall, hint, facts, className }: OverallLe
       </div>
       {overall && marked == null ? (
         <p className="max-w-prose text-sm leading-relaxed text-zinc-800">{overall.detail}</p>
+      ) : null}
+      {overall ? <OverallLevelProgressBar progress={overall.progress} /> : null}
+      {overall?.source ? <StrengthStandardsSource source={overall.source} /> : null}
+      {overall ? (
+        <Link href={insightsLevelDetailsHref()} className={actionLinkClassName}>
+          Level details
+        </Link>
       ) : null}
       {!overall && hint ? <p className="max-w-prose text-sm leading-relaxed text-zinc-800">{hint}</p> : null}
     </section>

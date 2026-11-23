@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 import { getDefaultDateRange } from "@/lib/session-date";
-import { getInsightsPresetRange } from "./insights-presets";
+import { getInsightsPresetRange, insightsLevelDetailsHref, insightsOpeningRange } from "./insights-presets";
 
 const today = new Date(2026, 9, 14);
 
@@ -15,5 +15,12 @@ describe("getInsightsPresetRange", () => {
 
   it("leaves the start open for all", () => {
     assert.deepEqual(getInsightsPresetRange("all", today), { from: "", to: "2026-10-14" });
+  });
+
+  it("opens level details on every session", () => {
+    assert.equal(insightsLevelDetailsHref(), "/app/insights?range=all#overall-level");
+    assert.equal(insightsOpeningRange("all"), "all");
+    assert.equal(insightsOpeningRange(null), "12w");
+    assert.equal(insightsOpeningRange("12w"), "12w");
   });
 });

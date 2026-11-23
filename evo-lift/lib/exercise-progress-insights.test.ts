@@ -119,7 +119,7 @@ describe("buildExerciseProgressReport", () => {
     });
     assert.equal(report.publicNotes[0]?.badge, "Novice");
     assert.equal(report.publicNotes[0]?.detail, "");
-    assert.match(report.standardsCaption ?? "", /ExRx table for men, ages 18–39/);
+    assert.match(report.standardsCaption ?? "", /ExRx.net standards for men, ages 18–39/);
     assert.match(report.publicNotes[0]?.tableHref ?? "", /exrx\.net/);
   });
 
@@ -289,6 +289,17 @@ describe("buildExerciseProgressReport", () => {
     assert.match(report.overallLevel?.detail ?? "", /each count the same/);
     assert.match(report.overallLevel?.detail ?? "", /Barbell Overhead Press is outside the last 8 weeks/);
     assert.equal(report.overallLevel?.meta, "3 of 4 main lifts in the last 8 weeks.");
+    assert.equal(report.overallLevel?.source, "ExRx.net standards for men, ages 18–39.");
+    assert.equal(report.standardsCaption, "ExRx.net standards for men, ages 18–39.");
+    assert.equal(report.overallLevel?.lifts.find((lift) => lift.slug === "back-squat")?.influence, "pulls-up");
+    assert.equal(
+      report.overallLevel?.lifts.find((lift) => lift.slug === "barbell-bench-press")?.influence,
+      "holds-back",
+    );
+    assert.equal(report.overallLevel?.lifts.find((lift) => lift.slug === "deadlift")?.influence, "matches");
+    assert.equal(report.overallLevel?.lifts.find((lift) => lift.slug === "overhead-press")?.influence, "left-out");
+    assert.equal(report.overallLevel?.progress.nextLabel, "Elite");
+    assert.equal(report.overallLevel?.history.at(-1)?.badge, "Advanced");
   });
 
   it("keeps the overall level provisional until 3 main lifts are recent", () => {
