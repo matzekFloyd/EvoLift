@@ -151,7 +151,7 @@ export default function ProfilePage() {
     <PageShell>
       <section>
         <h1 className="text-2xl font-semibold tracking-tight">Profile</h1>
-        <p className="mt-1 text-sm text-zinc-600">Your overall level, personal records, and goals you have reached.</p>
+        <p className="mt-1 text-sm text-zinc-600">Your overall level, personal records, and latest reached goals.</p>
       </section>
 
       <div className="grid gap-4 lg:grid-cols-2">
@@ -177,9 +177,7 @@ export default function ProfilePage() {
       <section className="panel flex min-w-0 flex-col gap-3 p-5">
         <SectionHeading>Personal records</SectionHeading>
         <p className="text-sm text-zinc-800">
-          Best weight is the highest Loaded (kg), or the lowest assistance on Assisted Dip and Assisted
-          Pull-Up. Estimated 1RM uses working sets of 12 reps or fewer, and the date is when that mark
-          was first hit.
+          Estimated 1RM uses working sets of 12 reps or fewer. The date is when that mark was first hit.
         </p>
         {isChecking ? (
           <ContentPlaceholder label="Loading personal records..." rows={4} rowClassName="h-12" />

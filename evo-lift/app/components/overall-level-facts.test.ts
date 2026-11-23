@@ -14,13 +14,13 @@ describe("overallLevelFacts", () => {
     );
   });
 
-  it("says Not set when a metric is missing, and About when age is a birth year", () => {
+  it("leaves a metric empty when it is missing, and says About when age is a birth year", () => {
     assert.deepEqual(
       overallLevelFacts({ sex: null, ageYears: 34, ageIsApproximate: true, bodyweightKg: null }),
       [
-        { label: "Sex", value: "Not set" },
+        { label: "Sex", value: null },
         { label: "Age", value: "About 34" },
-        { label: "Bodyweight", value: "Not set" },
+        { label: "Bodyweight", value: null },
       ],
     );
   });

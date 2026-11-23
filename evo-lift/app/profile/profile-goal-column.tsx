@@ -41,7 +41,10 @@ export function ProfileGoalColumn({ highlights, error, checking }: ProfileGoalCo
     <section className="panel flex h-full min-w-0 flex-col gap-3 p-5" aria-labelledby="profile-goal-highlights">
       <div className="flex items-baseline justify-between gap-3">
         <SectionHeading id="profile-goal-highlights">{heading}</SectionHeading>
-        <Link href={appPath("/goals")} className="text-sm font-medium text-sky-800 underline-offset-2 hover:underline">
+        <Link
+          href={appPath("/goals")}
+          className="text-sm font-medium text-sky-800 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60"
+        >
           Open Goals
         </Link>
       </div>
@@ -52,24 +55,24 @@ export function ProfileGoalColumn({ highlights, error, checking }: ProfileGoalCo
       ) : highlights.goals.length === 0 ? (
         <p className="text-sm text-zinc-600">No goals yet.</p>
       ) : (
-        <ul className="flex flex-col gap-3">
+        <ul className="flex min-h-0 flex-1 flex-col divide-y divide-zinc-200">
           {highlights.goals.map((goal) => {
             const showMeter =
               highlights.mode === "closest" &&
               goalMeterVisible({ percent: goal.percent, achieved: goal.achieved });
             return (
-              <li key={goal.id}>
+              <li key={goal.id} className="flex flex-1 flex-col justify-center py-3 first:pt-0 last:pb-0">
                 <ExerciseName slug={goal.slug}>
                   <Link
                     href={goal.href}
-                    className="text-sm font-medium text-zinc-900 underline-offset-2 hover:text-sky-800 hover:underline"
+                    className="text-sm font-medium text-zinc-900 underline-offset-2 hover:text-sky-800 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60"
                   >
                     {goal.label}
                   </Link>
                 </ExerciseName>
-                <p className="text-sm text-zinc-800">{goal.targetLabel}</p>
+                <p className="text-sm text-zinc-600">{goal.targetLabel}</p>
                 {highlights.mode === "achieved" && goal.achievedAt ? (
-                  <p className="mt-0.5 text-xs tabular-nums text-zinc-500">
+                  <p className="mt-0.5 text-sm tabular-nums text-zinc-800">
                     Achieved {formatAchievedOn(goal.achievedAt)}
                   </p>
                 ) : null}

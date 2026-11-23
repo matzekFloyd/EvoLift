@@ -14,25 +14,31 @@ function MarkBlock({
   date,
   hideLabelOnWide,
   showDate,
+  note,
 }: {
   label: string;
   value: string;
   date: string;
   hideLabelOnWide: boolean;
   showDate: boolean;
+  /** Visible clarification when the column header does not name this mark. */
+  note?: string;
 }) {
   const empty = value === "—";
   return (
     <div className="min-w-0">
-      <p className="text-[11px] font-medium leading-snug text-zinc-500">
-        <span className={hideLabelOnWide ? "md:sr-only" : undefined}>{label}</span>
-        {hideLabelOnWide ? (
-          <span aria-hidden className="invisible hidden md:inline">
-            {label}
-          </span>
-        ) : null}
-      </p>
+      {note ? null : (
+        <p className="text-[11px] font-medium leading-snug text-zinc-500">
+          <span className={hideLabelOnWide ? "md:sr-only" : undefined}>{label}</span>
+          {hideLabelOnWide ? (
+            <span aria-hidden className="invisible hidden md:inline">
+              {label}
+            </span>
+          ) : null}
+        </p>
+      )}
       <p className="text-sm font-medium tabular-nums text-zinc-900">{value}</p>
+      {note ? <p className="text-sm text-zinc-800">{note}</p> : null}
       {empty || !showDate ? null : <p className="text-xs tabular-nums text-zinc-500">{date}</p>}
     </div>
   );
@@ -83,6 +89,7 @@ export function ProfileRecordsList({ rows }: { rows: ProfileRecordRow[] }) {
                   date={formatPersonalBestDate(row.bestWeight)}
                   hideLabelOnWide={weightLabel === weightColumn}
                   showDate={sharedDate == null}
+                  note={row.isAssistance && weightColumn === "Best weight" ? "Least assistance" : undefined}
                 />
                 <MarkBlock
                   label="Estimated 1RM"

@@ -7,15 +7,16 @@ export type OverallLevelFacts = {
 
 export type OverallLevelFact = {
   label: "Sex" | "Age" | "Bodyweight";
-  value: string;
+  /** Null when the lifter has not set this in Settings. */
+  value: string | null;
 };
 
-/** The three body metrics shown beside the overall-level figure. */
+/** The three body metrics shown with the overall-level figure. */
 export function overallLevelFacts(facts: OverallLevelFacts): OverallLevelFact[] {
-  const sex = facts.sex === "female" ? "Female" : facts.sex === "male" ? "Male" : "Not set";
+  const sex = facts.sex === "female" ? "Female" : facts.sex === "male" ? "Male" : null;
   const age =
-    facts.ageYears == null ? "Not set" : facts.ageIsApproximate ? `About ${facts.ageYears}` : String(facts.ageYears);
-  const bodyweight = facts.bodyweightKg == null ? "Not set" : `${facts.bodyweightKg.toFixed(1)} kg`;
+    facts.ageYears == null ? null : facts.ageIsApproximate ? `About ${facts.ageYears}` : String(facts.ageYears);
+  const bodyweight = facts.bodyweightKg == null ? null : `${facts.bodyweightKg.toFixed(1)} kg`;
   return [
     { label: "Sex", value: sex },
     { label: "Age", value: age },
