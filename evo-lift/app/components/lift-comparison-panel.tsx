@@ -4,6 +4,7 @@ import { exerciseDetailRankRow, exerciseLeadDetail } from "@/app/components/insi
 import {
   comparisonInsightRow,
   InsightRowList,
+  overallLevelInsightRow,
   progressInsightRow,
   TextWithExRxTableLink,
 } from "@/app/components/insight-row-list";
@@ -70,9 +71,21 @@ export function LiftComparisonPanel({
             40, ExRx publishes lower tables that this screen does not use, so the label can look harder than
             an age-matched table.
           </p>
+          <p>
+            The overall level is the nearest of those labels to the average of Barbell Back Squat, Barbell
+            Bench Press, Barbell Deadlift, and Barbell Overhead Press. Each of those lifts counts the same.
+            A lift counts only when its best in this range falls in the last 8 weeks before the end of the
+            range. With fewer than 3 of the 4 in that window, the overall level stays provisional. Machine
+            and isolation exercises are left out. The level on each lift stays the same.
+          </p>
         </div>
       </details>
-      <InsightRowList rows={notes.map((note) => comparisonInsightRow(note))} />
+      <InsightRowList
+        rows={[
+          ...(report.overallLevel ? [overallLevelInsightRow(report.overallLevel)] : []),
+          ...notes.map((note) => comparisonInsightRow(note)),
+        ]}
+      />
       {report.comparisonHint ? (
         <p className="mt-3 text-xs text-zinc-600">{report.comparisonHint}</p>
       ) : null}

@@ -37,6 +37,7 @@ describe("insights payload", () => {
       history,
       profile: emptyProfile,
     });
+    assert.equal(payload.overall_level, null);
     assert.equal(payload.totals.workouts, 2);
     assert.equal(payload.totals.volume_kg, 300);
     assert.equal(payload.weekly[3]?.moving_average_volume_kg, 25);

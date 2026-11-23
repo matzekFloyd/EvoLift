@@ -113,6 +113,11 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
       "The part of the body an exercise trains. Each exercise has a primary muscle area and sometimes a secondary one.",
   },
   {
+    term: "Overall level",
+    definition:
+      "One ExRx level for Barbell Back Squat, Barbell Bench Press, Barbell Deadlift, and Barbell Overhead Press. It is the average of those per-exercise levels when at least 3 of the 4 have a best in the last 8 weeks. Otherwise it stays provisional. Machines and isolation exercises are left out.",
+  },
+  {
     term: "Personal best",
     definition:
       "On Insights, your strongest working sets in the selected date range. Best set is the highest Total (kg), then reps. Heaviest load is the highest Loaded (kg). Each mark shows the date it was first hit. Warmups do not count. On Assisted Dip and Assisted Pull-Up, Best set is the lowest assistance, then more reps, then the earlier date. Least assistance is the lowest Assistance (kg), then the earlier date. 0 kg is unassisted bodyweight. Set history on an exercise uses that same Best set ranking and marks the set with a medal.",
@@ -130,7 +135,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Profile",
     definition:
-      "Your achievements across every session: best weight and estimated 1RM for each exercise, and goals you have reached. Best weight is the highest Loaded (kg). Estimated 1RM uses working sets of 12 reps or fewer. Each mark shows the date it was first hit. Warmups do not count. On Assisted Dip and Assisted Pull-Up, best weight is the lowest Assistance (kg). Estimated 1RM for those exercises, and for Dip, needs a bodyweight entry on or before the session.",
+      "Your achievements across every session: overall level, best weight and estimated 1RM for each exercise, and the latest reached goals. Best weight is the highest Loaded (kg). Estimated 1RM uses working sets of 12 reps or fewer. Each mark shows the date it was first hit. Warmups do not count. On Assisted Dip and Assisted Pull-Up, best weight is the lowest Assistance (kg). Estimated 1RM for those exercises, and for Dip, needs a bodyweight entry on or before the session.",
   },
   {
     term: "Reps",

@@ -101,7 +101,9 @@ export function buildProfileRecords(
 }
 
 /** Newest achievement first. A missing date sorts last. Equal dates use the exercise name. */
-export function sortProfileAchievedGoals(goals: readonly ProfileAchievedGoal[]): ProfileAchievedGoal[] {
+export function sortProfileAchievedGoals<T extends Pick<ProfileAchievedGoal, "achievedAt" | "label">>(
+  goals: readonly T[],
+): T[] {
   return [...goals].sort((left, right) => {
     const byDate = (right.achievedAt ?? "").localeCompare(left.achievedAt ?? "");
     if (byDate !== 0) {

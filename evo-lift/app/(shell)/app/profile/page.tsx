@@ -1,48 +1,27 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ContentPlaceholder } from "@/app/components/content-placeholder";
-import { ExerciseName } from "@/app/components/exercise-badge-chip";
 import { PageShell } from "@/app/components/page-shell";
 import { SectionHeading } from "@/app/components/section-heading";
 import { StatusNotice } from "@/app/components/status-notice";
+import { OverallLevelPanel } from "@/app/components/overall-level-panel";
+import { ProfileGoalColumn } from "@/app/profile/profile-goal-column";
 import { ProfileRecordsList } from "@/app/profile/profile-records-list";
 import { formatGoalBodyweightTarget } from "@/app/goals/goal-bodyweight-label";
 import { definitionFromRow, storedFromRow } from "@/app/goals/goal-row";
 import { isAssistanceExercise } from "@/lib/assistance-exercise";
 import { confirmSignedInUser } from "@/lib/confirm-signed-in-user";
-import { formatDateOnlyForLocale } from "@/lib/date-format";
 import { loadGoalsList, peekGoalsList, type GoalMilestoneRow } from "@/lib/goals-list-cache";
 import { loadCachedInsightsHistory, loadUserStrengthProfile } from "@/lib/insights-data";
+import { profileOverallLevel, type ProfileOverallLevel } from "@/lib/profile-overall-level";
 import { formatMilestoneTarget, type GoalProgress } from "@/lib/milestone-progress";
-import { appPath } from "@/lib/app-paths";
-import {
-  buildProfileRecords,
-  profileExerciseHref,
-  sortProfileAchievedGoals,
-  type ProfileAchievedGoal,
-  type ProfileRecordRow,
-} from "@/lib/profile-summary";
+import { profileGoalHighlights, type ProfileGoalCandidate } from "@/lib/profile-goal-highlights";
+import { buildProfileRecords, profileExerciseHref, type ProfileRecordRow } from "@/lib/profile-summary";
 import { rememberedUserId } from "@/lib/signed-in-memory";
 import { getTodayYyyyMmDd } from "@/lib/session-date";
 import { supabaseBrowserClient } from "@/lib/supabase/browser";
-
-function formatAchievedOn(iso: string): string {
-  if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
-    return formatDateOnlyForLocale(iso);
-  }
-  const parsed = new Date(iso);
-  if (Number.isNaN(parsed.getTime())) {
-    return iso;
-  }
-  return new Intl.DateTimeFormat(undefined, {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  }).format(parsed);
-}
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -60,6 +39,7 @@ export default function ProfilePage() {
     () => new Map((cachedGoals?.exerciseOptions ?? []).map((option) => [option.id, option])),
   );
   const [bodyweightEntries, setBodyweightEntries] = useState(cachedGoals?.bodyweightEntries ?? []);
+  const [level, setLevel] = useState<ProfileOverallLevel | null>(null);
   const [recordsError, setRecordsError] = useState<string | null>(null);
   const [goalsError, setGoalsError] = useState<string | null>(null);
 
@@ -92,14 +72,24 @@ export default function ProfilePage() {
       }
 
       if (historyResult.history) {
+        const hiddenExerciseIds = new Set(goalsResult.snapshot?.hiddenExerciseIds ?? []);
         setRecords(
           buildProfileRecords(
             historyResult.history.exerciseSets,
             strengthResult?.bodyweightEntries ?? [],
           ),
         );
+        setLevel(
+          profileOverallLevel({
+            samples: historyResult.history.exerciseSets,
+            hiddenExerciseIds,
+            profile: strengthResult,
+            today: getTodayYyyyMmDd(),
+          }),
+        );
         setRecordsError(null);
       } else {
+        setLevel(null);
         setRecordsError(historyResult.error);
       }
 
@@ -120,13 +110,13 @@ export default function ProfilePage() {
     };
   }, [router]);
 
-  const achievedGoals = useMemo(() => {
+  const goalCandidates = useMemo(() => {
     const today = getTodayYyyyMmDd();
-    const goals: ProfileAchievedGoal[] = [];
+    const goals: ProfileGoalCandidate[] = [];
     for (const row of goalRows) {
       const progress = progressById.get(row.id);
       const exercise = exerciseById.get(row.exercise_id);
-      if (!progress || progress.kind !== "achieved" || !exercise) {
+      if (!progress || !exercise) {
         continue;
       }
       const definition = definitionFromRow(row);
@@ -146,25 +136,48 @@ export default function ProfilePage() {
         slug: exercise.slug,
         href: profileExerciseHref(exercise.slug),
         targetLabel,
-        achievedAt: progress.achievedAt,
+        achievedAt: progress.kind === "achieved" ? progress.achievedAt : null,
+        percent: progress.kind === "missing_bodyweight" ? null : progress.percent,
+        pastDue: progress.pastDue,
+        achieved: progress.kind === "achieved",
       });
     }
-    return sortProfileAchievedGoals(goals);
+    return goals;
   }, [bodyweightEntries, exerciseById, goalRows, progressById]);
+
+  const goalHighlights = useMemo(() => profileGoalHighlights(goalCandidates), [goalCandidates]);
 
   return (
     <PageShell>
       <section>
         <h1 className="text-2xl font-semibold tracking-tight">Profile</h1>
-        <p className="mt-1 text-sm text-zinc-600">Personal records and goals you have reached.</p>
+        <p className="mt-1 text-sm text-zinc-600">Your overall level, personal records, and latest reached goals.</p>
       </section>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        {isChecking ? (
+          <ContentPlaceholder label="Loading overall level..." rows={2} rowClassName="h-16" />
+        ) : recordsError || !level ? (
+          <div />
+        ) : (
+          <OverallLevelPanel
+            overall={level.overall}
+            hint={level.hint}
+            facts={{
+              sex: level.sex,
+              ageYears: level.ageYears,
+              ageIsApproximate: level.ageIsApproximate,
+              bodyweightKg: level.bodyweightKg,
+            }}
+          />
+        )}
+        <ProfileGoalColumn highlights={goalHighlights} error={goalsError} checking={isChecking} />
+      </div>
 
       <section className="panel flex min-w-0 flex-col gap-3 p-5">
         <SectionHeading>Personal records</SectionHeading>
         <p className="text-sm text-zinc-800">
-          Best weight is the highest Loaded (kg), or the lowest assistance on Assisted Dip and Assisted
-          Pull-Up. Estimated 1RM uses working sets of 12 reps or fewer, and the date is when that mark
-          was first hit.
+          Estimated 1RM uses working sets of 12 reps or fewer. The date is when that mark was first hit.
         </p>
         {isChecking ? (
           <ContentPlaceholder label="Loading personal records..." rows={4} rowClassName="h-12" />
@@ -174,45 +187,6 @@ export default function ProfilePage() {
           <p className="text-sm text-zinc-600">No working sets with a logged load yet.</p>
         ) : (
           <ProfileRecordsList rows={records} />
-        )}
-      </section>
-
-      <section className="flex min-w-0 flex-col gap-3">
-        <SectionHeading>Achieved goals</SectionHeading>
-        <p className="text-sm text-zinc-800">
-          Goals you have already reached.{" "}
-          <Link href={appPath("/goals")} className="font-medium text-sky-800 underline-offset-2 hover:underline">
-            Open Goals
-          </Link>{" "}
-          to change them.
-        </p>
-        {isChecking && achievedGoals.length === 0 ? (
-          <ContentPlaceholder label="Loading achieved goals..." rows={2} rowClassName="h-12" />
-        ) : goalsError ? (
-          <StatusNotice message={goalsError} tone="error" />
-        ) : achievedGoals.length === 0 ? (
-          <p className="text-sm text-zinc-600">No achieved goals yet.</p>
-        ) : (
-          <ul className="divide-y divide-zinc-200 overflow-hidden rounded-md border border-zinc-200 bg-white">
-            {achievedGoals.map((goal) => (
-              <li key={goal.id} className="px-3 py-2.5">
-                <ExerciseName slug={goal.slug}>
-                  <Link
-                    href={goal.href}
-                    className="text-sm font-medium text-zinc-900 underline-offset-2 hover:text-sky-800 hover:underline"
-                  >
-                    {goal.label}
-                  </Link>
-                </ExerciseName>
-                <p className="mt-1 text-sm text-zinc-800">{goal.targetLabel}</p>
-                {goal.achievedAt ? (
-                  <p className="mt-0.5 text-xs tabular-nums text-zinc-500">
-                    Achieved {formatAchievedOn(goal.achievedAt)}
-                  </p>
-                ) : null}
-              </li>
-            ))}
-          </ul>
         )}
       </section>
     </PageShell>
