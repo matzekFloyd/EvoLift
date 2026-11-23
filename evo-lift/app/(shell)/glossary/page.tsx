@@ -120,7 +120,7 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
   {
     term: "Overall level",
     definition:
-      "One ExRx level for Barbell Back Squat, Barbell Bench Press, Barbell Deadlift, and Barbell Overhead Press. It is the average of those per-exercise levels when at least 3 of the 4 have an estimated 1RM in the last 8 weeks. That estimate is the best inside those 8 weeks. An older best outside the window is left out. Otherwise the overall level stays provisional. Machines and isolation exercises are left out. The percent toward the next level is how far that average sits from the current level to the next. Home, Profile, and Insights state that percent and name the lifts still short of the next level. Home also notes when a finished session reaches a higher level. Profile and Insights show Evolution for that level.",
+      "One ExRx level for Barbell Back Squat, Barbell Bench Press, Barbell Deadlift, and Barbell Overhead Press. It is the average of those per-exercise levels when at least 3 of the 4 have an estimated 1RM in the last 8 weeks. That estimate is the best inside those 8 weeks. An older best outside the window is left out. Otherwise the overall level stays provisional. Machines and isolation exercises are left out. The percent toward the next level is how far that average sits from the current level to the next. Home, Profile, and Insights state that percent. Profile and Insights name the lifts still short of the next level. Home also notes when a finished session reaches a higher level. Profile and Insights show Evolution for that level.",
   },
   {
     term: "Personal best",
