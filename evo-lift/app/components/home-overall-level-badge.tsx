@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { markedOverallLevel } from "@/app/components/overall-level-figure";
 import { OverallLevelBody } from "@/app/components/overall-level-body";
-import { OverallLevelProgressBar, OverallLevelProgressExplanation } from "@/app/components/overall-level-progress-bar";
+import { OverallLevelProgressBar } from "@/app/components/overall-level-progress-bar";
 import { StatusNotice } from "@/app/components/status-notice";
 import { appPath } from "@/lib/app-paths";
 import { loadCachedInsightsHistory, loadUserStrengthProfile } from "@/lib/insights-data";
@@ -121,12 +121,6 @@ export function HomeOverallLevelBadge({ userId }: HomeOverallLevelBadgeProps) {
                   ) : null}
                 </div>
               </span>
-              <OverallLevelProgressExplanation
-                badge={overall.badge}
-                progress={overall.progress}
-                lifts={overall.lifts}
-                className="lg:max-w-sm"
-              />
             </Link>
           ) : null}
         </div>
