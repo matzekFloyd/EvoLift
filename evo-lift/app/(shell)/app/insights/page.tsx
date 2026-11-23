@@ -56,7 +56,11 @@ import {
   insightsComparisonPeriodName,
   insightsMarkedRange,
 } from "@/app/insights/insights-range";
-import { getInsightsPresetRange, insightsOpeningRange } from "@/app/insights/insights-presets";
+import {
+  getInsightsPresetRange,
+  insightsLevelDetailsRequested,
+  insightsOpeningDates,
+} from "@/app/insights/insights-presets";
 import { getTodayYyyyMmDd } from "@/lib/session-date";
 
 const emptyLifterProfile: LifterProfile = {
@@ -72,17 +76,20 @@ function InsightsPageContent() {
   const searchParams = useSearchParams();
   const todayYyyyMmDd = getTodayYyyyMmDd();
   const presetToday = useMemo(() => new Date(), []);
-  const [openLevelDetails] = useState(
-    () => typeof window !== "undefined" && window.location.hash === "#overall-level",
-  );
+  const [openLevelDetails, setOpenLevelDetails] = useState(false);
+  const [levelDetailsChecked, setLevelDetailsChecked] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [dateFrom, setDateFrom] = useState(
-    () => getInsightsPresetRange(insightsOpeningRange(searchParams.get("range")), presetToday).from,
+  const openingDates = insightsOpeningDates(
+    {
+      range: searchParams.get("range"),
+      from: searchParams.get("from"),
+      to: searchParams.get("to"),
+    },
+    presetToday,
   );
-  const [dateTo, setDateTo] = useState(
-    () => getInsightsPresetRange(insightsOpeningRange(searchParams.get("range")), presetToday).to,
-  );
+  const [dateFrom, setDateFrom] = useState(() => openingDates.from);
+  const [dateTo, setDateTo] = useState(() => openingDates.to);
   const [basePoints, setBasePoints] = useState<WorkoutActivityPoint[]>([]);
   const [weeklyVolumeBase, setWeeklyVolumeBase] = useState<WeeklyVolumePoint[]>([]);
   const [exerciseSets, setExerciseSets] = useState<ExerciseWorkingSetSample[]>([]);
@@ -94,6 +101,18 @@ function InsightsPageContent() {
   const [planEvents, setPlanEvents] = useState<ChartEvent[]>([]);
   const isMountedRef = useRef(true);
   const loadRequestRef = useRef(0);
+
+  useEffect(() => {
+    setOpenLevelDetails(insightsLevelDetailsRequested(window.location.hash));
+    setLevelDetailsChecked(true);
+  }, []);
+
+  useEffect(() => {
+    if (!openLevelDetails || isLoading) {
+      return;
+    }
+    document.getElementById("overall-level")?.scrollIntoView({ block: "start" });
+  }, [openLevelDetails, isLoading]);
 
   const loadInsights = useCallback(
     async (mode: "initial" | "refresh") => {
@@ -381,7 +400,7 @@ function InsightsPageContent() {
         </PanelInset>
         {errorMessage ? (
           <StatusNotice message={errorMessage} tone="error" />
-        ) : isLoading ? (
+        ) : isLoading || !levelDetailsChecked ? (
           <div className="space-y-3">
             <ContentPlaceholder
               label="Loading insights..."
@@ -420,7 +439,7 @@ function InsightsPageContent() {
                 tone={kpiBadgeTone("count")}
               />
             </div>
-            <ExerciseProgressPanel report={exerciseProgress} defaultOpen />
+            <ExerciseProgressPanel report={exerciseProgress} defaultOpen={!openLevelDetails} />
             <CollapsibleSection title="Estimated one-rep max (1RM)" defaultOpen={false}>
               <p className="text-sm text-zinc-800">
                 Best estimated 1RM per session for Barbell Back Squat, Bench Press, Deadlift, and

@@ -50,6 +50,55 @@ export function overallLevelProgress(average: number, badge: ExrxLevel): Overall
   return { fraction, nextLabel: next };
 }
 
+function joinLabels(labels: string[]): string {
+  if (labels.length <= 1) {
+    return labels[0] ?? "";
+  }
+  if (labels.length === 2) {
+    return `${labels[0]} and ${labels[1]}`;
+  }
+  return `${labels.slice(0, -1).join(", ")}, and ${labels[labels.length - 1]}`;
+}
+
+/**
+ * How the percent is placed between this level and the next, and which counted lifts are still below the next level.
+ * Null at Elite and while the overall level is provisional.
+ */
+export function overallLevelProgressNote(level: {
+  badge: string;
+  progress: OverallLevelProgress;
+  lifts: readonly OverallLevelLift[];
+}): string | null {
+  const nextLabel = level.progress.nextLabel;
+  if (level.progress.fraction == null || nextLabel == null || !isExrxLevel(nextLabel)) {
+    return null;
+  }
+  const counting = level.lifts.filter((lift) => lift.influence != null && lift.influence !== "left-out");
+  const nextScore = exrxLevelScore(nextLabel);
+  const short = counting.filter((lift) => {
+    const score = isExrxLevel(lift.level) ? exrxLevelScore(lift.level) : null;
+    return score != null && score < nextScore;
+  });
+  const leftOut = level.lifts.filter((lift) => lift.influence === "left-out");
+  const counted = counting.length;
+  const liftsWord = counted === 1 ? "lift" : "lifts";
+  const how =
+    counted > 0
+      ? `The percent is how far the average of ${counted} recent main ${liftsWord} sits from ${level.badge} toward ${nextLabel}. Each lift counts the same.`
+      : `The percent is how far the average of your recent main lifts sits from ${level.badge} toward ${nextLabel}.`;
+  const leftOutSentence =
+    leftOut.length === 0
+      ? null
+      : leftOut.length === 1
+        ? `${joinLabels(leftOut.map((lift) => lift.label))} is outside the last 8 weeks, so it is left out.`
+        : `${joinLabels(leftOut.map((lift) => lift.label))} are outside the last 8 weeks, so they are left out.`;
+  const shortSentence =
+    short.length === 0
+      ? null
+      : `${joinLabels(short.map((lift) => lift.label))} ${short.length === 1 ? "is" : "are"} still short of ${nextLabel}.`;
+  return [how, leftOutSentence, shortSentence].filter(Boolean).join(" ");
+}
+
 export function overallLevelInfluence(liftScore: number, overallScore: number): Exclude<OverallLevelInfluence, "left-out"> {
   if (liftScore > overallScore) {
     return "pulls-up";
@@ -60,17 +109,16 @@ export function overallLevelInfluence(liftScore: number, overallScore: number): 
   return "matches";
 }
 
-export function overallLevelInfluenceLabel(influence: OverallLevelInfluence): string {
-  switch (influence) {
-    case "pulls-up":
-      return "Pulls the level up";
-    case "holds-back":
-      return "Holds the level back";
-    case "matches":
-      return "Matches the level";
-    case "left-out":
-      return "Outside the last 8 weeks";
+/**
+ * Extra note on a main-lift row.
+ * The level name already shows whether the lift sits above, below, or with the overall level.
+ * A left-out lift still has a level, so the row has to say it does not count.
+ */
+export function overallLevelInfluenceLabel(influence: OverallLevelInfluence): string | null {
+  if (influence === "left-out") {
+    return "Outside the last 8 weeks";
   }
+  return null;
 }
 
 export function overallLevelSource(sex: "female" | "male"): string {

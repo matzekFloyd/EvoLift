@@ -1,7 +1,15 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 import { getDefaultDateRange } from "@/lib/session-date";
-import { getInsightsPresetRange, insightsLevelDetailsHref, insightsOpeningRange } from "./insights-presets";
+import { insightsMarkedRange } from "./insights-range";
+import {
+  getInsightsPresetRange,
+  insightsLevelDetailsHref,
+  insightsLevelWindow,
+  insightsLevelDetailsRequested,
+  insightsOpeningDates,
+  insightsOpeningRange,
+} from "./insights-presets";
 
 const today = new Date(2026, 9, 14);
 
@@ -17,8 +25,28 @@ describe("getInsightsPresetRange", () => {
     assert.deepEqual(getInsightsPresetRange("all", today), { from: "", to: "2026-10-14" });
   });
 
-  it("opens level details on every session", () => {
-    assert.equal(insightsLevelDetailsHref(), "/app/insights?range=all#overall-level");
+  it("opens level details on the last 8 weeks without a preset", () => {
+    assert.deepEqual(insightsLevelWindow("2026-10-14"), { from: "2026-08-19", to: "2026-10-14" });
+    assert.equal(
+      insightsLevelDetailsHref("2026-10-14"),
+      "/app/insights?from=2026-08-19&to=2026-10-14#overall-level",
+    );
+    assert.equal(insightsMarkedRange("2026-08-19", "2026-10-14", today), null);
+    assert.deepEqual(
+      insightsOpeningDates({ range: "all", from: "2026-08-19", to: "2026-10-14" }, today),
+      { from: "2026-08-19", to: "2026-10-14" },
+    );
+    assert.deepEqual(insightsOpeningDates({ range: "all", from: null, to: null }, today), {
+      from: "",
+      to: "2026-10-14",
+    });
+    assert.deepEqual(insightsOpeningDates({ range: null, from: "2026-13-01", to: "2026-10-14" }, today), {
+      from: "2026-07-23",
+      to: "2026-10-14",
+    });
+    assert.equal(insightsLevelDetailsRequested("#overall-level"), true);
+    assert.equal(insightsLevelDetailsRequested(""), false);
+    assert.equal(insightsLevelDetailsRequested("#exercise-progress"), false);
     assert.equal(insightsOpeningRange("all"), "all");
     assert.equal(insightsOpeningRange(null), "12w");
     assert.equal(insightsOpeningRange("12w"), "12w");

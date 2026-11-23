@@ -1,4 +1,4 @@
-import type { OverallLevelProgress } from "@/lib/overall-level-detail";
+import { overallLevelProgressNote, type OverallLevelLift, type OverallLevelProgress } from "@/lib/overall-level-detail";
 
 type OverallLevelProgressBarProps = {
   progress: OverallLevelProgress;
@@ -26,5 +26,30 @@ export function OverallLevelProgressBar({ progress, className }: OverallLevelPro
         <div className="h-full rounded-full bg-sky-600" style={{ width: `${percent}%` }} />
       </div>
     </div>
+  );
+}
+
+type OverallLevelProgressExplanationProps = {
+  badge: string;
+  progress: OverallLevelProgress;
+  lifts: readonly OverallLevelLift[];
+  className?: string;
+};
+
+/** Says how the percent is calculated and which lifts are still short of the next level. */
+export function OverallLevelProgressExplanation({
+  badge,
+  progress,
+  lifts,
+  className,
+}: OverallLevelProgressExplanationProps) {
+  const note = overallLevelProgressNote({ badge, progress, lifts });
+  if (!note) {
+    return null;
+  }
+  return (
+    <p className={["mt-3 max-w-prose text-sm leading-relaxed text-zinc-700", className].filter(Boolean).join(" ")}>
+      {note}
+    </p>
   );
 }
