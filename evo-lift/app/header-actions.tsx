@@ -48,10 +48,12 @@ type HeaderNavItem = {
   label: string;
   icon: LucideIcon;
   match: AppNavMatch;
+  /** Home stays in the compact menu. The wordmark is the desktop link to that page. */
+  compactOnly?: boolean;
 };
 
 const HEADER_NAV: HeaderNavItem[] = [
-  { href: APP_HOME_PATH, label: "Home", icon: House, match: "exact" },
+  { href: APP_HOME_PATH, label: "Home", icon: House, match: "exact", compactOnly: true },
   { href: appPath("/exercises"), label: "Exercises", icon: Dumbbell, match: "section" },
   { href: appPath("/insights"), label: "Insights", icon: BarChart3, match: "section" },
   { href: appPath("/reports"), label: "Reports", icon: FileText, match: "section" },
@@ -79,6 +81,8 @@ export function HeaderActions() {
     ...item,
     isActive: isAppNavItemActive(pathname, item.href, item.match),
   }));
+  const desktopNavItems = compactNavItems.filter((item) => !item.compactOnly);
+  const isHomePage = isAppNavItemActive(pathname, APP_HOME_PATH, "exact");
 
   useEffect(() => {
     let isMounted = true;
@@ -214,14 +218,20 @@ export function HeaderActions() {
       >
         <Link
           ref={compactLogoRef}
-          className="inline-flex items-center gap-2 rounded-md px-1.5 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 focus-visible:ring-offset-2 focus-visible:ring-offset-sky-100"
           href={APP_HOME_PATH}
+          aria-current={isHomePage ? "page" : undefined}
+          className={[
+            "inline-flex items-center gap-2 rounded-md px-1.5 py-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-700 focus-visible:ring-offset-2 focus-visible:ring-offset-sky-100",
+            isHomePage
+              ? "text-sky-950 underline decoration-2 underline-offset-4 decoration-sky-700"
+              : "text-sky-900",
+          ].join(" ")}
         >
           <EvoLiftMark className="h-8 w-8 shrink-0" />
-          <span className="text-lg leading-none font-bold tracking-[-0.04em] text-sky-900">EvoLift</span>
+          <span className="text-lg leading-none font-bold tracking-[-0.04em]">EvoLift</span>
         </Link>
         <div className="hidden shrink-0 items-center justify-end gap-1 lg:flex">
-          {compactNavItems.map((item) => (
+          {desktopNavItems.map((item) => (
             <AppHeaderNavLink
               key={item.href}
               href={item.href}

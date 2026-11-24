@@ -48,9 +48,13 @@ Examples:
 
 The signed-in header is the plate mark and the word **EvoLift** on the left, and the destinations on the right. Keep the light-sky gradient above, with no bottom border. The inner bar stays `max-w-5xl`, the same width as the page, so the wordmark lines up with the page title and the destinations line up with the page action.
 
-Destinations, in this order: Home, Exercises, Insights, Goals, Plans, Templates, Profile, Settings. Then **Log out**. Every destination is a Lucide icon plus that visible label. Keep the icons. Do not rename these items or add a destination in the header. Profile is achievements. Settings is account, body metrics, and preferences.
+Destinations, in this order: Exercises, Insights, Goals, Plans, Templates, Profile, Settings. Then **Log out**. Every destination is a Lucide icon plus that visible label. Keep the icons. Do not rename these items or add a destination in the header. Profile is achievements. Settings is account, body metrics, and preferences.
 
-The same items have two drawings. Keep both.
+The wordmark is the link to Home. Its visible name stays **EvoLift**. On the home page that link carries the current-page mark: `aria-current="page"`, `text-sky-950`, and a `decoration-sky-700` underline, the same mark a current desktop destination uses. On every other page it has neither the mark nor the underline, and the word stays `text-sky-900`.
+
+The desktop row does not list Home. Exercises is its first destination. The compact menu keeps Home as its first tile, because the wordmark sits above the sheet.
+
+The other destinations have two drawings. Keep both.
 
 - At `lg` (64rem) and wider, they are one row on the gradient. Idle labels are `text-zinc-900`. The current page is `text-sky-950` with a `decoration-sky-700` underline. Leave that row unfilled, so the page keeps the one filled sky action. Every item uses the same soft white hover wash. A `border-zinc-400` rule sits before Log out.
 - Below `lg`, a menu button opens a sheet over the page. Draw the items as a two-column tile grid (`grid-cols-2`). Idle tiles are white, with sky icons and `text-zinc-800` labels. The current page is one filled `bg-sky-700` tile with white text, because the sheet covers the page action. Log out is a tile in that grid. Glossary, Terms of use, and Privacy policy sit under a rule at the bottom of the sheet. This sheet is the navigation menu, not an `AppDialog`.

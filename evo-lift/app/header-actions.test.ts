@@ -39,7 +39,8 @@ vi.mock("@/lib/supabase/browser", () => ({
   },
 }));
 
-const DESTINATIONS = ["Home", "Exercises", "Insights", "Reports", "Goals", "Plans", "Templates", "Profile", "Settings", "Log out"];
+const DESKTOP_DESTINATIONS = ["Exercises", "Insights", "Reports", "Goals", "Plans", "Templates", "Profile", "Settings", "Log out"];
+const COMPACT_DESTINATIONS = ["Home", ...DESKTOP_DESTINATIONS];
 
 type MediaListener = () => void;
 
@@ -125,6 +126,14 @@ describe("header and navigation baseline", () => {
     return element;
   }
 
+  function wordmark(): HTMLAnchorElement {
+    const element = [...(container?.querySelectorAll("nav[aria-label='Main'] a") ?? [])].find(
+      (link) => link.textContent?.includes("EvoLift"),
+    );
+    assert.ok(element instanceof HTMLAnchorElement);
+    return element;
+  }
+
   function menuButton(): HTMLButtonElement {
     const element = container?.querySelector("button[aria-controls='compact-header-menu']");
     assert.ok(element instanceof HTMLButtonElement);
@@ -168,7 +177,8 @@ describe("header and navigation baseline", () => {
     await renderHeader();
 
     assert.equal(container?.querySelector("header")?.className.includes("from-sky-200"), true);
-    assert.equal(labelsIn(row()).join("|"), DESTINATIONS.join("|"));
+    assert.equal(labelsIn(row()).join("|"), DESKTOP_DESTINATIONS.join("|"));
+    assert.equal(labelsIn(row()).includes("Home"), false);
     assert.equal(container?.querySelector("[role='dialog']"), null);
     assert.equal(container?.querySelector(".grid-cols-2"), null);
 
@@ -177,14 +187,17 @@ describe("header and navigation baseline", () => {
     assert.equal(current.textContent?.trim(), "Templates");
     assert.match(current.className, /underline/);
     assert.match(current.className, /decoration-sky-700/);
+    assert.match(current.className, /text-sky-950/);
     assert.match(current.className, /px-1\.5/);
     assert.doesNotMatch(current.className, /bg-sky-700/);
     assert.match(current.querySelector("svg")?.getAttribute("class") ?? "", /h-4/);
 
-    const home = [...row().querySelectorAll("a")].find((element) => element.textContent?.trim() === "Home");
-    assert.ok(home instanceof HTMLElement);
-    assert.doesNotMatch(home.className, /underline/);
-    assert.match(home.className, /text-zinc-900/);
+    const mark = wordmark();
+    assert.equal(mark.getAttribute("href"), "/app");
+    assert.equal(mark.textContent?.includes("EvoLift"), true);
+    assert.equal(mark.getAttribute("aria-current"), null);
+    assert.doesNotMatch(mark.className, /underline/);
+    assert.match(mark.className, /text-sky-900/);
 
     const logOut = row().querySelector("button");
     assert.equal(logOut?.textContent?.trim(), "Log out");
@@ -195,6 +208,23 @@ describe("header and navigation baseline", () => {
     assert.equal(settings?.getAttribute("title"), "Settings — lifter@example.com");
     assert.equal(menuButton().getAttribute("aria-label"), "Open navigation menu");
     assert.equal(menuButton().getAttribute("aria-expanded"), "false");
+  });
+
+  it("marks the wordmark as the current page on Home and leaves the desktop row without Home", async () => {
+    pathname.current = "/app";
+    getUser.mockResolvedValue({
+      data: { user: { id: "user-1", email: "lifter@example.com" } },
+      error: null,
+    });
+    await renderHeader();
+
+    const mark = wordmark();
+    assert.equal(mark.getAttribute("aria-current"), "page");
+    assert.match(mark.className, /text-sky-950/);
+    assert.match(mark.className, /underline/);
+    assert.match(mark.className, /decoration-sky-700/);
+    assert.equal(labelsIn(row()).includes("Home"), false);
+    assert.equal(row().querySelector("[aria-current='page']"), null);
   });
 
   it("opens a two-column tile sheet and closes it from Escape back to the menu button", async () => {
@@ -214,7 +244,7 @@ describe("header and navigation baseline", () => {
     const grid = dialog.querySelector(".grid-cols-2");
     assert.ok(grid instanceof HTMLElement);
     assert.match(grid.className, /grid /);
-    assert.equal(labelsIn(grid).join("|"), DESTINATIONS.join("|"));
+    assert.equal(labelsIn(grid).join("|"), COMPACT_DESTINATIONS.join("|"));
 
     const tiles = [...grid.querySelectorAll("a, button")];
     const current = tiles.find((element) => element.getAttribute("aria-current") === "page");
