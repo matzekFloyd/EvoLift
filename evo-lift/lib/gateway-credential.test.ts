@@ -18,4 +18,18 @@ describe("readGatewayCredential", () => {
   it("returns null when both values are blank", () => {
     expect(readGatewayCredential({ AI_GATEWAY_API_KEY: " ", VERCEL_OIDC_TOKEN: "" })).toBeNull();
   });
+
+  it("uses the request OIDC token when no API key is set", () => {
+    expect(readGatewayCredential({}, " request-token ")).toBe("request-token");
+  });
+
+  it("prefers the API key over the request OIDC token", () => {
+    expect(readGatewayCredential({ AI_GATEWAY_API_KEY: "gateway-key" }, "request-token")).toBe(
+      "gateway-key",
+    );
+  });
+
+  it("ignores a blank request token and uses the env OIDC token", () => {
+    expect(readGatewayCredential({ VERCEL_OIDC_TOKEN: "oidc-token" }, "  ")).toBe("oidc-token");
+  });
 });

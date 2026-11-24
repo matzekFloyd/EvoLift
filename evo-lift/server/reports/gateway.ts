@@ -18,13 +18,13 @@ const GATEWAY_URL = "https://ai-gateway.vercel.sh/v1/chat/completions";
 const CREDITS_URL = "https://ai-gateway.vercel.sh/v1/credits";
 const MAX_OUTPUT_TOKENS = 900;
 
-function gatewayCredential(): string | null {
-  return readGatewayCredential(process.env);
+function gatewayCredential(requestOidcToken?: string | null): string | null {
+  return readGatewayCredential(process.env, requestOidcToken);
 }
 
 /** True when the shared balance was read and cannot cover another report. A failed read stays open. */
-export async function reportAllowanceIsPaused(): Promise<boolean> {
-  const credential = gatewayCredential();
+export async function reportAllowanceIsPaused(requestOidcToken?: string | null): Promise<boolean> {
+  const credential = gatewayCredential(requestOidcToken);
   if (!credential) {
     return false;
   }
@@ -47,8 +47,9 @@ export async function reportAllowanceIsPaused(): Promise<boolean> {
 export async function writeTrainingReport(
   facts: string,
   kind: ReportKind = "recent",
+  requestOidcToken?: string | null,
 ): Promise<{ text: string; model: string }> {
-  const credential = gatewayCredential();
+  const credential = gatewayCredential(requestOidcToken);
   if (!credential) {
     console.error("[reports] gateway credential missing");
     throw new ApiHttpError(503, REPORT_UNAVAILABLE_MESSAGE);

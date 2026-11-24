@@ -173,6 +173,7 @@ export async function createTrainingReport(
   userId: string,
   today: string,
   kind: ReportKind = "recent",
+  requestOidcToken?: string | null,
 ): Promise<TrainingReportRow> {
   const now = new Date();
   const recent = await listReportsSince(client, userId, new Date(now.getTime() - REPORT_COOLDOWN_MS));
@@ -180,7 +181,7 @@ export async function createTrainingReport(
   if (availableAt) {
     throw new ApiHttpError(429, reportCooldownMessage(kind, availableAt));
   }
-  if (await reportAllowanceIsPaused()) {
+  if (await reportAllowanceIsPaused(requestOidcToken)) {
     throw new ApiHttpError(503, REPORT_PAUSED_MESSAGE);
   }
 
@@ -197,7 +198,7 @@ export async function createTrainingReport(
 
   const facts = buildReportFacts({ from: period.from, to: period.to, sessions, kind });
   const summary = buildReportSummary({ from: period.from, to: period.to, sessions, kind });
-  const written = await writeTrainingReport(facts, kind);
+  const written = await writeTrainingReport(facts, kind, requestOidcToken);
   const { data, error } = await client
     .from("training_reports")
     .insert({
