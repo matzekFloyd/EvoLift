@@ -9,13 +9,14 @@ import {
 } from "@/lib/training-report";
 import { handleApi, jsonData, parseRequiredDate, readJsonObject, ApiHttpError } from "@/server/api/http";
 import { createTrainingReport, listTrainingReports } from "@/server/db/training-reports";
+import { VERCEL_OIDC_HEADER } from "@/lib/gateway-credential";
 import { reportAllowanceIsPaused } from "@/server/reports/gateway";
 
 export async function GET(request: NextRequest) {
   return handleApi(request, async (auth) => {
     const [reports, allowancePaused] = await Promise.all([
       listTrainingReports(auth.client, auth.userId),
-      reportAllowanceIsPaused(),
+      reportAllowanceIsPaused(request.headers.get(VERCEL_OIDC_HEADER)),
     ]);
     return NextResponse.json({ data: reports, allowancePaused });
   });
@@ -36,7 +37,13 @@ export async function POST(request: NextRequest) {
     if (!reportTodayAccepted(today, serverToday)) {
       throw new ApiHttpError(400, REPORT_FAILED_MESSAGE);
     }
-    const report = await createTrainingReport(auth.client, auth.userId, today, kind);
+    const report = await createTrainingReport(
+      auth.client,
+      auth.userId,
+      today,
+      kind,
+      request.headers.get(VERCEL_OIDC_HEADER),
+    );
     return jsonData(report, 201);
   });
 }
