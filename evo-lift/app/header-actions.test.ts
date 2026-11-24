@@ -39,7 +39,7 @@ vi.mock("@/lib/supabase/browser", () => ({
   },
 }));
 
-const DESTINATIONS = ["Home", "Exercises", "Insights", "Goals", "Plans", "Templates", "Profile", "Settings", "Log out"];
+const DESTINATIONS = ["Home", "Exercises", "Insights", "Reports", "Goals", "Plans", "Templates", "Profile", "Settings", "Log out"];
 
 type MediaListener = () => void;
 

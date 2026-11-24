@@ -4,6 +4,7 @@ import {
   classifyExrxLift,
   exrxLevelFromAverage,
   exrxLevelScore,
+  EXRX_STANDARDS_URL,
   exrxTableUrl,
   isPublicStandardLift,
 } from "./strength-standards";
@@ -14,6 +15,7 @@ describe("ExRx standards", () => {
     assert.equal(isPublicStandardLift("ez-bar-curl"), false);
     assert.match(exrxTableUrl("back-squat") ?? "", /exrx\.net/);
     assert.equal(exrxTableUrl("ez-bar-curl"), null);
+    assert.equal(EXRX_STANDARDS_URL, "https://exrx.net/Testing/WeightLifting/StrengthStandards");
   });
 
   it("places a 75 kg male squat on the published row", () => {

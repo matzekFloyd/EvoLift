@@ -148,6 +148,11 @@ const terms: Array<{ term: string; definition: ReactNode }> = [
       "How many times you complete the movement in a set. Written as a number plus reps, for example 5 reps.",
   },
   {
+    term: "Report",
+    definition:
+      "A written recap of logged training, either the last 4 weeks or all saved sessions. Creating one sends exercise names, dates, set counts, loaded weight, reps, and notes to the model provider.",
+  },
+  {
     term: "Sample week",
     definition:
       "A typical spacing of a plan across seven days. Cells marked Day are training days. Cells marked Rest are days off. The plan still runs in day order. A cycle longer than seven days has no sample week.",
