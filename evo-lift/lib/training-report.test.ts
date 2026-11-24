@@ -236,7 +236,7 @@ describe("training report", () => {
     assert.match(facts, /Curl on 23 Nov: 16 kg × 7 on a working set, target 8 reps/);
     assert.match(facts, /29 Oct: Left wrist sore/);
     assert.match(facts, /29 Oct: Squat: knees fine/);
-    assert.match(facts, /Second-half working volume/);
+    assert.doesNotMatch(facts, /working volume/);
     assert.doesNotMatch(facts, /Leg extension/);
     assert.doesNotMatch(facts, /Report sample/);
     assert.doesNotMatch(facts, /40 kg/);
@@ -332,11 +332,101 @@ describe("training report", () => {
     assert.equal(summary.lifts[0]?.earlier, "116.7 kg");
     assert.equal(summary.lifts[0]?.latest, "151.7 kg");
     assert.equal(summary.lifts[0]?.heaviest, "110 kg × 5");
+    assert.equal(summary.firstHalfKg, null);
+    assert.equal(summary.secondHalfKg, null);
     assert.match(buildReportFacts(input), /All logged training/);
     assert.match(buildReportFacts(input), /Longest break was 21 days, 1 Aug to 22 Aug/);
     assert.equal(reportKindFromBody(undefined), "recent");
     assert.equal(reportKindFromBody("all"), "all");
     assert.equal(reportKindFromBody("year"), null);
+  });
+
+  it("treats less assistance as progress, and more assistance as a drop", () => {
+    function assisted(on: string, assistanceKg: number, bodyweightKg: number | null): ReportSession {
+      return session({
+        performedOn: on,
+        bodyweightKg,
+        exercises: [
+          {
+            name: "Assisted Dip",
+            assistance: true,
+            notes: null,
+            notDone: false,
+            targetSets: 3,
+            targetReps: 8,
+            targetWeightKg: assistanceKg,
+            baseWeightKg: null,
+            sets: [
+              { reps: 8, weightKg: assistanceKg + 10, warmup: false },
+              { reps: 8, weightKg: assistanceKg, warmup: false },
+            ],
+          },
+        ],
+      });
+    }
+
+    const withoutBodyweight = buildReportSummary({
+      from: "2026-08-01",
+      to: "2026-10-01",
+      kind: "all",
+      sessions: [
+        assisted("2026-08-01", 50, null),
+        assisted("2026-08-20", 40, null),
+        assisted("2026-09-10", 30, null),
+        assisted("2026-10-01", 20, null),
+      ],
+    });
+    const logged = withoutBodyweight.lifts.find((lift) => lift.name === "Assisted Dip");
+    assert.equal(logged?.direction, "up");
+    assert.equal(logged?.earlier, "50 kg × 8");
+    assert.equal(logged?.latest, "20 kg × 8");
+    assert.equal(logged?.change, "-30 kg");
+    assert.equal(logged?.heaviest, "20 kg × 8");
+    assert.match(buildReportFacts({
+      from: "2026-08-01",
+      to: "2026-10-01",
+      kind: "all",
+      sessions: [
+        assisted("2026-08-01", 50, null),
+        assisted("2026-08-20", 40, null),
+        assisted("2026-09-10", 30, null),
+        assisted("2026-10-01", 20, null),
+      ],
+    }), /Less assistance/);
+
+    const withBodyweight = buildReportSummary({
+      from: "2026-08-01",
+      to: "2026-10-01",
+      kind: "all",
+      sessions: [
+        assisted("2026-08-01", 40, 80),
+        assisted("2026-08-20", 30, 80),
+        assisted("2026-09-10", 20, 80),
+        assisted("2026-10-01", 10, 80),
+      ],
+    });
+    const estimated = withBodyweight.lifts.find((lift) => lift.name === "Assisted Dip");
+    assert.equal(estimated?.direction, "up");
+    assert.equal(estimated?.earlier, "50.7 kg");
+    assert.equal(estimated?.latest, "88.7 kg");
+    assert.equal(estimated?.change, "+75%");
+    assert.equal(estimated?.heaviest, "10 kg × 8");
+
+    const recent = buildReportSummary({
+      from: "2026-10-01",
+      to: "2026-10-28",
+      sessions: [assisted("2026-10-02", 40, null), assisted("2026-10-20", 20, null)],
+    });
+    assert.equal(recent.lifts[0]?.direction, "up");
+    assert.equal(recent.lifts[0]?.change, "-20 kg");
+
+    const harder = buildReportSummary({
+      from: "2026-10-01",
+      to: "2026-10-28",
+      sessions: [assisted("2026-10-02", 20, null), assisted("2026-10-20", 40, null)],
+    });
+    assert.equal(harder.lifts[0]?.direction, "down");
+    assert.equal(harder.lifts[0]?.change, "+20 kg");
   });
 
   it("tells the model to write a short recap from the brief", () => {

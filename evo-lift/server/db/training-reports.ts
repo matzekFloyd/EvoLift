@@ -1,4 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { isAssistanceExercise } from "@/lib/assistance-exercise";
+import { bodyweightOnOrBefore, type BodyweightLogEntry } from "@/lib/bodyweight-log";
 import type { Database, LanguageCode } from "@/lib/supabase/database.types";
 import {
   REPORT_COOLDOWN_MS,
@@ -60,7 +62,10 @@ function preferredName(
 function toReportSession(
   row: RawSession,
   names: Map<string, Array<{ lang_code: LanguageCode; name: string }>>,
+  slugs: Map<string, string>,
+  bodyweightEntries: readonly BodyweightLogEntry[],
 ): ReportSession {
+  const performedOn = row.performed_on.slice(0, 10);
   const exercises = [...(row.workout_session_exercises ?? [])].sort(
     (left, right) => left.position - right.position,
   );
@@ -72,6 +77,7 @@ function toReportSession(
     targetReps: exercise.target_reps,
     targetWeightKg: exercise.target_weight_kg,
     baseWeightKg: exercise.base_weight_kg,
+    assistance: isAssistanceExercise(slugs.get(exercise.exercise_id)),
     sets: [...(exercise.workout_sets ?? [])]
       .sort((left, right) => left.set_number - right.set_number)
       .map((set) => ({
@@ -81,10 +87,11 @@ function toReportSession(
       })),
   }));
   return {
-    performedOn: row.performed_on.slice(0, 10),
+    performedOn,
     notes: row.notes,
     completed: row.completed_at != null,
     exercises: mapped,
+    bodyweightKg: bodyweightOnOrBefore(bodyweightEntries, performedOn),
   };
 }
 
@@ -118,6 +125,7 @@ async function loadReportSessions(
     ),
   ];
   const names = new Map<string, Array<{ lang_code: LanguageCode; name: string }>>();
+  const slugs = new Map<string, string>();
   if (exerciseIds.length > 0) {
     const { data: translations, error: translationError } = await client
       .from("exercise_translations")
@@ -131,10 +139,32 @@ async function loadReportSessions(
       list.push({ lang_code: row.lang_code, name: row.name });
       names.set(row.exercise_id, list);
     }
+    const { data: exerciseRows, error: exerciseError } = await client
+      .from("exercises")
+      .select("id, slug")
+      .in("id", exerciseIds);
+    if (exerciseError) {
+      throw new Error(`Could not load exercises for a report: ${exerciseError.message}`);
+    }
+    for (const row of exerciseRows ?? []) {
+      slugs.set(row.id, row.slug);
+    }
   }
 
+  const { data: bodyweightRows, error: bodyweightError } = await client
+    .from("user_bodyweight_log")
+    .select("logged_on, bodyweight_kg")
+    .eq("user_id", userId);
+  if (bodyweightError) {
+    throw new Error(`Could not load bodyweight for a report: ${bodyweightError.message}`);
+  }
+  const bodyweightEntries: BodyweightLogEntry[] = (bodyweightRows ?? []).map((row) => ({
+    loggedOn: row.logged_on.slice(0, 10),
+    bodyweightKg: row.bodyweight_kg,
+  }));
+
   const ordered = kind === "all" ? [...rows].reverse() : rows;
-  return ordered.map((row) => toReportSession(row, names));
+  return ordered.map((row) => toReportSession(row, names, slugs, bodyweightEntries));
 }
 
 export async function listTrainingReports(client: Client, userId: string): Promise<TrainingReportRow[]> {
