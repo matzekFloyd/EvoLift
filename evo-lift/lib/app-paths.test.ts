@@ -37,6 +37,7 @@ describe("app paths", () => {
     assert.equal(bySource.get("/sessions/new"), "/app/sessions/new");
     assert.equal(bySource.get("/sessions/:id"), "/app/sessions/:id");
     assert.equal(bySource.get("/insights"), "/app/insights");
+    assert.equal(bySource.get("/reports"), "/app/reports");
     assert.equal(bySource.get("/goals"), "/app/goals");
     assert.equal(bySource.get("/plans"), "/app/plans");
     assert.equal(bySource.get("/plans/new"), "/app/plans/new");
