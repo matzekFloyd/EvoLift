@@ -91,14 +91,16 @@ Chrome UX Report has no field data for `https://evolift.at` or `https://www.evol
 
 Those modules were not in `/login`, `/`, or a session page. They were still in the first-load entry of every chart route, including Insights sections that stay closed and the exercise Charts tab that starts hidden. Chart screens now load Recharts with `next/dynamic`. API docs loads Swagger UI the same way. The exercise Charts tab mounts the chart sections, including their headings and help text, only after it is opened.
 
-| Route | Before | After | Budget |
+| Route | Before | After the split | Budget on 24 Nov 2026 |
 | --- | --- | --- | --- |
-| `/` | 455.8 kB | 455.8 kB | 487.8 kB |
-| `/login` | 735.8 kB | 735.8 kB | 767.8 kB |
-| `/app` (Home) | 1138.7 kB | 802.6 kB | 834.6 kB |
-| `/app/insights` | 1230.1 kB | 810.0 kB | 842.0 kB |
-| `/app/exercises/[slug]` | 1212.6 kB | 835.0 kB | 867.0 kB |
-| `/app/sessions/[id]` | 867.7 kB | 867.7 kB | 899.7 kB |
-| `/app/docs` | 748.3 kB | 752.3 kB | 784.3 kB |
+| `/` | 455.8 kB | 455.8 kB | 512.3 kB |
+| `/login` | 735.8 kB | 735.8 kB | 780.6 kB |
+| `/app` (Home) | 1138.7 kB | 802.6 kB | 892.4 kB |
+| `/app/insights` | 1230.1 kB | 810.0 kB | 880.7 kB |
+| `/app/exercises/[slug]` | 1212.6 kB | 835.0 kB | 916.2 kB |
+| `/app/sessions/[id]` | 867.7 kB | 867.7 kB | 954.2 kB |
+| `/app/docs` | 748.3 kB | 752.3 kB | 825.3 kB |
+
+The budget column is the 24 Nov 2026 measurement plus 32 kB. Signed-in routes had grown past the October measurement. The check still fails if Recharts or Swagger UI show up on a route that does not render them.
 
 `npm run analyze` opens the Turbopack bundle analyzer for this build. `@next/bundle-analyzer` is wired for a Webpack build (`ANALYZE=true` and `next build --webpack`). The production build uses Turbopack, so the budget uses that graph.

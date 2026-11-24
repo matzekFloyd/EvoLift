@@ -10,8 +10,8 @@ export const config = {
   matcher: [
     /*
      * Skip static assets and image optimization.
-     * Everything else (including /api) runs through updateSession;
-     * /api paths are not redirected — they keep bearer auth.
+     * Everything else runs through updateSession.
+     * /api returns immediately so the bearer token is not rewritten.
      */
     "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],

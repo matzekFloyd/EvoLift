@@ -1,6 +1,10 @@
 import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
-import { sessionGateDecision, sessionGateRedirectPath } from "@/lib/auth-route-access";
+import {
+  leavesBearerHeaderUntouched,
+  sessionGateDecision,
+  sessionGateRedirectPath,
+} from "@/lib/auth-route-access";
 import {
   authenticatorAssuranceLevelFromJwt,
   needsAuthenticatorChallenge,
@@ -23,6 +27,10 @@ type CookieToSet = {
  * Does not gate `/api/*` (API bearer auth stays the control plane).
  */
 export async function updateSession(request: NextRequest): Promise<NextResponse> {
+  if (leavesBearerHeaderUntouched(request.nextUrl.pathname)) {
+    return NextResponse.next();
+  }
+
   let supabaseResponse = NextResponse.next({ request });
 
   const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
