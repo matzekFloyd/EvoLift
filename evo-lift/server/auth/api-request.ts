@@ -1,6 +1,16 @@
+import { createServerClient } from "@supabase/ssr";
 import type { NextRequest } from "next/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
+import {
+  credentialFromRequest,
+  getBearerCredential,
+  hasSessionCookie,
+  sameOriginBrowserRequest,
+} from "@/lib/api-request-credential";
+
+export { getBearerCredential };
+import { realtimeTransportOptions } from "@/lib/supabase/realtime-transport";
 import {
   authenticatorAssuranceLevelFromJwt,
   MFA_SESSION_REQUIRED,
@@ -17,21 +27,6 @@ import {
   isSupabaseJwt,
   touchApiTokenLastUsed,
 } from "@/server/db/api-tokens";
-
-export function getBearerCredential(request: NextRequest): string | undefined {
-  const authorization = request.headers.get("authorization");
-  if (!authorization) {
-    return undefined;
-  }
-
-  const [scheme, ...rest] = authorization.trim().split(/\s+/);
-  if (scheme?.toLowerCase() !== "bearer" || rest.length === 0) {
-    return undefined;
-  }
-
-  const token = rest.join(" ").replace(/^Bearer\s+/i, "").trim();
-  return token || undefined;
-}
 
 export type ApiRequestAuth = {
   userId: string;
@@ -108,14 +103,68 @@ export async function authenticateBearer(
   return { userId: user.id, client, bypassesRls: false };
 }
 
+function normalizeSupabaseUrl(url: string): string {
+  return url.replace(/\/rest\/v1\/?$/, "").replace(/\/$/, "");
+}
+
+async function authenticateSessionCookie(
+  request: NextRequest,
+): Promise<ApiRequestAuth | { error: string; status: 401 } | null> {
+  const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (!rawUrl || !anonKey) {
+    return null;
+  }
+
+  const supabase = createServerClient(normalizeSupabaseUrl(rawUrl), anonKey, {
+    ...realtimeTransportOptions(),
+    cookies: {
+      getAll() {
+        return request.cookies.getAll();
+      },
+      setAll(cookiesToSet: { name: string; value: string }[]) {
+        cookiesToSet.forEach(({ name, value }) => {
+          request.cookies.set(name, value);
+        });
+      },
+    },
+  });
+
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser();
+  if (error || !user) {
+    return null;
+  }
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (!session?.access_token) {
+    return null;
+  }
+  return authenticateBearer(session.access_token);
+}
+
 /**
  * Authenticate an `/api/*` request.
  * Personal API tokens are resolved with the service role (`bypassesRls: true`).
  * Session JWTs use the user-scoped client with RLS. Either way, user-owned
  * queries must filter by `userId` (helpers in `server/db/owned.ts`).
+ * A same-origin page can also use the login cookie when the bearer header was dropped.
  */
 export async function authenticateApiRequest(
   request: NextRequest,
 ): Promise<ApiRequestAuth | { error: string; status: 401 }> {
-  return authenticateBearer(getBearerCredential(request));
+  const credential = credentialFromRequest(request);
+  if (credential) {
+    return authenticateBearer(credential);
+  }
+  if (sameOriginBrowserRequest(request) && hasSessionCookie(request)) {
+    const fromCookie = await authenticateSessionCookie(request);
+    if (fromCookie) {
+      return fromCookie;
+    }
+  }
+  return authenticateBearer(undefined);
 }

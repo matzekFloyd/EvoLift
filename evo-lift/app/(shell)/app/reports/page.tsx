@@ -18,6 +18,7 @@ import {
   type ReportKind,
   type ReportSummary,
 } from "@/lib/training-report";
+import { SESSION_TOKEN_HEADER } from "@/lib/session-token-header";
 import { getBrowserAuthSession } from "@/lib/supabase/browser-auth";
 
 type TrainingReport = {
@@ -214,6 +215,13 @@ function formatCreatedAt(value: string): string {
   }).format(new Date(value));
 }
 
+function sessionAuthHeaders(token: string): Record<string, string> {
+  return {
+    authorization: `Bearer ${token}`,
+    [SESSION_TOKEN_HEADER]: token,
+  };
+}
+
 function periodLabel(report: TrainingReport): string {
   return `${formatDateOnlyForLocale(report.period_start)} – ${formatDateOnlyForLocale(report.period_end)}`;
 }
@@ -230,7 +238,8 @@ export default function ReportsPage() {
 
   const loadReports = useCallback(async (token: string) => {
     const response = await fetch("/api/reports", {
-      headers: { authorization: `Bearer ${token}` },
+      credentials: "same-origin",
+      headers: sessionAuthHeaders(token),
     });
     const body = (await response.json().catch(() => null)) as {
       data?: TrainingReport[];
@@ -287,8 +296,9 @@ export default function ReportsPage() {
     try {
       const response = await fetch("/api/reports", {
         method: "POST",
+        credentials: "same-origin",
         headers: {
-          authorization: `Bearer ${session.access_token}`,
+          ...sessionAuthHeaders(session.access_token),
           "content-type": "application/json",
         },
         body: JSON.stringify({ today: getTodayYyyyMmDd(), kind }),
