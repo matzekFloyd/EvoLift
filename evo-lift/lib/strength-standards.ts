@@ -9,6 +9,9 @@
  */
 export const EXRX_AGE_BAND = "18–39";
 
+/** Index of the published standards. Per-lift kilogram tables are separate. */
+export const EXRX_STANDARDS_URL = "https://exrx.net/Testing/WeightLifting/StrengthStandards";
+
 const LEVELS = ["Untrained", "Novice", "Intermediate", "Advanced", "Elite"] as const;
 
 export type ExrxLevel = (typeof LEVELS)[number] | "Under the untrained mark";
