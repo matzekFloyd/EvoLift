@@ -202,6 +202,133 @@ const ASSISTED_DIP_SESSIONS = [
   },
 ];
 
+/**
+ * Recent sessions for report testing. Notes keep the top-up idempotent.
+ * Spread across the last 4 weeks: progression, a missed target, a skip, and a note.
+ */
+const REPORT_SAMPLE_SESSIONS = [
+  {
+    note: "Report sample: squat bench, week 1",
+    daysAgo: 26,
+    sessionNote: null,
+    exercises: [
+      { slug: "back-squat", baseKg: 20, targetSets: 3, targetReps: 5, targetKg: 100, sets: [[5, 60, true], [5, 100], [5, 100], [5, 100]] },
+      { slug: "barbell-bench-press", baseKg: 20, targetSets: 3, targetReps: 8, targetKg: 60, sets: [[8, 40, true], [8, 60], [8, 60], [7, 60]] },
+      { slug: "lat-pulldown", baseKg: null, targetSets: 3, targetReps: 10, targetKg: 50, sets: [[10, 50], [10, 50], [10, 50]] },
+    ],
+  },
+  {
+    note: "Report sample: deadlift row, week 1",
+    daysAgo: 24,
+    sessionNote: null,
+    exercises: [
+      { slug: "deadlift", baseKg: 20, targetSets: 3, targetReps: 5, targetKg: 140, sets: [[3, 80, true], [5, 140], [5, 140], [5, 140]] },
+      { slug: "barbell-bent-over-row", baseKg: 20, targetSets: 3, targetReps: 8, targetKg: 70, sets: [[8, 70], [8, 70], [6, 70]] },
+      { slug: "seated-face-pull", baseKg: null, targetSets: 3, targetReps: 12, targetKg: 15, sets: [[12, 15], [12, 15], [12, 15]] },
+    ],
+  },
+  {
+    note: "Report sample: press curl, week 1",
+    daysAgo: 22,
+    sessionNote: "Left wrist sore after bench yesterday.",
+    exercises: [
+      { slug: "overhead-press", baseKg: 20, targetSets: 3, targetReps: 8, targetKg: 40, sets: [[8, 40], [8, 40], [8, 40]] },
+      { slug: "dumbbell-supinated-curl", baseKg: null, targetSets: 3, targetReps: 10, targetKg: 12, sets: [[10, 12], [10, 12], [8, 12]] },
+      { slug: "lat-pulldown", baseKg: null, targetSets: 3, targetReps: 10, targetKg: 52.5, skipped: true, exerciseNote: "Skipped. Shoulder felt tight." },
+    ],
+  },
+  {
+    note: "Report sample: squat bench, week 2",
+    daysAgo: 19,
+    sessionNote: null,
+    exercises: [
+      { slug: "back-squat", baseKg: 20, targetSets: 3, targetReps: 5, targetKg: 105, sets: [[5, 60, true], [5, 105], [5, 105], [5, 105]] },
+      { slug: "barbell-bench-press", baseKg: 20, targetSets: 3, targetReps: 8, targetKg: 62.5, sets: [[8, 40, true], [8, 62.5], [8, 62.5], [8, 62.5]] },
+      { slug: "leg-extension", baseKg: null, targetSets: 3, targetReps: 12, targetKg: 45, sets: [[12, 45], [12, 45], [12, 45]] },
+    ],
+  },
+  {
+    note: "Report sample: deadlift row, week 2",
+    daysAgo: 17,
+    sessionNote: null,
+    exercises: [
+      { slug: "deadlift", baseKg: 20, targetSets: 3, targetReps: 5, targetKg: 145, sets: [[3, 80, true], [5, 145], [5, 145], [4, 145]] },
+      { slug: "barbell-bent-over-row", baseKg: 20, targetSets: 3, targetReps: 8, targetKg: 70, sets: [[8, 70], [8, 70], [8, 70]] },
+      { slug: "dumbbell-row", baseKg: null, targetSets: 3, targetReps: 10, targetKg: 24, sets: [[10, 24], [10, 24], [9, 24]] },
+    ],
+  },
+  {
+    note: "Report sample: press curl, week 2",
+    daysAgo: 15,
+    sessionNote: "Wrist was fine today.",
+    exercises: [
+      { slug: "overhead-press", baseKg: 20, targetSets: 3, targetReps: 8, targetKg: 42.5, sets: [[8, 42.5], [8, 42.5], [7, 42.5]] },
+      { slug: "dumbbell-supinated-curl", baseKg: null, targetSets: 3, targetReps: 10, targetKg: 14, sets: [[10, 14], [10, 14], [10, 14]] },
+      { slug: "seated-face-pull", baseKg: null, targetSets: 3, targetReps: 12, targetKg: 17.5, sets: [[12, 17.5], [12, 17.5], [12, 17.5]] },
+    ],
+  },
+  {
+    note: "Report sample: squat bench, week 3",
+    daysAgo: 12,
+    sessionNote: null,
+    exercises: [
+      { slug: "back-squat", baseKg: 20, targetSets: 3, targetReps: 5, targetKg: 107.5, sets: [[5, 60, true], [5, 107.5], [5, 107.5], [5, 107.5]] },
+      { slug: "barbell-bench-press", baseKg: 20, targetSets: 3, targetReps: 8, targetKg: 62.5, sets: [[8, 40, true], [8, 62.5], [8, 62.5], [6, 62.5]] },
+      { slug: "lat-pulldown", baseKg: null, targetSets: 3, targetReps: 10, targetKg: 55, sets: [[10, 55], [10, 55], [8, 55]] },
+    ],
+  },
+  {
+    note: "Report sample: deadlift row, week 3",
+    daysAgo: 10,
+    sessionNote: null,
+    exercises: [
+      { slug: "deadlift", baseKg: 20, targetSets: 3, targetReps: 5, targetKg: 145, sets: [[3, 80, true], [5, 145], [5, 145], [5, 145]] },
+      { slug: "barbell-bent-over-row", baseKg: 20, targetSets: 3, targetReps: 10, targetKg: 70, sets: [[10, 70], [10, 70], [8, 70]] },
+      { slug: "leg-extension", baseKg: null, targetSets: 3, targetReps: 12, targetKg: 50, sets: [[12, 50], [12, 50], [12, 50]] },
+    ],
+  },
+  {
+    note: "Report sample: press curl, week 3",
+    daysAgo: 8,
+    sessionNote: null,
+    exercises: [
+      { slug: "overhead-press", baseKg: 20, targetSets: 3, targetReps: 8, targetKg: 42.5, sets: [[8, 42.5], [8, 42.5], [8, 42.5]] },
+      { slug: "dumbbell-supinated-curl", baseKg: null, targetSets: 3, targetReps: 8, targetKg: 16, sets: [[8, 16], [8, 16], [7, 16]] },
+      { slug: "assisted-dip", baseKg: null, targetSets: 3, targetReps: 8, targetKg: 10, sets: [[8, 15, true], [8, 10], [8, 10], [8, 10]] },
+    ],
+  },
+  {
+    note: "Report sample: squat bench, week 4",
+    daysAgo: 5,
+    sessionNote: null,
+    exercises: [
+      { slug: "back-squat", baseKg: 20, targetSets: 3, targetReps: 5, targetKg: 110, sets: [[5, 60, true], [5, 110], [5, 110], [5, 110]] },
+      { slug: "barbell-bench-press", baseKg: 20, targetSets: 3, targetReps: 8, targetKg: 65, sets: [[8, 40, true], [8, 65], [8, 65], [8, 65]] },
+      { slug: "lat-pulldown", baseKg: null, targetSets: 3, targetReps: 10, targetKg: 55, sets: [[10, 55], [10, 55], [10, 55]] },
+    ],
+  },
+  {
+    note: "Report sample: deadlift row, week 4",
+    daysAgo: 3,
+    sessionNote: null,
+    exercises: [
+      { slug: "deadlift", baseKg: 20, targetSets: 3, targetReps: 5, targetKg: 150, sets: [[3, 80, true], [5, 150], [5, 150], [5, 150]] },
+      { slug: "barbell-bent-over-row", baseKg: 20, targetSets: 3, targetReps: 10, targetKg: 72.5, sets: [[10, 72.5], [10, 72.5], [10, 72.5]] },
+      { slug: "seated-face-pull", baseKg: null, targetSets: 3, targetReps: 12, targetKg: 17.5, sets: [[12, 17.5], [12, 17.5], [11, 17.5]] },
+    ],
+  },
+  {
+    note: "Report sample: press curl, week 4",
+    daysAgo: 1,
+    sessionNote: "Wrist stayed quiet. Stopped the last curl one rep short.",
+    exercises: [
+      { slug: "overhead-press", baseKg: 20, targetSets: 3, targetReps: 8, targetKg: 42.5, sets: [[8, 42.5], [8, 42.5], [8, 42.5]] },
+      { slug: "dumbbell-supinated-curl", baseKg: null, targetSets: 3, targetReps: 8, targetKg: 16, sets: [[8, 16], [8, 16], [7, 16]] },
+      { slug: "assisted-dip", baseKg: null, targetSets: 3, targetReps: 8, targetKg: 5, sets: [[8, 10, true], [8, 5], [8, 5], [8, 5]] },
+    ],
+  },
+];
+
 const TEMPLATE_SESSION_SPECS = [
   { templateName: "Upper Power", weeksAgo: 1, dayOffset: 6, note: "Template: Upper Power" },
   { templateName: "Lower Strength", weeksAgo: 2, dayOffset: 6, note: "Template: Lower Strength" },
@@ -701,6 +828,91 @@ function buildAssistedDipSession(exerciseId, spec, performed) {
   };
 }
 
+function buildReportSampleSession(exerciseIdBySlug, spec, performed) {
+  const sessionId = randomUUID();
+  const sessionExercises = [];
+  const sets = [];
+  spec.exercises.forEach((exercise, index) => {
+    const sessionExerciseId = randomUUID();
+    sessionExercises.push({
+      id: sessionExerciseId,
+      session_id: sessionId,
+      exercise_id: exerciseIdBySlug.get(exercise.slug),
+      position: index + 1,
+      target_sets: exercise.targetSets,
+      target_reps: exercise.targetReps,
+      target_weight_kg: exercise.targetKg,
+      base_weight_kg: exercise.baseKg,
+      notes: exercise.exerciseNote ?? null,
+      not_done: exercise.skipped === true,
+    });
+    (exercise.sets ?? []).forEach((set, setIndex) => {
+      sets.push({
+        session_exercise_id: sessionExerciseId,
+        set_number: setIndex + 1,
+        reps: set[0],
+        weight_kg: set[1],
+        is_warmup: set[2] === true,
+        performed_at: new Date(
+          performed.getFullYear(),
+          performed.getMonth(),
+          performed.getDate(),
+          17,
+          setIndex,
+        ).toISOString(),
+      });
+    });
+  });
+  return {
+    sessions: [
+      {
+        id: sessionId,
+        performed_on: toYyyyMmDd(performed),
+        notes: spec.sessionNote ? `${spec.note} — ${spec.sessionNote}` : spec.note,
+        plan_id: null,
+        plan_day_id: null,
+        source_template_id: null,
+        ...finishedTimestamps(performed),
+      },
+    ],
+    sessionExercises,
+    sets,
+  };
+}
+
+async function seedMissingReportSampleSessions(supabase, userId, exerciseIdBySlug) {
+  const { data: existing, error } = await supabase
+    .from("workout_sessions")
+    .select("notes")
+    .eq("user_id", userId)
+    .like("notes", "Report sample:%");
+  if (error) {
+    throw new Error(`Could not read report sample sessions: ${error.message}`);
+  }
+  const have = new Set((existing ?? []).map((row) => (row.notes ?? "").split(" — ")[0]));
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  let added = 0;
+  for (const spec of REPORT_SAMPLE_SESSIONS) {
+    if (have.has(spec.note)) {
+      continue;
+    }
+    const performed = addDays(today, -spec.daysAgo);
+    const built = buildReportSampleSession(exerciseIdBySlug, spec, performed);
+    await insertChunks(
+      supabase,
+      "workout_sessions",
+      built.sessions.map((session) => ({ ...session, user_id: userId })),
+    );
+    await insertChunks(supabase, "workout_session_exercises", built.sessionExercises);
+    if (built.sets.length > 0) {
+      await insertChunks(supabase, "workout_sets", built.sets);
+    }
+    added += 1;
+  }
+  return added;
+}
+
 function buildNoBaseSession(exerciseId, spec, performed) {
   const sessionId = randomUUID();
   const sessionExerciseId = randomUUID();
@@ -1072,6 +1284,7 @@ async function seed() {
     ...Object.values(LIFTS).map((lift) => lift.slug),
     ASSISTED_DIP_SLUG,
     ...new Set(NO_BASE_SESSIONS.map((spec) => spec.slug)),
+    ...new Set(REPORT_SAMPLE_SESSIONS.flatMap((spec) => spec.exercises.map((exercise) => exercise.slug))),
   ];
   const { data: exercises, error: exerciseError } = await supabase
     .from("exercises")
@@ -1134,6 +1347,9 @@ async function seed() {
   const seededNoBaseSessions = await seedMissingNoBaseSessions(supabase, userId, exerciseIdBySlug);
   sessionCount += seededNoBaseSessions;
 
+  const seededReportSamples = await seedMissingReportSampleSessions(supabase, userId, exerciseIdBySlug);
+  sessionCount += seededReportSamples;
+
   const seededPlanSquat = await seedMissingPlanSquatFollowUp(
     supabase,
     userId,
@@ -1150,6 +1366,7 @@ async function seed() {
     seededPlannedSessions ? `+${seededPlannedSessions} planned` : null,
     seededAssistedDipSessions ? `+${seededAssistedDipSessions} assisted dip` : null,
     seededNoBaseSessions ? `+${seededNoBaseSessions} no base` : null,
+    seededReportSamples ? `+${seededReportSamples} report sample` : null,
     seededPlanSquat ? `+${seededPlanSquat} plan squat` : null,
     removedPlans ? `-${removedPlans} old plans` : null,
   ].filter(Boolean);

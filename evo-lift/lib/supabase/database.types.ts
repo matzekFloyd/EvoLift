@@ -217,6 +217,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      training_reports: {
+        Row: {
+          id: string;
+          user_id: string;
+          period_start: string;
+          period_end: string;
+          model: string;
+          report_text: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id: string;
+          period_start: string;
+          period_end: string;
+          model: string;
+          report_text: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          user_id?: string;
+          period_start?: string;
+          period_end?: string;
+          model?: string;
+          report_text?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       workout_sessions: {
         Row: {
           id: string;

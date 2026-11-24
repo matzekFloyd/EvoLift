@@ -29,6 +29,7 @@ const LEGACY_SIGNED_IN_TAILS = [
   "/sessions/new",
   "/sessions/:id",
   "/insights",
+  "/reports",
   "/goals",
   "/plans/new",
   "/plans/:id/edit",
