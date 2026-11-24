@@ -15,6 +15,7 @@ import {
   reportCooldownMessage,
   reportNextCreateAt,
   reportParagraphs,
+  reportReadingParagraphs,
   type ReportKind,
   type ReportSummary,
 } from "@/lib/training-report";
@@ -162,15 +163,23 @@ function ReportNotes({ lines }: { lines: string[] }) {
 function ReportView({ text }: { text: string }) {
   const { prose, summary } = readReportSummary(text);
   const paragraphs = reportParagraphs(prose);
-  const shown = summary
+  const reading = summary ? reportReadingParagraphs(paragraphs) : paragraphs;
+  const medical = summary
     ? paragraphs.filter((paragraph) => paragraph.toLowerCase().includes("not medical advice"))
-    : paragraphs;
+    : [];
   return (
     <div className="grid gap-5">
       {summary ? <ReportFigures summary={summary} /> : null}
-      {shown.length > 0 ? (
+      {reading.length > 0 ? (
         <div className="grid gap-3">
-          {shown.map((paragraph, index) => (
+          {reading.map((paragraph, index) => (
+            <ReportParagraph key={index} text={paragraph} />
+          ))}
+        </div>
+      ) : null}
+      {medical.length > 0 ? (
+        <div className="grid gap-3">
+          {medical.map((paragraph, index) => (
             <ReportParagraph key={index} text={paragraph} />
           ))}
         </div>

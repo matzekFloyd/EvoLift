@@ -233,10 +233,6 @@ type ExerciseStory = {
   latestOn: string | null;
 };
 
-function sameLoad(left: TopPoint, right: TopPoint): boolean {
-  return left.weightKg === right.weightKg && left.reps === right.reps;
-}
-
 function direction(first: TopPoint, last: TopPoint, assistance: boolean): "up" | "down" | "same" {
   const firstWeight = first.weightKg ?? (assistance ? 0 : -1);
   const lastWeight = last.weightKg ?? (assistance ? 0 : -1);
@@ -263,13 +259,6 @@ function strengthDelta(story: ExerciseStory): number {
   const last = story.points[story.points.length - 1]?.weightKg ?? 0;
   const delta = last - first;
   return story.assistance ? -delta : delta;
-}
-
-function loadOn(point: TopPoint, assistance: boolean): string {
-  if (assistance) {
-    return `${point.weightKg ?? 0} kg assistance × ${point.reps} on ${shortDate(point.on)}`;
-  }
-  return `${formatLoad(point.weightKg, point.reps)} on ${shortDate(point.on)}`;
 }
 
 function missDetail(exercise: ReportExercise): string | null {
@@ -337,6 +326,18 @@ function collectStories(sessions: ReportSession[]): ExerciseStory[] {
   return [...byName.values()];
 }
 
+function sameLoad(left: TopPoint, right: TopPoint): boolean {
+  return left.weightKg === right.weightKg && left.reps === right.reps;
+}
+
+function loadOn(point: TopPoint, assistance: boolean): string {
+  if (assistance) {
+    return `${point.weightKg ?? 0} kg assistance × ${point.reps} on ${shortDate(point.on)}`;
+  }
+  return `${formatLoad(point.weightKg, point.reps)} on ${shortDate(point.on)}`;
+}
+
+/** One lift's story for the model. The page table does not use this text. */
 function movementLine(story: ExerciseStory): string {
   const first = story.points[0];
   const last = story.points[story.points.length - 1];
@@ -687,7 +688,7 @@ function compileAllReport(input: {
     pace ? `About ${pace}.` : "",
     grewLines.length > 0 || assistanceLines.some((line) => line.endsWith("Less assistance."))
       ? `Grew:\n${[...grewLines, ...assistanceLines.filter((line) => line.endsWith("Less assistance."))].join("\n")}`
-      : "No lift has an estimated 1RM change across four or more sessions.",
+      : "",
     fadedLines.length > 0 || assistanceLines.some((line) => line.endsWith("More assistance."))
       ? `Faded:\n${[...fadedLines, ...assistanceLines.filter((line) => line.endsWith("More assistance."))].join("\n")}`
       : "",
@@ -829,26 +830,21 @@ export function buildReportSummary(input: {
 }
 
 export function trainingReportInstructions(kind: ReportKind = "recent"): string {
-  const shared = [
-    "Bold each lift name once, as **Name**.",
-    "Do not mention a lift that is not in the brief. Do not invent weights, personal bests, or exercises.",
-    "Do not list every set, do not count how many times a target was missed, and do not add a bar to a weight.",
-    "No headings and no bullet lists. Separate the two sentences with a blank line.",
-    `End with this sentence: ${REPORT_MEDICAL_LINE}`,
-  ];
-  const opening =
-    kind === "all"
-      ? [
-          "Write two short sentences in English from the brief. The page already shows the session count and the full-history table, so do not repeat those numbers.",
-          "The first sentence names the session count and the lifts under Grew, without their loads.",
-          "The second sentence says what to watch, using only Faded and Watch. Do not set the next weight and do not write a new program.",
-        ]
-      : [
-          "Write two short sentences in English from the brief. The page already shows the session count and a table of the loads, so do not repeat those numbers.",
-          "The first sentence names the session count and the lifts under Moved or Dropped, without their loads.",
-          "The second sentence says what to watch next time, using only Watch, Skipped, and Notes. Name the lift or the note. Do not set the next weight and do not write a new program.",
-        ];
-  return [...opening, ...shared].join(" ");
+  const scope = kind === "all" ? "all logged training" : "the last 4 weeks";
+  return [
+    `Write two or three short paragraphs in English about ${scope}. The page already shows the table. This is your reading of the log.`,
+    "Say what stands out. How the lifts fit together, what a note or a miss suggests, and what is worth attention. A pattern the table does not state is the point.",
+    "Use only lifts, notes, and loads that appear in the brief. You may mention a load from the brief when it matters.",
+    "Do not invent a weight, a lift, or a personal best. Do not set the next weight and do not write a new program.",
+    "Bold a lift name as **Name** the first time you use it.",
+    "No headings and no bullet lists. Separate paragraphs with a blank line.",
+    `End with this sentence on its own line: ${REPORT_MEDICAL_LINE}`,
+  ].join(" ");
+}
+
+/** The model's paragraphs. The medical line is separate. */
+export function reportReadingParagraphs(paragraphs: string[]): string[] {
+  return paragraphs.filter((paragraph) => !paragraph.toLowerCase().includes("not medical advice"));
 }
 
 /** Saved text may still contain markdown from an earlier prompt. Show it as paragraphs. */

@@ -21,6 +21,7 @@ import {
   reportNextCreateAt,
   reportSpendableUsd,
   reportParagraphs,
+  reportReadingParagraphs,
   reportPeriodEnding,
   reportTodayAccepted,
   sessionCountsForReport,
@@ -382,17 +383,6 @@ describe("training report", () => {
     assert.equal(logged?.latest, "20 kg × 8");
     assert.equal(logged?.change, "-30 kg");
     assert.equal(logged?.heaviest, "20 kg × 8");
-    assert.match(buildReportFacts({
-      from: "2026-08-01",
-      to: "2026-10-01",
-      kind: "all",
-      sessions: [
-        assisted("2026-08-01", 50, null),
-        assisted("2026-08-20", 40, null),
-        assisted("2026-09-10", 30, null),
-        assisted("2026-10-01", 20, null),
-      ],
-    }), /Less assistance/);
 
     const withBodyweight = buildReportSummary({
       from: "2026-08-01",
@@ -429,15 +419,25 @@ describe("training report", () => {
     assert.equal(harder.lifts[0]?.change, "+20 kg");
   });
 
-  it("tells the model to write a short recap from the brief", () => {
+  it("tells the model to write a reading of the log", () => {
     const instructions = trainingReportInstructions();
-    assert.match(instructions, /two short sentences/);
-    assert.match(instructions, /do not repeat those numbers/);
-    assert.match(instructions, /Do not mention a lift that is not in the brief/);
-    assert.match(instructions, /Do not invent weights/);
+    assert.match(instructions, /two or three short paragraphs/);
+    assert.match(instructions, /your reading of the log/);
+    assert.match(instructions, /A pattern the table does not state/);
+    assert.match(instructions, /Do not invent a weight/);
     assert.match(instructions, /Do not set the next weight/);
     assert.match(instructions, /not medical advice/);
-    assert.doesNotMatch(instructions, /one sentence per exercise/i);
+    assert.doesNotMatch(instructions, /one short sentence/);
+    assert.match(trainingReportInstructions("all"), /all logged training/);
+  });
+
+  it("keeps every reading paragraph and leaves the medical line out of that list", () => {
+    const medical = "Suggestions come from logged training and are not medical advice.";
+    assert.deepEqual(reportReadingParagraphs(["The wrist note sits next to a quieter bench.", "Squat and deadlift moved together.", medical]), [
+      "The wrist note sits next to a quieter bench.",
+      "Squat and deadlift moved together.",
+    ]);
+    assert.deepEqual(reportReadingParagraphs([medical]), []);
   });
 
   it("shows an older markdown report as plain paragraphs", () => {
