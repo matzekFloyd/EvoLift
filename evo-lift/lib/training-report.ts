@@ -1,3 +1,4 @@
+import { assistedMovedLoadKg } from "@/lib/assisted-moved-load";
 import { estimateEpley1Rm } from "@/lib/exercise-progress-insights";
 import { formatDateToYyyyMmDd } from "@/lib/session-date";
 
@@ -59,6 +60,8 @@ export type ReportExercise = {
   targetWeightKg: number | null;
   /** Bar or other base weight stored on the exercise. Null when the log has none. */
   baseWeightKg: number | null;
+  /** Assisted Dip and Assisted Pull-Up. The logged weight is assistance, not added load. */
+  assistance?: boolean;
   sets: ReportSet[];
 };
 
@@ -67,6 +70,8 @@ export type ReportSession = {
   notes: string | null;
   completed: boolean;
   exercises: ReportExercise[];
+  /** Bodyweight logged on or before this session. Assisted estimated 1RM uses it. */
+  bodyweightKg?: number | null;
 };
 
 function parseLocalDate(value: string): Date {
@@ -118,12 +123,6 @@ function shortDate(value: string): string {
   return `${day} ${MONTHS[month - 1]}`;
 }
 
-function shiftDate(value: string, days: number): string {
-  const date = parseLocalDate(value);
-  date.setDate(date.getDate() + days);
-  return formatDateToYyyyMmDd(date);
-}
-
 /** Seed notes carry an idempotency key the lifter should not read. */
 function readableNote(value: string): string {
   const stripped = value.replace(/^Report sample:.*?(?: — |$)/, "").trim();
@@ -149,11 +148,13 @@ function missedTarget(exercise: ReportExercise): boolean {
     if (exercise.targetReps != null && set.reps < exercise.targetReps) {
       return true;
     }
-    return (
-      exercise.targetWeightKg != null &&
-      set.weightKg != null &&
-      set.weightKg < exercise.targetWeightKg
-    );
+    if (exercise.targetWeightKg == null || set.weightKg == null) {
+      return false;
+    }
+    // Less assistance than the target is a stronger set, not a miss.
+    return exercise.assistance
+      ? set.weightKg > exercise.targetWeightKg
+      : set.weightKg < exercise.targetWeightKg;
   });
 }
 
@@ -171,9 +172,44 @@ function heaviest(sets: ReportSet[]): ReportSet | null {
   }, null);
 }
 
+/** Least assistance in the session, then more reps. Blank assistance is unassisted bodyweight. */
+function leastAssistance(sets: ReportSet[]): ReportSet | null {
+  return sets.reduce<ReportSet | null>((best, set) => {
+    if (!best) {
+      return set;
+    }
+    const bestKg = best.weightKg ?? 0;
+    const kg = set.weightKg ?? 0;
+    if (kg < bestKg || (kg === bestKg && set.reps > best.reps)) {
+      return set;
+    }
+    return best;
+  }, null);
+}
+
+function bestWorkingSet(exercise: ReportExercise): ReportSet | null {
+  const sets = workingSets(exercise);
+  return exercise.assistance ? leastAssistance(sets) : heaviest(sets);
+}
+
 function setE1rm(set: ReportSet, baseWeightKg: number | null): number | null {
   const total = (set.weightKg ?? 0) + (baseWeightKg ?? 0);
   return estimateEpley1Rm(total, set.reps);
+}
+
+/**
+ * Assisted estimated 1RM is bodyweight minus assistance.
+ * Without a bodyweight on or before the session, assistance is not a strength estimate.
+ */
+function pointE1rm(set: ReportSet, exercise: ReportExercise, bodyweightKg: number | null): number | null {
+  if (exercise.assistance) {
+    const moved = assistedMovedLoadKg(bodyweightKg, set.weightKg ?? 0);
+    if (moved == null) {
+      return null;
+    }
+    return estimateEpley1Rm(moved, set.reps);
+  }
+  return setE1rm(set, exercise.baseWeightKg);
 }
 
 function formatKg(value: number): string {
@@ -189,6 +225,7 @@ type TopPoint = {
 
 type ExerciseStory = {
   name: string;
+  assistance: boolean;
   points: TopPoint[];
   skipped: number;
   skipNote: string | null;
@@ -196,17 +233,15 @@ type ExerciseStory = {
   latestOn: string | null;
 };
 
-function sameLoad(left: TopPoint, right: TopPoint): boolean {
-  return left.weightKg === right.weightKg && left.reps === right.reps;
-}
-
-function direction(first: TopPoint, last: TopPoint): "up" | "down" | "same" {
-  const firstWeight = first.weightKg ?? -1;
-  const lastWeight = last.weightKg ?? -1;
-  if (lastWeight > firstWeight) {
+function direction(first: TopPoint, last: TopPoint, assistance: boolean): "up" | "down" | "same" {
+  const firstWeight = first.weightKg ?? (assistance ? 0 : -1);
+  const lastWeight = last.weightKg ?? (assistance ? 0 : -1);
+  const weightUp = assistance ? lastWeight < firstWeight : lastWeight > firstWeight;
+  const weightDown = assistance ? lastWeight > firstWeight : lastWeight < firstWeight;
+  if (weightUp) {
     return "up";
   }
-  if (lastWeight < firstWeight) {
+  if (weightDown) {
     return "down";
   }
   if (last.reps > first.reps) {
@@ -218,8 +253,12 @@ function direction(first: TopPoint, last: TopPoint): "up" | "down" | "same" {
   return "same";
 }
 
-function loadOn(point: TopPoint): string {
-  return `${formatLoad(point.weightKg, point.reps)} on ${shortDate(point.on)}`;
+/** Positive when the lift got stronger. Less assistance counts as stronger. */
+function strengthDelta(story: ExerciseStory): number {
+  const first = story.points[0]?.weightKg ?? 0;
+  const last = story.points[story.points.length - 1]?.weightKg ?? 0;
+  const delta = last - first;
+  return story.assistance ? -delta : delta;
 }
 
 function missDetail(exercise: ReportExercise): string | null {
@@ -236,12 +275,12 @@ function missDetail(exercise: ReportExercise): string | null {
   if (shortReps) {
     return `${formatLoad(shortReps.weightKg, shortReps.reps)} on a working set, target ${exercise.targetReps} reps`;
   }
-  const light = working.find(
-    (set) =>
-      exercise.targetWeightKg != null &&
-      set.weightKg != null &&
-      set.weightKg < exercise.targetWeightKg,
-  );
+  const light = working.find((set) => {
+    if (exercise.targetWeightKg == null || set.weightKg == null) {
+      return false;
+    }
+    return exercise.assistance ? set.weightKg > exercise.targetWeightKg : set.weightKg < exercise.targetWeightKg;
+  });
   if (light && exercise.targetWeightKg != null) {
     return `${formatLoad(light.weightKg, light.reps)}, target ${exercise.targetWeightKg} kg`;
   }
@@ -255,19 +294,21 @@ function collectStories(sessions: ReportSession[]): ExerciseStory[] {
     for (const exercise of session.exercises) {
       const current = byName.get(exercise.name) ?? {
         name: exercise.name,
+        assistance: false,
         points: [],
         skipped: 0,
         skipNote: null,
         latestMiss: null,
         latestOn: null,
       };
-      const heavy = heaviest(workingSets(exercise));
+      current.assistance = current.assistance || Boolean(exercise.assistance);
+      const heavy = bestWorkingSet(exercise);
       if (heavy) {
         current.points.push({
           on: session.performedOn,
           reps: heavy.reps,
           weightKg: heavy.weightKg,
-          e1rmKg: setE1rm(heavy, exercise.baseWeightKg),
+          e1rmKg: pointE1rm(heavy, exercise, session.bodyweightKg ?? null),
         });
         current.latestOn = session.performedOn;
         current.latestMiss = missDetail(exercise);
@@ -285,10 +326,27 @@ function collectStories(sessions: ReportSession[]): ExerciseStory[] {
   return [...byName.values()];
 }
 
+function sameLoad(left: TopPoint, right: TopPoint): boolean {
+  return left.weightKg === right.weightKg && left.reps === right.reps;
+}
+
+function loadOn(point: TopPoint, assistance: boolean): string {
+  if (assistance) {
+    return `${point.weightKg ?? 0} kg assistance × ${point.reps} on ${shortDate(point.on)}`;
+  }
+  return `${formatLoad(point.weightKg, point.reps)} on ${shortDate(point.on)}`;
+}
+
+/** One lift's story for the model. The page table does not use this text. */
 function movementLine(story: ExerciseStory): string {
   const first = story.points[0];
   const last = story.points[story.points.length - 1];
-  let line = `${story.name}: ${loadOn(first)} to ${loadOn(last)}.`;
+  let line = `${story.name}: ${loadOn(first, story.assistance)} to ${loadOn(last, story.assistance)}.`;
+  if (story.assistance && (last.weightKg ?? 0) < (first.weightKg ?? 0)) {
+    line += " Less assistance.";
+  } else if (story.assistance && (last.weightKg ?? 0) > (first.weightKg ?? 0)) {
+    line += " More assistance.";
+  }
   const tail = story.points.slice(-3);
   if (story.points.length >= 3 && tail.every((point) => sameLoad(point, tail[0]))) {
     line += " The last 3 sessions were the same load.";
@@ -302,60 +360,6 @@ function movementLine(story: ExerciseStory): string {
   return line;
 }
 
-function sessionVolume(session: ReportSession): number {
-  return session.exercises.reduce((total, exercise) => {
-    for (const set of workingSets(exercise)) {
-      if (set.weightKg != null) {
-        total += set.weightKg * set.reps;
-      }
-    }
-    return total;
-  }, 0);
-}
-
-type VolumeComparison = {
-  firstHalfKg: number;
-  secondHalfKg: number;
-  changePercent: number;
-};
-
-function midpoint(from: string, to: string): string {
-  const start = parseLocalDate(from).getTime();
-  const end = parseLocalDate(to).getTime();
-  return formatDateToYyyyMmDd(new Date(start + Math.floor((end - start) / 2)));
-}
-
-function volumeComparison(
-  from: string,
-  to: string,
-  sessions: ReportSession[],
-  kind: ReportKind,
-): VolumeComparison | null {
-  const mid = kind === "all" ? midpoint(from, to) : shiftDate(from, 14);
-  const firstHalf = sessions
-    .filter((session) => session.performedOn < mid)
-    .reduce((total, session) => total + sessionVolume(session), 0);
-  const secondHalf = sessions
-    .filter((session) => session.performedOn >= mid)
-    .reduce((total, session) => total + sessionVolume(session), 0);
-  if (firstHalf <= 0 || secondHalf <= 0) {
-    return null;
-  }
-  return {
-    firstHalfKg: Math.round(firstHalf),
-    secondHalfKg: Math.round(secondHalf),
-    changePercent: Math.round(((secondHalf - firstHalf) / firstHalf) * 100),
-  };
-}
-
-function volumeLine(volume: VolumeComparison | null): string | null {
-  if (!volume || Math.abs(volume.changePercent) < 8) {
-    return null;
-  }
-  const relation = volume.changePercent > 0 ? "above" : "below";
-  return `Second-half working volume ${volume.secondHalfKg} kg, ${Math.abs(volume.changePercent)}% ${relation} the first half.`;
-}
-
 export type ReportLiftDirection = "up" | "down" | "held";
 
 export type ReportLiftRow = {
@@ -366,7 +370,7 @@ export type ReportLiftRow = {
   direction: ReportLiftDirection;
   /** Sessions with a working set. Set for an all-training report. */
   logged: number | null;
-  /** Heaviest working set in the span. Set for an all-training report. */
+  /** Best working set in the span. Least assistance on an assisted lift. */
   heaviest: string | null;
 };
 
@@ -375,6 +379,7 @@ export type ReportSummary = {
   kind: ReportKind;
   sessions: number;
   pace: string | null;
+  /** Older reports stored a tonnage split here. New reports leave it empty, and the page does not draw it. */
   volumeFirstLabel: string;
   volumeSecondLabel: string;
   firstHalfKg: number | null;
@@ -391,8 +396,12 @@ function formatAmount(value: number): string {
   return Number.isInteger(rounded) ? String(rounded) : rounded.toFixed(1);
 }
 
-function liftChange(first: TopPoint, last: TopPoint): { change: string; direction: ReportLiftDirection } {
-  const trend = direction(first, last);
+function liftChange(
+  first: TopPoint,
+  last: TopPoint,
+  assistance: boolean,
+): { change: string; direction: ReportLiftDirection } {
+  const trend = direction(first, last, assistance);
   if (trend === "same") {
     return { change: "Held", direction: "held" };
   }
@@ -409,7 +418,7 @@ function liftChange(first: TopPoint, last: TopPoint): { change: string; directio
 function liftRow(story: ExerciseStory): ReportLiftRow {
   const first = story.points[0];
   const last = story.points[story.points.length - 1];
-  const change = liftChange(first, last);
+  const change = liftChange(first, last, story.assistance);
   return {
     name: story.name,
     earlier: formatLoad(first.weightKg, first.reps),
@@ -530,16 +539,31 @@ function heaviestPoint(story: ExerciseStory): TopPoint {
   });
 }
 
+/** Strongest logged set in the span. On an assisted lift that is the least assistance. */
+function bestPoint(story: ExerciseStory): TopPoint {
+  if (!story.assistance) {
+    return heaviestPoint(story);
+  }
+  return story.points.reduce((best, point) => {
+    const bestKg = best.weightKg ?? 0;
+    const kg = point.weightKg ?? 0;
+    if (kg < bestKg || (kg === bestKg && point.reps > best.reps)) {
+      return point;
+    }
+    return best;
+  });
+}
+
 function allHistoryRow(story: ExerciseStory): ReportLiftRow | null {
   if (story.points.length < 4) {
     return null;
   }
   const span = e1rmEndpoints(story);
-  const heavy = heaviestPoint(story);
+  const heavy = bestPoint(story);
   if (!span) {
     const first = story.points[0];
     const last = story.points[story.points.length - 1];
-    const change = liftChange(first, last);
+    const change = liftChange(first, last, story.assistance);
     return {
       name: story.name,
       earlier: formatLoad(first.weightKg, first.reps),
@@ -595,7 +619,18 @@ function compileAllReport(input: {
   const grew = [...ranked].filter((item) => item.span.percent >= 3).sort((left, right) => right.span.percent - left.span.percent);
   const faded = [...ranked].filter((item) => item.span.percent <= -3).sort((left, right) => left.span.percent - right.span.percent);
   const fadedNames = new Set(faded.slice(0, 3).map((item) => item.story.name));
-  const lifts = [...grew.slice(0, 8), ...faded.slice(0, 3)].map((item) => item.row);
+  const assistanceOnly = stories.filter(
+    (story) => story.assistance && story.points.length >= 4 && e1rmEndpoints(story) == null,
+  );
+  const assistanceRows = assistanceOnly
+    .map((story) => allHistoryRow(story))
+    .filter((row): row is ReportLiftRow => row != null && row.direction !== "held");
+  const lifts = [
+    ...grew.slice(0, 8).map((item) => item.row),
+    ...assistanceRows.filter((row) => row.direction === "up"),
+    ...faded.slice(0, 3).map((item) => item.row),
+    ...assistanceRows.filter((row) => row.direction === "down"),
+  ];
   const breakLine = longestBreak(counted);
   const offPeak = stories
     .filter((story) => !fadedNames.has(story.name))
@@ -612,7 +647,6 @@ function compileAllReport(input: {
       break;
     }
   }
-  const volume = volumeComparison(input.from, input.to, counted, "all");
   const pace = paceLabel(counted);
   const summary: ReportSummary = {
     kind: "all",
@@ -620,17 +654,30 @@ function compileAllReport(input: {
     pace,
     volumeFirstLabel: "First half",
     volumeSecondLabel: "Second half",
-    firstHalfKg: volume?.firstHalfKg ?? null,
-    secondHalfKg: volume?.secondHalfKg ?? null,
-    volumeChangePercent: volume && Math.abs(volume.changePercent) >= 8 ? volume.changePercent : null,
+    firstHalfKg: null,
+    secondHalfKg: null,
+    volumeChangePercent: null,
     lifts,
     skipped: [],
     watch,
     notes,
   };
   const grewLines = grew.slice(0, 4).map((item) => {
-    const heavy = heaviestPoint(item.story);
-    return `${item.story.name}: estimated 1RM ${formatKg(item.span.first)} to ${formatKg(item.span.last)} (${item.row.change}). Heaviest ${formatLoad(heavy.weightKg, heavy.reps)}. ${item.story.points.length} sessions.`;
+    const heavy = bestPoint(item.story);
+    const bestLabel = item.story.assistance ? "Least assistance" : "Heaviest";
+    return `${item.story.name}: estimated 1RM ${formatKg(item.span.first)} to ${formatKg(item.span.last)} (${item.row.change}). ${bestLabel} ${formatLoad(heavy.weightKg, heavy.reps)}. ${item.story.points.length} sessions.`;
+  });
+  const assistanceLines = assistanceOnly.flatMap((story) => {
+    const row = allHistoryRow(story);
+    if (!row || row.direction === "held") {
+      return [];
+    }
+    const first = story.points[0];
+    const last = story.points[story.points.length - 1];
+    const trend = row.direction === "up" ? "Less assistance." : "More assistance.";
+    return [
+      `${story.name}: ${first.weightKg ?? 0} kg assistance × ${first.reps} to ${last.weightKg ?? 0} kg assistance × ${last.reps} (${row.change}). ${trend}`,
+    ];
   });
   const fadedLines = faded.slice(0, 3).map(
     (item) => `${item.story.name}: estimated 1RM ${formatKg(item.span.first)} to ${formatKg(item.span.last)} (${item.row.change}).`,
@@ -639,9 +686,12 @@ function compileAllReport(input: {
     `All logged training, ${shortDate(input.from)} to ${shortDate(input.to)}.`,
     `Sessions: ${counted.length}.`,
     pace ? `About ${pace}.` : "",
-    volumeLine(volume) ?? "",
-    grewLines.length > 0 ? `Grew:\n${grewLines.join("\n")}` : "No lift has an estimated 1RM change across four or more sessions.",
-    fadedLines.length > 0 ? `Faded:\n${fadedLines.join("\n")}` : "",
+    grewLines.length > 0 || assistanceLines.some((line) => line.endsWith("Less assistance."))
+      ? `Grew:\n${[...grewLines, ...assistanceLines.filter((line) => line.endsWith("Less assistance."))].join("\n")}`
+      : "",
+    fadedLines.length > 0 || assistanceLines.some((line) => line.endsWith("More assistance."))
+      ? `Faded:\n${[...fadedLines, ...assistanceLines.filter((line) => line.endsWith("More assistance."))].join("\n")}`
+      : "",
     watch.length > 0 ? `Watch:\n${watch.join("\n")}` : "",
     notes.length > 0 ? `Notes:\n${notes.join("\n")}` : "",
   ].filter(Boolean);
@@ -666,21 +716,21 @@ function compileReport(input: {
     .sort((left, right) => left.performedOn.localeCompare(right.performedOn));
   const stories = collectStories(counted);
   const moved = stories
-    .filter((story) => story.points.length >= 2 && direction(story.points[0], story.points[story.points.length - 1]) === "up")
-    .sort((left, right) => {
-      const leftDelta = (left.points[left.points.length - 1].weightKg ?? 0) - (left.points[0].weightKg ?? 0);
-      const rightDelta = (right.points[right.points.length - 1].weightKg ?? 0) - (right.points[0].weightKg ?? 0);
-      return rightDelta - leftDelta;
-    })
+    .filter(
+      (story) =>
+        story.points.length >= 2 &&
+        direction(story.points[0], story.points[story.points.length - 1], story.assistance) === "up",
+    )
+    .sort((left, right) => strengthDelta(right) - strengthDelta(left))
     .slice(0, 4);
   const movedNames = new Set(moved.map((story) => story.name));
   const dropped = stories
-    .filter((story) => story.points.length >= 2 && direction(story.points[0], story.points[story.points.length - 1]) === "down")
-    .sort((left, right) => {
-      const leftDelta = (left.points[0].weightKg ?? 0) - (left.points[left.points.length - 1].weightKg ?? 0);
-      const rightDelta = (right.points[0].weightKg ?? 0) - (right.points[right.points.length - 1].weightKg ?? 0);
-      return rightDelta - leftDelta;
-    })
+    .filter(
+      (story) =>
+        story.points.length >= 2 &&
+        direction(story.points[0], story.points[story.points.length - 1], story.assistance) === "down",
+    )
+    .sort((left, right) => strengthDelta(left) - strengthDelta(right))
     .slice(0, 3);
   const droppedNames = new Set(dropped.map((story) => story.name));
   const held = stories
@@ -688,7 +738,7 @@ function compileReport(input: {
       if (movedNames.has(story.name) || story.points.length < 3) {
         return false;
       }
-      return direction(story.points[0], story.points[story.points.length - 1]) === "same";
+      return direction(story.points[0], story.points[story.points.length - 1], story.assistance) === "same";
     })
     .sort((left, right) => right.points.length - left.points.length)
     .slice(0, 2);
@@ -719,16 +769,15 @@ function compileReport(input: {
       return lines;
     })
     .slice(-3);
-  const volume = volumeComparison(input.from, input.to, counted, "recent");
   const summary: ReportSummary = {
     kind: "recent",
     sessions: counted.length,
     pace: null,
     volumeFirstLabel: "First 2 weeks",
     volumeSecondLabel: "Last 2 weeks",
-    firstHalfKg: volume?.firstHalfKg ?? null,
-    secondHalfKg: volume?.secondHalfKg ?? null,
-    volumeChangePercent: volume && Math.abs(volume.changePercent) >= 8 ? volume.changePercent : null,
+    firstHalfKg: null,
+    secondHalfKg: null,
+    volumeChangePercent: null,
     lifts: [...moved, ...dropped, ...held].map(liftRow),
     skipped: skipped.map((story) => {
       const times = story.skipped === 1 ? "once" : `${story.skipped} times`;
@@ -738,11 +787,9 @@ function compileReport(input: {
     watch: watch.map((story) => `${story.name} on ${shortDate(story.latestOn ?? "")}: ${story.latestMiss}.`),
     notes,
   };
-  const volumeText = volumeLine(volume);
   const blocks = [
     `Last 4 weeks, ${shortDate(input.from)} to ${shortDate(input.to)}.`,
     `Sessions: ${counted.length}.`,
-    volumeText ?? "",
     moved.length > 0 ? `Moved:\n${moved.map(movementLine).join("\n")}` : "No lift changed load across two or more sessions.",
     dropped.length > 0 ? `Dropped:\n${dropped.map(movementLine).join("\n")}` : "",
     held.length > 0
@@ -783,26 +830,21 @@ export function buildReportSummary(input: {
 }
 
 export function trainingReportInstructions(kind: ReportKind = "recent"): string {
-  const shared = [
-    "Bold each lift name once, as **Name**.",
-    "Do not mention a lift that is not in the brief. Do not invent weights, personal bests, or exercises.",
-    "Do not list every set, do not count how many times a target was missed, and do not add a bar to a weight.",
-    "No headings and no bullet lists. Separate the two sentences with a blank line.",
-    `End with this sentence: ${REPORT_MEDICAL_LINE}`,
-  ];
-  const opening =
-    kind === "all"
-      ? [
-          "Write two short sentences in English from the brief. The page already shows the full-history table and the volume comparison, so do not repeat those numbers.",
-          "The first sentence names the session count and the lifts under Grew, without their loads.",
-          "The second sentence says what to watch, using only Faded and Watch. Do not set the next weight and do not write a new program.",
-        ]
-      : [
-          "Write two short sentences in English from the brief. The page already shows a table of the loads and a volume comparison, so do not repeat those numbers.",
-          "The first sentence names the session count and the lifts under Moved or Dropped, without their loads.",
-          "The second sentence says what to watch next time, using only Watch, Skipped, and Notes. Name the lift or the note. Do not set the next weight and do not write a new program.",
-        ];
-  return [...opening, ...shared].join(" ");
+  const scope = kind === "all" ? "all logged training" : "the last 4 weeks";
+  return [
+    `Write two or three short paragraphs in English about ${scope}. The page already shows the table. This is your reading of the log.`,
+    "Say what stands out. How the lifts fit together, what a note or a miss suggests, and what is worth attention. A pattern the table does not state is the point.",
+    "Use only lifts, notes, and loads that appear in the brief. You may mention a load from the brief when it matters.",
+    "Do not invent a weight, a lift, or a personal best. Do not set the next weight and do not write a new program.",
+    "Bold a lift name as **Name** the first time you use it.",
+    "No headings and no bullet lists. Separate paragraphs with a blank line.",
+    `End with this sentence on its own line: ${REPORT_MEDICAL_LINE}`,
+  ].join(" ");
+}
+
+/** The model's paragraphs. The medical line is separate. */
+export function reportReadingParagraphs(paragraphs: string[]): string[] {
+  return paragraphs.filter((paragraph) => !paragraph.toLowerCase().includes("not medical advice"));
 }
 
 /** Saved text may still contain markdown from an earlier prompt. Show it as paragraphs. */

@@ -15,6 +15,7 @@ import {
   reportCooldownMessage,
   reportNextCreateAt,
   reportParagraphs,
+  reportReadingParagraphs,
   type ReportKind,
   type ReportSummary,
 } from "@/lib/training-report";
@@ -44,42 +45,19 @@ function ReportParagraph({ text }: { text: string }) {
   );
 }
 
-function VolumeBars({ summary }: { summary: ReportSummary }) {
-  if (summary.firstHalfKg == null || summary.secondHalfKg == null) {
-    return null;
-  }
-  const max = Math.max(summary.firstHalfKg, summary.secondHalfKg, 1);
-  const rows = [
-    { label: summary.volumeFirstLabel, kg: summary.firstHalfKg, bar: "bg-emerald-300" },
-    { label: summary.volumeSecondLabel, kg: summary.secondHalfKg, bar: "bg-emerald-600" },
-  ];
+function ReportPace({ summary }: { summary: ReportSummary }) {
+  const weekly = summary.pace?.replace(/ sessions a week$/, "");
   return (
-    <section>
-      <h3 className="text-sm font-medium text-zinc-800">Working volume</h3>
-      <p className="mt-1 text-sm text-zinc-600">
-        {`${summary.sessions} sessions${summary.pace ? `, ${summary.pace.replace(/ sessions a week$/, "")} a week` : ""}`}
-      </p>
-      <ul className="mt-3 grid gap-3">
-        {rows.map((row) => (
-          <li key={row.label}>
-            <div className="flex items-baseline justify-between gap-3 text-sm text-zinc-800">
-              <span>{row.label}</span>
-              <span className="tabular-nums">{row.kg} kg</span>
-            </div>
-            <div className="mt-1 h-2 rounded-full bg-zinc-200" aria-hidden>
-              <div className={`h-2 rounded-full ${row.bar}`} style={{ width: `${Math.max(4, (row.kg / max) * 100)}%` }} />
-            </div>
-          </li>
-        ))}
-      </ul>
-    </section>
+    <p className="text-sm text-zinc-800">
+      {weekly ? `${summary.sessions} sessions, ${weekly} a week` : `${summary.sessions} sessions`}
+    </p>
   );
 }
 
 function ReportFigures({ summary }: { summary: ReportSummary }) {
   return (
     <div className="grid gap-5">
-      <VolumeBars summary={summary} />
+      <ReportPace summary={summary} />
       {summary.lifts.length > 0 ? (
         <section>
           <h3 className="text-sm font-medium text-zinc-800">Lifts</h3>
@@ -141,7 +119,7 @@ function AllLiftsTable({ summary }: { summary: ReportSummary }) {
   return (
     <AppTable>
       <caption className="sr-only">
-        Sessions, estimated 1RM, change, and heaviest set for the lifts in this report
+        Sessions, estimated 1RM, change, and best set for the lifts in this report
       </caption>
       <thead>
         <tr className={appTableHeadRowClassName}>
@@ -150,7 +128,7 @@ function AllLiftsTable({ summary }: { summary: ReportSummary }) {
           <th className={appTableThClassName} scope="col">First est. 1RM</th>
           <th className={appTableThClassName} scope="col">Latest est. 1RM</th>
           <th className={appTableThClassName} scope="col">Change</th>
-          <th className={appTableThClassName} scope="col">Heaviest</th>
+          <th className={appTableThClassName} scope="col">Best set</th>
         </tr>
       </thead>
       <tbody>
@@ -185,15 +163,23 @@ function ReportNotes({ lines }: { lines: string[] }) {
 function ReportView({ text }: { text: string }) {
   const { prose, summary } = readReportSummary(text);
   const paragraphs = reportParagraphs(prose);
-  const shown = summary
+  const reading = summary ? reportReadingParagraphs(paragraphs) : paragraphs;
+  const medical = summary
     ? paragraphs.filter((paragraph) => paragraph.toLowerCase().includes("not medical advice"))
-    : paragraphs;
+    : [];
   return (
     <div className="grid gap-5">
       {summary ? <ReportFigures summary={summary} /> : null}
-      {shown.length > 0 ? (
+      {reading.length > 0 ? (
         <div className="grid gap-3">
-          {shown.map((paragraph, index) => (
+          {reading.map((paragraph, index) => (
+            <ReportParagraph key={index} text={paragraph} />
+          ))}
+        </div>
+      ) : null}
+      {medical.length > 0 ? (
+        <div className="grid gap-3">
+          {medical.map((paragraph, index) => (
             <ReportParagraph key={index} text={paragraph} />
           ))}
         </div>
