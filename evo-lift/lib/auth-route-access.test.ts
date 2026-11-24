@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { describe, it } from "vitest";
 import {
   isPublicAppPath,
+  leavesBearerHeaderUntouched,
   PUBLIC_PAGE_PATHS,
   requiresAppSession,
   sessionGateDecision,
@@ -24,6 +25,10 @@ describe("auth-route-access", () => {
     assert.equal(isPublicAppPath("/api/security/events"), true);
     assert.equal(requiresAppSession("/api/sessions"), false);
     assert.equal(sessionGateDecision({ pathname: "/api/sessions", hasUser: false }), "allow");
+    assert.equal(leavesBearerHeaderUntouched("/api/reports"), true);
+    assert.equal(leavesBearerHeaderUntouched("/api"), true);
+    assert.equal(leavesBearerHeaderUntouched("/app/reports"), false);
+    assert.equal(leavesBearerHeaderUntouched("/application"), false);
   });
 
   it("requires a session only under /app", () => {

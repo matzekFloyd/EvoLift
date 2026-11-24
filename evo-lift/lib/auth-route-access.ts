@@ -13,6 +13,14 @@ export const PUBLIC_PAGE_PATHS = ["/", "/login", "/privacy", "/terms", "/legal",
 
 const PUBLIC_EXACT = new Set<string>(PUBLIC_PAGE_PATHS);
 
+/**
+ * API routes authenticate with the bearer token on the incoming request.
+ * Rewriting that request in the proxy replaces its headers and can drop the token.
+ */
+export function leavesBearerHeaderUntouched(pathname: string): boolean {
+  return pathname === "/api" || pathname.startsWith("/api/");
+}
+
 export function isPublicAppPath(pathname: string): boolean {
   if (PUBLIC_EXACT.has(pathname)) {
     return true;

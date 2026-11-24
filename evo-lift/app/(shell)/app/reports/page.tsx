@@ -273,16 +273,22 @@ export default function ReportsPage() {
   }, [loadReports, router]);
 
   async function createReport(kind: ReportKind) {
-    if (!accessToken || creatingKind) {
+    if (creatingKind) {
       return;
     }
+    const session = await getBrowserAuthSession();
+    if (!session) {
+      router.replace("/login");
+      return;
+    }
+    setAccessToken(session.access_token);
     setCreatingKind(kind);
     setErrorMessage(null);
     try {
       const response = await fetch("/api/reports", {
         method: "POST",
         headers: {
-          authorization: `Bearer ${accessToken}`,
+          authorization: `Bearer ${session.access_token}`,
           "content-type": "application/json",
         },
         body: JSON.stringify({ today: getTodayYyyyMmDd(), kind }),
