@@ -1,3 +1,4 @@
+import { readGatewayCredential } from "@/lib/gateway-credential";
 import { ApiHttpError } from "@/server/api/errors";
 import {
   REPORT_FAILED_MESSAGE,
@@ -18,8 +19,7 @@ const CREDITS_URL = "https://ai-gateway.vercel.sh/v1/credits";
 const MAX_OUTPUT_TOKENS = 900;
 
 function gatewayCredential(): string | null {
-  const key = process.env.AI_GATEWAY_API_KEY?.trim() || process.env.VERCEL_OIDC_TOKEN?.trim();
-  return key || null;
+  return readGatewayCredential(process.env);
 }
 
 /** True when the shared balance was read and cannot cover another report. A failed read stays open. */
@@ -50,6 +50,7 @@ export async function writeTrainingReport(
 ): Promise<{ text: string; model: string }> {
   const credential = gatewayCredential();
   if (!credential) {
+    console.error("[reports] gateway credential missing");
     throw new ApiHttpError(503, REPORT_UNAVAILABLE_MESSAGE);
   }
 
