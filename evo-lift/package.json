@@ -30,7 +30,7 @@
     "nextstepjs": "^2.3.0",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "recharts": "^3.10.1",
+    "recharts": "^3.11.0",
     "swagger-ui-dist": "^5.35.1",
     "ws": "^8.23.0",
     "zod": "^4.6.7"
