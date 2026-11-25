@@ -1,12 +1,21 @@
 import { NextRequest } from "next/server";
 import { createServiceRoleClient } from "@/lib/supabase/server";
+import { parseAccountDoubleProgression } from "@/server/api/account-body";
 import { ApiHttpError, handleApi, jsonData, readJsonObject } from "@/server/api/http";
 import { CURRENT_PASSWORD_REQUIRED } from "@/app/account/account-form";
-import { readAccount, requireCurrentPassword } from "@/server/db/account-auth";
+import { readAccount, requireCurrentPassword, saveAccountDoubleProgression } from "@/server/db/account-auth";
 import { logSecurityEvent } from "@/server/security/log-security-event";
 
 export async function GET(request: NextRequest) {
   return handleApi(request, async (auth) => {
+    return jsonData(await readAccount(auth.userId));
+  });
+}
+
+export async function PATCH(request: NextRequest) {
+  return handleApi(request, async (auth) => {
+    const enabled = parseAccountDoubleProgression(await readJsonObject(request));
+    await saveAccountDoubleProgression(auth.client, auth.userId, enabled);
     return jsonData(await readAccount(auth.userId));
   });
 }

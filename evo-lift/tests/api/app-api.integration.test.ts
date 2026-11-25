@@ -1,12 +1,13 @@
 import assert from "node:assert/strict";
 import { afterAll, beforeAll, describe, it } from "vitest";
-import { GET as getAccount, DELETE as deleteAccount } from "@/app/api/account/route";
+import { GET as getAccount, PATCH as patchAccount, DELETE as deleteAccount } from "@/app/api/account/route";
 import { PATCH as patchEmail } from "@/app/api/account/email/route";
 import { PATCH as patchPassword } from "@/app/api/account/password/route";
 import { GET as getProfile, PUT as putProfile } from "@/app/api/account/profile/route";
 import { GET as listBodyweight, POST as createBodyweight } from "@/app/api/account/bodyweight/route";
 import { DELETE as deleteBodyweight } from "@/app/api/account/bodyweight/[id]/route";
 import { PUT as putHidden } from "@/app/api/account/exercises/hidden/route";
+import { GET as listDefaults } from "@/app/api/account/exercise-defaults/route";
 import {
   DELETE as clearDefaults,
   PUT as putDefaults,
@@ -399,6 +400,51 @@ describe("app API on local Supabase", () => {
     const squatDefaults = savedDefaults.exercises.find((row) => row.exercise_id === squatId);
     assert.equal(squatDefaults?.default_target_sets, 5);
     assert.equal(squatDefaults?.max_suggested_warmup_sets, 3);
+
+    const progressed = await readJson(
+      await putDefaults(
+        buildRequest(`/api/account/exercise-defaults/${squatId}`, "PUT", ownerToken, {
+          suggest_warmups: true,
+          suggest_target: true,
+          double_progression: true,
+          progression_increment_kg: 1,
+        }),
+        { params: Promise.resolve({ exerciseId: squatId }) },
+      ),
+    );
+    assert.equal(progressed.status, 200);
+    const listedDefaults = await readJson(
+      await listDefaults(buildRequest("/api/account/exercise-defaults", "GET", ownerToken)),
+    );
+    const listedSquat = (
+      listedDefaults.body.data as {
+        exercises: Array<{
+          exercise_id: string;
+          double_progression: boolean | null;
+          progression_increment_kg: number | null;
+        }>;
+      }
+    ).exercises.find((row) => row.exercise_id === squatId);
+    assert.equal(listedSquat?.double_progression, true);
+    assert.equal(listedSquat?.progression_increment_kg, 1);
+
+    const unknownField = await readJson(
+      await putDefaults(
+        buildRequest(`/api/account/exercise-defaults/${squatId}`, "PUT", ownerToken, {
+          suggest_warmups: true,
+          suggest_target: true,
+          nope: true,
+        }),
+        { params: Promise.resolve({ exerciseId: squatId }) },
+      ),
+    );
+    assert.equal(unknownField.status, 400);
+
+    const patched = await readJson(
+      await patchAccount(buildRequest("/api/account", "PATCH", ownerToken, { double_progression: true })),
+    );
+    assert.equal(patched.status, 200);
+    assert.equal((patched.body.data as { double_progression: boolean }).double_progression, true);
 
     const cleared = await readJson(
       await clearDefaults(buildRequest(`/api/account/exercise-defaults/${squatId}`, "DELETE", ownerToken), {

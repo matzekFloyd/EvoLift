@@ -94,6 +94,8 @@ type TargetWeightSuggestionProps = {
   enabled?: boolean;
   /** Null and missing follow the account double-progression switch. */
   exerciseDoubleProgression?: boolean | null;
+  /** Null and missing keep the load-based weight step. */
+  progressionIncrementKg?: number | null;
   /** Assisted Dip and Assisted Pull-Up. A hit suggests less assistance. */
   assistance?: boolean;
   onApply: (next: { weightKg: string; reps: string | null }) => void;
@@ -107,6 +109,7 @@ export function TargetWeightSuggestion({
   excludeSessionId = null,
   enabled = true,
   exerciseDoubleProgression = null,
+  progressionIncrementKg = null,
   assistance = false,
   onApply,
 }: TargetWeightSuggestionProps) {
@@ -159,8 +162,17 @@ export function TargetWeightSuggestion({
         exerciseOverride: exerciseDoubleProgression,
       }),
       assistance,
+      progressionIncrementKg,
     });
-  }, [assistance, excludeSessionId, exerciseDoubleProgression, exerciseId, history, plannedReps]);
+  }, [
+    assistance,
+    excludeSessionId,
+    exerciseDoubleProgression,
+    exerciseId,
+    history,
+    plannedReps,
+    progressionIncrementKg,
+  ]);
 
   if (!showSuggestion) {
     return null;

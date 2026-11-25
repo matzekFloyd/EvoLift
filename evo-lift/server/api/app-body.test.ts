@@ -9,6 +9,7 @@ import { ApiHttpError } from "./http";
 import { parseGoalBody } from "./goal-body";
 import { parsePlanSaveBody } from "./plan-body";
 import {
+  parseAccountDoubleProgression,
   parseBodyweightWrite,
   parseEmailUpdate,
   parseExerciseDefaults,
@@ -158,6 +159,52 @@ describe("account request body", () => {
     assert.equal(parsed.targetSets, 3);
     assert.equal(parsed.maxWarmupSets, 2);
     assert.equal(parsed.updateMaxWarmupSets, true);
+    assert.equal(parsed.updateDoubleProgression, false);
+    assert.equal(parsed.updateProgressionIncrementKg, false);
+  });
+
+  it("saves double progression and a per-exercise increment", () => {
+    const parsed = parseExerciseDefaults(
+      {
+        suggest_warmups: true,
+        suggest_target: true,
+        double_progression: true,
+        progression_increment_kg: 1,
+      },
+      EXERCISE_ID,
+    );
+    assert.equal(parsed.doubleProgression, true);
+    assert.equal(parsed.updateDoubleProgression, true);
+    assert.equal(parsed.progressionIncrementKg, 1);
+    assert.equal(parsed.updateProgressionIncrementKg, true);
+    assert.equal(
+      parseExerciseDefaults(
+        { suggest_warmups: false, suggest_target: false, double_progression: null, progression_increment_kg: null },
+        EXERCISE_ID,
+      ).doubleProgression,
+      null,
+    );
+  });
+
+  it("rejects unknown exercise-default fields", () => {
+    assert.equal(
+      message(() =>
+        parseExerciseDefaults(
+          { suggest_warmups: true, suggest_target: true, extra: true },
+          EXERCISE_ID,
+        ),
+      ),
+      "Please remove the unknown field extra.",
+    );
+    assert.equal(
+      message(() => parseAccountDoubleProgression({ double_progression: true, extra: false })),
+      "Please remove the unknown field extra.",
+    );
+    assert.equal(parseAccountDoubleProgression({ double_progression: false }), false);
+    assert.equal(
+      message(() => parseExerciseDefaults({ suggest_warmups: true, suggest_target: true, progression_increment_kg: 0 }, EXERCISE_ID)),
+      "Please enter a progression increment above 0 kg.",
+    );
   });
 });
 

@@ -140,7 +140,70 @@ export type ParsedExerciseDefaults = {
   suggestTarget: boolean;
   maxWarmupSets: number | null;
   updateMaxWarmupSets: boolean;
+  doubleProgression: boolean | null;
+  updateDoubleProgression: boolean;
+  progressionIncrementKg: number | null;
+  updateProgressionIncrementKg: boolean;
 };
+
+const EXERCISE_DEFAULT_FIELDS = [
+  "default_base_weight_kg",
+  "default_target_sets",
+  "default_target_reps",
+  "default_target_weight_kg",
+  "suggest_warmups",
+  "suggest_target",
+  "max_suggested_warmup_sets",
+  "double_progression",
+  "progression_increment_kg",
+] as const;
+
+/** 400 when the body contains a key this route does not store. */
+export function rejectUnknownFields(body: Record<string, unknown>, allowed: readonly string[]): void {
+  const allowedFields = new Set<string>(allowed);
+  for (const key of Object.keys(body)) {
+    if (!allowedFields.has(key)) {
+      throw new ApiHttpError(400, `Please remove the unknown field ${key}.`);
+    }
+  }
+}
+
+function parseNullableBoolean(
+  value: unknown,
+  field: string,
+): boolean | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null) {
+    return null;
+  }
+  if (typeof value !== "boolean") {
+    throw new ApiHttpError(400, `${field} must be true, false, or null.`);
+  }
+  return value;
+}
+
+/** Null clears a saved increment. Omitted leaves the stored value alone. */
+function parseProgressionIncrementKg(value: unknown): number | null | undefined {
+  if (value === undefined) {
+    return undefined;
+  }
+  if (value === null) {
+    return null;
+  }
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    throw new ApiHttpError(400, "Please enter a progression increment above 0 kg.");
+  }
+  const rounded = Math.round(value * 100) / 100;
+  if (rounded <= 0) {
+    throw new ApiHttpError(400, "Please enter a progression increment above 0 kg.");
+  }
+  if (rounded > 9999.99) {
+    throw new ApiHttpError(400, "Please enter a progression increment of 9999.99 kg or less.");
+  }
+  return rounded;
+}
 
 function optionalMetric(value: unknown): string {
   if (value == null) {
@@ -155,12 +218,23 @@ function optionalMetric(value: unknown): string {
   return "nope";
 }
 
+export function parseAccountDoubleProgression(body: Record<string, unknown>): boolean {
+  rejectUnknownFields(body, ["double_progression"]);
+  if (typeof body.double_progression !== "boolean") {
+    throw new ApiHttpError(400, "double_progression must be a boolean.");
+  }
+  return body.double_progression;
+}
+
 export function parseExerciseDefaults(
   body: Record<string, unknown>,
   exerciseId: string,
 ): ParsedExerciseDefaults {
+  rejectUnknownFields(body, EXERCISE_DEFAULT_FIELDS);
   const suggestWarmups = parseOptionalBoolean(body.suggest_warmups, "suggest_warmups");
   const suggestTarget = parseOptionalBoolean(body.suggest_target, "suggest_target");
+  const doubleProgression = parseNullableBoolean(body.double_progression, "double_progression");
+  const progressionIncrementKg = parseProgressionIncrementKg(body.progression_increment_kg);
   if (suggestWarmups === undefined || suggestTarget === undefined) {
     throw new ApiHttpError(400, "suggest_warmups and suggest_target must be booleans.");
   }
@@ -190,5 +264,9 @@ export function parseExerciseDefaults(
     maxWarmupSets: maxText.trim() === "" ? null : Number(maxText),
     /** When omitted from the body, leave the stored per-exercise cap unchanged. */
     updateMaxWarmupSets: body.max_suggested_warmup_sets !== undefined,
+    doubleProgression: doubleProgression ?? null,
+    updateDoubleProgression: body.double_progression !== undefined,
+    progressionIncrementKg: progressionIncrementKg ?? null,
+    updateProgressionIncrementKg: body.progression_increment_kg !== undefined,
   };
 }

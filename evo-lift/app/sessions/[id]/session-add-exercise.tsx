@@ -28,6 +28,7 @@ type AddExerciseFormProps = {
   sessionId: string | undefined;
   targetSuggestionsDisabledExerciseIds: ReadonlySet<string>;
   doubleProgressionByExerciseId: ReadonlyMap<string, boolean | null>;
+  progressionIncrementKgByExerciseId: ReadonlyMap<string, number | null>;
   isAdding: boolean;
   onSubmit: () => void | Promise<void>;
 };
@@ -82,6 +83,7 @@ function AddExerciseSuggestion({
         !props.targetSuggestionsDisabledExerciseIds.has(draft.exerciseId),
       )}
       exerciseDoubleProgression={props.doubleProgressionByExerciseId.get(draft.exerciseId)}
+      progressionIncrementKg={props.progressionIncrementKgByExerciseId.get(draft.exerciseId) ?? null}
       assistance={isAssistanceExercise(props.exerciseSlugById.get(draft.exerciseId))}
       onApply={({ weightKg, reps }) => {
         setField("targetWeightKg", weightKg);

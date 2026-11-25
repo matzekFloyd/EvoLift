@@ -251,6 +251,9 @@ export function WorkoutExerciseDraftList({
         exerciseDoubleProgression={
           exerciseDefaultsById.get(row.exerciseId)?.double_progression
         }
+        progressionIncrementKg={
+          exerciseDefaultsById.get(row.exerciseId)?.progression_increment_kg ?? null
+        }
         assistance={isAssistanceExercise(exerciseSlugById.get(row.exerciseId))}
         onApply={({ weightKg, reps }) => {
           updateExerciseRow(index, "targetWeightKg", weightKg);
