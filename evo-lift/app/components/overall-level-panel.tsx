@@ -4,9 +4,9 @@ import { markedOverallLevel } from "@/app/components/overall-level-figure";
 import { OverallLevelBody } from "@/app/components/overall-level-body";
 import { OverallLevelProgressBar, OverallLevelProgressExplanation } from "@/app/components/overall-level-progress-bar";
 import { StrengthStandardsSource } from "@/app/components/strength-standards-source";
+import { accountSectionPath } from "@/app/account/account-section";
 import { insightsLevelDetailsHref } from "@/app/insights/insights-presets";
 import { actionLinkClassName } from "@/app/components/inline-link-class";
-import { appPath } from "@/lib/app-paths";
 import { getTodayYyyyMmDd } from "@/lib/session-date";
 import type { OverallLifterLevel } from "@/lib/exercise-progress-insights";
 
@@ -47,7 +47,7 @@ export function OverallLevelPanel({ overall, hint, facts, className }: OverallLe
                   row.value
                 ) : (
                   <Link
-                    href={appPath("/account")}
+                    href={accountSectionPath("profile")}
                     className="font-medium text-sky-800 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-sky-500/60"
                   >
                     Set in Settings

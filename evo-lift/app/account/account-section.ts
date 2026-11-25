@@ -1,3 +1,5 @@
+import { appPath } from "@/lib/app-paths";
+
 /** Settings page tabs, in the order they appear. */
 export const ACCOUNT_SECTIONS = [
   { id: "security", label: "Login" },
@@ -12,4 +14,9 @@ export type AccountSectionId = (typeof ACCOUNT_SECTIONS)[number]["id"];
 export function accountSectionFromSearchParam(value: string | null): AccountSectionId | null {
   const match = ACCOUNT_SECTIONS.find((section) => section.id === value);
   return match?.id ?? null;
+}
+
+/** Settings URL that opens one tab. Body metrics is `profile`. */
+export function accountSectionPath(section: AccountSectionId): string {
+  return `${appPath("/account")}?section=${section}`;
 }

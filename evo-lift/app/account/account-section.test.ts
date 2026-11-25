@@ -1,10 +1,15 @@
 import assert from "node:assert/strict";
 import { describe, it } from "vitest";
-import { accountSectionFromSearchParam } from "@/app/account/account-section";
+import { accountSectionFromSearchParam, accountSectionPath } from "@/app/account/account-section";
+import { appPath } from "@/lib/app-paths";
 
 describe("account section search param", () => {
   it("selects body metrics for the first-login tour", () => {
     assert.equal(accountSectionFromSearchParam("profile"), "profile");
+  });
+
+  it("opens Settings on the Body metrics tab", () => {
+    assert.equal(accountSectionPath("profile"), `${appPath("/account")}?section=profile`);
   });
 
   it("accepts the other account tabs", () => {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { Fragment, useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ActionButton } from "@/app/components/action-button";
 import { AppTable, appTableHeadRowClassName, appTableTdClassName, appTableThClassName } from "@/app/components/app-table";
@@ -56,12 +56,12 @@ function ReportPace({ summary }: { summary: ReportSummary }) {
 
 function ReportFigures({ summary }: { summary: ReportSummary }) {
   return (
-    <div className="grid gap-5">
+    <div className="grid min-w-0 gap-5">
       <ReportPace summary={summary} />
       {summary.lifts.length > 0 ? (
-        <section>
+        <section className="min-w-0">
           <h3 className="text-sm font-medium text-zinc-800">Lifts</h3>
-          <div className="mt-2">
+          <div className="mt-2 min-w-0">
             {summary.kind === "all" ? <AllLiftsTable summary={summary} /> : <RecentLiftsTable summary={summary} />}
           </div>
         </section>
@@ -89,61 +89,114 @@ function LiftName({ name }: { name: string }) {
   );
 }
 
+type LiftFact = {
+  label: string;
+  value: string;
+  className?: string;
+};
+
+/** One lift per card so Earlier, Latest, and Change stay readable below the `sm` breakpoint. */
+function LiftCards({ rows }: { rows: { name: string; facts: LiftFact[] }[] }) {
+  return (
+    <ul className="grid gap-2 sm:hidden">
+      {rows.map((row) => (
+        <li key={row.name} className="rounded-md border border-zinc-200 bg-white px-3 py-2">
+          <p className="text-sm font-medium text-zinc-900">{row.name}</p>
+          <dl className="mt-1.5 grid grid-cols-[max-content_minmax(0,1fr)] gap-x-3 gap-y-0.5 text-sm">
+            {row.facts.map((fact) => (
+              <Fragment key={fact.label}>
+                <dt className="text-zinc-500">{fact.label}</dt>
+                <dd className={fact.className ?? "tabular-nums text-zinc-800"}>{fact.value}</dd>
+              </Fragment>
+            ))}
+          </dl>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function RecentLiftsTable({ summary }: { summary: ReportSummary }) {
   return (
-    <AppTable>
-      <caption className="sr-only">Earlier load, latest load, and change for the lifts in this report</caption>
-      <thead>
-        <tr className={appTableHeadRowClassName}>
-          <th className={appTableThClassName} scope="col">Lift</th>
-          <th className={appTableThClassName} scope="col">Earlier</th>
-          <th className={appTableThClassName} scope="col">Latest</th>
-          <th className={appTableThClassName} scope="col">Change</th>
-        </tr>
-      </thead>
-      <tbody>
-        {summary.lifts.map((lift) => (
-          <tr key={lift.name}>
-            <LiftName name={lift.name} />
-            <td className={`${appTableTdClassName} whitespace-nowrap tabular-nums`}>{lift.earlier}</td>
-            <td className={`${appTableTdClassName} whitespace-nowrap tabular-nums`}>{lift.latest}</td>
-            <td className={`${appTableTdClassName} whitespace-nowrap tabular-nums ${changeClassName(lift.direction)}`}>{lift.change}</td>
+    <>
+      <LiftCards
+        rows={summary.lifts.map((lift) => ({
+          name: lift.name,
+          facts: [
+            { label: "Earlier", value: lift.earlier },
+            { label: "Latest", value: lift.latest },
+            { label: "Change", value: lift.change, className: `tabular-nums ${changeClassName(lift.direction)}` },
+          ],
+        }))}
+      />
+      <AppTable className="hidden min-w-0 sm:block">
+        <caption className="sr-only">Earlier load, latest load, and change for the lifts in this report</caption>
+        <thead>
+          <tr className={appTableHeadRowClassName}>
+            <th className={appTableThClassName} scope="col">Lift</th>
+            <th className={appTableThClassName} scope="col">Earlier</th>
+            <th className={appTableThClassName} scope="col">Latest</th>
+            <th className={appTableThClassName} scope="col">Change</th>
           </tr>
-        ))}
-      </tbody>
-    </AppTable>
+        </thead>
+        <tbody>
+          {summary.lifts.map((lift) => (
+            <tr key={lift.name}>
+              <LiftName name={lift.name} />
+              <td className={`${appTableTdClassName} whitespace-nowrap tabular-nums`}>{lift.earlier}</td>
+              <td className={`${appTableTdClassName} whitespace-nowrap tabular-nums`}>{lift.latest}</td>
+              <td className={`${appTableTdClassName} whitespace-nowrap tabular-nums ${changeClassName(lift.direction)}`}>{lift.change}</td>
+            </tr>
+          ))}
+        </tbody>
+      </AppTable>
+    </>
   );
 }
 
 function AllLiftsTable({ summary }: { summary: ReportSummary }) {
   return (
-    <AppTable>
-      <caption className="sr-only">
-        Sessions, estimated 1RM, change, and best set for the lifts in this report
-      </caption>
-      <thead>
-        <tr className={appTableHeadRowClassName}>
-          <th className={appTableThClassName} scope="col">Lift</th>
-          <th className={appTableThClassName} scope="col">Sessions</th>
-          <th className={appTableThClassName} scope="col">First est. 1RM</th>
-          <th className={appTableThClassName} scope="col">Latest est. 1RM</th>
-          <th className={appTableThClassName} scope="col">Change</th>
-          <th className={appTableThClassName} scope="col">Best set</th>
-        </tr>
-      </thead>
-      <tbody>
-        {summary.lifts.map((lift) => (
-          <tr key={lift.name}>
-            <LiftName name={lift.name} />
-            <td className={`${appTableTdClassName} whitespace-nowrap tabular-nums`}>{lift.logged ?? ""}</td>
-            <td className={`${appTableTdClassName} whitespace-nowrap tabular-nums`}>{lift.earlier}</td>
-            <td className={`${appTableTdClassName} whitespace-nowrap tabular-nums`}>{lift.latest}</td>
-            <td className={`${appTableTdClassName} whitespace-nowrap tabular-nums ${changeClassName(lift.direction)}`}>{lift.change}</td>
-            <td className={`${appTableTdClassName} whitespace-nowrap tabular-nums`}>{lift.heaviest ?? ""}</td>
+    <>
+      <LiftCards
+        rows={summary.lifts.map((lift) => ({
+          name: lift.name,
+          facts: [
+            ...(lift.logged != null ? [{ label: "Sessions", value: String(lift.logged) }] : []),
+            { label: "First est. 1RM", value: lift.earlier },
+            { label: "Latest est. 1RM", value: lift.latest },
+            { label: "Change", value: lift.change, className: `tabular-nums ${changeClassName(lift.direction)}` },
+            ...(lift.heaviest ? [{ label: "Best set", value: lift.heaviest }] : []),
+          ],
+        }))}
+      />
+      <AppTable className="hidden min-w-0 sm:block">
+        <caption className="sr-only">
+          Sessions, estimated 1RM, change, and best set for the lifts in this report
+        </caption>
+        <thead>
+          <tr className={appTableHeadRowClassName}>
+            <th className={appTableThClassName} scope="col">Lift</th>
+            <th className={appTableThClassName} scope="col">Sessions</th>
+            <th className={appTableThClassName} scope="col">First est. 1RM</th>
+            <th className={appTableThClassName} scope="col">Latest est. 1RM</th>
+            <th className={appTableThClassName} scope="col">Change</th>
+            <th className={appTableThClassName} scope="col">Best set</th>
           </tr>
-        ))}
-      </tbody>
-    </AppTable>
+        </thead>
+        <tbody>
+          {summary.lifts.map((lift) => (
+            <tr key={lift.name}>
+              <LiftName name={lift.name} />
+              <td className={`${appTableTdClassName} whitespace-nowrap tabular-nums`}>{lift.logged ?? ""}</td>
+              <td className={`${appTableTdClassName} whitespace-nowrap tabular-nums`}>{lift.earlier}</td>
+              <td className={`${appTableTdClassName} whitespace-nowrap tabular-nums`}>{lift.latest}</td>
+              <td className={`${appTableTdClassName} whitespace-nowrap tabular-nums ${changeClassName(lift.direction)}`}>{lift.change}</td>
+              <td className={`${appTableTdClassName} whitespace-nowrap tabular-nums`}>{lift.heaviest ?? ""}</td>
+            </tr>
+          ))}
+        </tbody>
+      </AppTable>
+    </>
   );
 }
 
@@ -168,7 +221,7 @@ function ReportView({ text }: { text: string }) {
     ? paragraphs.filter((paragraph) => paragraph.toLowerCase().includes("not medical advice"))
     : [];
   return (
-    <div className="grid gap-5">
+    <div className="grid min-w-0 gap-5">
       {summary ? <ReportFigures summary={summary} /> : null}
       {reading.length > 0 ? (
         <div className="grid gap-3">
@@ -326,24 +379,48 @@ export default function ReportsPage() {
         <p className="mt-1 max-w-3xl text-sm text-zinc-600">
           Notes are sent to the model provider to write the report.
         </p>
-        <div className="mt-4 flex flex-wrap justify-end gap-2">
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:flex sm:justify-end">
           <ActionButton
             type="button"
             variant="secondary"
+            fullWidth
+            className="whitespace-nowrap sm:w-fit"
             onClick={() => void createReport("all")}
             disabled={creatingKind != null || isLoading || allowancePaused || allAvailableAt != null}
             aria-describedby={createStatus.length > 0 ? "report-create-status" : undefined}
           >
-            {creatingKind === "all" ? "Creating report..." : "Create all-sessions report"}
+            {creatingKind === "all" ? (
+              <>
+                <span className="sm:hidden">Creating...</span>
+                <span className="hidden sm:inline">Creating report...</span>
+              </>
+            ) : (
+              <>
+                <span className="sm:hidden">All-sessions report</span>
+                <span className="hidden sm:inline">Create all-sessions report</span>
+              </>
+            )}
           </ActionButton>
           <ActionButton
             type="button"
             variant="primary"
+            fullWidth
+            className="whitespace-nowrap sm:w-fit"
             onClick={() => void createReport("recent")}
             disabled={creatingKind != null || isLoading || allowancePaused || recentAvailableAt != null}
             aria-describedby={createStatus.length > 0 ? "report-create-status" : undefined}
           >
-            {creatingKind === "recent" ? "Creating report..." : "Create 4-week report"}
+            {creatingKind === "recent" ? (
+              <>
+                <span className="sm:hidden">Creating...</span>
+                <span className="hidden sm:inline">Creating report...</span>
+              </>
+            ) : (
+              <>
+                <span className="sm:hidden">4-week report</span>
+                <span className="hidden sm:inline">Create 4-week report</span>
+              </>
+            )}
           </ActionButton>
         </div>
         {createStatus.length > 0 ? (
@@ -361,7 +438,7 @@ export default function ReportsPage() {
       ) : reports.length === 0 ? (
         <p className="mt-4 text-sm text-zinc-600">No reports yet.</p>
       ) : (
-        <section className="panel mt-4 grid gap-5 p-5 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start">
+        <section className="panel mt-4 grid min-w-0 gap-5 p-5 lg:grid-cols-[16rem_minmax(0,1fr)] lg:items-start">
           <div className="min-w-0">
             <h2 className="text-base font-medium text-zinc-800">Saved reports</h2>
             <ul className="mt-2 grid max-h-64 gap-0.5 overflow-y-auto lg:max-h-[28rem]">
