@@ -1,3 +1,4 @@
+import type { SupabaseClient } from "@supabase/supabase-js";
 import {
   ACCOUNT_EMAIL_UNAVAILABLE,
   CURRENT_PASSWORD_INCORRECT,
@@ -5,6 +6,7 @@ import {
 } from "@/app/account/account-form";
 import { accountHasEmailPassword } from "@/lib/account-has-password";
 import { friendlyAuthError } from "@/lib/friendly-auth-error";
+import type { Database } from "@/lib/supabase/database.types";
 import { createPublicServerClient, createServiceRoleClient } from "@/lib/supabase/server";
 import { ApiHttpError } from "@/server/api/http";
 import { logSecurityEvent } from "@/server/security/log-security-event";
@@ -40,14 +42,41 @@ export async function requireCurrentPassword(
   return { email };
 }
 
-export async function readAccount(userId: string): Promise<{ email: string | null; has_password: boolean }> {
+export async function readAccount(userId: string): Promise<{
+  email: string | null;
+  has_password: boolean;
+  double_progression: boolean;
+}> {
   const admin = createServiceRoleClient();
   const { data, error } = await admin.auth.admin.getUserById(userId);
   if (error || !data.user) {
     throw new ApiHttpError(400, ACCOUNT_EMAIL_UNAVAILABLE);
   }
+  const { data: settings, error: settingsError } = await admin
+    .from("app_users")
+    .select("double_progression")
+    .eq("id", userId)
+    .maybeSingle();
+  if (settingsError) {
+    throw new ApiHttpError(500, "Could not load the account. Try again.");
+  }
   const hasPassword = accountHasEmailPassword(data.user.identities);
-  return { email: data.user.email ?? null, has_password: hasPassword };
+  return {
+    email: data.user.email ?? null,
+    has_password: hasPassword,
+    double_progression: settings?.double_progression === true,
+  };
+}
+
+export async function saveAccountDoubleProgression(
+  client: SupabaseClient<Database>,
+  userId: string,
+  enabled: boolean,
+): Promise<void> {
+  const { error } = await client.from("app_users").update({ double_progression: enabled }).eq("id", userId);
+  if (error) {
+    throw new ApiHttpError(500, "Could not save double progression. Try again.");
+  }
 }
 
 export async function updateAccountEmail(userId: string, email: string): Promise<{ email: string }> {

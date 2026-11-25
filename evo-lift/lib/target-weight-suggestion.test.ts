@@ -1299,6 +1299,29 @@ describe("double progression", () => {
     });
   });
 
+  it("adds the saved increment once the upper rep target is hit", () => {
+    const sets = [
+      ...workingSets("older", 14, [10, 10], 10),
+      ...workingSets("newer", 3, [12, 12], 12),
+    ];
+    const result = suggestTargetWeight({
+      sets,
+      plannedReps: 12,
+      today: TODAY,
+      doubleProgression: true,
+      progressionIncrementKg: 1,
+    });
+
+    assert.deepEqual(result, {
+      status: "suggestion",
+      weightKg: 61,
+      reps: 10,
+      rationale: "Previous session hit 12 reps at 60 kg.",
+      previousWeightKg: 60,
+      previousReps: 12,
+    });
+  });
+
   it("starts the rep step again after the weight increase", () => {
     const result = suggest(
       [

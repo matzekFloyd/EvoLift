@@ -55,6 +55,7 @@ describe("exerciseDefaultsFormValues", () => {
     suggest_warmups: false,
     suggest_target: false,
     double_progression: true,
+    progression_increment_kg: null,
     max_suggested_warmup_sets: 2,
     created_at: "",
     updated_at: "",

@@ -140,9 +140,14 @@ function weightStepKg(loadKg: number): number {
   return Math.min(MAX_STEP_KG, Math.max(MIN_STEP_KG, step));
 }
 
-/** Move one load-sized step. A decrease stops at 0 kg. */
-function stepBy(load: number, direction: 1 | -1): number {
-  return Math.max(0, roundKg(load + direction * weightStepKg(load)));
+/**
+ * Move one step. A saved increment replaces the load-based step.
+ * A decrease stops at 0 kg.
+ */
+function stepBy(load: number, direction: 1 | -1, incrementKg?: number | null): number {
+  const parsed = incrementKg == null ? null : Number(incrementKg);
+  const saved = parsed != null && Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  return Math.max(0, roundKg(load + direction * (saved ?? weightStepKg(load))));
 }
 
 /**
@@ -170,8 +175,13 @@ function isEasierSession(referenceKg: number, previousKg: number, progress: Load
 }
 
 /** Keep a suggestion from going more than one step past the hardest load in the window. */
-function clampToHardestStep(proposed: number, hardestKg: number, progress: LoadProgress): number {
-  const limit = stepBy(hardestKg, progress);
+function clampToHardestStep(
+  proposed: number,
+  hardestKg: number,
+  progress: LoadProgress,
+  incrementKg?: number | null,
+): number {
+  const limit = stepBy(hardestKg, progress, incrementKg);
   return isHarder(proposed, limit, progress) ? limit : proposed;
 }
 
@@ -365,6 +375,7 @@ function doubleProgressionBottom(sessions: ProgressionSession[], load: number, p
  * When every working set hits the latest rep target:
  * - short of the top, suggest the top at the same weight
  * - at the top, suggest one harder step and reset reps to the bottom
+ * A saved progression increment replaces the load-based step. Missing keeps that step.
  *
  * A miss of 1 rep holds the weight and the rep target. A miss of 2 or more
  * that still reaches the bottom suggests that bottom at the same weight.
@@ -378,6 +389,8 @@ function suggestDoubleProgression(input: {
   excludeSessionId?: string | null;
   today: string;
   assistance?: boolean;
+  /** Kilograms for the load change. Null and omitted keep the load-based step. */
+  progressionIncrementKg?: number | null;
 }): TargetWeightSuggestion {
   const progress = loadProgress(input.assistance);
   const excludeSessionId = input.excludeSessionId ?? null;
@@ -493,7 +506,7 @@ function suggestDoubleProgression(input: {
       );
     }
     return suggestion(
-      stepBy(load, easierDirection(progress)),
+      stepBy(load, easierDirection(progress), input.progressionIncrementKg),
       `Previous session was under ${formatRepCount(bottom)} at ${formatKgAmount(load)}.`,
       comparedTo,
       bottom,
@@ -507,7 +520,12 @@ function suggestDoubleProgression(input: {
       sessions.flatMap((session) => session.sets.map((set) => set.loadedKg)),
       progress,
     );
-    const nextWeight = clampToHardestStep(stepBy(load, progress), hardest, progress);
+    const nextWeight = clampToHardestStep(
+      stepBy(load, progress, input.progressionIncrementKg),
+      hardest,
+      progress,
+      input.progressionIncrementKg,
+    );
     return suggestion(nextWeight, hitText, comparedTo, bottom);
   }
 
@@ -530,6 +548,8 @@ export function suggestTargetWeight(input: {
   doubleProgression?: boolean;
   /** Assisted Dip and Assisted Pull-Up. Less assistance is the harder step. */
   assistance?: boolean;
+  /** Used only while double progression is on. Null keeps the load-based step. */
+  progressionIncrementKg?: number | null;
 }): TargetWeightSuggestion {
   if (input.doubleProgression) {
     return suggestDoubleProgression(input);

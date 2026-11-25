@@ -20,6 +20,7 @@ type SessionTargetsSheetProps = {
   targetsWeightKg: string;
   targetSuggestionsDisabledExerciseIds: ReadonlySet<string>;
   exerciseDoubleProgression?: boolean | null;
+  progressionIncrementKg?: number | null;
   isSavingTargets: boolean;
   onTargetsSetsChange: (value: string) => void;
   onTargetsRepsChange: (value: string) => void;
@@ -39,6 +40,7 @@ export function SessionTargetsSheet({
   targetsWeightKg,
   targetSuggestionsDisabledExerciseIds,
   exerciseDoubleProgression = null,
+  progressionIncrementKg = null,
   isSavingTargets,
   onTargetsSetsChange,
   onTargetsRepsChange,
@@ -99,6 +101,7 @@ export function SessionTargetsSheet({
           excludeSessionId={sessionId ?? null}
           enabled={targetSuggestionsEnabled(!targetSuggestionsDisabledExerciseIds.has(exerciseId))}
           exerciseDoubleProgression={exerciseDoubleProgression}
+          progressionIncrementKg={progressionIncrementKg}
           assistance={isAssistanceExercise(exerciseSlug)}
           onApply={({ weightKg, reps }) => {
             onTargetsWeightChange(weightKg);

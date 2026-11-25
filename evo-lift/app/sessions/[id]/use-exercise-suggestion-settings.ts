@@ -22,6 +22,9 @@ export function useExerciseSuggestionSettings(
   const [doubleProgressionByExerciseId, setDoubleProgressionByExerciseId] = useState<
     Map<string, boolean | null>
   >(() => new Map());
+  const [progressionIncrementKgByExerciseId, setProgressionIncrementKgByExerciseId] = useState<
+    Map<string, number | null>
+  >(() => new Map());
 
   const warmupSuggestionsDisabledExerciseIds = useMemo(() => {
     const disabled = new Set<string>();
@@ -47,7 +50,7 @@ export function useExerciseSuggestionSettings(
       const { data: defaults } = await supabaseBrowserClient
         .from("user_exercise_defaults")
         .select(
-          "exercise_id, suggest_warmups, suggest_target, max_suggested_warmup_sets, double_progression",
+          "exercise_id, suggest_warmups, suggest_target, max_suggested_warmup_sets, double_progression, progression_increment_kg",
         )
         .eq("user_id", scopedUserId);
       if (cancelled) {
@@ -57,10 +60,12 @@ export function useExerciseSuggestionSettings(
       const maxWarmupByExercise = new Map<string, number | null>();
       const targetDisabled = new Set<string>();
       const doubleProgressionByExercise = new Map<string, boolean | null>();
+      const progressionIncrementByExercise = new Map<string, number | null>();
       for (const row of defaults ?? []) {
         warmupByExercise.set(row.exercise_id, row.suggest_warmups);
         maxWarmupByExercise.set(row.exercise_id, row.max_suggested_warmup_sets);
         doubleProgressionByExercise.set(row.exercise_id, row.double_progression);
+        progressionIncrementByExercise.set(row.exercise_id, row.progression_increment_kg);
         if (row.suggest_target === false) {
           targetDisabled.add(row.exercise_id);
         }
@@ -68,6 +73,7 @@ export function useExerciseSuggestionSettings(
       setSuggestWarmupsByExerciseId(warmupByExercise);
       setMaxWarmupSetsByExerciseId(maxWarmupByExercise);
       setDoubleProgressionByExerciseId(doubleProgressionByExercise);
+      setProgressionIncrementKgByExerciseId(progressionIncrementByExercise);
       setTargetSuggestionsDisabledExerciseIds(targetDisabled);
     }
     void loadSuggestionSettings();
@@ -81,5 +87,6 @@ export function useExerciseSuggestionSettings(
     targetSuggestionsDisabledExerciseIds,
     maxWarmupSetsByExerciseId,
     doubleProgressionByExerciseId,
+    progressionIncrementKgByExerciseId,
   };
 }

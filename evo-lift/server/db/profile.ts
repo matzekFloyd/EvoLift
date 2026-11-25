@@ -307,6 +307,8 @@ export async function getExerciseDefaults(client: Client, userId: string) {
       suggest_warmups: row.suggest_warmups,
       suggest_target: row.suggest_target,
       double_progression: row.double_progression,
+      progression_increment_kg:
+        row.progression_increment_kg == null ? null : Number(row.progression_increment_kg),
       max_suggested_warmup_sets: row.max_suggested_warmup_sets,
     })),
   };
@@ -342,6 +344,12 @@ export async function saveExerciseDefaults(
   if (input.updateMaxWarmupSets) {
     payload.max_suggested_warmup_sets = input.maxWarmupSets;
   }
+  if (input.updateDoubleProgression) {
+    payload.double_progression = input.doubleProgression;
+  }
+  if (input.updateProgressionIncrementKg) {
+    payload.progression_increment_kg = input.progressionIncrementKg;
+  }
   const { data, error } = await client
     .from("user_exercise_defaults")
     .upsert(payload, { onConflict: "user_id,exercise_id" })
@@ -376,6 +384,7 @@ export async function clearExerciseDefaults(client: Client, userId: string, exer
       suggest_warmups: isCompoundExercise(exercise.slug),
       suggest_target: true,
       double_progression: null,
+      progression_increment_kg: null,
       max_suggested_warmup_sets: null,
     },
     { onConflict: "user_id,exercise_id" },

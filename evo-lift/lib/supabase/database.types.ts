@@ -436,6 +436,7 @@ export type Database = {
           suggest_warmups: boolean;
           suggest_target: boolean;
           double_progression: boolean | null;
+          progression_increment_kg: number | null;
           max_suggested_warmup_sets: number | null;
           created_at: string;
           updated_at: string;
@@ -450,6 +451,7 @@ export type Database = {
           suggest_warmups?: boolean;
           suggest_target?: boolean;
           double_progression?: boolean | null;
+          progression_increment_kg?: number | null;
           max_suggested_warmup_sets?: number | null;
           created_at?: string;
           updated_at?: string;
@@ -464,6 +466,7 @@ export type Database = {
           suggest_warmups?: boolean;
           suggest_target?: boolean;
           double_progression?: boolean | null;
+          progression_increment_kg?: number | null;
           max_suggested_warmup_sets?: number | null;
           created_at?: string;
           updated_at?: string;

@@ -76,7 +76,25 @@ export const resourceApiPaths = {
     delete: { summary: "Delete a goal", parameters: [idParam], responses: ok("Deleted") },
   },
   "/api/account": {
-    get: { summary: "Read the account email", responses: ok("Account") },
+    get: {
+      summary: "Read the account email and the account double-progression switch",
+      responses: ok("Account"),
+    },
+    patch: {
+      summary: "Turn double progression on or off for the account",
+      requestBody: jsonBody({
+        type: "object",
+        additionalProperties: false,
+        required: ["double_progression"],
+        properties: {
+          double_progression: {
+            type: "boolean",
+            description: "Account-wide switch. A per-exercise true or false still wins.",
+          },
+        },
+      }),
+      responses: ok("Updated account"),
+    },
     delete: { summary: "Delete the account", responses: ok("Deleted") },
   },
   "/api/account/email": {
@@ -102,12 +120,46 @@ export const resourceApiPaths = {
     put: { summary: "Replace hidden exercises", responses: ok("Hidden exercise ids") },
   },
   "/api/account/exercise-defaults": {
-    get: { summary: "List exercise defaults", responses: ok("Defaults") },
+    get: {
+      summary: "List exercise defaults",
+      description:
+        "Each exercise includes double_progression (true, false, or null) and progression_increment_kg (a positive number of kilograms, or null).",
+      responses: ok("Defaults"),
+    },
   },
   "/api/account/exercise-defaults/{exerciseId}": {
     put: {
       summary: "Save exercise defaults",
+      description:
+        "Unknown fields are rejected. Omit double_progression or progression_increment_kg to leave the stored value unchanged. Null clears that override.",
       parameters: [{ name: "exerciseId", in: "path", required: true, schema: uuid }],
+      requestBody: jsonBody({
+        type: "object",
+        additionalProperties: false,
+        required: ["suggest_warmups", "suggest_target"],
+        properties: {
+          default_base_weight_kg: { type: "number", minimum: 0, nullable: true },
+          default_target_sets: { type: "integer", minimum: 1, nullable: true },
+          default_target_reps: { type: "integer", minimum: 1, nullable: true },
+          default_target_weight_kg: { type: "number", minimum: 0, nullable: true },
+          suggest_warmups: { type: "boolean" },
+          suggest_target: { type: "boolean" },
+          max_suggested_warmup_sets: { type: "integer", minimum: 1, nullable: true },
+          double_progression: {
+            type: "boolean",
+            nullable: true,
+            description: "True or false overrides the account switch. Null follows the account switch.",
+          },
+          progression_increment_kg: {
+            type: "number",
+            minimum: 0.01,
+            maximum: 9999.99,
+            nullable: true,
+            description:
+              "Kilograms added when double progression reaches the top of the rep range. Null keeps the load-based step.",
+          },
+        },
+      }),
       responses: ok("Saved defaults"),
     },
     delete: {
