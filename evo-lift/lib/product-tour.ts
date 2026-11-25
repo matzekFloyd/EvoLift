@@ -1,3 +1,4 @@
+import { accountSectionPath } from "@/app/account/account-section";
 import { APP_HOME_PATH, appPath } from "@/lib/app-paths";
 
 /** NextStep tour name for the first-login walkthrough. */
@@ -61,7 +62,7 @@ export function productTourSelector(targetId: string): string {
 
 /** Settings → Body metrics, where bodyweight lives. Login is the default tab. */
 export function productTourAccountPath(): string {
-  return `${appPath("/account")}?section=profile`;
+  return accountSectionPath("profile");
 }
 
 export function productTourGoalsPath(): string {
